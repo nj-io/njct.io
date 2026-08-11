@@ -1215,6 +1215,7 @@ function toggleExpand(force){
     { duration: 300, easing: 'cubic-bezier(.22,1,.36,1)' });
 }
 label.addEventListener('click', e => {
+  if (modalSwiped) return; // a swipe is not a click
   if (e.target.closest('a')) return;
   if (e.target.closest('.cfs')){ cycleFS(); return; } // aA never toggles the card
   if (e.target.closest('.clogo')){ openLogoLB(activeIdx); return; } // the mark, full screen
@@ -1240,6 +1241,32 @@ document.addEventListener('click', e => {
   if (!expanded || dragged || lbOpen) return;
   if (label.contains(e.target) || vpanel.contains(e.target)) return;
   toggleExpand(false);
+});
+
+// horizontal swipes on the open dossier step between projects without leaving it.
+// vertical touches keep scrolling the dossier (pan-y stays with the browser).
+let mSwX = null, mSwY = null, modalSwiped = false;
+label.addEventListener('pointerdown', e => {
+  if (!expanded || e.pointerType !== 'touch' || lbOpen) return;
+  mSwX = e.clientX; mSwY = e.clientY;
+});
+label.addEventListener('pointercancel', () => { mSwX = null; });
+label.addEventListener('pointerup', e => {
+  if (mSwX === null || !expanded){ mSwX = null; return; }
+  const dx = e.clientX - mSwX, dy = e.clientY - mSwY;
+  mSwX = null;
+  if (Math.abs(dx) > 60 && Math.abs(dx) > 2 * Math.abs(dy)){
+    modalSwiped = true;
+    const dir = dx < 0 ? 1 : -1; // swipe left = next project
+    const nt = clampI(Math.round(pos) + dir);
+    if (nt !== Math.round(pos)){
+      target = nt;
+      if (!RM) label.animate(
+        [{ transform: 'translateX(' + (dir * -16) + 'px)', opacity: 0.7 }, { transform: 'none', opacity: 1 }],
+        { duration: 260, easing: 'cubic-bezier(.22,1,.36,1)' });
+    }
+    setTimeout(() => modalSwiped = false, 120);
+  }
 });
 
 // ---------- figure lightbox ----------
