@@ -1,6 +1,9 @@
 {
   "theme": "base",
-  "flowchart": { "useMaxWidth": true, "htmlLabels": false },
+  "flowchart": {
+    "useMaxWidth": true,
+    "htmlLabels": false
+  },
   "themeVariables": {
     "background": "transparent",
     "primaryColor": "#f7f5f0",
@@ -10,6 +13,9 @@
     "secondaryColor": "#efece6",
     "tertiaryColor": "#e7e4dd",
     "fontFamily": "-apple-system, BlinkMacSystemFont, Helvetica Neue, sans-serif",
-    "fontSize": "14px"
+    "fontSize": "14px",
+    "noteBkgColor": "#efece6",
+    "noteTextColor": "#131311",
+    "noteBorderColor": "#c9c5bc"
   }
 }

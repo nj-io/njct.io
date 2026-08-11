@@ -19,8 +19,7 @@ import tempfile
 REPO = pathlib.Path(__file__).resolve().parent.parent
 INDEX = REPO / "index.html"
 BUILD = REPO / "build"
-CONTENT = pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else pathlib.Path(
-    "/private/tmp/claude-501/-Users-neil/954ac214-6032-4ac5-bb58-9a3d61317266/scratchpad/dossiers")
+CONTENT = pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else REPO / "content"
 
 SLUGS = {
     "Mirra": "mirra", "Social Hook": "social-hook", "Clauded": "clauded",
@@ -43,11 +42,13 @@ def render_mermaid(src: str, theme_cfg: pathlib.Path, out_svg: pathlib.Path) -> 
 
 
 def namespace_svg(svg: str, prefix: str) -> str:
+    """Prefix every id — including the id SELECTORS inside mermaid's embedded
+    stylesheet, or the whole theme sheet stops matching and the diagram
+    renders SVG-default black."""
     ids = set(re.findall(r'id="([^"]+)"', svg))
     for i in sorted(ids, key=len, reverse=True):
         svg = svg.replace(f'id="{i}"', f'id="{prefix}-{i}"')
-        svg = svg.replace(f'url(#{i})', f'url(#{prefix}-{i})')
-        svg = svg.replace(f'href="#{i}"', f'href="#{prefix}-{i}"')
+        svg = svg.replace(f'#{i}', f'#{prefix}-{i}')
     svg = re.sub(r'<\?xml[^>]*\?>', '', svg).strip()
     return svg
 
@@ -67,6 +68,8 @@ def main() -> None:
     for name, d in data.items():
         slug = SLUGS[name]
         entry = {"what": d["what"], "arch": d["arch"], "proc": d["proc"], "loCap": LO_CAP}
+        if d.get("glance"):
+            entry["glance"] = d["glance"]
         if d.get("mermaid"):
             for theme in ("dark", "light"):
                 svg = render_mermaid(d["mermaid"], BUILD / f"mm-{theme}.json",

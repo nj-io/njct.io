@@ -1,0 +1,367 @@
+{
+ "Mirra": {
+  "what": "Follow X accounts from Telegram: every post arrives in minutes, and a short brief tells you what each author has been saying and how it changed.",
+  "arch": [
+   "Ingest claims a handle, not a feed — one paid fetch per author per cycle is shared by every subscriber tracking them, each re-applying its own content filter and time window",
+   "Four dedup layers guard an upstream that returns wrong authors and out-of-window posts: client-side author validation, timestamp validation with clock-skew tolerance, a 30-day seen-set, and a Snowflake-id tiebreaker because upstream timestamps are only second-precision",
+   "Document packs are frozen and numbered before any model call, then shuffled — sorting by views buries the low-engagement tail in the part of the context window models attend to least",
+   "One model call per author per window; clustering, importance scoring, shortlist selection and citation verification are all code, not tokens",
+   "Continuity rides on the previous edition's own grounded output rather than re-fetched posts, and a recurrence claim is downgraded unless its cited evidence appears verbatim in today's text"
+  ],
+  "proc": [
+   "The live prompt is a versioned database row, not code — a change ships as a new version and is measured against the one it replaces",
+   "Retry logic is branched on evidence: half of all parse failures sat exactly at the output-token cap, so a plain re-roll would have been inert for the majority case",
+   "A lint canary injects a violation on every commit and fails if the rule does not catch it, because a dead rule and a clean tree exit identically",
+   "Staging and production are separate deploy paths released on the operator's call, and user-facing copy is banked and approved before it ships"
+  ],
+  "flow": [
+   "Ingest",
+   "Freeze pack",
+   "Model call",
+   "Brief",
+   "Fan-out"
+  ],
+  "mermaid": "flowchart TB\n  ING[\"Per-handle ingest — one paid fetch<br/>per author, every 5 minutes\"] --> DD{\"Four-layer dedup\"}\n  DD -->|\"per-feed filter\"| TG[\"Telegram mirror,<br/>within minutes\"]\n  DD -->|\"frozen pack, then one model<br/>call per author per window\"| BR[(\"One brief per<br/>author per cycle\")]\n  PR[\"Previous edition\"] -.->|\"continuity\"| BR\n  BR --> OUT[\"Read by every subscriber:<br/>bot, dashboard, public pages\"]\n",
+  "image": "mirra.png",
+  "imageCaption": "Every post an author publishes is captured continuously; each cycle the window is frozen into a single document pack and written into one brief.",
+  "hiImage": "mirra-hi.png",
+  "hiCaption": "One fetch per author fans out to every subscriber tracking them, and the brief written from that same capture is read by all of them.",
+  "glance": [
+   [
+    "Mirrors",
+    "Posts land in Telegram within 5 minutes — sub-60s on Premium"
+   ],
+   [
+    "Brief",
+    "One per author each cycle: topics, proportions, what shifted"
+   ],
+   [
+    "Price",
+    "$4–20/mo tiers"
+   ],
+   [
+    "Economics",
+    "~90% gross margin — one fetch and one brief serve every subscriber"
+   ]
+  ]
+ },
+ "Social Hook": {
+  "what": "It watches your development work and turns it into social posts in your voice — approved by you, or fully autonomous.",
+  "arch": [
+   "The commit hook backgrounds itself so a commit is never blocked, and unregistered repositories, off-branch commits and CI environments exit before any model call",
+   "One abstract adapter contract applied four times over — publishing platforms, media generators, messaging channels and model providers — so adding a platform is one factory function and one registration, never a branch in a dispatch chain",
+   "Callers branch on a platform's declared capabilities rather than its name, so a platform without threads or native quoting degrades to a link instead of failing",
+   "Five model providers behind one normalised response type; the Claude CLI provider embeds its JSON schema in the system prompt instead of using structured-output mode, which forces a multi-turn validation loop costing three or more round trips",
+   "Four gates stand between an approved draft and a live post — no adapter, no credentials, a format that cannot be auto-posted, and unresolved media — each holding the draft editable rather than failing it"
+  ],
+  "proc": [
+   "A wiring check treats a capability with no caller as unbuilt. It exists because the first live run found 112 functions that were complete, unit-tested and reachable from nothing — reviews are scoped to diffs, and a diff cannot show an absent caller",
+   "Allowlist entries in that check require a written reason; a blank reason fails the build, and bulk allowlisting is not permitted",
+   "Releases are cut from conventional commits automatically, and CLI documentation is regenerated in CI and fails the build if it differs from what is committed",
+   "Concurrent agents share one database, so a test count only counts when measured from a clean checkout inside a quiescence window — the project quotes members, never totals"
+  ],
+  "flow": [
+   "Commit",
+   "Classify",
+   "Draft",
+   "Approve",
+   "Publish"
+  ],
+  "mermaid": "flowchart TB\n  C[\"git commit, classified<br/>in the background\"] -.->|\"trivial or CI\"| STOP((\"no post\"))\n  V[\"Voice references: identity, voice file,<br/>rejections, prior posts\"] --> CP[\"Composer\"]\n  C --> CP\n  CP -->|\"writes its own media spec\"| G{\"Four gates on the draft\"}\n  G -->|\"held\"| H[\"Back to draft,<br/>still editable\"]\n  G -->|\"clear\"| PUB[\"Approved in Telegram, web or CLI,<br/>then posted to X and LinkedIn\"]\n",
+  "image": null,
+  "imageCaption": null,
+  "hiImage": "social-hook-hi.png",
+  "hiCaption": "Commits are classified and drafted, then held at a gate until approved, and only then published to each channel.",
+  "glance": [
+   [
+    "Sources",
+    "Your actual commits and dev activity"
+   ],
+   [
+    "Publishes",
+    "X and LinkedIn"
+   ],
+   [
+    "Control",
+    "Approval gates in Telegram, web or CLI — or hands-off"
+   ],
+   [
+    "Engine",
+    "Open source on PyPI; B2B SaaS layer in design"
+   ]
+  ]
+ },
+ "Clauded": {
+  "what": "Claude Code running inside a Docker sandbox: skip permission prompts safely while clipboard, sound, Chrome, git and MCP still reach your Mac.",
+  "arch": [
+   "Bridges are ordinary local HTTP services on the Mac that container-side shims call by name: pbcopy, pbpaste, xdg-open and the sound player are replaced with clients that detect the container and fall back to the real binary when run natively",
+   "The microphone bridge runs the other way — the host streams 16 kHz raw PCM into a container FIFO exposed as an audio source, and the client only opens the socket while that source is actually recording, so the Mac microphone runs during capture rather than for the whole session",
+   "Consent for capture is anchored host-side: a native dialog defaulting to Deny, a timeout that resolves to denied, a per-session cache, and a cooldown so a retrying client cannot produce a prompt loop",
+   "Every bridge request carries a token compared in constant time, and the container never holds an API key — authentication is the normal browser login, with credentials living in a mounted host directory",
+   "An opt-in firewall drops egress by default and re-admits only the model API, the code host, two package registries and telemetry"
+  ],
+  "proc": [
+   "The changelog is a single append-only numbered list, never renumbered, so an entry number stays a stable reference; entries state symptom, root cause and fix",
+   "A working bridge was deleted once its premise proved false — Claude in Chrome pairs over a cloud relay rather than localhost, so the Mac-side proxy had never been necessary",
+   "The build stopped pruning Docker images system-wide after it was found deleting other projects' images, and the deliberate non-use is recorded in a comment so it is not reintroduced",
+   "The Linux port is published as an assessment rather than started: three hard blockers and four degraded features named, with the parts already portable listed so they are not re-audited"
+  ],
+  "flow": [
+   "Build",
+   "Mount",
+   "Bridge",
+   "Session",
+   "Host"
+  ],
+  "mermaid": "sequenceDiagram\n    participant C as Container\n    participant H as Mac bridge\n    participant U as Operator\n\n    C->>H: pbcopy, xdg-open, sound\n    Note over C,H: token-checked local HTTP\n    H-->>U: clipboard, URL, audio\n    U->>C: starts voice capture\n    C->>H: connects only while recording\n    H->>U: dialog, defaults to Deny\n    U-->>H: approved, cached 1h\n    H-->>C: 16 kHz PCM, 100 ms chunks\n    Note over C,H: nothing written to disk\n",
+  "image": "clauded.png",
+  "imageCaption": "Five host bridges pass through an otherwise sealed container wall: clipboard, sound, URL opening, microphone, and mounted git and SSH credentials.",
+  "hiImage": "clauded-hi.png",
+  "hiCaption": "The container is a hard boundary; five bridges cross it to reach the host.",
+  "glance": [
+   [
+    "Boundary",
+    "A hard container wall instead of soft permission prompts"
+   ],
+   [
+    "Bridges",
+    "5 host bridges: clipboard · sound · Chrome · git/SSH · MCP"
+   ],
+   [
+    "Sessions",
+    "As many in parallel as you want; resume by name"
+   ],
+   [
+    "Licence",
+    "MIT, one-command install"
+   ]
+  ]
+ },
+ "LikeWiki": {
+  "what": "Your X likes, compiled into a private wiki: every claim cites the post it came from, and the pages rebuild themselves nightly.",
+  "arch": [
+   "Source pages are the append-mostly record and are read-only to every agent: the body holds the full transcript and media descriptions and routinely exceeds a model's read cap, so rewriting one from a capped read would silently truncate it",
+   "Concept pages cite sources and never other concept pages, because sources are stable while concept pages are rewritten as new material lands",
+   "There is no database. Flat markdown in git is the store, and the reading surface never touches the working tree — each request pins one commit and reads every page from that revision, so an ingest run landing mid-request cannot produce a torn read",
+   "Tags, source counts and index ordering are computed by inverting the citation map, so the model owns judgement and nothing else: a tag is by construction a page that really does cite the source",
+   "A read-only server exposes the catalogue, page summaries, source search and raw sources to other agents, every response stamped with the commit and its age so a stale checkout announces itself"
+  ],
+  "proc": [
+   "Video ingest verifies magic bytes after download. A field-name mismatch had been saving thumbnail images under a video filename, so a single still was described as if it covered a two-hour talk — 40 source pages were invalidated before the mismatch was spotted",
+   "That fix was silently reverted by a later refactor and re-landed with a measurement: 57 of 58 affected videos were recoverable from URLs already stored",
+   "Grounding audits are owed by content fingerprint rather than commit history, so a page audited in one month and extended the next is owed another — the previous heuristic counted it as done",
+   "Rewriting agents reported their own work clean; 24 independent adversarial auditors then found six real defects they had missed, including an attribution to the wrong speaker entirely"
+  ],
+  "flow": [
+   "Likes",
+   "Read full",
+   "Categorise",
+   "Pages",
+   "Serve"
+  ],
+  "mermaid": "flowchart TB\n  L[\"Likes on X\"] -->|\"diffed by id\"| SC[\"Scrape, download,<br/>transcribe media\"]\n  SC --> CT[\"Categorise<br/>one source, full ripple\"]\n  CT --> G[(\"Flat markdown<br/>in git\")]\n  subgraph SUP[\"Supervisor tier\"]\n    direction LR\n    B[\"Backfill\"] --> E[\"Entity pass\"] --> A[\"Grounding audit<br/>by fingerprint\"]\n  end\n  G --> SUP\n  SUP --> G\n  G -->|\"reads pinned<br/>to one commit\"| R[\"Reader and<br/>agent server\"]\n",
+  "image": "likewiki.png",
+  "imageCaption": "Concept pages are held together by their citations: each claim is threaded back to the source post that states it, and the pages are what the threads gather into.",
+  "hiImage": "likewiki-hi.png",
+  "hiCaption": "Liked posts converge into concept pages, and every claim on a page threads back to the source that states it.",
+  "glance": [
+   [
+    "In",
+    "Posts you like on X"
+   ],
+   [
+    "Out",
+    "1,400+ concept pages with 12k+ citations"
+   ],
+   [
+    "Maintains itself",
+    "Nightly rebuilds and provenance audits"
+   ],
+   [
+    "For agents",
+    "A search-and-read MCP server"
+   ]
+  ]
+ },
+ "Track Record": {
+  "what": "Public predictions, kept honest: every call goes into a ledger, gets tracked to its outcome, and scores the person who made it.",
+  "arch": [
+   "A dedicated extraction run over a document pack that already exists — one additional model call against a versioned prompt, and no new capture pipeline",
+   "The ledger is a typed scoring contract over an open payload: everything the model returns is stored losslessly, and only the fields a resolver or a filter computes on are typed",
+   "Subjects are canonical at creation and never free text — tickers for equities, series identifiers for macro, coin identifiers for crypto, knowledge-base identifiers for people and policies, and an author-local subject when nothing matches, so capture never blocks",
+   "The three clocks partition the open set: market data resolves anything carrying a spec, the author's own subsequent posts resolve the roughly 60% of calls that carry no time signal at all, and policy caps only what never had a horizon",
+   "Claims are immutable — a restatement annotates and a revision opens a new linked segment, so an author can never walk back an entry — and price anchors are captured once at insert, never recomputed"
+  ],
+  "proc": [
+   "Only facts are stored; verdicts including the score are render-layer and versioned, so the formula can change without rewriting history",
+   "Resolution rate is instrumentation, never scoreboard: what counts as checkable is partly the classifier's judgement on marginal cases, so a public percentage would move whenever the extractor is revised",
+   "The classification vocabulary is itself a versioned row — every labelled example stamps the version it was labelled under, and a change ships as a new version with notes rather than an edit",
+   "A call that reaches its horizon unresolved is graded against the relevant index, never scored as a miss and never dropped, because dropping it is the cherry-pick the product exists to expose"
+  ],
+  "flow": [
+   "Statement",
+   "Extract",
+   "Ground",
+   "Resolve",
+   "Score"
+  ],
+  "mermaid": "stateDiagram-v2\n    direction LR\n    [*] --> Extracted\n    Extracted --> NotACall: opinion\n    Extracted --> Stance: thesis\n    Extracted --> Open: a grounded call\n\n    Open --> Hit: target touched\n    Open --> Miss: stop touched\n    Open --> Void: never triggered\n    Open --> Reversed: author u-turns\n    Open --> Graded: horizon, tape exists\n    Open --> Stale: horizon, no tape\n    Open --> Review: readers disagree\n\n    Review --> Open: operator adjudicates\n    Stance --> Stance: restated or reversed\n",
+  "image": null,
+  "imageCaption": null,
+  "hiImage": "track-record-hi.png",
+  "hiCaption": "A public claim enters the ledger, is driven to a terminal state, and becomes a score shown beside the partition it came from.",
+  "glance": [
+   [
+    "Tracks",
+    "Traders, punters and commentators"
+   ],
+   [
+    "Scores",
+    "Every call, over time — Brier-style"
+   ],
+   [
+    "Adds",
+    "Live sentiment and who backs or disputes whom"
+   ],
+   [
+    "Arenas",
+    "Markets · sports · commentary"
+   ]
+  ]
+ },
+ "Claude Historian": {
+  "what": "Makes past Claude Code sessions searchable — what was tried, what worked, what was decided. My contribution took search from 45% to 100% of history.",
+  "arch": [
+   "No index, no database and no background process — transcripts are streamed from disk per query, with a file-level pre-filter running before anything is parsed as JSON",
+   "Files under 400 KB are read whole and split, larger ones are streamed line by line, and the crossover was benchmarked rather than assumed",
+   "Ranking is two-stage: a per-message term score, then a multiplicative refinement with capped match boosting that replaced an inverse-document-frequency computation the corpus did not justify",
+   "The coverage fix walks project directories recursively and rolls subagent hits up to their parent session with per-agent hit counts — one result per subagent was rejected because a single session had spawned 1,239 of them",
+   "Subagent directories are named after their parent session, so recursive discovery had to be preceded by a real session resolver, or a request to summarise a session would silently return one subagent instead"
+  ],
+  "proc": [
+   "The repository had no behavioural tests, so an evaluation harness was built before anything was changed — each fixture asserting one direction only and pinned at session level, so a later change in result shape cannot break the assertion",
+   "Phases were ordered by dependency rather than by value: recursive discovery more than doubles the bytes scanned, so it could not land before the scan was made cheaper, and a raw-byte case-insensitive pre-filter measured 3.7 times faster than a lowercased-copy scan on identical results",
+   "A full-text sidecar index was designed and then cancelled — session-scoped search alone took the reported complaint from 6,500 ms to 4 ms, while the sidecar bought latency only on global search at the cost of a plaintext copy of every conversation",
+   "One negative result was kept in the record: a hand-written character-code fold ran about 50% slower than the native lowercase on line matching, so raw bytes win only where they avoid a decode"
+  ],
+  "flow": [
+   "Transcripts",
+   "Discover",
+   "Pre-filter",
+   "Rank",
+   "Serve"
+  ],
+  "mermaid": "flowchart TB\n  T[\"Session transcripts,<br/>top level\"] --> S[\"File discovery\"]\n  SA[\"Subagent transcripts,<br/>one level deeper\"] -.->|\"recursion adds<br/>56% of corpus bytes\"| S\n  S -->|\"record-type gate, then a raw-byte<br/>pre-filter measured 3.7x faster\"| P[\"Parse only the matching lines,<br/>then two-stage ranking\"]\n  P --> O[\"Subagent hits roll up to their parent<br/>session: search, inspect, transcript\"]\n",
+  "image": null,
+  "imageCaption": null,
+  "hiImage": "historian-hi.png",
+  "hiCaption": "Session transcripts are scanned on demand rather than indexed, and a query returns the one that answers it.",
+  "glance": [
+   [
+    "Finds",
+    "Files touched, errors solved, decisions made"
+   ],
+   [
+    "Speed",
+    "Sub-50 ms local search"
+   ],
+   [
+    "My fix",
+    "Coverage from 45% → 100% of session history"
+   ],
+   [
+    "Ships as",
+    "An open-source MCP server"
+   ]
+  ]
+ },
+ "Xactions": {
+  "what": "A full X operations suite an AI agent can drive — publishing, analytics, audience CRM, monitoring and autonomous personas, through one MCP surface.",
+  "arch": [
+   "Three data paths behind one tool surface — a stealth-configured browser, direct calls to the platform's own internal endpoints, and nine interchangeable engine adapters",
+   "Authentication is a session cookie rather than a developer key, so the tool surface is as wide as the account holder's own reach rather than as narrow as an API tier",
+   "An autonomous persona is a long-lived loop, not a cron job: an activity pattern decides whether it should be awake at all, a strategy sets daily ceilings on follows, likes, comments and posts, and each session's budget is jittered so activity does not land on a machine-readable rhythm",
+   "Streams are durable polling — repeatable queue jobs against a pooled browser, with a per-stream lock preventing overlapping polls and exponential backoff on consecutive failures",
+   "Bulk operations clear four gates before anything executes: a blacklist, per-action daily caps, a refusal above a hundred actions without an explicit override, and a resumable progress file"
+  ],
+  "proc": [
+   "The article extractor's boundary-stripping was lifted out of the browser closure into a plain module for one reason — a closure that exists only inside a page evaluation cannot be referenced from a test",
+   "Query identifiers for internal endpoints rotate upstream and fail silently, returning nothing while everything visible still works, so the fix shipped with the diagnosis rather than just the new value",
+   "Scraping tools that existed only as uncommitted working-tree changes were committed, because a clean reinstall would have removed a dependency another project was built on"
+  ],
+  "flow": [
+   "Agent",
+   "Tool call",
+   "Session",
+   "X surface",
+   "Store"
+  ],
+  "mermaid": "flowchart LR\n  A([\"Agent\"]) --> S[\"Tool server\"]\n  S --> AU[\"Operator session<br/>no developer key\"]\n  AU --> PT{\"Path\"}\n  PT --> BR[\"Stealth<br/>browser\"]\n  PT --> GQ[\"Internal endpoints<br/>ids rotate upstream\"]\n  S --- F1[\"Publishing<br/>posts, threads\"]\n  S --- F2[\"Deep read<br/>likes, articles\"]\n  S --- F3[\"Analytics<br/>audience, rivals\"]\n  S --- F4[\"CRM and graph<br/>mutuals, influence\"]\n  S --- F5[\"Streams<br/>polling, backoff\"]\n  S --- F6[\"Personas<br/>ceilings, rhythm\"]\n",
+  "image": null,
+  "imageCaption": null,
+  "hiImage": "xactions-hi.png",
+  "hiCaption": "An agent reaches the whole platform through a single typed tool surface.",
+  "glance": [
+   [
+    "Tools",
+    "190+ typed operations"
+   ],
+   [
+    "Runs",
+    "24/7 autonomous persona workflows"
+   ],
+   [
+    "Covers",
+    "Posting · analytics · CRM · Spaces · monitoring"
+   ],
+   [
+    "My role",
+    "OSS contributions extending and hardening the suite"
+   ]
+  ]
+ },
+ "Stellar Explorer": {
+  "what": "An explorable 3D map of the night sky: fly between 117k stars, open any into a detail view, with sound tied to the journey.",
+  "arch": [
+   "One hand-written shader program serves every body — three procedural surface functions blended by step masks on a type uniform, so there is no branch in the fragment path and no second program to compile",
+   "Moons do not exist until their planet is expanded, and are fully released on collapse: geometry, materials and children are walked and disposed rather than hidden",
+   "A five-pass composite over a tone-mapped render at a capped pixel ratio — bloom, then vignette, chromatic aberration and film grain, the last three written by hand",
+   "The background is procedural too: three counter-rotating point shells with additive nebula sprites drawn to canvas at runtime, so depth and parallax cost no texture assets and no network fetch",
+   "Hover raycasting is throttled to 20 Hz and hits are routed by user-data tagging, so a single cast distinguishes a click on a body from a click on the void that body becomes"
+  ],
+  "proc": [
+   "Interaction feel was tuned before features were added: orbits freeze on hover and in detail view, and the camera offsets its target so the body sits off-centre with room for the reading panel",
+   "Audio is synthesised rather than loaded from files, and the one audible cue is the one whose gain envelope peaks together with its noise buffer — the others are inaudible by measurement rather than missing by omission"
+  ],
+  "flow": [
+   "Body",
+   "Expand",
+   "Void",
+   "Moons",
+   "Collapse"
+  ],
+  "mermaid": "stateDiagram-v2\n    [*] --> Orbiting\n    Orbiting --> Focused: click a body\n    Focused --> Expanded: void and disk appear\n    Expanded --> Expanded: a moon does the same\n    Expanded --> Collapsing: click the void\n    Collapsing --> Orbiting: children spiral in,<br/>everything disposed\n\n    note right of Expanded\n      moons are built on first\n      expand, never before\n    end note\n",
+  "image": "stellar.png",
+  "imageCaption": "A body sits in a procedural field of three counter-rotating point shells and additive nebula sprites, all generated at runtime with no texture assets.",
+  "hiImage": "stellar-hi.png",
+  "hiCaption": "Every body opens into its moons, and each moon opens the same way.",
+  "glance": [
+   [
+    "Renders",
+    "117k stars at 60 fps"
+   ],
+   [
+    "Explore",
+    "Fly, and expand bodies into detail views"
+   ],
+   [
+    "Audio",
+    "Spatial cues bound to interaction"
+   ],
+   [
+    "Stack",
+    "Three.js + WebAudio in the browser"
+   ]
+  ]
+ }
+}
