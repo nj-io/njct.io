@@ -155,6 +155,11 @@
     .menu{left:7vw}
     .mi{font-size:clamp(30px,8vw,48px)}
     .label{right:4vw;bottom:22px}
+    .label:not(.expanded){padding:12px 14px}
+    .label:not(.expanded) .cdesc,
+    .label:not(.expanded) .cfigs,
+    .label:not(.expanded) .cmeta{display:none}
+    .label:not(.expanded) .chead{margin-bottom:0}
     header .phase{display:none}
   }
 </style>
