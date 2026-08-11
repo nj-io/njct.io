@@ -1,0 +1,1340 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>njct.io — product portfolio</title>
+<style>
+  :root{
+    --paper:#eceae6;
+    --text:#131311;
+    --capshadow:none;
+    --hair:rgba(19,19,17,.18);
+    --plaque:rgba(236,234,230,.86);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#0a0a0b;
+      --text:#f2f0ea;
+      --capshadow:0 1px 16px rgba(0,0,0,.6),0 0 3px rgba(0,0,0,.45);
+      --hair:rgba(242,240,234,.22);
+      --plaque:rgba(10,10,11,.78);
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#0a0a0b;
+    --text:#f2f0ea;
+    --capshadow:0 1px 16px rgba(0,0,0,.6),0 0 3px rgba(0,0,0,.45);
+    --hair:rgba(242,240,234,.22);
+    --plaque:rgba(10,10,11,.78);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--paper);color:var(--text);overflow:hidden;
+    font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;user-select:none;-webkit-user-select:none;touch-action:pinch-zoom;
+  }
+  canvas#gl{position:fixed;inset:0;width:100vw;height:100vh;display:block}
+  .glfail{position:fixed;inset:0;display:none;place-items:center;color:#8b897f;font-size:12px}
+  .ov{color:var(--text);text-shadow:var(--capshadow)}
+  header{position:fixed;top:26px;left:34px;right:34px;display:flex;justify-content:space-between;align-items:center;z-index:5;
+    font-size:13px;font-weight:500;letter-spacing:.01em}
+  header .hr{display:flex;align-items:center}
+  header .counter{font-weight:400;opacity:.65;font-variant-numeric:tabular-nums}
+  header .phase{font-weight:400;font-size:12px;opacity:.5;margin-right:18px;display:none}
+  body.dev header .phase{display:inline}
+  body.dev footer{display:block}
+  body.dev .label .l3{display:block}
+  .tbtn{background:none;border:0;color:inherit;font:inherit;font-size:16px;cursor:pointer;
+    padding:0 0 0 16px;line-height:1;text-shadow:inherit}
+  .tbtn:focus-visible{outline:1px solid currentColor;outline-offset:3px}
+  .menu{position:fixed;left:10vw;top:0;bottom:0;z-index:3;mix-blend-mode:difference;pointer-events:none}
+  .mi{position:absolute;left:0;top:50%;white-space:nowrap;cursor:pointer;pointer-events:auto;
+    font-size:clamp(38px,5.4vw,76px);font-weight:250;letter-spacing:-.01em;color:#fff;
+    transform-origin:left center;will-change:transform,opacity;line-height:1.15}
+  .brand{font-weight:600}
+  .bdim{font-weight:400;opacity:.55}
+  .label{position:fixed;right:34px;bottom:30px;z-index:5;line-height:1.5;
+    --z:1;zoom:var(--z);width:min(calc(400px / var(--z)), calc(92vw / var(--z)));
+    border:1px solid var(--hair);background:var(--plaque);padding:16px 18px 13px;
+    cursor:pointer;transition:width .5s cubic-bezier(.22,1,.36,1),border-color .3s}
+  .label:hover{border-color:currentColor}
+  .label.expanded{inset:0;margin:auto;height:fit-content;
+    width:min(calc(680px / var(--z)), calc(94vw / var(--z)));
+    max-height:calc((100vh - 90px) / var(--z));overflow-y:auto;cursor:default;
+    touch-action:pan-y pinch-zoom;overscroll-behavior:contain;
+    box-shadow:0 18px 70px rgba(0,0,0,.35)}
+  .cfs{background:none;border:0;color:inherit;font:inherit;font-size:11px;opacity:.55;cursor:pointer;
+    white-space:nowrap;padding:0;align-self:flex-start}
+  .cfs:hover{opacity:1}
+  .label.expanded::-webkit-scrollbar{width:8px}
+  .label.expanded::-webkit-scrollbar-thumb{background:var(--hair)}
+  .label.expanded::-webkit-scrollbar-track{background:none}
+  .cmore{display:grid;grid-template-rows:0fr;transition:grid-template-rows .55s cubic-bezier(.22,1,.36,1)}
+  .label.expanded .cmore{grid-template-rows:1fr}
+  .cmore > div{overflow:hidden;min-height:0}
+  .cmore h5{font-size:10.5px;font-weight:500;opacity:.5;margin:14px 0 6px;letter-spacing:.03em}
+  .cmore p{font-size:12.5px;line-height:1.6;opacity:.85;margin:0}
+  .cfig{margin:10px 0 8px;cursor:zoom-in}
+  .csvg{display:block;width:100%;height:auto}
+  .fcap{font-size:10.5px;opacity:.5;margin-top:3px}
+  #lightbox{position:fixed;inset:0;z-index:30;display:grid;place-items:center;padding:4vw;
+    background:var(--paper);opacity:0;visibility:hidden;cursor:zoom-out;
+    transition:opacity .3s,visibility .3s}
+  #lightbox.show{opacity:.98;visibility:visible}
+  .lbin{--z:1;zoom:var(--z);width:calc(min(92vw, 920px) / var(--z))}
+  .lbin .csvg{width:100%}
+  .lbin .fcap{font-size:12.5px;margin-top:10px;opacity:.6}
+  .dlist{list-style:none;margin:0;padding:0}
+  .dlist li{font-size:12px;line-height:1.55;opacity:.8;padding-left:14px;position:relative;margin-bottom:3px}
+  .dlist li::before{content:"—";position:absolute;left:0;opacity:.45}
+  .cexp{background:none;border:0;color:inherit;font:inherit;font-size:11px;opacity:.55;cursor:pointer;
+    margin-left:auto;white-space:nowrap;padding:0;align-self:flex-start}
+  .cexp:hover{opacity:1}
+  .chead{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+  .cname{flex:1;min-width:0}
+  .clogo{width:40px;height:40px;flex:none;border:1px solid;display:grid;place-items:center;
+    font-size:18px;font-weight:500}
+  .cname .l1{font-size:13px;font-weight:600}
+  .cname .l2{font-size:12px;opacity:.65}
+  .cdesc{font-size:12.5px;line-height:1.6;opacity:.85;margin:0 0 12px;max-width:46ch}
+  .cfigs{display:flex;gap:20px;margin-bottom:12px;flex-wrap:wrap}
+  .fig{display:flex;flex-direction:column}
+  .fv{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
+  .fl{font-size:10.5px;opacity:.55}
+  .cmeta{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:10px}
+  .clink{font-size:11.5px;color:inherit;text-decoration:none;border-bottom:1px solid var(--hair);white-space:nowrap}
+  .clink:hover{border-color:currentColor}
+  .clink:focus-visible{outline:1px solid currentColor;outline-offset:3px}
+  .cstack{font-size:10.5px;opacity:.55;text-align:right}
+  .label .l3{font-size:10.5px;opacity:.45;border-top:1px solid var(--hair);padding-top:8px;display:none}
+  footer{position:fixed;bottom:30px;left:34px;z-index:5;font-size:11px;opacity:.6;line-height:1.6;max-width:40ch;display:none}
+  .vlabel{font-size:12px;display:none;opacity:0;transition:opacity .6s}
+  .vlabel.revealed{display:inline;opacity:1}
+  #toast{position:fixed;top:18px;left:50%;transform:translate(-50%,-180%);z-index:20;
+    background:var(--plaque);border:1px solid var(--hair);color:var(--text);
+    font-size:12px;padding:8px 15px;white-space:nowrap;pointer-events:none;opacity:0;
+    transition:transform .35s cubic-bezier(.22,1,.36,1),opacity .35s}
+  #toast.show{transform:translate(-50%,0);opacity:1}
+  #vpanel{position:fixed;top:0;right:0;z-index:9;
+    --z:1;zoom:var(--z);width:calc(min(340px, 88vw) / var(--z));height:calc(100vh / var(--z));
+    background:var(--paper);border-left:1px solid rgba(128,128,120,.28);
+    padding:24px 26px 34px;overflow-y:auto;color:var(--text);
+    touch-action:pan-y pinch-zoom;overscroll-behavior:contain;
+    transform:translateX(103%);transition:transform .55s cubic-bezier(.22,1,.36,1)}
+  #vpanel::-webkit-scrollbar{width:8px}
+  #vpanel::-webkit-scrollbar-thumb{background:rgba(128,128,120,.35)}
+  #vpanel::-webkit-scrollbar-track{background:none}
+  #vpanel.open{transform:none}
+  .vhead{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:500}
+  .vhead .tbtn{font-size:18px;padding:0}
+  .vsub{font-size:11px;opacity:.55;line-height:1.5;margin:6px 0 18px;max-width:36ch}
+  .vgroup{margin-bottom:20px}
+  .vgroup h4{font-size:11px;font-weight:500;opacity:.5;margin-bottom:10px;letter-spacing:.02em}
+  .vrow{margin-bottom:12px}
+  .vrow.dim{opacity:.35;pointer-events:none}
+  .vrow label{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px}
+  .vrow label span{opacity:.55;font-variant-numeric:tabular-nums}
+  .vrow input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:18px;background:none;margin:0;cursor:pointer}
+  .vrow input[type=range]::-webkit-slider-runnable-track{height:1px;background:currentColor}
+  .vrow input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;border-radius:50%;background:var(--text);margin-top:-5px}
+  .vrow input[type=range]::-moz-range-track{height:1px;background:currentColor}
+  .vrow input[type=range]::-moz-range-thumb{width:11px;height:11px;border:0;border-radius:50%;background:var(--text)}
+  .vrow input[type=range]:focus-visible{outline:1px solid currentColor;outline-offset:4px}
+  .vseg{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+  .vseg button,.vbtns button{font:inherit;font-size:11px;color:inherit;background:none;cursor:pointer;
+    border:1px solid rgba(128,128,120,.4);padding:4px 10px}
+  .vseg button.on{background:var(--text);color:var(--paper);border-color:var(--text)}
+  .vseg button:hover,.vbtns button:hover{border-color:currentColor}
+  .vbtns{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+  @media (max-width:880px){
+    header{top:18px;left:20px;right:20px}
+    .menu{left:7vw}
+    .mi{font-size:clamp(30px,8vw,48px)}
+    .label{right:4vw;bottom:22px}
+    footer{display:none}
+    header .phase{display:none}
+  }
+</style>
+
+<canvas id="gl"></canvas>
+<div class="glfail" id="glfail">WebGL unavailable — the culture needs it.</div>
+<div id="toast" role="status"></div>
+<div id="lightbox"><div class="lbin" id="lbin"></div></div>
+
+<header class="ov">
+  <span class="brand">njct.io <span class="bdim">— product portfolio</span></span>
+  <span class="hr">
+    <span class="phase" id="phase"></span>
+    <span class="counter" id="counter">01 / 08</span>
+    <button class="tbtn" id="themeBtn" aria-label="Toggle dark or light mode">◐</button>
+    <button class="tbtn vlabel" id="varBtn" aria-label="Open variations">Variations</button>
+  </span>
+</header>
+
+<aside id="vpanel">
+  <div class="vhead"><span>Variations</span><button class="tbtn" id="vclose" aria-label="Close variations">×</button></div>
+  <p class="vsub">Departures from the name's genome. Reset returns to it. The culture makes room for this sheet while it is open.</p>
+  <div class="vgroup"><h4>Tempo</h4>
+    <div class="vrow"><label>Simulation speed<span id="c-speed-v"></span></label><input type="range" id="c-speed" min="0.25" max="2" step="0.05" value="1"></div>
+    <div class="vrow"><label>Climate drift<span id="c-clim-v"></span></label><input type="range" id="c-clim" min="0" max="3" step="0.1" value="1"></div>
+    <div class="vrow"><label>Transition viscosity<span id="c-morph-v"></span></label><input type="range" id="c-morph" min="0.2" max="3" step="0.1" value="1"></div>
+  </div>
+  <div class="vgroup"><h4>Organism</h4>
+    <div class="vseg" id="s-form">
+      <button data-v="auto">By name</button><button data-v="cell colony">Cells</button><button data-v="amoeba">Amoeba</button><button data-v="neural mesh">Neural</button><button data-v="spore drift">Spores</button><button data-v="membrane tissue">Tissue</button><button data-v="reef">Reef</button>
+    </div>
+    <div class="vrow"><label>Magnification<span id="c-mag-v"></span></label><input type="range" id="c-mag" min="0.6" max="1.7" step="0.05" value="1"></div>
+    <div class="vrow"><label>Streaming<span id="c-stream-v"></span></label><input type="range" id="c-stream" min="0" max="3" step="0.1" value="1"></div>
+    <div class="vrow"><label>Metabolism<span id="c-metab-v"></span></label><input type="range" id="c-metab" min="-1" max="1" step="0.05" value="0"></div>
+  </div>
+  <div class="vgroup"><h4>Colour</h4>
+    <div class="vseg" id="s-hueauto"><button data-v="true">By name</button><button data-v="false">Custom</button></div>
+    <div class="vrow"><label>Hue<span id="c-hue-v"></span></label><input type="range" id="c-hue" min="0" max="360" step="1" value="180"></div>
+    <div class="vrow"><label>Grain<span id="c-grain-v"></span></label><input type="range" id="c-grain" min="0" max="2" step="0.1" value="1"></div>
+  </div>
+  <div class="vgroup"><h4>Field</h4>
+    <div class="vseg" id="s-cover"><button data-v="0">Full field</button><button data-v="1">Island</button><button data-v="2">Ring</button></div>
+    <div class="vseg" id="s-clear"><button data-v="true">Clearings</button><button data-v="false">Overgrow text</button></div>
+  </div>
+  <div class="vgroup"><h4>Presence</h4>
+    <div class="vrow"><label>Pointer influence<span id="c-presence-v"></span></label><input type="range" id="c-presence" min="0" max="2" step="0.1" value="1"></div>
+  </div>
+  <div class="vbtns">
+    <button id="vreplay">Replay launch</button>
+    <button id="vwipe">Wipe &amp; regrow</button>
+    <button id="vmutate">Mutate</button>
+    <button id="vreset">Reset to name</button>
+  </div>
+</aside>
+
+<div class="menu" id="menu"></div>
+<div class="label ov" id="label"></div>
+
+<footer class="ov">Arrows, scroll, or drag to change piece — each selection replays that project's adoption:
+first users, early drop-off, critical mass, then the daily ebb and flow of its audience.
+The climate drifts; colonies bloom, tear, and decompose. Where you dwell grows fertile, gestures
+set a slow current, and activity draws the view closer. Fixture data. T for theme.</footer>
+
+<script>
+const PROJECTS = [
+  { name:'Mirra', tag:'Real-time X→Telegram mirror and digest', year:'2025', stack:'Next.js · Python · MTProto · Supabase',
+    url:'https://njct.io/mirra',
+    blurb:'Never miss a post from the accounts you care about — mirrored to Telegram in real time, then distilled into a digest of their posts and shifting sentiment.',
+    figs:[['5 min','mirror latency'],['30','accounts in production'],['~90%','gross margin (modeled)']],
+    what:'A real-time mirror and digest in one product: accounts are mirrored to Telegram within minutes, then clustered into stories and summarised against the previous edition so narratives carry forward — delivered as tap-to-read digest editions.',
+    arch:['MTProto ingest workers with per-channel backpressure','Story clustering and dedup before any LLM spend','Extraction with continuity priors — each edition reads the last','Windowed summarisation under tone constraints','Supabase event store · Railway workers · staging runs locally'],
+    proc:['A dedicated testing surface measures the continuity priors against baselines','Cost ceilings per edition, with graceful degradation','Copy tone maintained by prompt-vocabulary curation','Staging-to-production rollout gated on banked, approved copy'],
+    flow:['MTProto ingest','Cluster','Extract','Compose','Deliver'] },
+  { name:'Social Hook', tag:'Dev-workflow social publishing', year:'2024', stack:'Python · FastAPI · GitHub Actions',
+    url:'https://github.com/nj-io/social-hook',
+    blurb:'Watches your development, drafts what’s post-worthy in your voice, and publishes where your audience lives — with approval gates or fully autonomous.',
+    figs:[['3,558','automated tests'],['X + LinkedIn','publishing live'],['4','LLM providers']],
+    what:'Automation for drafting, scheduling and posting social content, with logging and engagement tracking feeding back into what gets drafted next.',
+    arch:['Queue-based scheduler with per-platform adapters','Engagement collection loops back into drafting','Packaged and distributed on PyPI'],
+    proc:['A docs-maintenance loop opens PRs with review checklists','Posting windows respect per-platform rate limits'],
+    flow:['Draft','Queue','Post','Track','Learn'] },
+  { name:'Clauded', tag:'Claude Code in a Docker sandbox', year:'2025', stack:'Docker · Bash · Node 22 · Python 3',
+    url:'https://github.com/nj-io/clauded',
+    blurb:'Runs Claude Code in a Docker sandbox with full feature parity — skip permission prompts safely while clipboard, sound, Chrome, git and MCP all bridge back to the Mac.',
+    figs:[['5','host bridges'],['∞','parallel sessions'],['MIT','curl | bash install']],
+    what:'A reproducible container for running Claude Code on any machine: one command up, credentials stay host-side, and host quirks are absorbed by shims instead of leaking into sessions.',
+    arch:['Debian base, arm64 and x86 images','A Python-version shim keeps 3.11 default so apt never breaks, with 3.12 available','Workspace volume-mounted; nothing secret baked into images'],
+    proc:['Every fix and feature is logged in the changelog','Known limitations are documented rather than papered over'],
+    flow:['Dockerfile','Build','Shim layer','Mount','Session'] },
+  { name:'LikeWiki', tag:'A wiki built from what you like', year:'2025', stack:'Python · MCP · SQLite',
+    url:'https://njct.io/likewiki',
+    blurb:'A personal knowledge base compiled from X likes — an LLM incrementally builds and maintains a persistent, cited wiki from the raw sources.',
+    figs:[['270+','concept pages'],['1,000+','cited sources'],['nightly','rebuilds']],
+    what:'A personal knowledge base compiled from bookmarks: each source is read in full, tagged, and rewritten nightly into concept pages where every claim cites the post it came from.',
+    arch:['Raw posts are the append-mostly source of truth; pages are derived','Nightly rebuild regenerates every concept page from citations','MCP server exposes map, search and pages to agents','SQLite with full-text search for retrieval'],
+    proc:['Sources are read one at a time, in full, before tagging — never batched','Citations point at sources, not concept pages, so provenance survives rewrites'],
+    flow:['Bookmarks','Read + tag','Rebuild','Pages','MCP'] },
+  { name:'Track Record', tag:'Claims ledger and scoring', year:'2026', stack:'TypeScript · Postgres',
+    url:'https://njct.io/track-record',
+    blurb:'Historical, scored track records for the traders, punters and commentators worth following — plus live sentiment and who backs or disputes their current calls.',
+    figs:[['every call','scored over time'],['live','sentiment layer'],['3 arenas','markets · sports · commentary']],
+    what:'A claims ledger: public predictions are extracted into structured claims, tracked to resolution, and scored so a profile\'s accuracy becomes inspectable.',
+    arch:['Decoupled extractor feeds the ledger — either side can be replaced','Resolution workers match claims to observed outcomes','Brier-style scoring aggregated per profile','Postgres; scoring jobs are idempotent'],
+    proc:['A figures policy: no number ships without a traceable source','Projected and observed values are always labelled apart'],
+    flow:['Statements','Extract','Ledger','Resolve','Score'] },
+  { name:'Claude Historian', tag:'Conversation history search (OSS)', year:'2025', stack:'TypeScript · MCP · FTS',
+    url:'https://github.com/Vvkmnn/claude-historian-mcp',
+    blurb:'An MCP server that makes past Claude Code sessions searchable. My contribution: a corpus-coverage fix taking search from 45% to 100% of session history.',
+    figs:[['45%→100%','corpus coverage'],['<50 ms','local search'],['npm','published']],
+    what:'An MCP server that makes past coding sessions searchable: which files were touched, which errors got solved, what was decided and why — so old work stays retrievable.',
+    arch:['Indexes session transcripts including subagent corpora','Scoped search across conversations, plans, tasks and config','Sub-50 ms query path over a local index'],
+    proc:['A corpus-coverage audit found a 55% blind spot — fixed in the design before any code','Summaries are sized for context-window economy'],
+    flow:['Transcripts','Index','FTS','Scope','Serve'] },
+  { name:'Xactions', tag:'X automation MCP suite', year:'2026', stack:'TypeScript · MCP · X API',
+    url:'https://njct.io/xactions',
+    blurb:'A full X operations suite over MCP — publishing, analytics, monitoring, audience CRM, personas and autonomous workflows, driven by agents.',
+    figs:[['190+','MCP tools'],['end-to-end','publish → analytics → CRM'],['autonomous','persona workflows']],
+    what:'Turns X into an agent-operable surface: nearly two hundred typed tools spanning publishing, threads, analytics, audience CRM, monitoring, Spaces and autonomous personas — enough for an agent to run an account end to end.',
+    arch:['MCP server exposing 190+ typed tools','Persona engine with presets, schedules and autonomous runs','Streams and monitors for accounts, keywords and reputation','Graph builder for audience and follow-network analysis','Grok integration for on-platform analysis'],
+    proc:['Bulk operations gated behind explicit execute calls','Rate-limit-aware scheduling across tool families'],
+    flow:['Agent','MCP tools','X API','Streams','CRM'] },
+  { name:'Stellar Explorer', tag:'Interactive 3D star map', year:'2024', stack:'Three.js · WebAudio',
+    url:'https://njct.io/stellar-explorer',
+    blurb:'Renders nearby stars in an explorable 3D scene with expandable detail views and spatial audio.',
+    figs:[['10k','stars rendered'],['60 fps','sustained'],['WebGL','+ spatial audio']],
+    what:'An explorable 3D map of nearby stars: fly the scene, expand any star into a detail view, with audio cues tied to interaction.',
+    arch:['Three.js scene with instanced star rendering','Level-of-detail culling holds 10k stars at 60 fps','WebAudio cues bound to expand and navigation events'],
+    proc:['Interaction feel tuned before features were added'],
+    flow:['Catalogue','Instance','Cull','Render','Audio'] },
+];
+
+const N = PROJECTS.length;
+const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const COARSE = matchMedia('(pointer: coarse)').matches;
+const LERP = RM ? 1 : 0.14;
+const SIM = COARSE ? 512 : 1024;
+const STEPS = RM ? 3 : (COARSE ? 7 : 11);
+const MAXSEEDS = 12;
+
+// Organism classes, each on an ignition-robust Gray-Scott regime for the
+// Sims discretisation (Du=1.0, Dv=0.5, dt=1, 0.2/0.05 laplacian — Pearson's
+// PDE values, and low-feed regimes below F~0.029, die from static seeds).
+// A class carries its anatomy too: streaming rate, rim/body rendering,
+// nucleus emphasis, spore appetite, framing.
+const CLASSES = [
+  { label:'cell colony',     regime:'solitons',        F:0.0300, k:0.0620, adv:0.70, edgeG:1.15, bodyG:0.90, nuc:1.00, zoomAdd: 0.00, sporeMul:1.0 },
+  { label:'amoeba',          regime:'holes and chaos', F:0.0340, k:0.0560, adv:1.90, edgeG:0.70, bodyG:1.15, nuc:0.25, zoomAdd:-0.06, sporeMul:0.8 },
+  { label:'neural mesh',     regime:'worms',           F:0.0780, k:0.0610, adv:0.90, edgeG:1.45, bodyG:0.35, nuc:0.00, zoomAdd: 0.14, sporeMul:0.7 },
+  { label:'spore drift',     regime:'mitosis',         F:0.0367, k:0.0649, adv:2.30, edgeG:1.00, bodyG:0.60, nuc:0.60, zoomAdd: 0.06, sporeMul:1.8 },
+  { label:'membrane tissue', regime:'maze',            F:0.0290, k:0.0570, adv:0.45, edgeG:0.55, bodyG:1.20, nuc:0.15, zoomAdd:-0.04, sporeMul:0.6 },
+  { label:'reef',            regime:'coral',           F:0.0545, k:0.0620, adv:1.00, edgeG:0.90, bodyG:1.00, nuc:0.35, zoomAdd: 0.02, sporeMul:1.0 },
+];
+
+// live variation controls — defaults are the name's genome, untouched
+const CTL = { speed:1, clim:1, morph:1, form:'auto', mag:1, stream:1, metab:0,
+  hueAuto:true, hue:180, grain:1, cover:0, clearings:true, presence:1 };
+
+function hsl2rgb(h, s, l){
+  const f = n => {
+    const k = (n + h * 12) % 12;
+    return l - s * Math.min(l, 1 - l) * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+  };
+  return [f(0), f(8), f(4)];
+}
+function derive(name){
+  const s = name.toLowerCase().replace(/[^a-z]/g, '');
+  let h = 2166136261;
+  for (const ch of name){ h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; }
+  const rnd = k => {
+    let x = (h ^ Math.imul(k + 1, 2654435761)) >>> 0;
+    x = Math.imul(x ^ (x >>> 15), 2246822519) >>> 0;
+    x = Math.imul(x ^ (x >>> 13), 3266489917) >>> 0;
+    return ((x ^ (x >>> 16)) >>> 0) / 4294967296;
+  };
+  let sum = 0; for (const c of s) sum += c.charCodeAt(0);
+  const vowels = (s.match(/[aeiou]/g) || []).length;
+  const vr = vowels / Math.max(1, s.length);
+  const hue = (sum * 7) % 360;
+  const base = hsl2rgb(hue / 360, 0.55, 0.5);
+  const p0 = rnd(1);
+  const reg = CLASSES[h % CLASSES.length];
+  const jF = (rnd(6) - 0.5) * 0.0012, jk = (rnd(7) - 0.5) * 0.0006;
+  const seeds = [];
+  for (let i = 0; i < Math.min(MAXSEEDS, s.length); i++){
+    const v = (s.charCodeAt(i) - 97) / 25;
+    seeds.push([
+      0.22 + 0.56 * ((v * 0.73 + rnd(30 + i)) % 1),
+      0.22 + 0.56 * ((v * 0.37 + rnd(60 + i)) % 1),
+    ]);
+  }
+  return {
+    palA: base.map(v => 0.16 + v * 0.34),
+    palB: base.map(v => 0.18 + v * 0.36),
+    palC: [1, 1, 1],
+    palD: [p0, p0 + 0.03 + vr * 0.08, p0 - 0.02 - (1 - vr) * 0.05],
+    F: reg.F + jF, k: reg.k + jk, jF, jk, p0, vr,
+    cls: reg.label, regime: reg.regime,
+    adv: reg.adv, edgeG: reg.edgeG, bodyG: reg.bodyG, nuc: reg.nuc, sporeMul: reg.sporeMul,
+    zoomD: 0.62 + rnd(8) * 0.25 + reg.zoomAdd,
+    climX: rnd(9) * 8, climY: rnd(10) * 8,
+    seeds,
+    hash: h, hue: Math.round(hue), len: s.length,
+  };
+}
+const DERIVED = PROJECTS.map(p => derive(p.name));
+
+// ---------- menu / engine ----------
+const menu = document.getElementById('menu');
+const label = document.getElementById('label');
+const brandEl = document.querySelector('.brand');
+const counter = document.getElementById('counter');
+const themeBtn = document.getElementById('themeBtn');
+
+const items = PROJECTS.map((p, i) => {
+  const el = document.createElement('div');
+  el.className = 'mi';
+  el.textContent = p.name;
+  el.addEventListener('click', () => { if (!dragged) target = i; });
+  menu.appendChild(el);
+  return el;
+});
+
+let target = 0, pos = 0.0001, snapT = null, activeIdx = -1, labelT = null;
+const clampI = v => Math.max(0, Math.min(N - 1, v));
+const snapSoon = (ms = 140) => { clearTimeout(snapT); snapT = setTimeout(() => target = clampI(Math.round(target)), ms); };
+const rowH = () => Math.min(84, Math.max(56, innerHeight * 0.10));
+
+addEventListener('wheel', e => {
+  if (lbOpen || vpanel.contains(e.target) || label.contains(e.target)) return; // panel, dossier, lightbox
+  e.preventDefault();
+  target = clampI(target + e.deltaY * 0.0036);
+  kickT = Math.min(1, kickT + Math.abs(e.deltaY) * 0.0009);
+  snapSoon();
+}, { passive: false });
+
+addEventListener('keydown', e => {
+  if (lbOpen){ if (e.key === 'Escape') closeLB(); return; }
+  if (vpanel.contains(document.activeElement)){
+    if (e.key === 'Escape') togglePanel(false);
+    return; // arrows adjust the focused control, not the picker
+  }
+  if ((e.key === 'v' || e.key === 'V') && devMode) { togglePanel(); return; }
+  if (e.key === 'Escape' && panelOpen) { togglePanel(false); return; }
+  if (e.key === 'Escape' && expanded) { toggleExpand(false); return; }
+  if (['ArrowDown','ArrowRight','PageDown'].includes(e.key)) { e.preventDefault(); target = clampI(Math.round(pos) + 1); }
+  else if (['ArrowUp','ArrowLeft','PageUp'].includes(e.key)) { e.preventDefault(); target = clampI(Math.round(pos) - 1); }
+  else if (e.key === 'Home') target = 0;
+  else if (e.key === 'End') target = N - 1;
+  else if (e.key === 't' || e.key === 'T') toggleTheme();
+});
+
+let downY = null, lastY = 0, vel = 0, lastT = 0, dragged = false, ptrType = 'mouse';
+addEventListener('pointerdown', e => {
+  if (lbOpen || e.button !== 0 || e.target.closest('a,button,input,select,#vpanel,#label')) return;
+  ptrType = e.pointerType || 'mouse';
+  downY = lastY = e.clientY; vel = 0; lastT = performance.now(); dragged = false;
+});
+addEventListener('pointermove', e => {
+  trackPointer(e);
+  if (downY === null) return;
+  const dy = e.clientY - lastY; lastY = e.clientY;
+  if (Math.abs(e.clientY - downY) > 6) dragged = true;
+  const now = performance.now(); vel = dy / Math.max(1, now - lastT); lastT = now;
+  const div = rowH() * (ptrType === 'touch' ? 2.6 : 1.1);
+  target = clampI(target - dy / div);
+});
+addEventListener('pointerup', () => {
+  if (downY === null) return;
+  downY = null;
+  if (dragged){
+    const mom = Math.max(-2.2, Math.min(2.2, -vel * (ptrType === 'touch' ? 4 : 9)));
+    target = clampI(target + mom);
+  }
+  snapSoon(60);
+  setTimeout(() => dragged = false, 0);
+});
+
+// dossier figures: inline SVG, theme-aware via currentColor, accents in the project hue
+function flowSVG(nodes, hue){
+  const W = 520, H = 72, n = nodes.length, gap = 24;
+  const bw = Math.floor((W - (n - 1) * gap) / n), bh = 40, y = 14;
+  let s = '<svg class="csvg" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="pipeline diagram">';
+  nodes.forEach((t, i) => {
+    const x = i * (bw + gap), cx = x + bw / 2, cy = y + bh / 2;
+    s += '<rect x="' + (x + 0.5) + '" y="' + (y + 0.5) + '" width="' + (bw - 1) + '" height="' + bh +
+      '" fill="none" stroke="currentColor" stroke-opacity="0.35"/>';
+    const words = t.split(' ');
+    if (t.length > 11 && words.length > 1){
+      s += '<text x="' + cx + '" y="' + (cy - 2) + '" text-anchor="middle" font-size="9.5" fill="currentColor" fill-opacity="0.85">' +
+        words[0] + '<tspan x="' + cx + '" dy="11">' + words.slice(1).join(' ') + '</tspan></text>';
+    } else {
+      s += '<text x="' + cx + '" y="' + (cy + 3.5) + '" text-anchor="middle" font-size="9.5" fill="currentColor" fill-opacity="0.85">' + t + '</text>';
+    }
+    if (i < n - 1){
+      const ax = x + bw;
+      s += '<line x1="' + ax + '" y1="' + cy + '" x2="' + (ax + gap) + '" y2="' + cy +
+        '" stroke="hsl(' + hue + ' 50% 52%)" stroke-width="1"/>';
+      s += '<path d="M ' + (ax + gap - 5) + ' ' + (cy - 3) + ' L ' + (ax + gap) + ' ' + cy + ' L ' + (ax + gap - 5) + ' ' + (cy + 3) +
+        '" fill="none" stroke="hsl(' + hue + ' 50% 52%)"/>';
+    }
+  });
+  return s + '</svg>';
+}
+function adoptionSVG(d, hue){
+  const W = 520, H = 96, P = 14;
+  const rnd = k => ((Math.imul(d.hash ^ Math.imul(k + 11, 2654435761), 2246822519) >>> 0) / 4294967296);
+  const pts = [];
+  for (let i = 0; i <= 64; i++){
+    const t = i / 64;
+    let v;
+    if (t < 0.16) v = 0.10 + t * 1.5 - (t > 0.08 ? (t - 0.08) * 1.6 : 0);
+    else if (t < 0.42) v = 0.11 + (t - 0.16) * 2.65;
+    else v = 0.80 + Math.sin((t - 0.42) * 24 + (d.hash % 7)) * 0.06 + (t - 0.42) * 0.12;
+    v += (rnd(i) - 0.5) * 0.045;
+    v = Math.max(0.02, Math.min(1, v));
+    pts.push([(P + t * (W - 2 * P)).toFixed(1), (H - P - v * (H - 2 * P)).toFixed(1)]);
+  }
+  const line = pts.map(p2 => p2.join(',')).join(' ');
+  const last = pts[pts.length - 1];
+  return '<svg class="csvg" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="audience over time">' +
+    '<line x1="' + P + '" y1="' + (H - P) + '" x2="' + (W - P) + '" y2="' + (H - P) + '" stroke="currentColor" stroke-opacity="0.25"/>' +
+    '<polygon points="' + P + ',' + (H - P) + ' ' + line + ' ' + (W - P) + ',' + (H - P) +
+      '" fill="hsl(' + hue + ' 50% 52%)" fill-opacity="0.10"/>' +
+    '<polyline points="' + line + '" fill="none" stroke="hsl(' + hue + ' 50% 52%)" stroke-width="1.3"/>' +
+    '<circle cx="' + last[0] + '" cy="' + last[1] + '" r="2.6" fill="hsl(' + hue + ' 50% 52%)"/>' +
+    '<text x="' + P + '" y="' + (H - 3) + '" font-size="8.5" fill="currentColor" fill-opacity="0.5">launch</text>' +
+    '<text x="' + (W - P) + '" y="' + (H - 3) + '" text-anchor="end" font-size="8.5" fill="currentColor" fill-opacity="0.5">today</text>' +
+    '</svg>';
+}
+
+function swapLabel(i){
+  const p = PROJECTS[i], d = effGenome(DERIVED[i]);
+  const hue = CTL.hueAuto ? d.hue : CTL.hue;
+  label.innerHTML =
+    '<div class="chead">' +
+      '<div class="clogo" style="border-color:hsl(' + hue + ' 50% 52% / .85)">' +
+        '<span style="color:hsl(' + hue + ' 55% 52%)">' + p.name[0] + '</span></div>' +
+      '<div class="cname"><div class="l1">' + p.name + ', ' + p.year + '</div>' +
+      '<div class="l2">' + p.tag + '</div></div>' +
+      '<button class="cfs" aria-label="Cycle text size">aA</button>' +
+      '<button class="cexp" id="cexp"></button>' +
+    '</div>' +
+    '<p class="cdesc">' + p.blurb + '</p>' +
+    '<div class="cfigs">' + p.figs.map(f =>
+      '<div class="fig"><span class="fv">' + f[0] + '</span><span class="fl">' + f[1] + '</span></div>').join('') +
+    '</div>' +
+    '<div class="cmeta"><a class="clink" href="' + p.url + '" target="_blank" rel="noopener">' +
+      p.url.replace('https://', '') + ' ↗</a><span class="cstack">' + p.stack + '</span></div>' +
+    '<div class="cmore"><div>' +
+      '<h5>In depth</h5><p>' + p.what + '</p>' +
+      '<div class="cfig">' + adoptionSVG(d, hue) +
+        '<div class="fcap">Fig. 1 — audience over time: arrival, early drop-off, critical mass, then the daily ebb and flow.</div></div>' +
+      '<h5>Architecture</h5>' +
+      '<div class="cfig">' + flowSVG(p.flow, hue) +
+        '<div class="fcap">Fig. 2 — the pipeline, end to end.</div></div>' +
+      '<ul class="dlist">' + p.arch.map(a => '<li>' + a + '</li>').join('') + '</ul>' +
+      '<h5>Build process</h5><ul class="dlist">' + p.proc.map(a => '<li>' + a + '</li>').join('') + '</ul>' +
+      '<div style="height:12px"></div>' +
+    '</div></div>' +
+    '<div class="l3">Gray-Scott ecosystem · class: ' + d.cls + ' · regime: ' + d.regime +
+      ' · F&#8320; ' + d.F.toFixed(4) + ' · k&#8320; ' + d.k.toFixed(4) +
+      ' · ' + d.seeds.length + ' founding colonies</div>';
+  updateExpBtn();
+  applyFS(); // text size survives project swaps and theme refreshes
+  if (!RM) label.animate(
+    [{ opacity: 0, transform: 'translateY(4px)' }, { opacity: 1, transform: 'none' }],
+    { duration: 380, easing: 'cubic-bezier(.25,.6,.3,1)' });
+}
+
+function onActive(i){
+  counter.textContent = String(i + 1).padStart(2, '0') + ' / ' + String(N).padStart(2, '0');
+  setTargets(i);
+  seedCulture(i);
+  selAge = 0;
+  if (!RM) kickT = 1.0;
+  clearTimeout(labelT);
+  labelT = setTimeout(() => swapLabel(i), 110);
+}
+
+function renderMenu(p){
+  const h = rowH();
+  for (let i = 0; i < N; i++){
+    const d = i - p, abs = Math.abs(d);
+    const sc = 0.36 + 0.64 * Math.max(0, 1 - abs);
+    const op = Math.max(0.22, 1 - abs * 0.28);
+    items[i].style.transform = 'translate3d(0, calc(-50% + ' + (d * h).toFixed(2) + 'px), 0) scale(' + sc.toFixed(3) + ')';
+    items[i].style.opacity = op.toFixed(3);
+  }
+}
+
+// ---------- theme ----------
+const THEME_KEY = 'varF-theme';
+let theme = 'dark';
+const store = {
+  get(){ try { return localStorage.getItem(THEME_KEY); } catch(e){ return null; } },
+  set(v){ try { localStorage.setItem(THEME_KEY, v); } catch(e){} },
+};
+function effectiveTheme(){
+  const saved = store.get();
+  if (saved === 'light' || saved === 'dark') return saved;
+  const stamped = document.documentElement.getAttribute('data-theme');
+  if (stamped === 'light' || stamped === 'dark') return stamped;
+  return matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+}
+function applyTheme(t, instant){
+  theme = t;
+  document.documentElement.setAttribute('data-theme', t);
+  themeBtn.textContent = t === 'light' ? '◑' : '◐';
+  tgt.light = t === 'light' ? 1 : 0;
+  if (instant) cur.light = tgt.light;
+  if (activeIdx >= 0) swapLabel(activeIdx);
+}
+function toggleTheme(){
+  const next = theme === 'light' ? 'dark' : 'light';
+  store.set(next);
+  applyTheme(next, false);
+}
+themeBtn.addEventListener('click', toggleTheme);
+matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => {
+  if (!store.get()) applyTheme(effectiveTheme(), false);
+});
+
+// ---------- WebGL: Gray-Scott ping-pong + display ----------
+const canvas = document.getElementById('gl');
+const gl = canvas.getContext('webgl', { antialias: false, alpha: false });
+let glOK = !!gl;
+if (!glOK) document.getElementById('glfail').style.display = 'grid';
+// if the OS reclaims the GPU context (rare; mobile memory pressure), recover
+canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); glOK = false; });
+canvas.addEventListener('webglcontextrestored', () => location.reload());
+
+const VERT = `
+attribute vec2 aPos;
+void main(){ gl_Position = vec4(aPos, 0.0, 1.0); }`;
+
+// The climate pass: a small texture holding (F-modulation, k-modulation, flow.xy).
+// Conditions vary in space and drift in time — regions cycle fertile / volatile / dead.
+const FIELD_FRAG = `
+precision mediump float;
+uniform vec2 uFRes, uClimOff;
+uniform float uCT;
+float hashF(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+float vnoiseF(vec2 p){
+  vec2 i = floor(p), f = fract(p);
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  float a = hashF(i), b = hashF(i + vec2(1.0, 0.0)), c = hashF(i + vec2(0.0, 1.0)), d = hashF(i + vec2(1.0, 1.0));
+  return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+}
+float fbm2(vec2 p){
+  float v = 0.0, a = 0.5;
+  for (int i = 0; i < 3; i++){ v += a * vnoiseF(p); p = p * 2.07 + vec2(3.1, 7.7); a *= 0.5; }
+  return v;
+}
+void main(){
+  vec2 uv = gl_FragCoord.xy / uFRes;
+  vec2 p = uv * 2.6 + uClimOff;
+  float cf = fbm2(p + vec2(uCT * 0.7, uCT * 0.4));
+  float ck = fbm2(p + vec2(7.3, 2.9) - vec2(uCT * 0.5, uCT * 0.8));
+  vec2 q = uv * 3.2 + uClimOff * 1.7 + uCT * 0.9;
+  float e = 0.045;
+  vec2 vel = vec2(fbm2(q + vec2(0.0, e)) - fbm2(q - vec2(0.0, e)),
+                  -(fbm2(q + vec2(e, 0.0)) - fbm2(q - vec2(e, 0.0)))) / (2.0 * e) * 0.22;
+  gl_FragColor = vec4(cf, ck, clamp(vel * 0.5 + 0.5, 0.0, 1.0));
+}`;
+
+const SIM_FRAG = `
+precision highp float;
+uniform sampler2D uPrev, uField;
+uniform vec2 uTexel, uBias, uCentS;
+uniform float uMode, uF, uK, uFvar, uKvar, uAdv, uAttF, uCover;
+uniform vec4 uSplat, uMaskA, uMaskB, uMaskC, uMaskD;
+float inRect(vec2 p, vec4 r){
+  vec2 t = smoothstep(r.xy - 0.055, r.xy + 0.055, p) * (1.0 - smoothstep(r.zw - 0.055, r.zw + 0.055, p));
+  return t.x * t.y;
+}
+void main(){
+  vec2 uv = gl_FragCoord.xy * uTexel;
+  if (uMode > 0.5){ gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); return; }
+  vec4 fld = texture2D(uField, uv);
+  float Fl = uF + (fld.r - 0.5) * uFvar;
+  float Kl = uK + (fld.g - 0.5) * uKvar;
+  // a broad, weak fertility rise where attention has been dwelling
+  vec2 ca = uv - uCentS;
+  ca -= floor(ca + 0.5);
+  Fl += uAttF * exp(-dot(ca, ca) * 9.0);
+  // protoplasmic streaming: back-trace the whole stencil through the flow,
+  // plus the slow current set by recent gestures
+  vec2 auv = uv - ((fld.ba - 0.5) * 2.0 * uAdv + uBias) * uTexel;
+  vec2 c = texture2D(uPrev, auv).rg;
+  vec2 s = vec2(0.0);
+  s += texture2D(uPrev, auv + vec2(uTexel.x, 0.0)).rg * 0.2;
+  s += texture2D(uPrev, auv - vec2(uTexel.x, 0.0)).rg * 0.2;
+  s += texture2D(uPrev, auv + vec2(0.0, uTexel.y)).rg * 0.2;
+  s += texture2D(uPrev, auv - vec2(0.0, uTexel.y)).rg * 0.2;
+  s += texture2D(uPrev, auv + uTexel).rg * 0.05;
+  s += texture2D(uPrev, auv - uTexel).rg * 0.05;
+  s += texture2D(uPrev, auv + vec2(uTexel.x, -uTexel.y)).rg * 0.05;
+  s += texture2D(uPrev, auv + vec2(-uTexel.x, uTexel.y)).rg * 0.05;
+  vec2 L = s - c;
+  float u = c.r, v = c.g;
+  float uvv = u * v * v;
+  u = clamp(u + (1.0 * L.x - uvv + Fl * (1.0 - u)), 0.0, 1.0);
+  v = clamp(v + (0.5 * L.y + uvv - (Fl + Kl) * v), 0.0, 1.0);
+  if (uSplat.w > 0.0){
+    vec2 d = uv - uSplat.xy;
+    d -= floor(d + 0.5);
+    float fall = exp(-dot(d, d) / (uSplat.z * uSplat.z));
+    v = clamp(v + uSplat.w * fall, 0.0, 1.0);
+  }
+  // typography zones (and the open variations drawer) are inhospitable:
+  // raised kill rate, the culture grows around them
+  float mask = max(max(inRect(uv, uMaskA), inRect(uv, uMaskB)),
+                   max(inRect(uv, uMaskC), inRect(uv, uMaskD)));
+  v *= 1.0 - mask * 0.032;
+  // coverage: 0 full field · 1 island (centre) · 2 ring (margins)
+  if (uCover > 0.5){
+    float rr = length(uv - 0.5);
+    float zone = uCover < 1.5 ? (1.0 - smoothstep(0.28, 0.40, rr)) : smoothstep(0.24, 0.34, rr);
+    v *= 1.0 - (1.0 - zone) * 0.028;
+  }
+  gl_FragColor = vec4(u, v, 0.0, 1.0);
+}`;
+
+const VIEW_FRAG = `
+precision highp float;
+uniform sampler2D uSim;
+uniform vec2 uRes, uTexel, uCent;
+uniform float uZoomD, uLight, uTime, uEdgeG, uBodyG, uNuc, uGrain;
+uniform vec3 uPalA, uPalB, uPalC, uPalD;
+float hash(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+float vnoise(vec2 p){
+  vec2 i = floor(p), f = fract(p);
+  vec2 w = f * f * (3.0 - 2.0 * f);
+  float a = hash(i), b = hash(i + vec2(1.0, 0.0)), c = hash(i + vec2(0.0, 1.0)), d = hash(i + vec2(1.0, 1.0));
+  return mix(mix(a, b, w.x), mix(c, d, w.x), w.y);
+}
+float fbm2(vec2 p){
+  float v = 0.0, a = 0.5;
+  for (int i = 0; i < 3; i++){ v += a * vnoise(p); p = p * 2.07 + vec2(3.1, 7.7); a *= 0.5; }
+  return v;
+}
+void main(){
+  vec2 suv0 = (gl_FragCoord.xy - 0.5 * uRes) / min(uRes.x, uRes.y);
+  vec2 suv = suv0 * uZoomD + 0.5;
+
+  // the lens: the chemistry is read through a drifting domain warp, never plainly
+  float w1 = fbm2(suv * 3.1 + vec2(uTime * 0.028, uTime * 0.019));
+  float w2 = fbm2(suv * 3.1 + vec2(4.7, 8.1) - uTime * 0.022);
+  suv += vec2(w1 - 0.5, w2 - 0.5) * 0.05;
+
+  float u = texture2D(uSim, suv).r;
+  float v = texture2D(uSim, suv).g;
+  float vx = texture2D(uSim, suv + vec2(uTexel.x, 0.0)).g - texture2D(uSim, suv - vec2(uTexel.x, 0.0)).g;
+  float vy = texture2D(uSim, suv + vec2(0.0, uTexel.y)).g - texture2D(uSim, suv - vec2(0.0, uTexel.y)).g;
+  float edge = clamp(length(vec2(vx, vy)) * 9.0, 0.0, 1.0) * uEdgeG;
+  float body = smoothstep(0.10, 0.34, v) * uBodyG;
+  float core = smoothstep(0.42, 0.62, v);
+  vec3 col = uPalA + uPalB * cos(6.28318 * (uPalC * (v * 0.7 + u * 0.15 + (w1 - 0.5) * 0.45) + uPalD));
+  col *= 1.0 + 0.08 * dot(suv0, uCent);
+
+  // wet-membrane relief from the chemical gradient
+  vec3 n = normalize(vec3(-vx * 7.0, -vy * 7.0, 1.0));
+  float dif = clamp(dot(n, normalize(vec3(-0.4 + uCent.x * 0.2, 0.6 + uCent.y * 0.2, 0.7))), 0.0, 1.0);
+
+  vec2 auv = gl_FragCoord.xy / uRes;
+  float vig = smoothstep(0.0, 0.09, auv.x) * smoothstep(1.0, 0.91, auv.x)
+            * smoothstep(0.0, 0.10, auv.y) * smoothstep(1.0, 0.90, auv.y);
+
+  vec3 wash = col * (0.04 + 0.10 * w1) * clamp(1.0 - body, 0.0, 1.0);
+  vec3 dark = col * (0.05 + body * (0.40 + 0.50 * dif)) + col * edge * 0.85 + wash;
+  dark = mix(dark, dark * 0.45 + col * 0.15, core * uNuc);
+  dark *= mix(0.65, 1.0, vig);
+  dark = dark / (1.0 + 0.32 * dark);
+
+  vec3 paper = vec3(0.948, 0.941, 0.926);
+  vec3 light = mix(paper, col * (0.40 + 0.22 * dif) + vec3(0.04), clamp(body, 0.0, 1.0) * 0.9);
+  light = mix(light, col * 0.30, clamp(edge, 0.0, 1.0) * 0.35);
+  light = mix(light, light * 0.72, core * uNuc);
+  light -= (w1 - 0.5) * 0.05 * clamp(1.0 - body, 0.0, 1.0);
+  light *= mix(0.90, 1.0, vig);
+
+  vec3 outc = mix(dark, light, uLight);
+  outc += (hash(gl_FragCoord.xy + fract(uTime) * vec2(13.7, 91.3)) - 0.5) * 0.03 * uGrain * mix(1.0, 0.5, uLight);
+  gl_FragColor = vec4(max(outc, 0.0), 1.0);
+}`;
+
+function makeProgram(vsSrc, fsSrc){
+  const vs = gl.createShader(gl.VERTEX_SHADER);
+  gl.shaderSource(vs, vsSrc); gl.compileShader(vs);
+  const fs = gl.createShader(gl.FRAGMENT_SHADER);
+  gl.shaderSource(fs, fsSrc); gl.compileShader(fs);
+  const pr = gl.createProgram();
+  gl.attachShader(pr, vs); gl.attachShader(pr, fs); gl.linkProgram(pr);
+  if (!gl.getProgramParameter(pr, gl.LINK_STATUS)){
+    console.log('shader link failed', gl.getShaderInfoLog(vs), gl.getShaderInfoLog(fs));
+    return null;
+  }
+  return pr;
+}
+
+let progS = null, progV = null, progF = null, uS = {}, uV = {}, uF2 = {}, targets = null, fieldT = null,
+    front = 0, quadBuf = null, aPosS = 0, aPosV = 0, aPosF = 0;
+const FS = COARSE ? 128 : 256;
+
+function makeTarget(type){
+  const tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, SIM, SIM, 0, gl.RGBA, type, null);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  const fbo = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+  const ok = gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE;
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  return ok ? { tex, fbo } : null;
+}
+function makeTargets(){
+  const hf = gl.getExtension('OES_texture_half_float');
+  const hfl = gl.getExtension('OES_texture_half_float_linear');
+  if (hf && hfl){
+    const a = makeTarget(hf.HALF_FLOAT_OES), b = a && makeTarget(hf.HALF_FLOAT_OES);
+    if (a && b){ console.log('sim format: half-float'); return [a, b]; }
+  }
+  const fl = gl.getExtension('OES_texture_float');
+  const fll = gl.getExtension('OES_texture_float_linear');
+  if (fl && fll){
+    const a = makeTarget(gl.FLOAT), b = a && makeTarget(gl.FLOAT);
+    if (a && b){ console.log('sim format: float'); return [a, b]; }
+  }
+  const a = makeTarget(gl.UNSIGNED_BYTE), b = a && makeTarget(gl.UNSIGNED_BYTE);
+  if (a && b){ console.log('sim format: byte'); return [a, b]; }
+  return null;
+}
+
+function makeFieldTarget(){
+  const tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, FS, FS, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  const fbo = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+  const ok = gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE;
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  return ok ? { tex, fbo } : null;
+}
+
+if (glOK){
+  progS = makeProgram(VERT, SIM_FRAG);
+  progV = makeProgram(VERT, VIEW_FRAG);
+  progF = makeProgram(VERT, FIELD_FRAG);
+  targets = makeTargets();
+  fieldT = makeFieldTarget();
+  glOK = !!(progS && progV && progF && targets && fieldT);
+  if (!glOK) document.getElementById('glfail').style.display = 'grid';
+}
+if (glOK){
+  quadBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
+  aPosS = gl.getAttribLocation(progS, 'aPos');
+  aPosV = gl.getAttribLocation(progV, 'aPos');
+  aPosF = gl.getAttribLocation(progF, 'aPos');
+  ['uPrev','uField','uTexel','uMode','uF','uK','uFvar','uKvar','uAdv','uBias','uCentS','uAttF','uCover','uSplat','uMaskA','uMaskB','uMaskC','uMaskD']
+    .forEach(n => uS[n] = gl.getUniformLocation(progS, n));
+  ['uSim','uRes','uTexel','uCent','uZoomD','uLight','uTime','uEdgeG','uBodyG','uNuc','uGrain','uPalA','uPalB','uPalC','uPalD']
+    .forEach(n => uV[n] = gl.getUniformLocation(progV, n));
+  ['uFRes','uClimOff','uCT'].forEach(n => uF2[n] = gl.getUniformLocation(progF, n));
+
+  window.initBuffers = function(){
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, null);
+    gl.useProgram(progS);
+    gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+    gl.enableVertexAttribArray(aPosS);
+    gl.vertexAttribPointer(aPosS, 2, gl.FLOAT, false, 0, 0);
+    gl.viewport(0, 0, SIM, SIM);
+    gl.uniform1f(uS.uMode, 1);
+    for (const t of targets){
+      gl.bindFramebuffer(gl.FRAMEBUFFER, t.fbo);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+    }
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  };
+  initBuffers();
+}
+
+const splatQueue = [];
+function seedCulture(i){
+  const d = DERIVED[i];
+  const rnd = j => ((Math.imul(d.hash ^ (j * 2654435761), 2246822519) >>> 0) / 4294967296);
+  // the first users: one strong founder per glyph plus weaker companions —
+  // the weak ones often bloom briefly and fade (early drop-off)
+  const AMT = [0.85, 0.45, 0.28];
+  d.seeds.forEach((s, j) => {
+    for (let c = 0; c < 3; c++){
+      splatQueue.push({
+        x: s[0] + (c ? (rnd(j * 7 + c) - 0.5) * 0.03 : 0),
+        y: s[1] + (c ? (rnd(j * 11 + c) - 0.5) * 0.03 : 0),
+        r: Math.max(2.5 / SIM, 0.004 + rnd(j + c) * 0.003),
+        amt: AMT[c],
+      });
+    }
+  });
+}
+
+// screen-space CSS rect -> sim-uv rect (mirrors the display mapping, y flipped to GL)
+function rectToSim(x0c, y0c, x1c, y1c){
+  const W = canvas.width, H = canvas.height, m = Math.min(W, H), z = effZoom;
+  const sx = px => Math.max(0.005, Math.min(0.995, ((px - 0.5 * W) / m) * z + 0.5));
+  const sy = py => Math.max(0.005, Math.min(0.995, ((py - 0.5 * H) / m) * z + 0.5));
+  return [sx(x0c * W), sy((1 - y1c) * H), sx(x1c * W), sy((1 - y0c) * H)];
+}
+
+function renderField(){
+  gl.useProgram(progF);
+  gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+  gl.enableVertexAttribArray(aPosF);
+  gl.vertexAttribPointer(aPosF, 2, gl.FLOAT, false, 0, 0);
+  gl.viewport(0, 0, FS, FS);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fieldT.fbo);
+  gl.uniform2f(uF2.uFRes, FS, FS);
+  // the terrain itself migrates gently toward the attention centroid
+  gl.uniform2f(uF2.uClimOff, cur.climX - centX * 0.4, cur.climY - centY * 0.4);
+  gl.uniform1f(uF2.uCT, climT);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+}
+
+const NOMASK = [5, 5, 5, 5];
+// clearings are measured, not assumed — but measured at FRAME START (reads
+// before any style writes, no forced reflow) and only every 4th frame
+let maskA = NOMASK, maskB = NOMASK, maskC = NOMASK, maskD = NOMASK, maskTick = 0;
+function measureMasks(){
+  const elRect = (el, px, py) => rectToSim(
+    Math.max(0, (el.left - px) / innerWidth),
+    Math.max(0, (el.top - py) / innerHeight),
+    Math.min(1, (el.right + px) / innerWidth),
+    Math.min(1, (el.bottom + py) / innerHeight));
+  maskA = NOMASK;
+  if (CTL.clearings){
+    let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+    for (const el of items){
+      const r = el.getBoundingClientRect();
+      if (r.width && r.height){
+        x0 = Math.min(x0, r.left); y0 = Math.min(y0, r.top);
+        x1 = Math.max(x1, r.right); y1 = Math.max(y1, r.bottom);
+      }
+    }
+    if (x1 > x0) maskA = elRect({ left: x0, top: y0, right: x1, bottom: y1 }, 18, 14);
+  }
+  maskB = CTL.clearings ? elRect(label.getBoundingClientRect(), 14, 14) : NOMASK;
+  maskC = NOMASK;
+  if (panelFrac > 0.02){
+    const wFrac = Math.min(vpanel.offsetWidth, innerWidth) / innerWidth * panelFrac;
+    maskC = rectToSim(1 - wFrac - 0.01, 0.02, 0.995, 0.985);
+  }
+  maskD = CTL.clearings ? elRect(brandEl.getBoundingClientRect(), 12, 10) : NOMASK;
+}
+function simSteps(nSteps){
+  gl.useProgram(progS);
+  gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+  gl.enableVertexAttribArray(aPosS);
+  gl.vertexAttribPointer(aPosS, 2, gl.FLOAT, false, 0, 0);
+  gl.viewport(0, 0, SIM, SIM);
+  gl.uniform2f(uS.uTexel, 1 / SIM, 1 / SIM);
+  gl.uniform1f(uS.uMode, 0);
+  gl.uniform1f(uS.uF, cur.F + Fbonus + CTL.metab * 0.004);
+  gl.uniform1f(uS.uK, cur.k);
+  gl.uniform1f(uS.uFvar, 0.032);
+  gl.uniform1f(uS.uKvar, 0.011);
+  gl.uniform1f(uS.uAdv, RM ? 0 : (0.3 + kick * 2.0 + actE * 0.4) * cur.adv * CTL.stream);
+  gl.uniform2f(uS.uBias, dirX * actE * 0.35, dirY * actE * 0.35);
+  const cs = centSim();
+  gl.uniform2f(uS.uCentS, cs[0], cs[1]);
+  gl.uniform1f(uS.uAttF, 0.0018 * attnAmp);
+  gl.uniform1f(uS.uCover, CTL.cover);
+  gl.activeTexture(gl.TEXTURE1);
+  gl.bindTexture(gl.TEXTURE_2D, fieldT.tex);
+  gl.uniform1i(uS.uField, 1);
+  gl.uniform4f(uS.uMaskA, maskA[0], maskA[1], maskA[2], maskA[3]);
+  gl.uniform4f(uS.uMaskB, maskB[0], maskB[1], maskB[2], maskB[3]);
+  gl.uniform4f(uS.uMaskC, maskC[0], maskC[1], maskC[2], maskC[3]);
+  gl.uniform4f(uS.uMaskD, maskD[0], maskD[1], maskD[2], maskD[3]);
+  for (let s = 0; s < nSteps; s++){
+    const sp = splatQueue.length ? splatQueue.shift() : null;
+    gl.uniform4f(uS.uSplat, sp ? sp.x : 0, sp ? sp.y : 0, sp ? sp.r : 0.02, sp ? sp.amt : 0);
+    const src = targets[front], dst = targets[1 - front];
+    gl.bindFramebuffer(gl.FRAMEBUFFER, dst.fbo);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, src.tex);
+    gl.uniform1i(uS.uPrev, 0);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    front = 1 - front;
+  }
+  gl.activeTexture(gl.TEXTURE1);
+  gl.bindTexture(gl.TEXTURE_2D, null);
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+}
+
+function draw(P){
+  const w = canvas.width, h = canvas.height;
+  gl.useProgram(progV);
+  gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+  gl.enableVertexAttribArray(aPosV);
+  gl.vertexAttribPointer(aPosV, 2, gl.FLOAT, false, 0, 0);
+  gl.viewport(0, 0, w, h);
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, targets[front].tex);
+  gl.uniform1i(uV.uSim, 0);
+  gl.uniform2f(uV.uRes, w, h);
+  gl.uniform2f(uV.uTexel, 1 / SIM, 1 / SIM);
+  gl.uniform2f(uV.uCent, P.centX, P.centY);
+  gl.uniform1f(uV.uZoomD, P.zoomD);
+  gl.uniform1f(uV.uLight, P.light);
+  gl.uniform1f(uV.uTime, P.time);
+  gl.uniform1f(uV.uEdgeG, cur.edgeG);
+  gl.uniform1f(uV.uBodyG, cur.bodyG);
+  gl.uniform1f(uV.uNuc, cur.nuc);
+  gl.uniform1f(uV.uGrain, CTL.grain);
+  gl.uniform3fv(uV.uPalA, P.palA);
+  gl.uniform3fv(uV.uPalB, P.palB);
+  gl.uniform3fv(uV.uPalC, P.palC);
+  gl.uniform3fv(uV.uPalD, P.palD);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+}
+
+function resizeGL(){
+  const scale = Math.max(1, Math.min(devicePixelRatio || 1, 2) * (COARSE ? 0.68 : 0.8));
+  canvas.width = Math.max(2, Math.round(innerWidth * scale));
+  canvas.height = Math.max(2, Math.round(innerHeight * scale));
+}
+resizeGL();
+addEventListener('resize', resizeGL);
+
+// ---------- parameter morphing ----------
+const cur = { F:0.03, k:0.062, zoomD:0.7, light:0, climX:0, climY:0,
+  adv:1, edgeG:1, bodyG:1, nuc:0,
+  palA:[0,0,0], palB:[0,0,0], palC:[1,1,1], palD:[0,0,0] };
+const tgt = JSON.parse(JSON.stringify(cur));
+let kickT = 0, kick = 0;
+
+// the effective genome: the name's, unless the variations panel departs from it
+function effGenome(d){
+  if (CTL.form === 'auto') return d;
+  const c = CLASSES.find(x => x.label === CTL.form);
+  if (!c) return d;
+  return Object.assign({}, d, { cls: c.label, regime: c.regime,
+    F: c.F + (d.jF || 0), k: c.k + (d.jk || 0),
+    adv: c.adv, edgeG: c.edgeG, bodyG: c.bodyG, nuc: c.nuc, sporeMul: c.sporeMul });
+}
+function paletteFromHue(h, d){
+  const base = hsl2rgb((((h % 360) + 360) % 360) / 360, 0.55, 0.5);
+  const p0 = d.p0, vr = d.vr;
+  return {
+    palA: base.map(v => 0.16 + v * 0.34),
+    palB: base.map(v => 0.18 + v * 0.36),
+    palC: [1, 1, 1],
+    palD: [p0, p0 + 0.03 + vr * 0.08, p0 - 0.02 - (1 - vr) * 0.05],
+  };
+}
+function setTargets(i){
+  const d = effGenome(DERIVED[i]);
+  tgt.F = d.F; tgt.k = d.k; tgt.zoomD = d.zoomD;
+  tgt.climX = d.climX; tgt.climY = d.climY;
+  tgt.adv = d.adv; tgt.edgeG = d.edgeG; tgt.bodyG = d.bodyG; tgt.nuc = d.nuc;
+  const pal = CTL.hueAuto ? d : paletteFromHue(CTL.hue, d);
+  tgt.palA = pal.palA.slice(); tgt.palB = pal.palB.slice();
+  tgt.palC = pal.palC.slice(); tgt.palD = pal.palD.slice();
+}
+setTargets(0);
+Object.assign(cur, JSON.parse(JSON.stringify(tgt)));
+applyTheme(effectiveTheme(), true);
+
+// ---------- behavioural pointer model (same as Var E: statistics, not tracking) ----------
+let rawX = 0, rawY = 0, rawU = 0.5, rawV = 0.5, hasPtr = false, lastMoveT = 0;
+let actE = 0, centX = 0, centY = 0, centU = 0.5, centV = 0.5, lastDrip = 0;
+let gestTX = 0, gestTY = 0, dirX = 0, dirY = 0, attnAmp = 0, zBreathe = 1, effZoom = 0.7;
+
+function trackPointer(e){
+  if (RM || vpanel.contains(e.target)) return; // tuning the sheet is not attention on the culture
+  const aspect = innerWidth / innerHeight;
+  const nx = (e.clientX / innerWidth - 0.5) * aspect;
+  const ny = 0.5 - e.clientY / innerHeight;
+  const now = performance.now();
+  if (!hasPtr){ hasPtr = true; rawX = nx; rawY = ny; rawU = e.clientX / innerWidth; rawV = e.clientY / innerHeight; lastMoveT = now; return; }
+  const dt = Math.min(60, now - lastMoveT) || 16;
+  const dx = nx - rawX, dy = ny - rawY;
+  const sp = Math.hypot(dx, dy) / dt * 1000;
+  actE = Math.min(1, actE + sp * 0.012);
+  const l = Math.hypot(dx, dy);
+  if (l > 0.0005){ gestTX = dx / l; gestTY = dy / l; }
+  rawX = nx; rawY = ny;
+  rawU = e.clientX / innerWidth; rawV = e.clientY / innerHeight;
+  lastMoveT = now;
+}
+
+const MORPH = RM ? 1 : 0.045;
+function lerpParams(){
+  const M = RM ? 1 : Math.min(0.5, MORPH * CTL.morph);
+  for (const k2 of ['F','k','zoomD','light','climX','climY','adv','edgeG','bodyG','nuc'])
+    cur[k2] += (tgt[k2] - cur[k2]) * (k2 === 'light' ? 0.06 : M);
+  for (const k2 of ['palA','palB','palC','palD'])
+    for (let j = 0; j < 3; j++) cur[k2][j] += (tgt[k2][j] - cur[k2][j]) * M;
+  kick += (kickT - kick) * 0.10;
+  kickT *= 0.955;
+  actE *= 0.992;
+  if (hasPtr){
+    centX += (rawX - centX) * 0.006;
+    centY += (rawY - centY) * 0.006;
+    centU += (rawU - centU) * 0.006;
+    centV += (rawV - centV) * 0.006;
+  }
+  // gesture current, attention presence, and the microscope's slow focus —
+  // all lagged far behind the hand that causes them
+  const pres = Math.min(2, CTL.presence);
+  const g = Math.min(1.5, actE * 1.3 * pres);
+  dirX += (gestTX * g - dirX) * 0.01;
+  dirY += (gestTY * g - dirY) * 0.01;
+  attnAmp += (((hasPtr && !RM) ? Math.min(1.5, (actE * 2 + 0.25) * pres) : 0) - attnAmp) * 0.01;
+  zBreathe += ((1 - Math.min(0.2, 0.10 * pres) * Math.min(1, actE * 1.6)) - zBreathe) * 0.004;
+  panelFrac += ((panelOpen ? 1 : 0) - panelFrac) * 0.09;
+}
+
+// dwell feeds the culture: an occasional small nutrient splat at the attention
+// centroid, only while recent activity exists — never at the live cursor
+function centSim(){
+  const w = canvas.width, h = canvas.height, m = Math.min(w, h);
+  const sx = ((centU - 0.5) * w / m) * effZoom + 0.5;
+  const sy = ((0.5 - centV) * h / m) * effZoom + 0.5;
+  return [sx - Math.floor(sx), sy - Math.floor(sy)];
+}
+
+function maybeDrip(now){
+  if (RM || !hasPtr || CTL.presence < 0.05 || actE < 0.35 || now - lastDrip < 1800) return;
+  lastDrip = now;
+  const cs = centSim();
+  splatQueue.push({ x: cs[0], y: cs[1], r: Math.max(3 / SIM, 0.006), amt: 0.30 * Math.min(1.5, CTL.presence) });
+}
+
+// ---------- variations panel ----------
+const vpanel = document.getElementById('vpanel');
+const varBtn = document.getElementById('varBtn');
+let panelOpen = false, panelFrac = 0, bgPaused = false;
+function togglePanel(force){
+  panelOpen = force === undefined ? !panelOpen : force;
+  vpanel.classList.toggle('open', panelOpen);
+}
+varBtn.addEventListener('click', () => togglePanel());
+document.getElementById('vclose').addEventListener('click', () => togglePanel(false));
+
+// ---------- dossier expansion ----------
+let expanded = false;
+function updateExpBtn(){
+  const b = document.getElementById('cexp');
+  if (b) b.textContent = expanded ? 'Collapse ▴' : 'Details ▾';
+}
+function toggleExpand(force){
+  expanded = force === undefined ? !expanded : force;
+  label.classList.toggle('expanded', expanded);
+  updateExpBtn();
+  applyFS(); // text size survives expand/collapse
+  if (expanded && !RM) label.animate(
+    [{ opacity: 0.5, transform: 'scale(0.98)' }, { opacity: 1, transform: 'none' }],
+    { duration: 300, easing: 'cubic-bezier(.22,1,.36,1)' });
+}
+label.addEventListener('click', e => {
+  if (e.target.closest('a')) return;
+  if (e.target.closest('.cfs')){ cycleFS(); return; } // aA never toggles the card
+  const fig = e.target.closest('.cfig');
+  if (expanded && fig){ openLB(fig); return; } // figures zoom on tap
+  if (expanded){ toggleExpand(false); return; } // any other click closes the modal
+  toggleExpand();
+});
+
+// ---------- figure lightbox ----------
+const lightbox = document.getElementById('lightbox');
+const lbin = document.getElementById('lbin');
+let lbOpen = false;
+function openLB(figEl){
+  lbin.innerHTML = figEl.innerHTML;
+  lightbox.classList.add('show');
+  lbOpen = true;
+}
+function closeLB(){
+  lightbox.classList.remove('show');
+  lbOpen = false;
+}
+lightbox.addEventListener('click', closeLB);
+
+// ---------- developer easter egg: seven presses on the theme button ----------
+const toastEl = document.getElementById('toast');
+let toastT = null, devClicks = 0;
+let devMode = false; // resets on every load — developerhood must be re-earned
+try { localStorage.removeItem('varF-dev'); } catch(e){}
+function toast(msg){
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  clearTimeout(toastT);
+  toastT = setTimeout(() => toastEl.classList.remove('show'), 1800);
+}
+// ---------- text size (aA, lives in the plaque header) ----------
+const FS_STEPS = [1, 1.15, 1.3];
+let fsIdx = 0;
+try { fsIdx = (parseInt(localStorage.getItem('varF-fs') || '0', 10) || 0) % FS_STEPS.length; } catch(e){}
+function applyFS(){
+  const z = FS_STEPS[fsIdx];
+  for (const el of [label, vpanel, lbin]) el.style.setProperty('--z', z);
+}
+applyFS();
+function cycleFS(){
+  fsIdx = (fsIdx + 1) % FS_STEPS.length;
+  try { localStorage.setItem('varF-fs', String(fsIdx)); } catch(e){}
+  applyFS();
+  toast('Text size ' + Math.round(FS_STEPS[fsIdx] * 100) + '%');
+}
+
+themeBtn.addEventListener('click', () => {
+  if (devMode) return;
+  devClicks++;
+  const left = 7 - devClicks;
+  if (devClicks >= 7){
+    devMode = true;
+    varBtn.classList.add('revealed');
+    document.body.classList.add('dev');
+    toast('You are now a developer — Variations unlocked.');
+  } else if (devClicks >= 3){
+    toast('You are now ' + left + (left === 1 ? ' press' : ' presses') + ' away from being a developer.');
+  }
+});
+
+const FMTx = v => (Math.round(v * 100) / 100) + '×';
+const FMTs = v => (v > 0 ? '+' : '') + v.toFixed(2);
+const FMTd = v => Math.round(v) + '°';
+const SYNCS = [];
+function bindRange(id, key, fmt){
+  const el = document.getElementById(id), val = document.getElementById(id + '-v');
+  el.addEventListener('input', () => {
+    CTL[key] = parseFloat(el.value);
+    val.textContent = fmt(CTL[key]);
+    onCtl(key);
+  });
+  SYNCS.push(() => { el.value = CTL[key]; val.textContent = fmt(CTL[key]); });
+}
+function bindSeg(id, key, cast){
+  const box = document.getElementById(id);
+  box.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+    CTL[key] = cast ? cast(b.dataset.v) : b.dataset.v;
+    syncUI(); onCtl(key);
+  }));
+  SYNCS.push(() => box.querySelectorAll('button').forEach(b =>
+    b.classList.toggle('on', String(CTL[key]) === b.dataset.v)));
+}
+function syncUI(){
+  SYNCS.forEach(f => f());
+  const hueEl = document.getElementById('c-hue');
+  hueEl.disabled = CTL.hueAuto;
+  hueEl.closest('.vrow').classList.toggle('dim', CTL.hueAuto);
+}
+function onCtl(key){
+  if (activeIdx >= 0){
+    setTargets(activeIdx);
+    if (key === 'form') swapLabel(activeIdx);
+  }
+}
+bindRange('c-speed', 'speed', FMTx);
+bindRange('c-clim', 'clim', FMTx);
+bindRange('c-morph', 'morph', FMTx);
+bindRange('c-mag', 'mag', FMTx);
+bindRange('c-stream', 'stream', FMTx);
+bindRange('c-metab', 'metab', FMTs);
+bindRange('c-hue', 'hue', FMTd);
+bindRange('c-grain', 'grain', FMTx);
+bindRange('c-presence', 'presence', FMTx);
+bindSeg('s-form', 'form');
+bindSeg('s-hueauto', 'hueAuto', v => v === 'true');
+bindSeg('s-cover', 'cover', v => parseFloat(v));
+bindSeg('s-clear', 'clearings', v => v === 'true');
+document.getElementById('vreplay').addEventListener('click', () => {
+  seedCulture(activeIdx); selAge = 0;
+});
+document.getElementById('vwipe').addEventListener('click', () => {
+  if (glOK) initBuffers();
+  splatQueue.length = 0;
+  seedCulture(activeIdx); selAge = 0;
+});
+document.getElementById('vmutate').addEventListener('click', () => {
+  CTL.form = CLASSES[(Math.random() * CLASSES.length) | 0].label;
+  CTL.hueAuto = false;
+  CTL.hue = Math.floor(Math.random() * 360);
+  CTL.metab = Math.round((Math.random() * 1.2 - 0.6) * 20) / 20;
+  CTL.stream = Math.round((0.4 + Math.random() * 1.6) * 10) / 10;
+  climT += 2.5; // a mutation is also a climate shock
+  syncUI(); onCtl('form');
+});
+document.getElementById('vreset').addEventListener('click', () => {
+  Object.assign(CTL, { speed:1, clim:1, morph:1, form:'auto', mag:1, stream:1, metab:0,
+    hueAuto:true, hue:180, grain:1, cover:0, clearings:true, presence:1 });
+  syncUI(); onCtl('form');
+});
+syncUI();
+
+// ---------- main loop ----------
+const t0 = performance.now();
+const phaseEl = document.getElementById('phase');
+let climT = 0, lastFrame = t0, nextSpore = t0 + 3000, nextAdopt = 0, stepAcc = 0, pausedT = 0, pauseTick = 0;
+let selAge = 0, curPhase = '', Fbonus = 0;
+function frame(){
+  const now = performance.now();
+  const dt = Math.min(0.05, (now - lastFrame) / 1000);
+  lastFrame = now;
+  if ((maskTick++ & 3) === 0) measureMasks(); // read layout before any writes
+  // on phones, an open dossier / sheet / lightbox pauses the ecosystem —
+  // the last frame stays as a still while the GPU rests
+  bgPaused = COARSE && (expanded || panelOpen || lbOpen);
+  // the climate drifts on its own; navigation and activity jolt it
+  if (!bgPaused) climT += dt * (0.007 * CTL.clim + kick * 0.08 + actE * 0.015);
+  pos += (target - pos) * LERP;
+  if (Math.abs(target - pos) < 0.0005) pos = target;
+  renderMenu(pos);
+  const a = clampI(Math.round(pos));
+  if (a !== activeIdx){ activeIdx = a; onActive(a); }
+  lerpParams();
+  effZoom = cur.zoomD * zBreathe * CTL.mag;
+  if (!bgPaused) maybeDrip(now);
+
+  // the audience lifecycle: sparse arrival with drop-off, a surge to critical
+  // mass clustered around the installed base, then a standing daily tide
+  if (!bgPaused) selAge += dt;
+  let phase;
+  if (selAge < 2.5){ Fbonus = -0.002; phase = 'arrival'; }
+  else if (selAge < 8){
+    const r = Math.min(1, (selAge - 2.5) / 2);
+    Fbonus = 0.004 * r;
+    phase = 'critical mass';
+  } else {
+    Fbonus = 0.0022 * Math.sin((selAge - 8) * 0.28);
+    phase = 'daily rhythm';
+  }
+  if (phase !== curPhase){ curPhase = phase; phaseEl.textContent = phase; }
+  if (!bgPaused && selAge > 2.5 && selAge < 8 && now > nextAdopt){
+    nextAdopt = now + 380 + Math.random() * 420;
+    const d0 = DERIVED[activeIdx], s = d0.seeds[(Math.random() * d0.seeds.length) | 0];
+    splatQueue.push({
+      x: (s[0] + (Math.random() - 0.5) * 0.13 + 1) % 1,
+      y: (s[1] + (Math.random() - 0.5) * 0.13 + 1) % 1,
+      r: Math.max(2.5 / SIM, 0.004 + Math.random() * 0.003), amt: 0.55 });
+  }
+  // in daily rhythm, occasional newcomers drift in from anywhere
+  if (!RM && !bgPaused && selAge > 8 && now > nextSpore){
+    nextSpore = now + (4200 + Math.random() * 4800) / (effGenome(DERIVED[activeIdx]).sporeMul || 1);
+    splatQueue.push({ x: Math.random(), y: Math.random(),
+      r: Math.max(2.5 / SIM, 0.004 + Math.random() * 0.004), amt: 0.5 });
+  }
+  if (glOK && !bgPaused){
+    pausedT = (now - t0) / 1000;
+    renderField();
+    stepAcc += STEPS * CTL.speed;
+    const nS = Math.min(26, Math.floor(stepAcc));
+    stepAcc -= nS;
+    simSteps(nS);
+    draw({
+      time: pausedT,
+      centX, centY, zoomD: effZoom, light: cur.light,
+      palA: cur.palA, palB: cur.palB, palC: cur.palC, palD: cur.palD,
+    });
+  } else if (glOK){
+    stepAcc = 0; // no step burst on resume
+    // keep-alive still: repaint the frozen frame occasionally so the context
+    // stays warm and the sim state survives to resume exactly where it paused
+    if ((pauseTick++ & 31) === 0) draw({
+      time: pausedT,
+      centX, centY, zoomD: effZoom, light: cur.light,
+      palA: cur.palA, palB: cur.palB, palC: cur.palC, palD: cur.palD,
+    });
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
