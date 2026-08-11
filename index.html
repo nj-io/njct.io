@@ -1192,7 +1192,6 @@ function cycleFS(){
   fsIdx = (fsIdx + 1) % FS_STEPS.length;
   try { localStorage.setItem('varF-fs', String(fsIdx)); } catch(e){}
   applyFS();
-  toast('Text size: ' + (fsIdx ? 'large' : 'medium'));
 }
 
 themeBtn.addEventListener('click', () => {
