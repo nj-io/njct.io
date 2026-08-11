@@ -575,7 +575,7 @@ function effectiveTheme(){
   if (saved === 'light' || saved === 'dark') return saved;
   const stamped = document.documentElement.getAttribute('data-theme');
   if (stamped === 'light' || stamped === 'dark') return stamped;
-  return matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  return 'dark'; // the house default, regardless of OS preference
 }
 function applyTheme(t, instant){
   theme = t;
