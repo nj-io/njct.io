@@ -433,10 +433,12 @@ addEventListener('keydown', e => {
 });
 
 let downY = null, lastY = 0, vel = 0, lastT = 0, dragged = false, ptrType = 'mouse';
+let downAtTop = false, ptrPull = false, ptrArmed = false;
 addEventListener('pointerdown', e => {
   if (lbOpen || e.button !== 0 || e.target.closest('a,button,input,select,#vpanel,#label')) return;
   ptrType = e.pointerType || 'mouse';
   downY = lastY = e.clientY; vel = 0; lastT = performance.now(); dragged = false;
+  downAtTop = pos <= 0.02;
 });
 addEventListener('pointermove', e => {
   trackPointer(e);
@@ -446,10 +448,39 @@ addEventListener('pointermove', e => {
   const now = performance.now(); vel = dy / Math.max(1, now - lastT); lastT = now;
   const div = rowH() * (ptrType === 'touch' ? 2.6 : 1.1);
   target = clampI(target - dy / div);
+  // pull-to-refresh: a downward thumb-drag that starts on the first item and
+  // has nowhere to navigate becomes a refresh gesture
+  if (ptrType === 'touch' && downAtTop && target <= 0.02){
+    const pull = e.clientY - downY;
+    if (pull > 28){
+      ptrArmed = pull > 96;
+      toastEl.textContent = ptrArmed ? 'Release to refresh' : 'Pull to refresh';
+      toastEl.classList.add('show');
+      clearTimeout(toastT);
+      ptrPull = true;
+    } else if (ptrPull){
+      toastEl.classList.remove('show');
+      ptrPull = false; ptrArmed = false;
+    }
+  } else if (ptrPull){
+    toastEl.classList.remove('show');
+    ptrPull = false; ptrArmed = false;
+  }
 });
 addEventListener('pointerup', () => {
   if (downY === null) return;
   downY = null;
+  if (ptrPull){
+    toastEl.classList.remove('show');
+    ptrPull = false;
+    if (ptrArmed){
+      ptrArmed = false;
+      toastEl.textContent = 'Refreshing…';
+      toastEl.classList.add('show');
+      setTimeout(() => location.reload(), 200);
+      return;
+    }
+  }
   if (dragged){
     const mom = Math.max(-2.2, Math.min(2.2, -vel * (ptrType === 'touch' ? 4 : 9)));
     target = clampI(target + mom);
