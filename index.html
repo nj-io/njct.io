@@ -91,7 +91,7 @@
   .cexp:hover{opacity:1}
   .chead{display:flex;align-items:center;gap:12px;margin-bottom:10px}
   .cname{flex:1;min-width:0}
-  .clogo{width:40px;height:40px;flex:none;border:1px solid;display:grid;place-items:center;
+  .clogo{width:40px;height:40px;flex:none;display:grid;place-items:center;
     font-size:18px;font-weight:500;overflow:hidden}
   .clogo img{width:100%;height:100%;object-fit:contain;display:block}
   .cname .l1{font-size:13px;font-weight:600}
@@ -497,7 +497,7 @@ function swapLabel(i){
   const hue = CTL.hueAuto ? d.hue : CTL.hue;
   label.innerHTML =
     '<div class="chead">' +
-      '<div class="clogo" style="border-color:hsl(' + hue + ' 50% 52% / .85)">' +
+      '<div class="clogo">' +
         (LOGOS[p.name]
           ? '<img src="' + LOGOS[p.name] + '" alt="">'
           : '<span style="color:hsl(' + hue + ' 55% 52%)">' + p.name[0] + '</span>') +
@@ -1145,6 +1145,12 @@ label.addEventListener('click', e => {
   if (expanded && fig){ openLB(fig); return; } // figures zoom on tap
   if (expanded){ toggleExpand(false); return; } // any other click closes the modal
   toggleExpand();
+});
+// clicking outside the open modal also closes it (true clicks, not drag releases)
+document.addEventListener('click', e => {
+  if (!expanded || dragged || lbOpen) return;
+  if (label.contains(e.target) || vpanel.contains(e.target)) return;
+  toggleExpand(false);
 });
 
 // ---------- figure lightbox ----------
