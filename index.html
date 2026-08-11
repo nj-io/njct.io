@@ -1293,7 +1293,10 @@ function openLogoLB(i){
   lightbox.classList.add('show');
   lbOpen = true;
 }
-lightbox.addEventListener('click', closeLB);
+lightbox.addEventListener('click', e => {
+  e.stopPropagation(); // closing the lightbox must not fall through and close the dossier
+  closeLB();
+});
 
 // ---------- developer easter egg: seven presses on the theme button ----------
 const toastEl = document.getElementById('toast');
