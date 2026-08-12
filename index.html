@@ -1601,7 +1601,10 @@ function frame(){
   const a = clampI(Math.round(pos));
   if (a !== activeIdx){ activeIdx = a; onActive(a); }
   lerpParams();
-  effZoom = cur.zoomD * zBreathe * CTL.mag;
+  // the sim is a torus (wraparound physics), but the VIEW must never span
+  // more than one tile of it — wide screens were showing duplicate colonies
+  const wrapCap = 0.985 / Math.max(innerWidth / innerHeight, innerHeight / innerWidth);
+  effZoom = Math.min(cur.zoomD * zBreathe * CTL.mag, wrapCap);
   if (!bgPaused) maybeDrip(now);
 
   // the audience lifecycle: sparse arrival with drop-off, a surge to critical
