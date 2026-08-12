@@ -1703,29 +1703,40 @@ function wpBuild(){
   wpBoard.innerHTML = '';
   wpSlots = [];
   for (let i = 0; i < WPN; i++){
-    const reel = [];
-    WP_PAD.forEach((w, k) => {
-      if (k) reel.push(WP_FILL[(i * 7 + k * 3) % WP_FILL.length], WP_FILL[(i * 11 + k * 5) % WP_FILL.length]);
-      reel.push(w[i]);
-    });
+    // a column only spins when its letter actually changes between words —
+    // shared letters (the anchors) hold perfectly still and stay crisp
+    const reel = [WP_PAD[0][i]];
+    const targets = [0];
+    for (let k = 1; k < WP_PAD.length; k++){
+      const ch = WP_PAD[k][i];
+      if (ch === WP_PAD[k - 1][i]){
+        targets.push(targets[k - 1]);
+      } else {
+        reel.push(WP_FILL[(i * 7 + k * 3) % WP_FILL.length],
+                  WP_FILL[(i * 11 + k * 5) % WP_FILL.length], ch);
+        targets.push(reel.length - 1);
+      }
+    }
     const slot = document.createElement('div');
     slot.className = 'wpslot';
     const a = document.createElement('span'), b = document.createElement('span');
     slot.append(a, b);
     wpBoard.appendChild(slot);
-    wpSlots.push({ reel, a, b, prev: 0 });
+    wpSlots.push({ reel, targets, a, b, prev: 0 });
   }
   wpH = wpBoard.querySelector('.wpslot').getBoundingClientRect().height || 60;
 }
 function wpIndexAt(tms, slotI){
+  const s = wpSlots[slotI];
   const t = tms - slotI * WP_STAG;
-  if (t <= 0) return 0;
+  if (t <= 0) return s.targets[0];
   const per = WP_HOLD + WP_TRAVEL;
   const seg = Math.floor(t / per);
-  if (seg >= WP_WORDS.length - 1) return (WP_WORDS.length - 1) * 3;
+  if (seg >= WP_WORDS.length - 1) return s.targets[WP_WORDS.length - 1];
   const tt = t - seg * per;
-  if (tt < WP_HOLD) return seg * 3;
-  return seg * 3 + wpEase((tt - WP_HOLD) / WP_TRAVEL) * 3;
+  const a = s.targets[seg], b = s.targets[seg + 1];
+  if (tt < WP_HOLD || a === b) return a;
+  return a + wpEase((tt - WP_HOLD) / WP_TRAVEL) * (b - a);
 }
 function wpRender(s, idx, v){
   const len = s.reel.length;
