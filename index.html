@@ -535,7 +535,34 @@ addEventListener('pointerup', () => {
 });
 
 // dossier figures: inline SVG, theme-aware via currentColor, accents in the project hue
-function flowSVG(nodes, hue){
+// brand accents: the dominant colour of each logo, as the brand system's
+// accentLight/accentDark pairs — one for each theme. Projects without a
+// mark fall back to a name-derived pair.
+const ACCENTS = {
+  'Mirra': ['#2C7AC2', '#9EC7EA'],
+  'Social Hook': ['#2563EB', '#5B8DEF'],
+  'Clauded': ['#0E8A90', '#46D4D8'],
+  'Track Record': ['#5E5CE6', '#8B89EE'],
+  'LikeWiki': ['#C15F3C', '#E0855C'],
+  'Claude Historian': ['#C05A38', '#E8906B'],
+};
+function hexRgb(h){
+  h = h.replace('#', '');
+  return [parseInt(h.slice(0, 2), 16) / 255, parseInt(h.slice(2, 4), 16) / 255, parseInt(h.slice(4, 6), 16) / 255];
+}
+function accentRgb(i){
+  const pair = ACCENTS[PROJECTS[i].name];
+  if (pair) return hexRgb(theme === 'light' ? pair[0] : pair[1]);
+  return hsl2rgb(DERIVED[i].hue / 360, 0.55, theme === 'light' ? 0.42 : 0.62);
+}
+function accentHex(name){
+  const pair = ACCENTS[name];
+  if (pair) return theme === 'light' ? pair[0] : pair[1];
+  const i = PROJECTS.findIndex(p => p.name === name);
+  return 'hsl(' + DERIVED[i].hue + ' 55% ' + (theme === 'light' ? '42%' : '62%') + ')';
+}
+
+function flowSVG(nodes, acc){
   const W = 520, H = 72, n = nodes.length, gap = 24;
   const bw = Math.floor((W - (n - 1) * gap) / n), bh = 40, y = 14;
   let s = '<svg class="csvg" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="pipeline diagram">';
@@ -553,14 +580,14 @@ function flowSVG(nodes, hue){
     if (i < n - 1){
       const ax = x + bw;
       s += '<line x1="' + ax + '" y1="' + cy + '" x2="' + (ax + gap) + '" y2="' + cy +
-        '" stroke="hsl(' + hue + ' 50% 52%)" stroke-width="1"/>';
+        '" stroke="' + acc + '" stroke-width="1"/>';
       s += '<path d="M ' + (ax + gap - 5) + ' ' + (cy - 3) + ' L ' + (ax + gap) + ' ' + cy + ' L ' + (ax + gap - 5) + ' ' + (cy + 3) +
-        '" fill="none" stroke="hsl(' + hue + ' 50% 52%)"/>';
+        '" fill="none" stroke="' + acc + '"/>';
     }
   });
   return s + '</svg>';
 }
-function adoptionSVG(d, hue){
+function adoptionSVG(d, acc){
   const W = 520, H = 96, P = 14;
   const rnd = k => ((Math.imul(d.hash ^ Math.imul(k + 11, 2654435761), 2246822519) >>> 0) / 4294967296);
   // every product has its own adoption personality, derived from the name:
@@ -603,15 +630,15 @@ function adoptionSVG(d, hue){
   return '<svg class="csvg" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="audience over time">' +
     '<line x1="' + P + '" y1="' + (H - P) + '" x2="' + (W - P) + '" y2="' + (H - P) + '" stroke="currentColor" stroke-opacity="0.25"/>' +
     '<polygon points="' + P + ',' + (H - P) + ' ' + line + ' ' + (W - P) + ',' + (H - P) +
-      '" fill="hsl(' + hue + ' 50% 52%)" fill-opacity="0.10"/>' +
-    '<polyline points="' + line + '" fill="none" stroke="hsl(' + hue + ' 50% 52%)" stroke-width="1.3"/>' +
-    '<circle cx="' + last[0] + '" cy="' + last[1] + '" r="2.6" fill="hsl(' + hue + ' 50% 52%)"/>' +
+      '" fill="' + acc + '" fill-opacity="0.10"/>' +
+    '<polyline points="' + line + '" fill="none" stroke="' + acc + '" stroke-width="1.3"/>' +
+    '<circle cx="' + last[0] + '" cy="' + last[1] + '" r="2.6" fill="' + acc + '"/>' +
     '<text x="' + P + '" y="' + (H - 3) + '" font-size="8.5" fill="currentColor" fill-opacity="0.5">launch</text>' +
     '<text x="' + (W - P) + '" y="' + (H - 3) + '" text-anchor="end" font-size="8.5" fill="currentColor" fill-opacity="0.5">today</text>' +
     '</svg>';
 }
 
-function dossierHTML(p, d, hue){
+function dossierHTML(p, d, acc){
   const DS = DOSSIERS[p.name];
   const what = (DS && DS.what) || p.what;
   const arch = (DS && DS.arch) || p.arch;
@@ -633,7 +660,7 @@ function dossierHTML(p, d, hue){
         '<div class="fcap dcap">' + ((hasHi ? DS.hiCap : DS.loCap) || '') + '</div>' +
       '</div>';
   } else {
-    diagram = '<div class="cfig">' + flowSVG(p.flow, hue) +
+    diagram = '<div class="cfig">' + flowSVG(p.flow, acc) +
       '<div class="fcap">Fig. 2 — the pipeline, end to end.</div></div>';
   }
   const glance = (DS && DS.glance)
@@ -641,7 +668,7 @@ function dossierHTML(p, d, hue){
         '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td></tr>').join('') + '</table>'
     : '';
   return '<h5>In depth</h5><p>' + what + '</p>' + glance +
-    '<div class="cfig">' + adoptionSVG(d, hue) +
+    '<div class="cfig">' + adoptionSVG(d, acc) +
       '<div class="fcap">Fig. 1 — audience over time: arrival, early drop-off, critical mass, then the daily ebb and flow.</div></div>' +
     '<h5>Architecture</h5>' + diagram +
     '<ul class="dlist">' + arch.map(a => '<li>' + a + '</li>').join('') + '</ul>' +
@@ -653,13 +680,13 @@ function dossierHTML(p, d, hue){
 
 function swapLabel(i){
   const p = PROJECTS[i], d = effGenome(DERIVED[i]);
-  const hue = CTL.hueAuto ? d.hue : CTL.hue;
+  const acc = CTL.hueAuto ? accentHex(p.name) : 'hsl(' + CTL.hue + ' 55% 52%)';
   label.innerHTML =
     '<div class="chead">' +
       '<div class="clogo">' +
         (LOGOS[p.name]
           ? '<img src="' + LOGOS[p.name] + '" alt="">'
-          : '<span style="color:hsl(' + hue + ' 55% 52%)">' + p.name[0] + '</span>') +
+          : '<span style="color:' + acc + '">' + p.name[0] + '</span>') +
       '</div>' +
       '<div class="cname"><div class="l1">' + p.name + ', ' + p.year + '</div>' +
       '<div class="l2">' + p.tag + '</div></div>' +
@@ -672,7 +699,7 @@ function swapLabel(i){
     '</div>' +
     '<div class="cmeta"><a class="clink" href="' + p.url + '" target="_blank" rel="noopener">' +
       p.url.replace('https://', '') + ' ↗</a><span class="cstack">' + p.stack + '</span></div>' +
-    '<div class="cmore"><div>' + dossierHTML(p, d, hue) + '<div style="height:12px"></div></div></div>' +
+    '<div class="cmore"><div>' + dossierHTML(p, d, acc) + '<div style="height:12px"></div></div></div>' +
     '<div class="l3">Gray-Scott ecosystem · class: ' + d.cls + ' · regime: ' + d.regime +
       ' · F&#8320; ' + d.F.toFixed(4) + ' · k&#8320; ' + d.k.toFixed(4) +
       ' · ' + d.seeds.length + ' founding colonies</div>';
@@ -724,7 +751,10 @@ function applyTheme(t, instant){
   themeBtn.textContent = t === 'light' ? '◑' : '◐';
   tgt.light = t === 'light' ? 1 : 0;
   if (instant) cur.light = tgt.light;
-  if (activeIdx >= 0) swapLabel(activeIdx);
+  if (activeIdx >= 0){
+    setTargets(activeIdx); // palettes re-derive from the theme's accent
+    swapLabel(activeIdx);
+  }
 }
 function toggleTheme(){
   const next = theme === 'light' ? 'dark' : 'light';
@@ -1188,9 +1218,18 @@ function setTargets(i){
   tgt.F = d.F; tgt.k = d.k; tgt.zoomD = d.zoomD;
   tgt.climX = d.climX; tgt.climY = d.climY;
   tgt.adv = d.adv; tgt.edgeG = d.edgeG; tgt.bodyG = d.bodyG; tgt.nuc = d.nuc;
-  const pal = CTL.hueAuto ? d : paletteFromHue(CTL.hue, d);
-  tgt.palA = pal.palA.slice(); tgt.palB = pal.palB.slice();
-  tgt.palC = pal.palC.slice(); tgt.palD = pal.palD.slice();
+  if (CTL.hueAuto){
+    // the ecosystem takes its pigment from the logo's accent for the current theme
+    const base = accentRgb(i);
+    tgt.palA = base.map(v => 0.16 + v * 0.34);
+    tgt.palB = base.map(v => 0.18 + v * 0.36);
+    tgt.palC = [1, 1, 1];
+    tgt.palD = [d.p0, d.p0 + 0.03 + d.vr * 0.08, d.p0 - 0.02 - (1 - d.vr) * 0.05];
+  } else {
+    const pal = paletteFromHue(CTL.hue, d);
+    tgt.palA = pal.palA.slice(); tgt.palB = pal.palB.slice();
+    tgt.palC = pal.palC.slice(); tgt.palD = pal.palD.slice();
+  }
 }
 setTargets(0);
 Object.assign(cur, JSON.parse(JSON.stringify(tgt)));
@@ -1359,11 +1398,11 @@ function closeLB(){
 }
 function openLogoLB(i){
   const p = PROJECTS[i], d = effGenome(DERIVED[i]);
-  const hue = CTL.hueAuto ? d.hue : CTL.hue;
+  const acc = CTL.hueAuto ? accentHex(p.name) : 'hsl(' + CTL.hue + ' 55% 52%)';
   const lg = LOGOS[p.name];
   lbin.innerHTML = '<div class="lblogo">' +
     (lg ? '<img src="' + lg + '" alt="' + p.name + ' mark">'
-        : '<span style="color:hsl(' + hue + ' 55% 52%)">' + p.name[0] + '</span>') +
+        : '<span style="color:' + acc + '">' + p.name[0] + '</span>') +
     '</div><div class="fcap" style="text-align:center">' + p.name + ' — brand mark</div>';
   lightbox.classList.add('show');
   lbOpen = true;
@@ -1602,9 +1641,14 @@ function frame(){
   if (a !== activeIdx){ activeIdx = a; onActive(a); }
   lerpParams();
   // the sim is a torus (wraparound physics), but the VIEW must never span
-  // more than one tile of it — wide screens were showing duplicate colonies
+  // more than one tile of it — wide screens were showing duplicate colonies.
+  // the magnification slider's travel is rescaled onto the useful range so
+  // its top always lands exactly on the widest non-tiling view
   const wrapCap = 0.985 / Math.max(innerWidth / innerHeight, innerHeight / innerWidth);
-  effZoom = Math.min(cur.zoomD * zBreathe * CTL.mag, wrapCap);
+  const zBase = cur.zoomD * zBreathe;
+  const maxMag = Math.min(1.7, Math.max(0.6, wrapCap / zBase));
+  const magEff = 0.6 + (CTL.mag - 0.6) * (maxMag - 0.6) / 1.1;
+  effZoom = Math.min(zBase * magEff, wrapCap);
   if (!bgPaused) maybeDrip(now);
 
   // the audience lifecycle: sparse arrival with drop-off, a surge to critical
