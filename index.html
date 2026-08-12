@@ -1672,10 +1672,27 @@ else setTimeout(introGo, 1100);
 const WP_WORDS = ['inspire','integrate','inject','energy','intrinsic','connect','instinct','iterate','ignite','invent','njct.io'];
 const wpEl = document.getElementById('wordplay');
 const wpBoard = document.getElementById('wpboard');
-const WPN = Math.max(...WP_WORDS.map(w => w.length));
-const WP_PAD = WP_WORDS.map(w => {
-  const l = Math.floor((WPN - w.length) / 2);
-  return (' '.repeat(l) + w + ' '.repeat(WPN)).slice(0, WPN);
+// column alignment: njct.io's letters own fixed columns (n at 0), and every
+// word anchors its shared letters onto them — inject sits at -1,0,1,2,3,4 so
+// its n and j land exactly where njct.io's do; extra letters fly in from empty columns
+const wpOffset = w => {
+  if (w === 'njct.io') return 0;
+  const n = w.indexOf('n');
+  if (n >= 0) return -n;
+  const t = w.indexOf('t');
+  return t >= 0 ? 3 - t : 0;
+};
+const WP_OFFS = WP_WORDS.map(wpOffset);
+const WP_MINC = Math.min(...WP_OFFS);
+const WP_MAXC = Math.max(...WP_WORDS.map((w, k) => WP_OFFS[k] + w.length - 1));
+const WPN = WP_MAXC - WP_MINC + 1;
+const WP_PAD = WP_WORDS.map((w, k) => {
+  let s = '';
+  for (let c = WP_MINC; c <= WP_MAXC; c++){
+    const j = c - WP_OFFS[k];
+    s += (j >= 0 && j < w.length) ? w[j] : ' ';
+  }
+  return s;
 });
 const WP_FILL = 'aeionrstcjxy.';
 const WP_TRAVEL = 340, WP_HOLD = 230, WP_STAG = 26, WP_FINAL = 1300;
