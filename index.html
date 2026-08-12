@@ -1672,7 +1672,7 @@ else setTimeout(introGo, 1100);
 // double-click njct.io in the header: every letter column is a reel that
 // spins through filler glyphs with speed-proportional blur and smear,
 // ripples left to right, and decelerates into each word — landing on njct.io
-const WP_WORDS = ['inspire','integrate','inject','energy','intrinsic','connect','instinct','iterate','ignite','invent','njct.io'];
+const WP_WORDS = ['inspire','integrate','intrinsic','connect','instinct','iterate','ignite','invent','njct.io'];
 const wpEl = document.getElementById('wordplay');
 const wpBoard = document.getElementById('wpboard');
 // column alignment: njct.io's letters own fixed columns (n at 0), and every
@@ -1803,5 +1803,5 @@ function closeWordplay(){
   wpEl.classList.remove('show');
 }
 wpEl.addEventListener('click', e => { e.stopPropagation(); closeWordplay(); });
-brandEl.addEventListener('dblclick', e => { e.preventDefault(); openWordplay(); });
+brandEl.addEventListener('click', e => { e.preventDefault(); openWordplay(); });
 </script>
