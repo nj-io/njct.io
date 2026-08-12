@@ -8,6 +8,7 @@
     --capshadow:none;
     --hair:rgba(19,19,17,.18);
     --plaque:rgba(236,234,230,.86);
+    --aboutbg:rgba(236,234,230,.93);
   }
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
@@ -16,6 +17,7 @@
       --capshadow:0 1px 16px rgba(0,0,0,.6),0 0 3px rgba(0,0,0,.45);
       --hair:rgba(242,240,234,.22);
       --plaque:rgba(10,10,11,.78);
+      --aboutbg:rgba(10,10,11,.9);
     }
   }
   :root[data-theme="dark"]{
@@ -24,6 +26,7 @@
     --capshadow:0 1px 16px rgba(0,0,0,.6),0 0 3px rgba(0,0,0,.45);
     --hair:rgba(242,240,234,.22);
     --plaque:rgba(10,10,11,.78);
+    --aboutbg:rgba(10,10,11,.9);
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
@@ -126,6 +129,18 @@
   .zenbtn:hover{opacity:1}
   header,.menu,.label,#vpanel,#toast{transition:opacity .45s ease}
   body.zen :is(header,.menu,.label,#vpanel,#toast){opacity:0 !important;pointer-events:none}
+  .abtn{font-size:12px;opacity:.6;padding:0;margin-right:18px}
+  .abtn:hover{opacity:1}
+  #about{position:fixed;inset:0;z-index:14;display:grid;place-items:center;padding:6vw;
+    background:var(--aboutbg);color:var(--text);cursor:pointer;
+    opacity:0;visibility:hidden;transition:opacity .5s ease,visibility .5s}
+  #about.show{opacity:1;visibility:visible}
+  .atext{width:min(880px,90vw);font-size:clamp(21px,3vw,32px);font-weight:250;
+    line-height:1.55;letter-spacing:-.012em;white-space:pre-wrap}
+  .caret{display:inline-block;width:.52em;height:1.05em;background:currentColor;
+    vertical-align:-0.12em;margin-left:3px;animation:ablink 1.06s steps(1) infinite}
+  @keyframes ablink{50%{opacity:0}}
+  body.about :is(header,.menu,.label,#vpanel,#toast,.zenbtn){opacity:0 !important;pointer-events:none}
   .vlabel{font-size:12px;display:none;opacity:0;transition:opacity .6s}
   .vlabel.revealed{display:inline;opacity:1}
   #toast{position:fixed;top:18px;left:50%;transform:translate(-50%,-180%);z-index:20;
@@ -182,11 +197,13 @@
 <div class="glfail" id="glfail">WebGL unavailable — the culture needs it.</div>
 <div id="toast" role="status"></div>
 <div id="lightbox"><div class="lbin" id="lbin"></div></div>
+<div id="about" role="dialog" aria-label="About Neil"><div class="atext" id="atext"></div></div>
 
 <header class="ov">
   <span class="brand">njct.io <span class="bdim">— product portfolio</span></span>
   <span class="hr">
     <span class="phase" id="phase"></span>
+    <button class="tbtn abtn" id="aboutBtn" aria-label="About Neil">About</button>
     <span class="counter" id="counter">01 / 08</span>
     <button class="tbtn" id="themeBtn" aria-label="Toggle dark or light mode">◐</button>
     <button class="tbtn vlabel" id="varBtn" aria-label="Open variations">Variations</button>
@@ -413,7 +430,7 @@ const snapSoon = (ms = 140) => { clearTimeout(snapT); snapT = setTimeout(() => t
 const rowH = () => Math.min(84, Math.max(56, innerHeight * 0.10));
 
 addEventListener('wheel', e => {
-  if (lbOpen || vpanel.contains(e.target) || label.contains(e.target)) return; // panel, dossier, lightbox
+  if (lbOpen || aboutOpen || vpanel.contains(e.target) || label.contains(e.target)) return; // panel, dossier, overlays
   e.preventDefault();
   target = clampI(target + e.deltaY * 0.0036);
   kickT = Math.min(1, kickT + Math.abs(e.deltaY) * 0.0009);
@@ -421,6 +438,11 @@ addEventListener('wheel', e => {
 }, { passive: false });
 
 addEventListener('keydown', e => {
+  if (aboutOpen){
+    if (e.key === 'Escape') closeAbout();
+    else if (aboutTyping) finishAbout();
+    return;
+  }
   if (lbOpen){ if (e.key === 'Escape') closeLB(); return; }
   if (vpanel.contains(document.activeElement)){
     if (e.key === 'Escape') togglePanel(false);
@@ -439,7 +461,7 @@ addEventListener('keydown', e => {
 let downY = null, lastY = 0, vel = 0, lastT = 0, dragged = false, ptrType = 'mouse';
 let downAtTop = false, ptrPull = false, ptrArmed = false;
 addEventListener('pointerdown', e => {
-  if (lbOpen || e.button !== 0 || e.target.closest('a,button,input,select,#vpanel,#label')) return;
+  if (lbOpen || aboutOpen || e.button !== 0 || e.target.closest('a,button,input,select,#vpanel,#label')) return;
   ptrType = e.pointerType || 'mouse';
   downY = lastY = e.clientY; vel = 0; lastT = performance.now(); dragged = false;
   downAtTop = pos <= 0.02;
@@ -1343,6 +1365,65 @@ function toast(msg){
   clearTimeout(toastT);
   toastT = setTimeout(() => toastEl.classList.remove('show'), 1800);
 }
+// ---------- about: everything dissolves, someone types ----------
+const aboutEl = document.getElementById('about');
+const atextEl = document.getElementById('atext');
+const aboutBtn = document.getElementById('aboutBtn');
+const ABOUT_FULL = [
+  "Hi, I'm Neil.",
+  "I used to work as a solutions architect at one of the world's largest asset management funds.",
+  "Now I create end-to-end scalable architecture for companies that use AI",
+  "Here are some of the projects I have been working on recently",
+].join('\n\n');
+let aboutOpen = false, aboutTyping = false, aboutTimer = null;
+function renderAbout(txt){
+  atextEl.textContent = txt;
+  const c = document.createElement('span');
+  c.className = 'caret';
+  atextEl.appendChild(c);
+}
+function openAbout(){
+  aboutOpen = true;
+  toggleExpand(false); togglePanel(false); closeLB();
+  document.body.classList.add('about');
+  aboutEl.classList.add('show');
+  if (RM){ aboutTyping = false; renderAbout(ABOUT_FULL); return; }
+  aboutTyping = true;
+  let i = 0, out = '';
+  const step = () => {
+    if (!aboutTyping) return;
+    if (i >= ABOUT_FULL.length){ aboutTyping = false; return; }
+    const ch = ABOUT_FULL[i++];
+    out += ch;
+    renderAbout(out);
+    let delay = 22 + Math.random() * 36;
+    if (ch === ',') delay = 200;
+    if (ch === '.') delay = 260;
+    if (ch === '\n') delay = 150;
+    aboutTimer = setTimeout(step, delay);
+  };
+  renderAbout('');
+  aboutTimer = setTimeout(step, 420);
+}
+function finishAbout(){
+  aboutTyping = false;
+  clearTimeout(aboutTimer);
+  renderAbout(ABOUT_FULL);
+}
+function closeAbout(){
+  aboutTyping = false;
+  clearTimeout(aboutTimer);
+  aboutOpen = false;
+  document.body.classList.remove('about');
+  aboutEl.classList.remove('show');
+}
+aboutBtn.addEventListener('click', () => aboutOpen ? closeAbout() : openAbout());
+aboutEl.addEventListener('click', e => {
+  e.stopPropagation();
+  if (aboutTyping) finishAbout(); // first click lands the full text
+  else closeAbout();              // the next one closes
+});
+
 // ---------- zen: only the ecosystem ----------
 // desktop: hovering the ○ hides every interface layer until the pointer leaves.
 // touch: tapping it (or shaking the phone, where motion events are permitted)
@@ -1492,7 +1573,7 @@ function frame(){
   if ((maskTick++ & 3) === 0) measureMasks(); // read layout before any writes
   // on phones, an open dossier / sheet / lightbox pauses the ecosystem —
   // the last frame stays as a still while the GPU rests
-  bgPaused = COARSE && (expanded || panelOpen || lbOpen);
+  bgPaused = COARSE && (expanded || panelOpen || lbOpen || aboutOpen);
   // the climate drifts on its own; navigation and activity jolt it
   if (!bgPaused) climT += dt * (0.007 * CTL.clim + kick * 0.08 + actE * 0.015);
   pos += (target - pos) * LERP;
