@@ -132,12 +132,11 @@
   .abtn{font-size:12px;opacity:.6;padding:0;margin-right:18px}
   .abtn:hover{opacity:1}
   #intro{position:fixed;inset:0;z-index:40;display:grid;place-items:center;
-    background:var(--paper);transition:opacity .9s ease,visibility .9s}
+    background:var(--paper);transition:opacity .5s ease,visibility .5s}
   #intro.gone{opacity:0;visibility:hidden}
-  .iword{font-size:clamp(40px,7vw,84px);font-weight:250;color:var(--text);opacity:0;
-    animation:iin 1.1s cubic-bezier(.22,1,.36,1) .15s forwards}
-  .idim{opacity:.45}
-  @keyframes iin{from{opacity:0;letter-spacing:.14em}to{opacity:1;letter-spacing:.015em}}
+  .iword{font-size:clamp(40px,7vw,84px);font-weight:600;color:var(--text);opacity:0;
+    animation:iin .7s cubic-bezier(.22,1,.36,1) .1s forwards}
+  @keyframes iin{from{opacity:0;letter-spacing:.1em}to{opacity:1;letter-spacing:.01em}}
   #about{position:fixed;inset:0;z-index:14;display:grid;place-items:center;padding:6vw;
     background:var(--aboutbg);color:var(--text);cursor:pointer;
     opacity:0;visibility:hidden;transition:opacity .5s ease,visibility .5s}
@@ -205,7 +204,7 @@
 <div id="toast" role="status"></div>
 <div id="lightbox"><div class="lbin" id="lbin"></div></div>
 <div id="about" role="dialog" aria-label="About Neil"><div class="atext" id="atext"></div></div>
-<div id="intro" aria-hidden="true"><span class="iword">njct<span class="idim">.io</span></span></div>
+<div id="intro" aria-hidden="true"><span class="iword">njct.io</span></div>
 
 <header class="ov">
   <span class="brand">njct.io <span class="bdim">— product portfolio</span></span>
@@ -1652,5 +1651,5 @@ const intro = document.getElementById('intro');
 const introGo = () => intro.classList.add('gone');
 intro.addEventListener('click', introGo);
 if (RM) introGo();
-else setTimeout(introGo, 2000);
+else setTimeout(introGo, 1100);
 </script>
