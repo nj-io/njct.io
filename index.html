@@ -702,11 +702,11 @@ function dossierHTML(p, d, acc){
       : '');
 }
 
-function swapLabel(i){
+let labelIdx = -1;
+function labelInner(i){
   const p = PROJECTS[i], d = effGenome(DERIVED[i]);
   const acc = CTL.hueAuto ? accentHex(p.name) : 'hsl(' + CTL.hue + ' 55% 52%)';
-  label.innerHTML =
-    '<div class="chead">' +
+  return '<div class="chead">' +
       '<div class="clogo">' +
         (LOGOS[p.name]
           ? '<img src="' + LOGOS[p.name] + '" alt="">'
@@ -727,9 +727,14 @@ function swapLabel(i){
     '<div class="l3">Gray-Scott ecosystem · class: ' + d.cls + ' · regime: ' + d.regime +
       ' · F&#8320; ' + d.F.toFixed(4) + ' · k&#8320; ' + d.k.toFixed(4) +
       ' · ' + d.seeds.length + ' founding colonies</div>';
+}
+
+function swapLabel(i, instant){
+  label.innerHTML = labelInner(i);
+  labelIdx = i;
   updateExpBtn();
   applyFS(); // text size survives project swaps and theme refreshes
-  if (!RM) label.animate(
+  if (!RM && !instant) label.animate(
     [{ opacity: 0, transform: 'translateY(4px)' }, { opacity: 1, transform: 'none' }],
     { duration: 380, easing: 'cubic-bezier(.25,.6,.3,1)' });
 }
@@ -741,7 +746,7 @@ function onActive(i){
   selAge = 0;
   if (!RM) kickT = 1.0;
   clearTimeout(labelT);
-  labelT = setTimeout(() => swapLabel(i), 110);
+  labelT = setTimeout(() => { if (i !== labelIdx) swapLabel(i); }, 110);
 }
 
 function renderMenu(p){
@@ -1390,31 +1395,95 @@ document.addEventListener('click', e => {
   toggleExpand(false);
 });
 
-// horizontal swipes on the open dossier step between projects without leaving it.
+// carousel swipe on the open dossier: the card follows the finger and the
+// neighbouring card floats in beside it — release commits or springs back.
 // vertical touches keep scrolling the dossier (pan-y stays with the browser).
-let mSwX = null, mSwY = null, modalSwiped = false;
+let modalSwiped = false;
+let mSw = null;
+function labelGhost(i){
+  const g = document.createElement('div');
+  g.className = label.className;
+  g.style.cssText = label.style.cssText;
+  g.innerHTML = labelInner(i);
+  g.style.pointerEvents = 'none';
+  g.style.transition = 'none';
+  document.body.appendChild(g);
+  return g;
+}
 label.addEventListener('pointerdown', e => {
-  if (!expanded || e.pointerType !== 'touch' || lbOpen) return;
-  mSwX = e.clientX; mSwY = e.clientY;
+  if (!expanded || e.pointerType !== 'touch' || lbOpen || mSw) return;
+  mSw = { id: e.pointerId, x0: e.clientX, y0: e.clientY, horiz: false,
+          dir: 0, nIdx: -1, ghost: null, dx: 0, w: 0,
+          lastX: e.clientX, lastT: performance.now(), v: 0 };
 });
-label.addEventListener('pointercancel', () => { mSwX = null; });
-label.addEventListener('pointerup', e => {
-  if (mSwX === null || !expanded){ mSwX = null; return; }
-  const dx = e.clientX - mSwX, dy = e.clientY - mSwY;
-  mSwX = null;
-  if (Math.abs(dx) > 60 && Math.abs(dx) > 2 * Math.abs(dy)){
-    modalSwiped = true;
-    const dir = dx < 0 ? 1 : -1; // swipe left = next project
-    const nt = clampI(Math.round(pos) + dir);
-    if (nt !== Math.round(pos)){
-      target = nt;
-      if (!RM) label.animate(
-        [{ transform: 'translateX(' + (dir * -16) + 'px)', opacity: 0.7 }, { transform: 'none', opacity: 1 }],
-        { duration: 260, easing: 'cubic-bezier(.22,1,.36,1)' });
-    }
-    setTimeout(() => modalSwiped = false, 120);
+label.addEventListener('pointermove', e => {
+  if (!mSw || e.pointerId !== mSw.id) return;
+  const dx = e.clientX - mSw.x0, dy = e.clientY - mSw.y0;
+  if (!mSw.horiz){
+    if (Math.abs(dy) > 16 && Math.abs(dy) > Math.abs(dx)){ mSw = null; return; }
+    if (Math.abs(dx) < 14 || Math.abs(dx) < 1.4 * Math.abs(dy)) return;
+    mSw.horiz = true;
+    mSw.w = label.getBoundingClientRect().width + 28;
+    try { label.setPointerCapture(e.pointerId); } catch (_){}
+    label.style.transition = 'none';
   }
+  const now = performance.now();
+  mSw.v = 0.7 * mSw.v + 0.3 * ((e.clientX - mSw.lastX) / Math.max(now - mSw.lastT, 1));
+  mSw.lastX = e.clientX; mSw.lastT = now;
+  const dir = dx < 0 ? 1 : -1; // swipe left = next project
+  if (dir !== mSw.dir){
+    if (mSw.ghost){ mSw.ghost.remove(); mSw.ghost = null; }
+    const nt = clampI(Math.round(pos) + dir);
+    mSw.nIdx = nt !== Math.round(pos) ? nt : -1;
+    if (mSw.nIdx >= 0 && !RM) mSw.ghost = labelGhost(mSw.nIdx);
+    mSw.dir = dir;
+  }
+  mSw.dx = mSw.nIdx >= 0 ? dx : dx * 0.32; // rubber-band past the ends
+  label.style.transform = 'translateX(' + mSw.dx + 'px)';
+  if (mSw.ghost) mSw.ghost.style.transform = 'translateX(' + (mSw.dx + mSw.dir * mSw.w) + 'px)';
 });
+function endModalSwipe(e, forceCancel){
+  if (!mSw || e.pointerId !== mSw.id) return;
+  const s = mSw;
+  mSw = null;
+  if (!s.horiz) return;
+  modalSwiped = true;
+  setTimeout(() => modalSwiped = false, 160);
+  const flick = Math.abs(s.v) > 0.5 && (s.v < 0) === (s.dir === 1);
+  const commit = !forceCancel && s.nIdx >= 0 && (Math.abs(s.dx) > s.w * 0.3 || flick);
+  const ease = 'transform .3s cubic-bezier(.22,.61,.36,1)';
+  if (commit && s.ghost){
+    label.style.transition = ease;
+    s.ghost.style.transition = ease;
+    label.style.transform = 'translateX(' + (-s.dir * s.w) + 'px)';
+    s.ghost.style.transform = 'translateX(0px)';
+    target = s.nIdx;
+    setTimeout(() => {
+      swapLabel(s.nIdx, true);
+      label.scrollTop = 0;
+      label.style.transition = 'none';
+      label.style.transform = '';
+      s.ghost.remove();
+      requestAnimationFrame(() => { label.style.transition = ''; });
+    }, 310);
+  } else if (commit){
+    target = s.nIdx; // reduced motion: step without the float
+    label.style.transition = '';
+    label.style.transform = '';
+  } else {
+    label.style.transition = ease;
+    label.style.transform = '';
+    if (s.ghost){
+      const g = s.ghost;
+      g.style.transition = ease;
+      g.style.transform = 'translateX(' + (s.dir * s.w) + 'px)';
+      setTimeout(() => g.remove(), 320);
+    }
+    setTimeout(() => { label.style.transition = ''; }, 320);
+  }
+}
+label.addEventListener('pointerup', e => endModalSwipe(e, false));
+label.addEventListener('pointercancel', e => endModalSwipe(e, true));
 
 // ---------- figure lightbox ----------
 const lightbox = document.getElementById('lightbox');
