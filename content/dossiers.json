@@ -1,19 +1,8 @@
 {
  "Mirra": {
   "what": "Follow X accounts from Telegram: every post arrives in minutes, and a short brief tells you what each author has been saying and how it changed.",
-  "arch": [
-   "Ingest claims a handle, not a feed — one paid fetch per author per cycle is shared by every subscriber tracking them, each re-applying its own content filter and time window",
-   "Four dedup layers guard an upstream that returns wrong authors and out-of-window posts: client-side author validation, timestamp validation with clock-skew tolerance, a 30-day seen-set, and a Snowflake-id tiebreaker because upstream timestamps are only second-precision",
-   "Document packs are frozen and numbered before any model call, then shuffled — sorting by views buries the low-engagement tail in the part of the context window models attend to least",
-   "One model call per author per window; clustering, importance scoring, shortlist selection and citation verification are all code, not tokens",
-   "Continuity rides on the previous edition's own grounded output rather than re-fetched posts, and a recurrence claim is downgraded unless its cited evidence appears verbatim in today's text"
-  ],
-  "proc": [
-   "The live prompt is a versioned database row, not code — a change ships as a new version and is measured against the one it replaces",
-   "Retry logic is branched on evidence: half of all parse failures sat exactly at the output-token cap, so a plain re-roll would have been inert for the majority case",
-   "A lint canary injects a violation on every commit and fails if the rule does not catch it, because a dead rule and a clean tree exit identically",
-   "Staging and production are separate deploy paths released on the operator's call, and user-facing copy is banked and approved before it ships"
-  ],
+  "arch": "<p>One paid fetch per author per cycle, shared by every subscriber tracking that handle; each subscriber re-applies its own content filter and time window locally. Fetching is priced per author &mdash; fan-out is free.</p>\n<p>Upstream returns wrong authors, out-of-window posts, and second-precision timestamps. Four validation layers, in sequence:</p>\n<table>\n<tr><th>Layer</th><th>Catches</th></tr>\n<tr><td>Client-side author validation</td><td>posts attributed to the wrong account</td></tr>\n<tr><td>Timestamp check, clock-skew tolerant</td><td>out-of-window posts</td></tr>\n<tr><td>30-day seen-set</td><td>repeats and re-serves</td></tr>\n<tr><td>Snowflake-id tiebreaker</td><td>same-second ordering collisions</td></tr>\n</table>\n<ul>\n<li><strong>Frozen packs.</strong> Documents are numbered and frozen before the model call, then shuffled &mdash; view-sorted packs concentrate the low-engagement tail mid-context, where attention is weakest. Shuffling flattens that bias.</li>\n<li><strong>One model call per author per window.</strong> Clustering, importance scoring, shortlist selection and citation verification run as deterministic code around the call. Tokens are spent on the writing only.</li>\n<li><strong>Continuity from prior output.</strong> Each brief is grounded on the previous brief's text, never re-fetched posts. A recurrence claim is downgraded unless its cited evidence appears verbatim in the current window.</li>\n</ul>",
+  "proc": "<ul>\n<li><strong>The live prompt is a versioned database row, not code.</strong> A change ships as a new version and is measured against the one it replaces.</li>\n<li><strong>Retry logic was branched on evidence.</strong> Half of all parse failures sat exactly at the output-token cap, where a plain re-roll would have been inert.</li>\n<li><strong>A lint canary injects a violation on every commit.</strong> The build fails if the rule doesn't catch it &mdash; a dead rule and a clean tree exit identically, and this is the only way to tell them apart.</li>\n<li><strong>Copy is banked before it ships.</strong> Staging and production are separate deploy paths released on the operator's call, with user-facing copy approved in advance.</li>\n</ul>",
   "flow": [
    "Ingest",
    "Freeze pack",
@@ -44,28 +33,12 @@
     "~90% gross margin — one fetch and one brief serve every subscriber"
    ]
   ],
-  "archHi": [
-   "One collector watches each author; everyone following them shares its work",
-   "Posts are cleaned, de-duplicated and mirrored to Telegram within minutes",
-   "On a schedule, the same material is condensed into a short brief by one AI pass",
-   "Costs stay flat as readers grow — each brief is written once and read by everyone"
-  ]
+  "archHi": "<p>Mirra turns X accounts into a Telegram feed. Everything downstream follows from one decision: work happens per author, never per reader.</p>\n<ol>\n<li><strong>Watch.</strong> A collector claims each author. However many people follow them, upstream is asked once per cycle, and every subscriber shares that answer through their own filters and time window.</li>\n<li><strong>Mirror.</strong> Posts land in your Telegram inside a minute, cleaned and in order.</li>\n<li><strong>Brief.</strong> On your schedule, one AI pass condenses the window into a short brief: what each author said, and what changed since last time.</li>\n</ol>\n<p>Every step is priced by authors watched, not readers served &mdash; a brief is written once and read by everyone. That's why costs stay flat as the audience grows.</p>"
  },
  "Social Hook": {
   "what": "It watches your development work and turns it into social posts in your voice — approved by you, or fully autonomous.",
-  "arch": [
-   "The commit hook backgrounds itself so a commit is never blocked, and unregistered repositories, off-branch commits and CI environments exit before any model call",
-   "One abstract adapter contract applied four times over — publishing platforms, media generators, messaging channels and model providers — so adding a platform is one factory function and one registration, never a branch in a dispatch chain",
-   "Callers branch on a platform's declared capabilities rather than its name, so a platform without threads or native quoting degrades to a link instead of failing",
-   "Five model providers behind one normalised response type; the Claude CLI provider embeds its JSON schema in the system prompt instead of using structured-output mode, which forces a multi-turn validation loop costing three or more round trips",
-   "Four gates stand between an approved draft and a live post — no adapter, no credentials, a format that cannot be auto-posted, and unresolved media — each holding the draft editable rather than failing it"
-  ],
-  "proc": [
-   "A wiring check treats a capability with no caller as unbuilt. It exists because the first live run found 112 functions that were complete, unit-tested and reachable from nothing — reviews are scoped to diffs, and a diff cannot show an absent caller",
-   "Allowlist entries in that check require a written reason; a blank reason fails the build, and bulk allowlisting is not permitted",
-   "Releases are cut from conventional commits automatically, and CLI documentation is regenerated in CI and fails the build if it differs from what is committed",
-   "Concurrent agents share one database, so a test count only counts when measured from a clean checkout inside a quiescence window — the project quotes members, never totals"
-  ],
+  "arch": "<p>The commit hook backgrounds itself, so a commit is never blocked; unregistered repositories, off-branch commits and CI environments exit before any model call is made.</p>\n<ul>\n<li><strong>One adapter contract, applied four times.</strong> Publishing platforms, media generators, messaging channels and model providers all implement the same abstract shape &mdash; adding a platform is one factory function and one registration, never a new branch in a dispatch chain.</li>\n<li><strong>Capability flags, not platform names.</strong> Callers branch on what a platform declares it can do; one without threads or native quoting degrades to a link instead of failing.</li>\n<li><strong>Five model providers behind one normalised response type.</strong> The Claude CLI provider embeds its JSON schema in the system prompt rather than using structured-output mode &mdash; the cost is a multi-turn validation loop of three or more round trips.</li>\n</ul>\n<p>Between an approved draft and a live post stand four gates, each holding the draft editable rather than failing it:</p>\n<table>\n<tr><th>Gate</th><th>Holds when</th></tr>\n<tr><td>Adapter</td><td>the platform has no adapter registered</td></tr>\n<tr><td>Credentials</td><td>the account isn't connected</td></tr>\n<tr><td>Format</td><td>the draft's format can't be auto-posted</td></tr>\n<tr><td>Media</td><td>referenced media hasn't resolved yet</td></tr>\n</table>",
+  "proc": "<ul>\n<li><strong>A wiring check treats a capability with no caller as unbuilt.</strong> The first live run found 112 functions that were complete, unit-tested and reachable from nothing &mdash; reviews are scoped to diffs, and a diff cannot show an absent caller.</li>\n<li><strong>Allowlisting requires a written reason.</strong> A blank reason fails the build, and bulk allowlisting isn't permitted.</li>\n<li><strong>Releases are cut automatically from conventional commits.</strong> CLI documentation is regenerated in CI and fails the build if it differs from what's committed.</li>\n<li><strong>Test counts are quoted per member, never as totals.</strong> Concurrent agents share one database, so a count only means something measured from a clean checkout inside a quiescence window.</li>\n</ul>",
   "flow": [
    "Commit",
    "Classify",
@@ -96,28 +69,12 @@
     "Open source on PyPI; B2B SaaS layer in design"
    ]
   ],
-  "archHi": [
-   "Watches your commits in the background and spots the ones worth talking about",
-   "An AI composer drafts the post in your voice, with media when useful",
-   "Nothing publishes until it clears your approval gate — unless you go autonomous",
-   "Live on X and LinkedIn, built to add more platforms"
-  ]
+  "archHi": "<p>Social Hook watches your development work and turns it into posts in your voice. The pipeline runs from commit to published post:</p>\n<ol>\n<li><strong>Notice.</strong> A hook watches your commits in the background and picks out the ones worth talking about.</li>\n<li><strong>Draft.</strong> An AI composer writes the post in your voice, attaching media when it helps.</li>\n<li><strong>Gate.</strong> Nothing publishes until it clears your approval &mdash; unless you've gone fully autonomous.</li>\n<li><strong>Post.</strong> Live on X and LinkedIn today, with the platform list built to grow.</li>\n</ol>\n<p>Your workflow never pauses for any of it: the hook returns before the commit finishes, and drafts wait for you rather than the other way round.</p>"
  },
  "Clauded": {
   "what": "Claude Code running inside a Docker sandbox: skip permission prompts safely while clipboard, sound, Chrome, git and MCP still reach your Mac.",
-  "arch": [
-   "Bridges are ordinary local HTTP services on the Mac that container-side shims call by name: pbcopy, pbpaste, xdg-open and the sound player are replaced with clients that detect the container and fall back to the real binary when run natively",
-   "The microphone bridge runs the other way — the host streams 16 kHz raw PCM into a container FIFO exposed as an audio source, and the client only opens the socket while that source is actually recording, so the Mac microphone runs during capture rather than for the whole session",
-   "Consent for capture is anchored host-side: a native dialog defaulting to Deny, a timeout that resolves to denied, a per-session cache, and a cooldown so a retrying client cannot produce a prompt loop",
-   "Every bridge request carries a token compared in constant time, and the container never holds an API key — authentication is the normal browser login, with credentials living in a mounted host directory",
-   "An opt-in firewall drops egress by default and re-admits only the model API, the code host, two package registries and telemetry"
-  ],
-  "proc": [
-   "The changelog is a single append-only numbered list, never renumbered, so an entry number stays a stable reference; entries state symptom, root cause and fix",
-   "A working bridge was deleted once its premise proved false — Claude in Chrome pairs over a cloud relay rather than localhost, so the Mac-side proxy had never been necessary",
-   "The build stopped pruning Docker images system-wide after it was found deleting other projects' images, and the deliberate non-use is recorded in a comment so it is not reintroduced",
-   "The Linux port is published as an assessment rather than started: three hard blockers and four degraded features named, with the parts already portable listed so they are not re-audited"
-  ],
+  "arch": "<ul>\n<li><strong>Bridges are ordinary local HTTP services on the Mac.</strong> Container-side shims replace pbcopy, pbpaste, xdg-open and the sound player with clients that detect the container &mdash; run natively, they fall back to the real binary.</li>\n<li><strong>The microphone runs the other way.</strong> The host streams 16&thinsp;kHz raw PCM into a container FIFO exposed as an audio source, and the socket is open only while that source is actually recording &mdash; the Mac microphone is live during capture, not for the whole session.</li>\n<li><strong>Consent is anchored host-side.</strong> A native dialog defaulting to Deny, a timeout that resolves to denied, a per-session cache, and a cooldown so a retrying client can't produce a prompt loop.</li>\n<li><strong>No secrets in the box.</strong> Every bridge request carries a token compared in constant time, and the container never holds an API key &mdash; authentication is the normal browser login, with credentials living in a mounted host directory.</li>\n<li><strong>Opt-in firewall.</strong> Egress drops by default; re-admitted are only the model API, the code host, two package registries and telemetry.</li>\n</ul>",
+  "proc": "<ul>\n<li><strong>The changelog is append-only and never renumbered.</strong> An entry number stays a stable reference forever; each entry states symptom, root cause and fix.</li>\n<li><strong>A working bridge was deleted when its premise proved false.</strong> Claude in Chrome pairs over a cloud relay rather than localhost &mdash; the Mac-side proxy had never been necessary.</li>\n<li><strong>The build stopped pruning Docker images system-wide</strong> after it was caught deleting other projects' images &mdash; and the deliberate non-use is recorded in a comment so it isn't reintroduced.</li>\n<li><strong>The Linux port is published as an assessment, not started.</strong> Three hard blockers and four degraded features are named, and the already-portable parts are listed so they're never re-audited.</li>\n</ul>",
   "flow": [
    "Build",
    "Mount",
@@ -148,28 +105,12 @@
     "MIT, one-command install"
    ]
   ],
-  "archHi": [
-   "Claude Code runs inside a sealed container instead of loose on your Mac",
-   "Five bridges hand back the conveniences: clipboard, sound, Chrome, git, MCP",
-   "Consent for anything sensitive stays on the Mac, with deny-by-default dialogs",
-   "Run as many sessions in parallel as you like"
-  ]
+  "archHi": "<p>Clauded runs Claude Code inside a sealed Docker container, so it can work without permission prompts &mdash; and without being loose on your Mac. The container holds no keys and has no reach of its own; five bridges hand back the conveniences one at a time: clipboard, sound, Chrome, git and MCP.</p>\n<p>Anything sensitive still asks the Mac itself. Consent dialogs are native, default to Deny, and time out as denied. And because a session is just a container, you can run as many in parallel as you like.</p>"
  },
  "LikeWiki": {
   "what": "Your X likes, compiled into a private wiki: every claim cites the post it came from, and the pages rebuild themselves nightly.",
-  "arch": [
-   "Source pages are the append-mostly record and are read-only to every agent: the body holds the full transcript and media descriptions and routinely exceeds a model's read cap, so rewriting one from a capped read would silently truncate it",
-   "Concept pages cite sources and never other concept pages, because sources are stable while concept pages are rewritten as new material lands",
-   "There is no database. Flat markdown in git is the store, and the reading surface never touches the working tree — each request pins one commit and reads every page from that revision, so an ingest run landing mid-request cannot produce a torn read",
-   "Tags, source counts and index ordering are computed by inverting the citation map, so the model owns judgement and nothing else: a tag is by construction a page that really does cite the source",
-   "A read-only server exposes the catalogue, page summaries, source search and raw sources to other agents, every response stamped with the commit and its age so a stale checkout announces itself"
-  ],
-  "proc": [
-   "Video ingest verifies magic bytes after download. A field-name mismatch had been saving thumbnail images under a video filename, so a single still was described as if it covered a two-hour talk — 40 source pages were invalidated before the mismatch was spotted",
-   "That fix was silently reverted by a later refactor and re-landed with a measurement: 57 of 58 affected videos were recoverable from URLs already stored",
-   "Grounding audits are owed by content fingerprint rather than commit history, so a page audited in one month and extended the next is owed another — the previous heuristic counted it as done",
-   "Rewriting agents reported their own work clean; 24 independent adversarial auditors then found six real defects they had missed, including an attribution to the wrong speaker entirely"
-  ],
+  "arch": "<p>Two page classes with opposite lifecycles carry the whole design:</p>\n<table>\n<tr><th>Page type</th><th>Lifecycle</th><th>May cite</th></tr>\n<tr><td>Source</td><td>append-mostly, read-only to every agent</td><td>nothing</td></tr>\n<tr><td>Concept</td><td>rewritten nightly as material lands</td><td>sources only</td></tr>\n</table>\n<ul>\n<li><strong>Sources are read-only for a reason.</strong> A source body holds the full transcript and media descriptions and routinely exceeds a model's read cap &mdash; a rewrite from a capped read would silently truncate it.</li>\n<li><strong>Concept pages never cite each other.</strong> Sources are stable; concept pages are not. Citing only sources keeps every reference valid across nightly rewrites.</li>\n<li><strong>No database.</strong> Flat markdown in git is the store, and the reading surface never touches the working tree &mdash; each request pins one commit and reads every page from that revision, so an ingest run landing mid-request cannot produce a torn read.</li>\n<li><strong>Judgement is the model's only job.</strong> Tags, source counts and index ordering are computed by inverting the citation map &mdash; a tag is, by construction, a page that really does cite the source.</li>\n<li><strong>A read-only server for other agents.</strong> Catalogue, page summaries, source search and raw sources, every response stamped with its commit and age so a stale checkout announces itself.</li>\n</ul>",
+  "proc": "<ul>\n<li><strong>Video ingest verifies magic bytes after download.</strong> A field-name mismatch had been saving thumbnails under video filenames, so a single still was described as if it covered a two-hour talk &mdash; 40 source pages were invalidated before the mismatch was spotted.</li>\n<li><strong>The fix was re-landed with a measurement</strong> after a refactor silently reverted it: 57 of 58 affected videos were recoverable from URLs already stored.</li>\n<li><strong>Audits are owed by content fingerprint, not commit history.</strong> A page audited in one month and extended the next is owed another &mdash; the previous heuristic counted it as done.</li>\n<li><strong>Self-reports weren't trusted.</strong> Rewriting agents reported their own work clean; 24 independent adversarial auditors then found six real defects, including an attribution to the wrong speaker entirely.</li>\n</ul>",
   "flow": [
    "Likes",
    "Read full",
@@ -200,28 +141,12 @@
     "A search-and-read MCP server"
    ]
   ],
-  "archHi": [
-   "You like posts on X; the pipeline collects them with their media",
-   "Each source is read in full, categorised and woven into concept pages",
-   "Every claim keeps a citation back to the post it came from",
-   "A nightly pass rebuilds, audits and repairs the whole wiki"
-  ]
+  "archHi": "<p>LikeWiki compiles the posts you like on X into a private wiki. The unit of trust is the citation: every claim on every page traces back to the post it came from.</p>\n<ol>\n<li><strong>Collect.</strong> Liked posts arrive with their media and are kept in full as source pages.</li>\n<li><strong>Read.</strong> Each source is read in its entirety, categorised, and woven into the concept pages it belongs to.</li>\n<li><strong>Rebuild.</strong> A nightly pass rewrites, audits and repairs the whole wiki as new material lands.</li>\n</ol>\n<p>Pages change nightly; sources never do. Whatever a page says today, the post behind it is one click away.</p>"
  },
  "Track Record": {
   "what": "Public predictions, kept honest: every call goes into a ledger, gets tracked to its outcome, and scores the person who made it.",
-  "arch": [
-   "A dedicated extraction run over a document pack that already exists — one additional model call against a versioned prompt, and no new capture pipeline",
-   "The ledger is a typed scoring contract over an open payload: everything the model returns is stored losslessly, and only the fields a resolver or a filter computes on are typed",
-   "Subjects are canonical at creation and never free text — tickers for equities, series identifiers for macro, coin identifiers for crypto, knowledge-base identifiers for people and policies, and an author-local subject when nothing matches, so capture never blocks",
-   "The three clocks partition the open set: market data resolves anything carrying a spec, the author's own subsequent posts resolve the roughly 60% of calls that carry no time signal at all, and policy caps only what never had a horizon",
-   "Claims are immutable — a restatement annotates and a revision opens a new linked segment, so an author can never walk back an entry — and price anchors are captured once at insert, never recomputed"
-  ],
-  "proc": [
-   "Only facts are stored; verdicts including the score are render-layer and versioned, so the formula can change without rewriting history",
-   "Resolution rate is instrumentation, never scoreboard: what counts as checkable is partly the classifier's judgement on marginal cases, so a public percentage would move whenever the extractor is revised",
-   "The classification vocabulary is itself a versioned row — every labelled example stamps the version it was labelled under, and a change ships as a new version with notes rather than an edit",
-   "A call that reaches its horizon unresolved is graded against the relevant index, never scored as a miss and never dropped, because dropping it is the cherry-pick the product exists to expose"
-  ],
+  "arch": "<p>Capture is one additional model call over a document pack that already exists, against a versioned prompt &mdash; no new pipeline. The ledger is a typed scoring contract over an open payload: everything the model returns is stored losslessly, and only the fields a resolver or a filter computes on are typed.</p>\n<p>Resolution is partitioned by three clocks:</p>\n<table>\n<tr><th>Clock</th><th>Settles</th></tr>\n<tr><td>Market data</td><td>any claim carrying a resolvable spec</td></tr>\n<tr><td>The author's own later posts</td><td>the ~60% of calls with no time signal at all</td></tr>\n<tr><td>Policy caps</td><td>only what never had a horizon</td></tr>\n</table>\n<ul>\n<li><strong>Subjects are canonical at creation, never free text.</strong> Tickers for equities, series identifiers for macro, coin identifiers for crypto, knowledge-base identifiers for people and policies &mdash; and an author-local subject when nothing matches, so capture never blocks.</li>\n<li><strong>Claims are immutable.</strong> A restatement annotates; a revision opens a new linked segment. An author can never walk back an entry, and price anchors are captured once at insert, never recomputed.</li>\n</ul>",
+  "proc": "<ul>\n<li><strong>Only facts are stored.</strong> Verdicts, including the score, are render-layer and versioned &mdash; the formula can change without rewriting history.</li>\n<li><strong>Resolution rate is instrumentation, never scoreboard.</strong> What counts as checkable is partly the classifier's judgement on marginal cases, so a public percentage would move whenever the extractor is revised.</li>\n<li><strong>The classification vocabulary is itself a versioned row.</strong> Every labelled example stamps the version it was labelled under; a change ships as a new version with notes, never as an edit.</li>\n<li><strong>A call that reaches its horizon unresolved is graded against the relevant index.</strong> Never scored as a miss, never dropped &mdash; dropping it is the cherry-pick the product exists to expose.</li>\n</ul>",
   "flow": [
    "Statement",
    "Extract",
@@ -252,28 +177,12 @@
     "Markets · sports · commentary"
    ]
   ],
-  "archHi": [
-   "Public predictions are captured as structured claims",
-   "Each claim is tracked until reality settles it — hit, miss, or void",
-   "People are scored on their whole history, not their highlight reel",
-   "Sentiment and who-backs-whom add context around every call"
-  ]
+  "archHi": "<p>Track Record keeps public predictions honest. Every call becomes a structured claim in a ledger, and every claim is carried to an ending &mdash; hit, miss, or void.</p>\n<ol>\n<li><strong>Capture.</strong> Predictions are pulled from what a person actually published and stored as claims against canonical subjects &mdash; a ticker, a coin, a named series &mdash; so the same subject is the same subject everywhere.</li>\n<li><strong>Resolve.</strong> Each claim is tracked until reality settles it.</li>\n<li><strong>Score.</strong> Authors are scored on their whole history, never the highlight reel.</li>\n</ol>\n<p>Sentiment and who-backs-whom sit alongside the scores, adding context to every call.</p>"
  },
  "Claude Historian": {
   "what": "Makes past Claude Code sessions searchable — what was tried, what worked, what was decided. My contribution took search from 45% to 100% of history.",
-  "arch": [
-   "No index, no database and no background process — transcripts are streamed from disk per query, with a file-level pre-filter running before anything is parsed as JSON",
-   "Files under 400 KB are read whole and split, larger ones are streamed line by line, and the crossover was benchmarked rather than assumed",
-   "Ranking is two-stage: a per-message term score, then a multiplicative refinement with capped match boosting that replaced an inverse-document-frequency computation the corpus did not justify",
-   "The coverage fix walks project directories recursively and rolls subagent hits up to their parent session with per-agent hit counts — one result per subagent was rejected because a single session had spawned 1,239 of them",
-   "Subagent directories are named after their parent session, so recursive discovery had to be preceded by a real session resolver, or a request to summarise a session would silently return one subagent instead"
-  ],
-  "proc": [
-   "The repository had no behavioural tests, so an evaluation harness was built before anything was changed — each fixture asserting one direction only and pinned at session level, so a later change in result shape cannot break the assertion",
-   "Phases were ordered by dependency rather than by value: recursive discovery more than doubles the bytes scanned, so it could not land before the scan was made cheaper, and a raw-byte case-insensitive pre-filter measured 3.7 times faster than a lowercased-copy scan on identical results",
-   "A full-text sidecar index was designed and then cancelled — session-scoped search alone took the reported complaint from 6,500 ms to 4 ms, while the sidecar bought latency only on global search at the cost of a plaintext copy of every conversation",
-   "One negative result was kept in the record: a hand-written character-code fold ran about 50% slower than the native lowercase on line matching, so raw bytes win only where they avoid a decode"
-  ],
+  "arch": "<ul>\n<li><strong>No index, no database, no background process.</strong> Transcripts stream from disk per query, behind a file-level pre-filter that runs before anything is parsed as JSON.</li>\n<li><strong>The read strategy was benchmarked, not assumed.</strong> Files under 400&thinsp;KB are read whole and split; larger ones stream line by line. The crossover point came from measurement.</li>\n<li><strong>Two-stage ranking.</strong> A per-message term score, then a multiplicative refinement with capped match boosting &mdash; it replaced an inverse-document-frequency computation the corpus was too small to justify.</li>\n<li><strong>The coverage fix.</strong> Project directories are walked recursively and subagent hits roll up to their parent session with per-agent counts. One-result-per-subagent was rejected after a single session turned out to have spawned 1,239 of them.</li>\n<li><strong>Discovery needed a resolver first.</strong> Subagent directories are named after their parent session, so recursive discovery without a real session resolver would answer &ldquo;summarise this session&rdquo; with one subagent's transcript instead.</li>\n</ul>",
+  "proc": "<ul>\n<li><strong>An evaluation harness came before any change.</strong> The repository had no behavioural tests, so one was built first &mdash; each fixture asserts one direction only and is pinned at session level, so a later change in result shape cannot break the assertion.</li>\n<li><strong>Phases were ordered by dependency, not value.</strong> Recursive discovery more than doubles the bytes scanned, so it couldn't land until the scan got cheaper &mdash; a raw-byte, case-insensitive pre-filter measured 3.7&times; faster than a lowercased-copy scan on identical results.</li>\n<li><strong>A full-text sidecar index was designed, then cancelled.</strong> Session-scoped search alone took the reported complaint from 6,500&thinsp;ms to 4&thinsp;ms; the sidecar bought latency only on global search, at the cost of a plaintext copy of every conversation.</li>\n<li><strong>One negative result stayed in the record.</strong> A hand-written character-code fold ran about 50% slower than native lowercasing on line matching &mdash; raw bytes win only where they avoid a decode.</li>\n</ul>",
   "flow": [
    "Transcripts",
    "Discover",
@@ -304,27 +213,12 @@
     "An open-source MCP server"
    ]
   ],
-  "archHi": [
-   "Past coding sessions become a searchable archive",
-   "Search scans on demand — nothing to index or keep in sync",
-   "My fix made the invisible half of history (subagent work) searchable",
-   "Results come back as compact summaries sized for an AI context window"
-  ]
+  "archHi": "<p>Claude Historian makes past Claude Code sessions searchable &mdash; what was tried, what worked, what was decided. There is nothing to install or keep in sync: no index, no database. Search scans the transcripts on demand and returns compact summaries sized for an AI's context window.</p>\n<p>My contribution fixed its blind spot. Work delegated to subagents lived in directories the search never visited, so it saw 45% of history; the fix made all of it searchable, rolled up under the sessions that spawned it.</p>"
  },
  "Xactions": {
   "what": "A full X operations suite an AI agent can drive — publishing, analytics, audience CRM, monitoring and autonomous personas, through one MCP surface.",
-  "arch": [
-   "Three data paths behind one tool surface — a stealth-configured browser, direct calls to the platform's own internal endpoints, and nine interchangeable engine adapters",
-   "Authentication is a session cookie rather than a developer key, so the tool surface is as wide as the account holder's own reach rather than as narrow as an API tier",
-   "An autonomous persona is a long-lived loop, not a cron job: an activity pattern decides whether it should be awake at all, a strategy sets daily ceilings on follows, likes, comments and posts, and each session's budget is jittered so activity does not land on a machine-readable rhythm",
-   "Streams are durable polling — repeatable queue jobs against a pooled browser, with a per-stream lock preventing overlapping polls and exponential backoff on consecutive failures",
-   "Bulk operations clear four gates before anything executes: a blacklist, per-action daily caps, a refusal above a hundred actions without an explicit override, and a resumable progress file"
-  ],
-  "proc": [
-   "The article extractor's boundary-stripping was lifted out of the browser closure into a plain module for one reason — a closure that exists only inside a page evaluation cannot be referenced from a test",
-   "Query identifiers for internal endpoints rotate upstream and fail silently, returning nothing while everything visible still works, so the fix shipped with the diagnosis rather than just the new value",
-   "Scraping tools that existed only as uncommitted working-tree changes were committed, because a clean reinstall would have removed a dependency another project was built on"
-  ],
+  "arch": "<ul>\n<li><strong>Three data paths behind one surface.</strong> A stealth-configured browser, direct calls to the platform's own internal endpoints, and nine interchangeable engine adapters.</li>\n<li><strong>A session cookie, not a developer key.</strong> The tool surface is as wide as the account holder's own reach, not as narrow as an API tier.</li>\n<li><strong>A persona is a long-lived loop, not a cron job.</strong> An activity pattern decides whether it should be awake at all; a strategy sets daily ceilings on follows, likes, comments and posts; each session's budget is jittered so activity never lands on a machine-readable rhythm.</li>\n<li><strong>Streams are durable polling.</strong> Repeatable queue jobs against a pooled browser, a per-stream lock against overlapping polls, exponential backoff on consecutive failures.</li>\n<li><strong>Bulk clears four gates before anything executes.</strong> A blacklist, per-action daily caps, a hard refusal above a hundred actions without an explicit override, and a resumable progress file.</li>\n</ul>",
+  "proc": "<ul>\n<li><strong>Testability drove one refactor.</strong> The article extractor's boundary-stripping was lifted out of the browser closure into a plain module &mdash; a closure that exists only inside a page evaluation cannot be referenced from a test.</li>\n<li><strong>Silent failures ship with their diagnosis.</strong> Query identifiers for internal endpoints rotate upstream and fail by returning nothing while everything visible still works, so the fix records how to recognise the next rotation, not just the new value.</li>\n<li><strong>Working-tree-only tools were committed.</strong> A clean reinstall would have removed a dependency another project was built on.</li>\n</ul>",
   "flow": [
    "Agent",
    "Tool call",
@@ -355,26 +249,12 @@
     "OSS contributions extending and hardening the suite"
    ]
   ],
-  "archHi": [
-   "One toolkit gives an AI agent full command of an X account",
-   "Publishing, analytics, audience CRM, monitoring and Spaces — all typed tools",
-   "Personas can run the account autonomously on a schedule",
-   "Guard-rails keep bulk actions behind explicit approval"
-  ]
+  "archHi": "<p>Xactions gives an AI agent full command of an X account through one MCP surface: publishing, analytics, audience CRM, monitoring and Spaces, every operation a typed tool the agent can call.</p>\n<p>Personas can run an account autonomously on a schedule, inside daily ceilings. Bulk actions stay behind explicit approval and hard caps.</p>"
  },
  "Stellar Explorer": {
   "what": "An explorable 3D map of the night sky: fly between 117k stars, open any into a detail view, with sound tied to the journey.",
-  "arch": [
-   "One hand-written shader program serves every body — three procedural surface functions blended by step masks on a type uniform, so there is no branch in the fragment path and no second program to compile",
-   "Moons do not exist until their planet is expanded, and are fully released on collapse: geometry, materials and children are walked and disposed rather than hidden",
-   "A five-pass composite over a tone-mapped render at a capped pixel ratio — bloom, then vignette, chromatic aberration and film grain, the last three written by hand",
-   "The background is procedural too: three counter-rotating point shells with additive nebula sprites drawn to canvas at runtime, so depth and parallax cost no texture assets and no network fetch",
-   "Hover raycasting is throttled to 20 Hz and hits are routed by user-data tagging, so a single cast distinguishes a click on a body from a click on the void that body becomes"
-  ],
-  "proc": [
-   "Interaction feel was tuned before features were added: orbits freeze on hover and in detail view, and the camera offsets its target so the body sits off-centre with room for the reading panel",
-   "Audio is synthesised rather than loaded from files, and the one audible cue is the one whose gain envelope peaks together with its noise buffer — the others are inaudible by measurement rather than missing by omission"
-  ],
+  "arch": "<ul>\n<li><strong>One shader program serves every body.</strong> Three procedural surface functions blended by step masks on a type uniform &mdash; no branch in the fragment path, no second program to compile.</li>\n<li><strong>Moons are created on expand and released on collapse.</strong> Geometry, materials and children are walked and disposed, not hidden.</li>\n<li><strong>Five-pass composite.</strong> A tone-mapped render at a capped pixel ratio, then bloom, vignette, chromatic aberration and film grain &mdash; the last three written by hand.</li>\n<li><strong>The background is procedural too.</strong> Three counter-rotating point shells with additive nebula sprites drawn to canvas at runtime; depth and parallax cost no texture assets and no network fetch.</li>\n<li><strong>Hover raycasting at 20&thinsp;Hz.</strong> Hits route by user-data tags, so a single cast distinguishes a click on a body from a click on the void that body becomes.</li>\n</ul>",
+  "proc": "<ul>\n<li><strong>Interaction feel was tuned before features were added.</strong> Orbits freeze on hover and in detail view, and the camera offsets its target so a body sits off-centre with room for the reading panel.</li>\n<li><strong>Audio is synthesised, not loaded.</strong> The one audible cue is the one whose gain envelope peaks together with its noise buffer &mdash; the others are inaudible by measurement, not missing by omission.</li>\n</ul>",
   "flow": [
    "Body",
    "Expand",
@@ -405,11 +285,6 @@
     "Three.js + WebAudio in the browser"
    ]
   ],
-  "archHi": [
-   "The night sky loads as one explorable 3D scene",
-   "Fly anywhere; click a body to open it into a detail view",
-   "Moons and worlds build themselves the first time you visit",
-   "Sound follows the journey"
-  ]
+  "archHi": "<p>Stellar Explorer is the night sky as one explorable 3D scene: 117,000 stars, and any body opens into its own detail view when you reach it. Moons don't exist until the first time you visit their planet &mdash; each world builds itself on arrival and is torn down when you leave.</p>\n<p>Sound follows the journey.</p>"
  }
 }

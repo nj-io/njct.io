@@ -94,7 +94,9 @@ def main() -> None:
              "const DOSSIERS = " + json.dumps(dossiers, ensure_ascii=False) + ";\n"
              "// DOSSIERS:END")
     src = INDEX.read_text()
-    new = re.sub(r"// DOSSIERS:BEGIN.*?// DOSSIERS:END", block, src, count=1, flags=re.S)
+    # replacement must be a callable: a literal replacement string would have
+    # its \n escape sequences interpreted, splitting JS strings mid-literal
+    new = re.sub(r"// DOSSIERS:BEGIN.*?// DOSSIERS:END", lambda m: block, src, count=1, flags=re.S)
     assert new != src, "markers not found or content unchanged"
     INDEX.write_text(new)
     print(f"index.html now {INDEX.stat().st_size / 1024:.0f} KB")
