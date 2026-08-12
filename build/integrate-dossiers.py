@@ -70,6 +70,8 @@ def main() -> None:
         entry = {"what": d["what"], "arch": d["arch"], "proc": d["proc"], "loCap": LO_CAP}
         if d.get("glance"):
             entry["glance"] = d["glance"]
+        if d.get("archHi"):
+            entry["archHi"] = d["archHi"]
         if d.get("mermaid"):
             for theme in ("dark", "light"):
                 svg = render_mermaid(d["mermaid"], BUILD / f"mm-{theme}.json",

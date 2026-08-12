@@ -43,6 +43,12 @@
     "Economics",
     "~90% gross margin — one fetch and one brief serve every subscriber"
    ]
+  ],
+  "archHi": [
+   "One collector watches each author; everyone following them shares its work",
+   "Posts are cleaned, de-duplicated and mirrored to Telegram within minutes",
+   "On a schedule, the same material is condensed into a short brief by one AI pass",
+   "Costs stay flat as readers grow — each brief is written once and read by everyone"
   ]
  },
  "Social Hook": {
@@ -89,6 +95,12 @@
     "Engine",
     "Open source on PyPI; B2B SaaS layer in design"
    ]
+  ],
+  "archHi": [
+   "Watches your commits in the background and spots the ones worth talking about",
+   "An AI composer drafts the post in your voice, with media when useful",
+   "Nothing publishes until it clears your approval gate — unless you go autonomous",
+   "Live on X and LinkedIn, built to add more platforms"
   ]
  },
  "Clauded": {
@@ -135,6 +147,12 @@
     "Licence",
     "MIT, one-command install"
    ]
+  ],
+  "archHi": [
+   "Claude Code runs inside a sealed container instead of loose on your Mac",
+   "Five bridges hand back the conveniences: clipboard, sound, Chrome, git, MCP",
+   "Consent for anything sensitive stays on the Mac, with deny-by-default dialogs",
+   "Run as many sessions in parallel as you like"
   ]
  },
  "LikeWiki": {
@@ -181,6 +199,12 @@
     "For agents",
     "A search-and-read MCP server"
    ]
+  ],
+  "archHi": [
+   "You like posts on X; the pipeline collects them with their media",
+   "Each source is read in full, categorised and woven into concept pages",
+   "Every claim keeps a citation back to the post it came from",
+   "A nightly pass rebuilds, audits and repairs the whole wiki"
   ]
  },
  "Track Record": {
@@ -227,6 +251,12 @@
     "Arenas",
     "Markets · sports · commentary"
    ]
+  ],
+  "archHi": [
+   "Public predictions are captured as structured claims",
+   "Each claim is tracked until reality settles it — hit, miss, or void",
+   "People are scored on their whole history, not their highlight reel",
+   "Sentiment and who-backs-whom add context around every call"
   ]
  },
  "Claude Historian": {
@@ -273,6 +303,12 @@
     "Ships as",
     "An open-source MCP server"
    ]
+  ],
+  "archHi": [
+   "Past coding sessions become a searchable archive",
+   "Search scans on demand — nothing to index or keep in sync",
+   "My fix made the invisible half of history (subagent work) searchable",
+   "Results come back as compact summaries sized for an AI context window"
   ]
  },
  "Xactions": {
@@ -318,6 +354,12 @@
     "My role",
     "OSS contributions extending and hardening the suite"
    ]
+  ],
+  "archHi": [
+   "One toolkit gives an AI agent full command of an X account",
+   "Publishing, analytics, audience CRM, monitoring and Spaces — all typed tools",
+   "Personas can run the account autonomously on a schedule",
+   "Guard-rails keep bulk actions behind explicit approval"
   ]
  },
  "Stellar Explorer": {
@@ -362,6 +404,12 @@
     "Stack",
     "Three.js + WebAudio in the browser"
    ]
+  ],
+  "archHi": [
+   "The night sky loads as one explorable 3D scene",
+   "Fly anywhere; click a body to open it into a detail view",
+   "Moons and worlds build themselves the first time you visit",
+   "Sound follows the journey"
   ]
  }
 }
