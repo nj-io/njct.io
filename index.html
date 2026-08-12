@@ -1623,6 +1623,7 @@ syncUI();
 const t0 = performance.now();
 const phaseEl = document.getElementById('phase');
 let climT = 0, lastFrame = t0, nextSpore = t0 + 3000, nextAdopt = 0, stepAcc = 0, pausedT = 0, pauseTick = 0;
+let huePhase = 205; // the field's hue drifts continuously — uniform across projects
 let selAge = 0, curPhase = '', Fbonus = 0;
 function frame(){
   const now = performance.now();
@@ -1678,6 +1679,20 @@ function frame(){
     nextSpore = now + (4200 + Math.random() * 4800) / (effGenome(DERIVED[activeIdx]).sporeMul || 1);
     splatQueue.push({ x: Math.random(), y: Math.random(),
       r: Math.max(2.5 / SIM, 0.004 + Math.random() * 0.004), amt: 0.5 });
+  }
+  // ambient hue: one slow global cycle (~144s), the same on every project,
+  // holding still while paused; the theme picks its lightness variant
+  if (CTL.hueAuto && !bgPaused){
+    huePhase = (huePhase + dt * 2.5) % 360;
+    const hb = hsl2rgb(huePhase / 360, 0.55, 0.62);
+    const lb = hsl2rgb(huePhase / 360, 0.55, 0.42);
+    for (let j = 0; j < 3; j++){
+      const v = hb[j] * (1 - cur.light) + lb[j] * cur.light;
+      cur.palA[j] = 0.16 + v * 0.34;
+      cur.palB[j] = 0.18 + v * 0.36;
+    }
+    cur.palC = [1, 1, 1];
+    cur.palD = [0.35, 0.42, 0.305];
   }
   if (glOK && !bgPaused){
     pausedT = (now - t0) / 1000;
