@@ -1679,8 +1679,15 @@ const wpOffset = w => {
   if (w === 'njct.io') return 0;
   const n = w.indexOf('n');
   if (n >= 0) return -n;
-  const t = w.indexOf('t');
-  return t >= 0 ? 3 - t : 0;
+  // no n: anchor whichever t keeps the word nearest the cluster, leaning left
+  let best = 0, bestScore = Infinity;
+  for (let i = 0; i < w.length; i++){
+    if (w[i] !== 't') continue;
+    const off = 3 - i;
+    const score = Math.abs(off) * 2 - (off < 0 ? 1 : 0);
+    if (score < bestScore){ bestScore = score; best = off; }
+  }
+  return bestScore === Infinity ? 0 : best;
 };
 const WP_OFFS = WP_WORDS.map(wpOffset);
 const WP_MINC = Math.min(...WP_OFFS);
