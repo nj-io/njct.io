@@ -24,10 +24,39 @@ CONTENT = pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else REPO / "content"
 SLUGS = {
     "Mirra": "mirra", "Social Hook": "social-hook", "Clauded": "clauded",
     "LikeWiki": "likewiki", "Track Record": "track-record",
-    "Claude Historian": "historian", "Xactions": "xactions",
+    "Claude Historian": "historian", "Xactions": "xactions", "stet": "stet",
     "Stellar Explorer": "stellar",
 }
 LO_CAP = "Under the hood — the working architecture."
+
+# Shared diagram palette, in the house colours of the project docs. A source
+# may tag nodes with these class names; the per-theme classDef block is
+# appended at render time so one mermaid source themes both ways.
+PALETTE = {
+    "light": {
+        "teal": "fill:#e3f0f1,stroke:#0f6d78,color:#0b3d43",
+        "gold": "fill:#f7f0dd,stroke:#8a6d1f,color:#54420f",
+        "terra": "fill:#fbeeec,stroke:#a33a2a,color:#6d2a19",
+        "plain": "fill:#ffffff,stroke:#c3ced1,color:#15191b",
+        "muted": "fill:#efece6,stroke:#9b9184,color:#4a443c",
+    },
+    "dark": {
+        "teal": "fill:#12262a,stroke:#4a9aa4,color:#cfe9ec",
+        "gold": "fill:#2a2415,stroke:#a58a3f,color:#ecdfbd",
+        "terra": "fill:#2b1a17,stroke:#b3654c,color:#f0cec3",
+        "plain": "fill:#16181a,stroke:#3f4448,color:#e8e6df",
+        "muted": "fill:#1d2023,stroke:#5a5f63,color:#b9b6ae",
+    },
+}
+
+
+def with_palette(src: str, theme: str) -> str:
+    """Append the theme's classDef block when the source tags any node."""
+    used = [c for c in PALETTE[theme] if f":::{c}" in src or f" {c}\n" in src]
+    if not used:
+        return src
+    defs = "\n".join(f"  classDef {c} {PALETTE[theme][c]}" for c in used)
+    return src + "\n" + defs + "\n"
 
 
 def render_mermaid(src: str, theme_cfg: pathlib.Path, out_svg: pathlib.Path) -> str:
@@ -74,7 +103,8 @@ def main() -> None:
             entry["archHi"] = d["archHi"]
         if d.get("mermaid"):
             for theme in ("dark", "light"):
-                svg = render_mermaid(d["mermaid"], BUILD / f"mm-{theme}.json",
+                svg = render_mermaid(with_palette(d["mermaid"], theme),
+                                     BUILD / f"mm-{theme}.json",
                                      CONTENT / f"{slug}-{theme}.svg")
                 entry["loDark" if theme == "dark" else "loLight"] = \
                     namespace_svg(svg, f"{slug}-{theme}")
