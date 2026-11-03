@@ -101,7 +101,7 @@ CROPS = [
     ("details-open", "details-held", 660, 645, 120, 70),
     ("details-sticker", "details-held", 790, 235, 130, 120),
     ("details-record", "details-held", 880, 300, 220, 280),
-    ("flip-back-type", "flip-held", 515, 230, 300, 150),
+    ("flip-back-type", "flip-held", 515, 230, 300, 300),   # theirs' back list (y 240-365) and ours' back type (y 375-530)
 ]
 crops = []
 for cname, moment, x, y, w, h in CROPS:
