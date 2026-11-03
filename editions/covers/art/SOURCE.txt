@@ -1,0 +1,13 @@
+Brand artwork the covers draw unaltered (designFor(...).art in covers.js). Each file is a downsized copy
+of the brand's own art: never redrawn, only cropped to its alpha bounds and resized.
+
+bearly-squat.webp — Bearly, the Chairtax mascot, mid-squat (the Chairtax cover)
+  Source: ~/dev/chairtax/socials/brand/bearly/2d/bear-squat.png (2106 x 2000 RGBA), chairtax/socials
+  commit abe8d78 (2026-10-27), sha256 11cc6a8bf85b76f7958c73c1bb6e0237669f8aa49ea3a81762203c86dc5bfc4b.
+  Chosen over squat-deep.png and move-squat.png (the same pose, each with a grey floor shadow baked
+  in, which would read as a grey smear on the cover's dark ground).
+  Made 2026-11-03: cropped to the alpha bounds plus a 2 px margin at the target size, resized to
+  399 x 600 with Lanczos in premultiplied alpha (Pillow RGBa), so the outline carries no colour
+  fringe; then cwebp -q 60 -m 6 -alpha_filter best -f 30 -sns 30 (lossy colour, lossless alpha).
+  399 x 600, 27 080 bytes, sha256 35bd5fa2c16c39763a0eb5e1eac05e589fa6a407b16d3feefe71ac9432f52a71.
+  It is drawn 1:1 on a 1024 front (600 px tall, about 59% of the cover).

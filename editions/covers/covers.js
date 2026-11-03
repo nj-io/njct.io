@@ -3,9 +3,11 @@
 // createCover(renderer, entry, index, { size }) renders one entry's front and
 // back into mipmapped sRGB render targets. Each cover is a single full-target
 // fragment shader: a per-entry motif evaluated with 4-sample rotated-grid
-// supersampling and analytic edge coverage, then the type composited 1:1 from a
-// canvas mask, the brand mark composited 1:1 from a colour overlay, then print
-// grain and an 8-bit dither. Maths runs in linear light; the target stores sRGB.
+// supersampling and analytic edge coverage, then any brand artwork (a mascot) and
+// the type composited 1:1 from a canvas mask, the brand mark composited 1:1 from a
+// colour overlay, then print grain and an 8-bit dither. Maths runs in linear light;
+// the target stores sRGB. A cover with fine regular structure draws its own mip
+// levels, each filtered at that level's sampling rate.
 //
 // A cover whose art is the brand mark itself (Mirra, Clauded, Topshine) shades
 // the real mark: the logo is rasterised, turned into a signed distance field by
@@ -27,6 +29,8 @@ const FACES = [
   ['NJ Serif', 'fraunces-144pt-bold-cover.woff2', '700'],
   ['NJ Hanken', 'hanken-grotesk-650-cover.woff2', '650'],
   ['NJ Condensed', 'archivo-condensed-extrabold-cover.woff2', '800'],
+  ['NJ Grotesk', 'space-grotesk-700-cover.woff2', '700'],
+  ['NJ Bricolage', 'bricolage-grotesque-96pt-extrabold-title-cover.woff2', '800'],
 ];
 // Faces only the backs use load with the first back.
 const BACK_FACES = [
@@ -64,8 +68,9 @@ uniform vec2 uRes, uGrain;
 uniform float uTime, uSS, uMode, uBandY, uBandH, uStrip;
 uniform sampler2D uText, uOver, uForm, uFormCol, uFront;
 uniform vec3 uFormRect;
-uniform sampler2D uRest;
-uniform float uRestMix;
+uniform sampler2D uRest, uArt;
+uniform float uRestMix, uMip;
+uniform vec4 uArtRect;
 uniform vec3 uInk0, uInk1, uInk2, uPaper;
 uniform vec3 uPal[8];
 uniform vec4 uAux[8];
@@ -147,6 +152,9 @@ const MAIN = /* glsl */`
 #ifndef INK2
 #define INK2(p, t) uInk2
 #endif
+#ifndef ART_DY
+#define ART_DY(t) 0.0
+#endif
 vec3 shade(vec2 p, float t) {
   if (uMode < 0.5) return motif(p, t);
   // back: a band of the cover's art across the top, paper below. The band is a crop of the finished
@@ -175,6 +183,13 @@ void main() {
   vec4 m = texture2D(uText, uv);
   vec3 s = toSrgb(clamp(c, 0.0, 1.0));
   if (uMode < 0.5) {
+    // the mascot, premultiplied, drawn unaltered; its lift moves in whole pixels so it never resamples
+    if (uArtRect.z > 0.0) {
+      vec2 au = (uv - uArtRect.xy - vec2(0.0, floor(ART_DY(uTime) * uRes.y + 0.5) / uRes.y)) / uArtRect.zw;
+      vec4 a = texture2D(uArt, clamp(au, 0.0, 1.0));
+      a *= step(0.0, au.x) * step(0.0, au.y) * step(au.x, 1.0) * step(au.y, 1.0);
+      s = s * (1.0 - a.a) + a.rgb;
+    }
     s = mix(s, INK0(uv, uTime), m.r);
     s = mix(s, INK1(uv, uTime), m.g);
     s = mix(s, INK2(uv, uTime), m.b);
@@ -186,8 +201,9 @@ void main() {
     s = mix(s, uInk1, m.g);
     s = mix(s, uInk2, m.b);
   }
-  // print finish: static fibre grain and a faint density drift, then dither to 8 bits
-  float grain = h12(fc * 1.37 + 17.0) - 0.5;
+  // print finish: static fibre grain and a faint density drift, then dither to 8 bits. A mip level drawn by
+  // the shader takes the grain at the strength a box-filtered level would have.
+  float grain = (h12(fc * 1.37 + 17.0) - 0.5) * exp2(-uMip);
   float dens = vnoise(fc / uRes * 7.0 + 11.0) - 0.5;
   s *= 1.0 + grain * uGrain.x + dens * uGrain.y;
   s += (ign(fc) - 0.5) / 255.0;
@@ -507,6 +523,8 @@ vec3 spectrum(float s) {
   vec3 c = s < 1.0 ? mix(c0, c1, s) : s < 2.0 ? mix(c1, c2, s - 1.0) : s < 3.0 ? mix(c2, c3, s - 2.0) : s < 4.0 ? mix(c3, c4, s - 3.0) : mix(c4, c5, s - 4.0);
   return toLin(c);
 }
+// coverage of the band |d| < w under a one-pixel box filter
+float ovl(float d, float w) { d = abs(d); return max(0.0, min(d + 0.5 * AAW, w) - max(d - 0.5 * AAW, -w)) / AAW; }
 vec3 motif(vec2 p, float t) {
   vec3 col = mix(uPal[0], uPal[1], smoothstep(0.0, 1.0, 1.0 - p.y) * 0.6);
   const float N = 30.0;
@@ -533,10 +551,26 @@ vec3 motif(vec2 p, float t) {
   float r = min((0.0016 + 0.0024 * h11(k * 4.1 + 0.7)) * (0.8 + 0.4 * h12(vec2(k, n) * 0.37 + 1.3)), 0.32 * spacing + 0.0006);
   float dotA = cover(length(vec2(da, perp)) - r) * (0.85 + 0.3 * h12(vec2(n, k) + 7.1));
   float lineA = ring(perp, 0.0005) * 0.55;
-  float resolve = smoothstep(1.4 * PX, 4.0 * PX, spacing);
-  float lit = mix(0.55, max(dotA, lineA), resolve);
+  // lines closer than a few pixels fade to their mean; a mip level (sampled up to half a level sharper on the
+  // shelf) fades them sooner, so they cannot beat against its grid
+  float PXF = PX * 1.7, PX0 = PX * exp2(-uMip);
+  float resolve0 = smoothstep(1.4 * PX0, 4.0 * PX0, spacing);
   float core = exp(-psi * psi * 5.0);
-  col += lc * lit * env * (1.35 + 0.6 * core);
+  vec3 G = lc * env * (1.35 + 0.6 * core);
+  if (uMip < 0.5) col += G * mix(0.55, max(dotA, lineA), resolve0);
+  else {
+    // A mip level fades to what the full-size front averages to here: where the pattern resolves, its mean,
+    // with each hot dot clipped as the full-size front clips it. Its dots and lines are thinner than its
+    // pixels, so they take box-filtered coverage, which keeps their area (the edge ramp would draw each at
+    // least a pixel wide).
+    float h = r * 0.8862;                                                      // the dot as a square of its area
+    dotA = ovl(da, h) * ovl(perp, h) * (0.85 + 0.3 * h12(vec2(n, k) + 7.1));
+    lineA = ovl(perp, 0.0005) * 0.55;
+    float dotMean = sat(3.14159 * r * r / (sp * alongScale * spacing));
+    float lineMean = min(1.0, 0.001 / spacing) * (1.0 - dotMean);
+    vec3 mean = dotMean * (min(col + G, 1.0) - col) + lineMean * (min(col + 0.55 * G, 1.0) - col);
+    col += mix(mix(0.55 * G, mean, resolve0), G * max(dotA, lineA), smoothstep(1.4 * PXF, 4.0 * PXF, spacing));
+  }
   // the glow of the neck, where the lines crowd together
   col += mix(lc, vec3(1.0), 0.35) * 0.28 * env * core * smoothstep(0.012, 0.003, spacing);
   col += spectrum(hue) * 0.10 * exp(-psi * psi * 3.0) * smoothstep(0.15, 0.5, p.x) * smoothstep(1.0, 0.6, p.x);
@@ -699,13 +733,152 @@ vec3 goldInk(vec2 p) {
 }
 #define INK0(p, t) goldInk(p)`;
 
+// Chairtax: a glowing amber C ring opening to the right, Bearly squatting in front of it (art/, drawn unaltered).
+MOTIFS.chairtax = /* glsl */`
+const vec2 RC = vec2(0.4705, 0.4625);
+const float RR = 0.3185, RW = 0.031, YF = 0.068;
+// the C, as two arcs (radians, anticlockwise): the opening's upper end over the top to the break on the
+// left, then the break round the bottom to the opening's lower end
+const vec4 ARCS = vec4(0.64, 3.0, 3.3, 5.55);
+float lift(float t) { return 0.0065 * (0.5 - 0.5 * cos(t * 2.4)); }
+#define ART_DY(t) lift(t)
+// the C widens a little toward the opening's lower end, as in the brand's ring
+float radius(float a) { return RR + 0.045 * smoothstep(4.3, 5.6, a); }
+// distance to an arc's centreline, round-ended; s is the position along it, 0..1
+float arcD(vec2 q, float a0, float a1, out float s) {
+  float a = a0 + mod(atan(q.y, q.x) - a0, TAU);
+  if (a <= a1) { s = (a - a0) / (a1 - a0); return abs(length(q) - radius(a)); }
+  float d0 = length(q - radius(a0) * vec2(cos(a0), sin(a0))), d1 = length(q - radius(a1) * vec2(cos(a1), sin(a1)));
+  s = d0 < d1 ? 0.0 : 1.0;
+  return min(d0, d1);
+}
+vec3 motif(vec2 p, float t) {
+  vec2 q = p - RC;
+  float su, sl;
+  float du = arcD(q, ARCS.x, ARCS.y, su), dl = arcD(q, ARCS.z, ARCS.w, sl);
+  float dc = min(du, dl), d = dc - RW, od = max(d, 0.0);
+  float L1 = ARCS.y - ARCS.x, L2 = ARCS.w - ARCS.z, G = L1 + 0.3 + L2;
+  float g = du < dl ? (1.0 - su) * L1 : L1 + 0.3 + sl * L2;      // along the C from its upper end
+  float breath = 1.0 + 0.14 * sin(t * 1.3);
+  // ground: warm near-black, a little warmer toward the ring's middle
+  vec3 col = mix(uPal[1], uPal[0], smoothstep(0.0, 0.62, length((p - vec2(0.48, 0.5)) * vec2(1.0, 0.9))));
+  // the light the ring throws: a tight halo and a wide warm haze
+  col += uPal[2] * (0.22 * exp(-od / 0.02) + 0.06 * exp(-od / 0.07) + 0.025 * exp(-od / 0.25)) * breath;
+  // the floor: a line of warm light where Bearly stands, and his contact shadow, smaller as he lifts
+  float fx = exp(-pow((p.x - 0.52) / 0.3, 2.0));
+  col += uPal[2] * 0.26 * fx * exp(-pow((p.y - YF) / 0.012, 2.0)) * breath;
+  col += uPal[2] * 0.07 * fx * smoothstep(YF + 0.02, YF - 0.06, p.y);
+  float lf = lift(t) / 0.0065;
+  vec2 sq = (p - vec2(0.52, YF + 0.004)) / (vec2(0.18, 0.014) * (1.0 - 0.15 * lf));
+  col *= 1.0 - (0.8 - 0.3 * lf) * exp(-dot(sq, sq) * 1.6);
+  // the tube: deeper amber on its inner side, light amber toward the outside, a yellow rim on the outer edge
+  float u = sat(dc / RW);
+  float rs = clamp((length(q) - radius(atan(q.y, q.x) + (q.y < 0.0 ? TAU : 0.0))) / RW, -1.0, 1.0);
+  vec3 tube = mix(uPal[5], uPal[3], smoothstep(-1.0, 0.9, rs));
+  tube = mix(tube, uPal[4], 0.75 * exp(-pow((rs - 0.72) / 0.2, 2.0)));
+  // light running round the C when alive
+  float run = fract(t * 0.11) * (G + 1.6) - 0.8;
+  float k = exp(-pow((g - run) / 0.24, 2.0));
+  tube = mix(tube, vec3(1.0, 0.97, 0.88), 0.6 * k * (1.0 - u * u));
+  col += uPal[3] * 0.22 * k * exp(-od / 0.03);
+  return mix(col, tube * (0.94 + 0.06 * breath), cover(d));
+}`;
+
+// Stats: three rising bars of frosted glass, blue, green and amber, inside a thin glass orbit, on a cool white ground.
+MOTIFS.stats = /* glsl */`
+const float YF = 0.11, HW = 0.082, RB = 0.036;
+// bar i: centre x and top (y up); every bar stands on the floor
+vec2 bar(int i) { return i == 0 ? vec2(0.294, 0.426) : i == 1 ? vec2(0.508, 0.568) : vec2(0.727, 0.743); }
+const vec2 SIDE = vec2(0.026, 0.004);   // the slab's back face, seen past its right side and top
+float sdRB(vec2 o, vec2 b, float r) { vec2 q = abs(o) - b + r; return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r; }
+vec3 ground(vec2 p) {
+  // cool white, brightest behind the bars, falling to blue-grey at the corners and toward the floor
+  vec3 col = mix(uPal[0], uPal[1], smoothstep(0.1, 0.95, length((p - vec2(0.58, 0.55)) * vec2(0.85, 1.0))));
+  col = mix(col, uPal[1] * 0.93, 0.5 * smoothstep(0.45, 0.0, p.y));
+  float fl = smoothstep(YF + 0.01, YF - 0.03, p.y);
+  return mix(col, mix(uPal[6], uPal[1], smoothstep(0.0, 0.11, YF - p.y)), 0.7 * fl);
+}
+// one bar's front face: frosted glass lit from inside, paler at its rims, a bright rim just inside the edge
+vec3 face(vec2 p, vec2 c, vec2 hs, vec3 tint, float t, float d) {
+  vec2 o = p - c; float e = 0.0015;
+  vec2 gr = vec2(sdRB(o + vec2(e, 0.0), hs, RB) - sdRB(o - vec2(e, 0.0), hs, RB),
+                 sdRB(o + vec2(0.0, e), hs, RB) - sdRB(o - vec2(0.0, e), hs, RB)) / (2.0 * e);
+  float di = max(-d, 0.0), uu = sat(di / 0.022);
+  float sl = (1.0 - uu) / max(sqrt(1.0 - (1.0 - uu) * (1.0 - uu)), 0.2);
+  vec3 n = normalize(vec3(gr * sl * 0.8, 1.0));
+  // the colour is deepest in the middle of the face and paler toward every rim, most toward the floor
+  float up = p.y - YF, dn = c.y + hs.y - p.y;
+  float a = smoothstep(0.0, 0.05, di) * smoothstep(0.0, 0.2, up) * smoothstep(0.0, 0.06, dn);
+  a *= (0.8 + 0.2 * exp(-pow(o.x / hs.x, 2.0))) * (0.6 + 0.4 * smoothstep(0.05, 0.55, (p.y - YF) / (2.0 * hs.y)));
+  vec3 lite = min(tint * 1.9 + 0.1, 1.0);                               // the same hue, lit through thinner glass
+  vec3 body = mix(lite, tint, a);
+  body = mix(body, vec3(1.0), 0.42 * smoothstep(0.012, 0.0, di));      // frosted rim, lit through
+  body = mix(body, uPal[5], sat(pow(1.0 - n.z, 2.0) * 0.85));           // the room on the bevels
+  body += vec3(1.0) * 0.4 * ring(d + 0.0055, 0.0014);
+  vec3 L = normalize(vec3(-0.5, 0.6, 0.62));
+  body += vec3(1.0) * 0.45 * spec(n, L, 40.0);
+  // caustics: bright threads drifting through the glass when alive
+  float cz = sin(dot(p, vec2(21.0, 8.0)) + 2.2 * sin(dot(p, vec2(-6.0, 13.0)) + t * 0.6) + 4.0 * n.x - t * 0.9);
+  body += mix(tint, vec3(1.0), 0.75) * 0.05 * pow(1.0 - abs(cz), 3.0) * smoothstep(0.0, 0.04, di) * (0.4 + 0.6 * a);
+  return body;
+}
+vec3 slab(vec3 col, vec2 p, int i, float t) {
+  vec2 b = bar(i);
+  vec2 hs = vec2(HW, 0.5 * (b.y - YF)), c = vec2(b.x, 0.5 * (b.y + YF));
+  vec3 tint = uPal[2 + i];
+  float d = sdRB(p - c, hs, RB), ds = sdRB(p - c - SIDE, hs, RB);
+  col += tint * 0.12 * falloff(min(d, ds), 0.07) + vec3(1.0) * 0.35 * falloff(min(d, ds), 0.014);
+  // the side: paler, clearer glass with its own lit edge
+  if (ds < AAW) {
+    vec3 side = mix(mix(tint, uPal[5], 0.7), vec3(1.0), 0.25 * smoothstep(-0.012, 0.0, ds)) + vec3(1.0) * 0.35 * ring(ds + 0.003, 0.0012);
+    col = mix(col, side, cover(ds));
+  }
+  return d < AAW ? mix(col, face(p, c, hs, tint, t, d), cover(d)) : col;
+}
+vec3 orbit(vec3 col, vec2 p, float t, bool front) {
+  vec2 o = rot(-0.384) * (p - vec2(0.511, 0.428));
+  vec2 ab = vec2(0.50, 0.152);
+  float d = sdEllipse(o, ab);
+  float k = smoothstep(-0.008, 0.008, front ? -o.y : o.y);
+  float w = 0.0064, x = sat(abs(d) / w);
+  float ang = atan(o.y / ab.y, o.x / ab.x);
+  float sweep = pow(0.5 + 0.5 * sin(ang - t * 0.7 + 2.2), 3.0);
+  vec3 tube = mix(col, uPal[5], 0.3) + 0.02;
+  tube += vec3(1.0) * 0.36 * pow(x, 4.0);
+  tube += vec3(1.0) * 0.40 * exp(-pow((d + w * 0.3) / (w * 0.22), 2.0)) * (0.25 + 0.75 * sweep);
+  col = mix(col, tube, ring(d, w) * k);
+  return col + uPal[5] * 0.06 * exp(-abs(d) / 0.01) * k;
+}
+vec3 motif(vec2 p, float t) {
+  vec3 col = ground(p);
+  if (p.y < YF) {
+    // the bars mirrored in the floor, and the coloured light they pool on it
+    float dz = YF - p.y;
+    vec2 pm = vec2(p.x, 2.0 * YF - p.y);
+    for (int i = 0; i < 3; i++) {
+      vec2 b = bar(i);
+      vec2 hs = vec2(HW, 0.5 * (b.y - YF)), c = vec2(b.x, 0.5 * (b.y + YF));
+      float dm = sdRB(pm - c, hs, RB), bl = 0.002 + dz * 0.15;
+      col = mix(col, mix(uPal[2 + i], uPal[5], 0.4), smoothstep(bl, -bl, dm) * exp(-dz / 0.05) * 0.7);
+      col += mix(uPal[2 + i], vec3(1.0), 0.3) * 0.14 * exp(-pow((p.x - b.x) / 0.1, 2.0)) * exp(-dz / 0.05);
+    }
+  }
+  col = orbit(col, p, t, false);
+  for (int i = 0; i < 3; i++) col = slab(col, p, i, t);
+  return orbit(col, p, t, true);
+}`;
+
 // ---------- designs ----------
 // Layout is in 1024-unit space with y down (canvas space).
 // pal: up to eight sRGB colours the motif indexes as uPal[i].
 // type: title blocks; each line goes to channel ch of the type mask (R, G, B -> INK0..2).
 //   size by cap (cap height), fit (widest line's ink width) or px; x/base place the first line.
+//   runs: [[text, ch], ...] sets a one-line block in several inks.
 // inks: sRGB colour per type channel, used when the motif does not fill it itself.
 // mark: where the logo is drawn unaltered, [x, top, size].
+// art: brand artwork drawn unaltered over the motif at its own pixel size on a 1024 front,
+//   { src (beside this module), x, top }; a motif may lift it with ART_DY(t) (cover units).
+// shaderMips: the shader draws the front's mip levels itself, each filtered at its own sampling rate.
 // form: the logo inflated into the motif's hero form: box [x, top, size], R bevel radius,
 //   soft blur (both cover units), key 'alpha' | 'tile' (tile: drop pixels near the tile colour).
 // back: paper, ink (name, values), soft (labels, stack), accent (rules, link).
@@ -791,7 +964,7 @@ function designFor(entry) {
       pal: ['#060A22', '#0B1234'],
       type: [{ lines: ['Xactions'], font: 'NJ Text', weight: 900, track: -0.035, fit: 940, x: 36, base: 198, ch: 0 }],
       inks: ['#FFFFFF'],
-      bandY: 0.5, grain: [0.012, 0.010],
+      bandY: 0.5, grain: [0.012, 0.010], shaderMips: true,
       back: { paper: '#080C26', ink: '#FFFFFF', soft: '#A6ADD6', accent: '#FF8A2A' },
     };
     case 'Stellar Explorer': return {
@@ -801,6 +974,25 @@ function designFor(entry) {
       inks: ['#FFF8EE'],
       bandY: 0.42, grain: [0.012, 0.010],
       back: { paper: '#0B0E1C', ink: '#FFF8EE', soft: '#A3A9CC', accent: '#DBA95C' },
+    };
+    case 'Chairtax': return {
+      motif: 'chairtax', t0: 0,
+      pal: ['#100D0A', '#1A1611', '#FFB020', '#FFC23A', '#FFE45A', '#F9A616'],
+      type: [{ lines: ['Chairtax'], runs: [['Chair', 0], ['tax', 1]], font: 'NJ Grotesk', weight: 700, track: -0.02, fit: 738, x: 252, base: 168, ch: 0 }],
+      inks: ['#F8F2E7', '#FFB020'],
+      mark: [21, 14, 191],
+      art: { src: 'art/bearly-squat.webp', x: 326, top: 356 },
+      bandY: 0.52, grain: [0.012, 0.010],
+      back: { paper: '#14110D', ink: '#F8F2E7', soft: '#B4A893', accent: '#FFB020' },
+    };
+    case 'Stats': return {
+      motif: 'stats', t0: 0,
+      pal: ['#EEF2F7', '#C9D3E1', '#3A6BD6', '#17845A', '#D9822B', '#D6E9FF', '#EEF2F7', '#17202B'],
+      type: [{ lines: ['Stats'], font: 'NJ Bricolage', weight: 800, track: -0.01, fit: 552, x: 52, base: 367, ch: 0 }],
+      inks: ['#17202B'],
+      mark: [49, 36, 125],
+      bandY: 0.40, grain: [0.010, 0.008],
+      back: { paper: '#EEF1F4', ink: '#17202B', soft: '#5B6776', accent: '#3A6BD6' },
     };
     case 'About Neil': return {
       motif: 'about', t0: 0,
@@ -889,7 +1081,10 @@ function drawType(ctx, b, S) {
     const box = inkBox(ctx, line);
     const y = (b.base + i * (b.lead || 0)) * S;
     const x = b.align === 'center' ? b.x * S - box.width / 2 + box.left : b.x * S + box.left;
-    ctx.fillText(line, x, y);
+    if (!b.runs) { ctx.fillText(line, x, y); return; }
+    // a line set in runs of different inks: each run starts at the advance of the runs before it
+    let rx = x;
+    for (const [run, ch] of b.runs) { ctx.fillStyle = CH[ch]; ctx.fillText(run, rx, y); rx += ctx.measureText(run).width; }
   });
 }
 function drawFront(ctx, d) {
@@ -979,6 +1174,27 @@ function logoImage(logo, px) {
     img.src = url;
     p = img.decode().then(() => img).finally(() => { if (revoke) URL.revokeObjectURL(url); });
     logoImages.set(key, p);
+  }
+  return p;
+}
+// brand artwork (art/), premultiplied and mipmapped, one texture per file for every cover that draws it
+const artTextures = new Map();
+function artTexture(src) {
+  let p = artTextures.get(src);
+  if (!p) {
+    const img = new Image();
+    img.decoding = 'async';
+    img.src = new URL(src, import.meta.url).href;
+    p = img.decode().then(() => {
+      const tex = new THREE.Texture(img);
+      tex.colorSpace = THREE.NoColorSpace;   // composited in sRGB, like the brand mark
+      tex.premultiplyAlpha = true;
+      tex.minFilter = THREE.LinearMipmapLinearFilter;
+      tex.magFilter = THREE.LinearFilter;
+      tex.needsUpdate = true;
+      return tex;
+    });
+    artTextures.set(src, p);
   }
   return p;
 }
@@ -1225,6 +1441,9 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
     uFormRect: { value: new THREE.Vector3(0, 0, 0) },
     uRest: { value: BLANK },
     uRestMix: { value: 0 },
+    uArt: { value: BLANK },
+    uArtRect: { value: new THREE.Vector4(0, 0, 0, 0) },
+    uMip: { value: 0 },
     uInk0: { value: inks[0] },
     uInk1: { value: inks[1] },
     uInk2: { value: inks[2] },
@@ -1265,18 +1484,27 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
   renderer.setRenderTarget(prevRT);
   // the mark at a front's drawn size, and at the size the form field rasterises it
   const markAt = sz => logo && d.mark ? logoImage(logo, Math.round(d.mark[2] * sz / 1024)) : Promise.resolve(null);
-  const [markImg, formImg] = await Promise.all([
+  const [markImg, formImg, art] = await Promise.all([
     markAt(size),
     logo && d.form ? logoImage(logo, Math.round((d.form.res || 512) / (1 + 2 * MARGIN))) : null,
+    d.art ? artTexture(d.art.src) : null,
     compiled,
   ]);
+  if (art) {
+    const { width: w, height: h } = art.image;
+    renderer.initTexture(art);
+    uniforms.uArt.value = art;
+    uniforms.uArtRect.value.set(d.art.x / 1024, 1 - (d.art.top + h) / 1024, w / 1024, h / 1024);
+  }
 
-  const upload = (canvas, premultiply) => {
+  // layers of a front whose shader draws its own mip levels carry mips too, so each level reads its type
+  const upload = (canvas, premultiply, mips = false) => {
     const tex = new THREE.Texture(canvas);
     tex.colorSpace = THREE.NoColorSpace;
     tex.premultiplyAlpha = premultiply;
-    tex.generateMipmaps = false;
-    tex.minFilter = tex.magFilter = THREE.LinearFilter;
+    tex.generateMipmaps = mips;
+    tex.minFilter = mips ? THREE.LinearMipmapLinearFilter : THREE.LinearFilter;
+    tex.magFilter = THREE.LinearFilter;
     tex.needsUpdate = true;
     renderer.initTexture(tex);   // upload now: the canvas is shared and is redrawn for the next cover
     return tex;
@@ -1285,20 +1513,23 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
   const layersAt = (sz, img) => {
     const ctx = textCtx(sz), k = sz / 1024;
     drawFront(ctx, d);
-    const text = upload(ctx.canvas, false);
+    const mips = !!d.shaderMips;
+    const text = upload(ctx.canvas, false, mips);
     let over = BLANK;
     if (img) {
       const octx = artCtx(sz);
       drawContained(octx, img, d.mark[0] * k, d.mark[1] * k, d.mark[2] * k);
-      over = upload(octx.canvas, true);
+      over = upload(octx.canvas, true, mips);
     }
     return { text, over, dispose() { text.dispose(); if (over !== BLANK) over.dispose(); } };
   };
   const frontLayers = () => layersAt(size, markImg);
-  const draw = (rt, mode, layers, ss) => {
+  const draw = (rt, mode, layers, ss, level = 0) => {
     const prev = renderer.getRenderTarget();
+    const s = rt.width >> level;
     uniforms.uMode.value = mode;
-    uniforms.uRes.value.set(rt.width, rt.height);
+    uniforms.uMip.value = level;
+    uniforms.uRes.value.set(s, s);
     uniforms.uText.value = layers.text;
     uniforms.uOver.value = layers.over || BLANK;
     uniforms.uFront.value = mode ? (layers.strip || frontRT).texture : BLANK;
@@ -1306,9 +1537,19 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
     uniforms.uInk0.value = mode ? srgb(d.back.ink) : inks[0];
     uniforms.uInk1.value = mode ? srgb(d.back.soft) : inks[1];
     uniforms.uInk2.value = mode ? srgb(d.back.accent) : inks[2];
-    renderer.setRenderTarget(rt);
+    // a mip level: the target's viewport is the level's size while it is bound (three skips the box
+    // mipmap pass for a render to any level but 0, so the level keeps what the shader drew)
+    if (level) rt.viewport.set(0, 0, s, s);
+    renderer.setRenderTarget(rt, 0, level);
     renderer.render(scene, CAM);
+    if (level) rt.viewport.set(0, 0, rt.width, rt.height);
     renderer.setRenderTarget(prev);
+  };
+  // The front, then (shaderMips) its levels down to 32², each drawn with the level's own pixel size, so
+  // the motif's fine structure fades to its mean before it can beat against the level's grid.
+  const renderFront = (layers, ss) => {
+    draw(frontRT, 0, layers, ss);
+    if (d.shaderMips) for (let k = 1; (frontRT.width >> k) >= 32; k++) draw(frontRT, 0, layers, ss, k);
   };
   const ease = u => u * u * (3 - 2 * u);
   // The back's strip is a crop of the finished front. A front smaller than the back (the scene's
@@ -1352,7 +1593,7 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
   await Promise.all([
     enqueue(`${entry.name} front`, () => {
       const layers = frontLayers();
-      draw(frontRT, 0, layers, samples);
+      renderFront(layers, samples);
       layers.dispose();
     }),
     backRT && enqueue(`${entry.name} back`, () => renderBack(backRT, backImg)),
@@ -1417,7 +1658,7 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
         uniforms.uTime.value = d.t0;
         uniforms.uRestMix.value = 0;
         uniforms.uRest.value = BLANK;
-        draw(frontRT, 0, alive, samples);
+        renderFront(alive, samples);
         stop();
         return;
       }
@@ -1425,7 +1666,7 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
       uniforms.uTime.value = time;
       uniforms.uRestMix.value = ease(restMix);
       uniforms.uRest.value = restMix > 0 ? restRT.texture : BLANK;
-      draw(frontRT, 0, alive, aliveSamples);
+      renderFront(alive, aliveSamples);
     },
     dispose() {
       disposed = true;
@@ -1439,6 +1680,7 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
       const rt = (t, mips) => t ? t.width * t.height * 4 * (mips ? 4 / 3 : 1) : 0;
       let n = rt(frontRT, true) + rt(backRT, true) + rt(detail?.rt, true) + rt(restRT, false);
       if (form) n += form.tex.image.width ** 2 * 8 + (form.col ? form.col.image.width ** 2 * 4 : 0);
+      if (art) n += art.image.width * art.image.height * 4 * 4 / 3;
       return n;
     },
     _stop: stop,
