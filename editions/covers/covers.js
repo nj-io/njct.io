@@ -740,8 +740,13 @@ vec3 motif(vec2 p, float t) {
 
 // About Neil: one gold sphere resting on cream paper, a soft contact shadow, the light moving across it when alive.
 MOTIFS.about = /* glsl */`
+// gold-leaf grain, static, its strength and size matched to the concept's on flat patches (on the sphere it grows with
+// the key light). It sits near the full-size grid's limit, so the two levels below full size, which the shader draws
+// itself (shaderMips: 2), leave it out: at shelf size it settles to its mean instead of twinkling as the shelf moves.
+#define GRAIN_ON (uMip < 0.5 ? 1.0 : 0.0)
 #define SPH_GF 310.0
-#define SPH_GA 0.15
+#define SPH_GA 0.125
+#define SPH_GK 1.0
 #define INK_GF 520.0
 #define INK_GA 0.16
 float blob(vec2 s, vec2 o, vec2 w) { vec2 d = (s - o) / w; return exp(-dot(d, d)); }
@@ -777,7 +782,7 @@ vec3 motif(vec2 p, float t) {
       // the paper's light caught on the lower-left limb
       + vec3(1.387, 0.510, 0.054) * pow(1.0 - n.z, 6.0) * sat(dot(n.xy, vec2(-0.4226, -0.9063)) / max(length(n.xy), 1e-4));
     g *= 1.0 - 1.0000 * exp(-(1.0 + n.y) / 0.1612);
-    g = max(g, 0.0) * (1.0 + (vnoise(p * SPH_GF) - 0.5) * SPH_GA);
+    g = max(g, 0.0) * (1.0 + (vnoise(p * SPH_GF) - 0.5) * SPH_GA * (SPH_GK + key) * GRAIN_ON);
     col = mix(col, g, cover((sqrt(rr) - 1.0) * R));
   }
   return col;
@@ -785,7 +790,7 @@ vec3 motif(vec2 p, float t) {
 vec3 goldInk(vec2 p) {
   float k = smoothstep(0.98, 0.72, p.y) + 0.25 * (fbm(p * 18.0) - 0.5);
   vec3 c = mix(uInk0, uInk1, sat(k));
-  c *= 1.0 + (vnoise(p * INK_GF + 3.0) - 0.5) * INK_GA;
+  c *= 1.0 + (vnoise(p * INK_GF + 3.0) - 0.5) * INK_GA * GRAIN_ON;
   return c;
 }
 #define INK0(p, t) goldInk(p)`;
@@ -980,7 +985,8 @@ vec3 motif(vec2 p, float t) {
 //   front: { src (beside this module), x, top, fade }; fade (px) softens a crop edge at its foot that the
 //   type covers. A motif may lift it with ART_DY(t) (cover units).
 // typeGlow: the type mask carries mips, so the motif can read it blurred (a glow or a shadow around the type).
-// shaderMips: the shader draws the front's mip levels itself, each filtered at its own sampling rate.
+// shaderMips: the shader draws the front's mip levels itself, each filtered at its own sampling rate; a number n
+//   draws levels 1..n only, and the levels below keep the box filter's.
 // form: the logo (or, fromType, the front's own type) inflated into the motif's hero form: box [x, top, size], R bevel radius,
 //   soft blur (both cover units), key 'alpha' | 'tile' (tile: drop pixels near the tile colour).
 // ground: the colour the resting cover reads as; a flat stand-in for a late cover (sRGB). For most covers it is the
@@ -1179,7 +1185,7 @@ function designFor(entry) {
       // the concept's own letters, traced (letters/about.json)
       type: [{ paths: 'letters/about.json' }],
       inks: ['#D2A64E', '#A8771F'],
-      bandY: 0.45, grain: [0.03, 0.014],
+      bandY: 0.45, grain: [0.03, 0.014], shaderMips: 2,
       back: { paper: '#F4EADA', ink: '#4A3212', soft: '#86704E', accent: '#B8862C' },
     };
   }
@@ -1811,7 +1817,7 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
   // the motif's fine structure fades to its mean before it can beat against the level's grid.
   const renderFront = (layers, ss) => {
     draw(frontRT, 0, layers, ss);
-    if (d.shaderMips) for (let k = 1; (frontRT.width >> k) >= 32; k++) draw(frontRT, 0, layers, ss, k);
+    if (d.shaderMips) for (let k = 1; (frontRT.width >> k) >= 32 && (d.shaderMips === true || k <= d.shaderMips); k++) draw(frontRT, 0, layers, ss, k);
   };
   const ease = u => u * u * (3 - 2 * u);
   // The back's strip is a crop of the finished front. A front smaller than the back (the scene's
