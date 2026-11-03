@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Editions covers</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: rgb(205,205,205); }
+  canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  #bar { position: fixed; left: 16px; top: 10px; display: flex; gap: 12px; align-items: center;
+    font: 500 13px/1 system-ui, sans-serif; color: #222; z-index: 1; }
+  #bar select, #bar a { font: inherit; color: inherit; }
+  #stats { color: #555; }
+</style>
+<script type="importmap">{ "imports": { "three": "/vendor/three-0.181.0/three.module.min.js" } }</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="bar">
+  <label>Alive <select id="alive"><option value="-1">none</option></select></label>
+  <a id="grid" href="?">grid</a>
+  <span id="stats"></span>
+</div>
+<script type="module">
+import * as THREE from 'three';
+import { createCover, coverProfiler } from './covers.js';
+
+const q = new URLSearchParams(location.search);
+const view = q.has('view') ? +q.get('view') : -1;        // one cover, front and back at 512 CSS px each
+const measure = q.has('measure');
+const size = +(q.get('size') || 1024);
+
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(devicePixelRatio);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.NoToneMapping;
+renderer.setClearColor(new THREE.Color().setRGB(205 / 255, 205 / 255, 205 / 255, THREE.SRGBColorSpace));
+const gl = renderer.getContext();
+
+const scene = new THREE.Scene();
+const camera = new THREE.OrthographicCamera(0, 1, 0, 1, -1, 1);
+const plane = new THREE.PlaneGeometry(1, 1);
+const cells = [];
+
+function layout() {
+  const w = innerWidth, h = innerHeight;
+  renderer.setSize(w, h, false);
+  camera.left = 0; camera.right = w; camera.top = 0; camera.bottom = h;   // CSS px, y down
+  camera.updateProjectionMatrix();
+  for (const c of cells) {
+    const r = rectFor(c.slot);
+    c.rect = r;
+    c.mesh.position.set(r.x + r.s / 2, r.y + r.s / 2, 0);
+    c.mesh.scale.set(r.s, -r.s, 1);
+  }
+}
+function rectFor(slot) {
+  const w = innerWidth, h = innerHeight, gap = 16, top = 40;
+  if (view >= 0) {
+    const s = Math.min(512, (w - 3 * gap) / 2, h - top - gap);
+    const x0 = (w - 2 * s - gap) / 2;
+    return { x: Math.round(x0 + slot * (s + gap)), y: top, s };
+  }
+  const s = Math.floor(Math.min((w - 6 * gap) / 5, (h - top - 4 * gap) / 4));
+  const x0 = Math.round((w - 5 * s - 4 * gap) / 2);
+  const col = slot % 5, row = Math.floor(slot / 5);
+  return { x: x0 + col * (s + gap), y: top + row * (s + gap), s };
+}
+function addCell(slot, map, index) {
+  const mesh = new THREE.Mesh(plane, new THREE.MeshBasicMaterial({ map, toneMapped: false, side: THREE.DoubleSide }));
+  scene.add(mesh);
+  cells.push({ slot, mesh, index });
+}
+
+// timing: GPU timer queries when the driver offers them, else a readPixels sync around each job
+const timer = gl.getExtension('EXT_disjoint_timer_query_webgl2');
+const timings = [], pending = [];
+const sync = () => { const px = new Uint8Array(4); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); };
+if (measure) {
+  coverProfiler.wrap = (label, fn) => {
+    let qy = null;
+    if (timer) { qy = gl.createQuery(); gl.beginQuery(timer.TIME_ELAPSED_EXT, qy); }
+    sync();
+    const t0 = performance.now();
+    const r = fn();
+    const cpu = performance.now() - t0;
+    sync();
+    const wall = performance.now() - t0;
+    if (qy) { gl.endQuery(timer.TIME_ELAPSED_EXT); pending.push({ label, qy, wall, cpu }); }
+    else timings.push({ label, wall, cpu });
+    return r;
+  };
+}
+function collectQueries() {
+  for (let i = pending.length - 1; i >= 0; i--) {
+    const p = pending[i];
+    if (gl.getQueryParameter(p.qy, gl.QUERY_RESULT_AVAILABLE)) {
+      timings.push({ label: p.label, wall: p.wall, cpu: p.cpu, gpu: gl.getQueryParameter(p.qy, gl.QUERY_RESULT) / 1e6 });
+      gl.deleteQuery(p.qy); pending.splice(i, 1);
+    }
+  }
+}
+
+const data = await (await fetch('../data/projects.json')).json();
+const t0 = performance.now();
+const indices = view >= 0 ? [view] : data.map((_, i) => i);
+const covers = await Promise.all(indices.map(i => createCover(renderer, data[i], i, { size, samples: +(q.get('samples') || 4) })));
+const loadWall = performance.now() - t0;
+covers.forEach((c, k) => {
+  const i = indices[k];
+  if (view >= 0) { addCell(0, c.front, i); addCell(1, c.back, i); }
+  else { addCell(i, c.front, i); addCell(10 + i, c.back, i); }
+});
+layout();
+addEventListener('resize', layout);
+
+let gpuBytes = 0;
+for (const c of covers) for (const t of [c.front, c.back]) gpuBytes += t.image.width * t.image.height * 4 * 4 / 3;
+const sel = document.getElementById('alive');
+indices.forEach(i => sel.add(new Option(`${i} ${data[i].name}`, i)));
+let alive = -1;
+function setAlive(i) {
+  if (i === alive) return;
+  if (alive >= 0) covers[indices.indexOf(alive)].setAlive(false);
+  alive = i;
+  if (i >= 0) covers[indices.indexOf(i)].setAlive(true);
+  sel.value = i;
+}
+sel.onchange = () => setAlive(+sel.value);
+canvas.addEventListener('pointermove', e => {
+  const hit = cells.find(c => c.slot < 10 || view >= 0 ? (e.clientX >= c.rect.x && e.clientX < c.rect.x + c.rect.s && e.clientY >= c.rect.y && e.clientY < c.rect.y + c.rect.s) : false);
+  if (hit && !q.has('alive')) setAlive(hit.index);
+});
+if (q.has('alive')) setAlive(+q.get('alive'));
+
+const frameCost = [];
+let last = performance.now(), frames = 0;
+function frame(now) {
+  const dt = (now - last) / 1000; last = now;
+  if (measure && alive >= 0 && frames > 30 && frameCost.length < 120) {
+    sync(); const a = performance.now();
+    covers.forEach(c => c.update(dt, now / 1000));
+    sync(); frameCost.push(performance.now() - a);
+  } else covers.forEach(c => c.update(dt, now / 1000));
+  renderer.render(scene, camera);
+  if (measure) collectQueries();
+  frames++;
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+const stats = document.getElementById('stats');
+stats.textContent = `${covers.length} covers · ${(gpuBytes / 1048576).toFixed(1)} MB GPU · ${loadWall.toFixed(0)} ms to ready`;
+// ?bench: GPU time of 20 back-to-back front renders per cover, one timer query each
+async function bench() {
+  const out = [];
+  for (let k = 0; k < covers.length; k++) {
+    const c = covers[k];
+    c.setAlive(true);
+    c.update(0.016);
+    const qy = gl.createQuery();
+    gl.beginQuery(timer.TIME_ELAPSED_EXT, qy);
+    for (let n = 0; n < 20; n++) c.update(0.016);
+    gl.endQuery(timer.TIME_ELAPSED_EXT);
+    c.setAlive(false);
+    while (!gl.getQueryParameter(qy, gl.QUERY_RESULT_AVAILABLE)) await new Promise(r => setTimeout(r, 5));
+    out.push({ name: data[indices[k]].name, frontMs: gl.getQueryParameter(qy, gl.QUERY_RESULT) / 1e6 / 20 });
+  }
+  return out;
+}
+window.__covers = {
+  bench: q.has('bench') && timer ? bench() : null,
+  ready: new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))),
+  loadWall, gpuMB: gpuBytes / 1048576, timings, frameCost, timerQuery: !!timer,
+  renderer: renderer.info,
+};
+</script>
+</body>
+</html>

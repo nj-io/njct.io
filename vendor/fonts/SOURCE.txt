@@ -1,0 +1,33 @@
+Self-hosted web fonts for the Editions covers. All are SIL Open Font License 1.1
+(https://openfontlicense.org). Each file is the Google Fonts "latin" unicode-range
+subset of a single static instance, downloaded 2026-11-03 from fonts.gstatic.com
+via the css2 API request shown.
+
+bricolage-grotesque-96pt-extrabold-latin.woff2
+  Bricolage Grotesque (Mathieu Triay), gstatic v9, opsz 96 · wdth 100 · wght 800
+  css2?family=Bricolage+Grotesque:opsz,wdth,wght@96,100,800
+  https://fonts.gstatic.com/s/bricolagegrotesque/v9/3y9U6as8bTXq_nANBjzKo3IeZx8z6up5BeSl5jBNz_19PpZJMnuECpwUxJBOm_OJWiaaD30YfKfjZZoLvZvl-Molss4MHt0GOQ.woff2
+  Licence: OFL-1.1 (https://github.com/ateliertriay/bricolage)
+
+fraunces-144pt-semibold-soft-wonk-latin.woff2
+  Fraunces (Undercase Type), gstatic v38, opsz 144 · wght 600 · SOFT 100 · WONK 1
+  css2?family=Fraunces:opsz,wght,SOFT,WONK@144,600,100,1
+  https://fonts.gstatic.com/s/fraunces/v38/6NUh8FyLNQOQZAnv9bYEvDiIdE9Ea92usiIk_WBq8U_9v0c2WS017iN7hzFUPJH58njr1a03gg7S2nfgRYIcaRyTCf7Tp05GNyXk.woff2
+  Licence: OFL-1.1 (https://github.com/undercasetype/Fraunces)
+
+inter-regular-latin.woff2, inter-semibold-latin.woff2
+  Inter (Rasmus Andersson), gstatic v20, wght 400 and 600
+  css2?family=Inter:wght@400 / css2?family=Inter:wght@600
+  https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfAZ9hiJ-Ek-_EeA.woff2
+  https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuGKYAZ9hiJ-Ek-_EeA.woff2
+  Licence: OFL-1.1 (https://github.com/rsms/inter)
+
+jetbrains-mono-medium-latin.woff2
+  JetBrains Mono (JetBrains), gstatic v24, wght 500
+  css2?family=JetBrains+Mono:wght@500
+  https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8-qxTOlOVk6OThhvA.woff2
+  Licence: OFL-1.1 (https://github.com/JetBrains/JetBrainsMono)
+
+The latin subset covers U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6,
+U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191,
+U+2193, U+2212, U+2215, U+FEFF, U+FFFD. It has no U+2192 (→).
