@@ -28,7 +28,7 @@
 // Each cover as a row: its concept tile, the shader front and the back, all at the same size.
 //   ?view=i      one cover at Details size (500 CSS px per panel)
 //   ?cell=200    panel size in the grid (default: shelf size, 200)
-//   ?backs=0     no shelf backs, as the page renders them (measures the page's ready time and memory)
+//   ?backs=0     no shelf backs (backSize 0);  ?backsize=1024&size=16  the scene's Details-back call
 //   ?alive=i     start cover i alive;  ?measure  ?bench  timing hooks for the capture script
 import * as THREE from 'three';
 import { createCover, coverProfiler, loadCoverFonts } from './covers.js';
@@ -142,7 +142,7 @@ const fontsT0 = performance.now();
 await loadCoverFonts();
 const fontWall = performance.now() - fontsT0;
 const t0 = performance.now();
-const covers = await Promise.all(indices.map(i => createCover(renderer, data[i], i, { size, backSize: backs ? 512 : 0, samples: +(q.get('samples') || 4) })));
+const covers = await Promise.all(indices.map(i => createCover(renderer, data[i], i, { size, backSize: backs ? +(q.get('backsize') || 512) : 0, samples: +(q.get('samples') || 4) })));
 const loadWall = performance.now() - t0;
 covers.forEach((c, r) => {
   const i = indices[r];
@@ -213,7 +213,7 @@ window.__covers = {
   bench: q.has('bench') && timer ? bench() : null,
   ready: new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))),
   loadWall, fontWall, gpuMB: gpuBytes / 1048576, timings, frameCost, timerQuery: !!timer,
-  renderer: renderer.info, page: pageSize(indices.length),
+  renderer: renderer.info, programs: renderer.info.programs.length, page: pageSize(indices.length),
 };
 </script>
 </body>

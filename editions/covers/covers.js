@@ -1189,7 +1189,6 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
   await loadCoverFonts();
   const d = designFor(entry, index);
   const logo = validLogo(entry.logo);
-  const S = size / 1024;
   const pal = d.pal.map(lin);
   while (pal.length < 8) pal.push(new THREE.Color(0, 0, 0));
   const inks = d.inks.map(srgb);
@@ -1232,13 +1231,6 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
   const quad = new THREE.Mesh(TRI, material);
   quad.frustumCulled = false;
   scene.add(quad);
-  // the mark at its drawn size, and at the size the form field rasterises it
-  const [markImg, formImg] = await Promise.all([
-    logo && d.mark ? logoImage(logo, Math.round(d.mark[2] * S)) : null,
-    logo && d.form ? logoImage(logo, Math.round((d.form.res || 512) / (1 + 2 * MARGIN))) : null,
-    renderer.compileAsync(scene, CAM),
-  ]);
-
   const aniso = renderer.capabilities.getMaxAnisotropy();
   const target = s => new THREE.WebGLRenderTarget(s, s, {
     depthBuffer: false, stencilBuffer: false, generateMipmaps: true,
@@ -1249,6 +1241,19 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
   const frontRT = target(size), backRT = backSize ? target(backSize) : null;
   frontRT.texture.name = `${entry.name} front`;
   if (backRT) backRT.texture.name = `${entry.name} back`;
+  // Compile against the cover's own sRGB target: the program then matches the one the draws use,
+  // so it is built once (compile reads the bound target synchronously).
+  const prevRT = renderer.getRenderTarget();
+  renderer.setRenderTarget(frontRT);
+  const compiled = renderer.compileAsync(scene, CAM);
+  renderer.setRenderTarget(prevRT);
+  // the mark at a front's drawn size, and at the size the form field rasterises it
+  const markAt = sz => logo && d.mark ? logoImage(logo, Math.round(d.mark[2] * sz / 1024)) : Promise.resolve(null);
+  const [markImg, formImg] = await Promise.all([
+    markAt(size),
+    logo && d.form ? logoImage(logo, Math.round((d.form.res || 512) / (1 + 2 * MARGIN))) : null,
+    compiled,
+  ]);
 
   const upload = (canvas, premultiply) => {
     const tex = new THREE.Texture(canvas);
@@ -1261,25 +1266,26 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
     return tex;
   };
   // the front's type mask and its colour overlay (the brand mark, drawn unaltered)
-  const frontLayers = () => {
-    const ctx = textCtx(size);
+  const layersAt = (sz, img) => {
+    const ctx = textCtx(sz), k = sz / 1024;
     drawFront(ctx, d);
     const text = upload(ctx.canvas, false);
     let over = BLANK;
-    if (markImg) {
-      const octx = artCtx(size);
-      drawContained(octx, markImg, d.mark[0] * S, d.mark[1] * S, d.mark[2] * S);
+    if (img) {
+      const octx = artCtx(sz);
+      drawContained(octx, img, d.mark[0] * k, d.mark[1] * k, d.mark[2] * k);
       over = upload(octx.canvas, true);
     }
     return { text, over, dispose() { text.dispose(); if (over !== BLANK) over.dispose(); } };
   };
+  const frontLayers = () => layersAt(size, markImg);
   const draw = (rt, mode, layers, ss) => {
     const prev = renderer.getRenderTarget();
     uniforms.uMode.value = mode;
     uniforms.uRes.value.set(rt.width, rt.height);
     uniforms.uText.value = layers.text;
     uniforms.uOver.value = layers.over || BLANK;
-    uniforms.uFront.value = mode ? frontRT.texture : BLANK;
+    uniforms.uFront.value = mode ? (layers.strip || frontRT).texture : BLANK;
     uniforms.uSS.value = ss;
     uniforms.uInk0.value = mode ? srgb(d.back.ink) : inks[0];
     uniforms.uInk1.value = mode ? srgb(d.back.soft) : inks[1];
@@ -1289,12 +1295,26 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
     renderer.setRenderTarget(prev);
   };
   const ease = u => u * u * (3 - 2 * u);
-  const renderBack = rt => {
+  // The back's strip is a crop of the finished front. A front smaller than the back (the scene's
+  // 16² front beside a 1024 back) is redrawn at the back's size for the strip, then released.
+  const stripMark = rt => frontRT.width < (rt?.width || 0) ? markAt(rt.width) : Promise.resolve(null);
+  const renderBack = (rt, img) => {
+    let strip = null;
+    if (frontRT.width < rt.width) {
+      strip = target(rt.width);
+      const t = uniforms.uTime.value;
+      uniforms.uTime.value = d.t0;
+      const l = layersAt(rt.width, img);
+      draw(strip, 0, l, samples);
+      l.dispose();
+      uniforms.uTime.value = t;
+    }
     const bctx = textCtx(rt.width);
     drawBack(bctx, entry);
     const text = upload(bctx.canvas, false);
-    draw(rt, 1, { text }, samples);
+    draw(rt, 1, { text, strip }, samples);
     text.dispose();
+    if (strip) strip.dispose();
   };
 
   // alive state: the animated layers, and the resting frame the cover fades back to on release
@@ -1310,14 +1330,14 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
     uniforms.uFormRect.value.copy(form.rect);
     if (form.col) uniforms.uFormCol.value = form.col;
   }
-  if (backRT) await loadBackFonts();
+  const backImg = backRT ? (await Promise.all([loadBackFonts(), stripMark(backRT)]))[1] : null;
   await Promise.all([
     enqueue(`${entry.name} front`, () => {
       const layers = frontLayers();
       draw(frontRT, 0, layers, samples);
       layers.dispose();
     }),
-    backRT && enqueue(`${entry.name} back`, () => renderBack(backRT)),
+    backRT && enqueue(`${entry.name} back`, () => renderBack(backRT, backImg)),
   ]);
 
   const stop = () => {
@@ -1336,11 +1356,13 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
     // The back at detail size (Details magnifies it), rendered once, on the first request.
     detailBack(detailSize = 1024) {
       if (disposed) return Promise.resolve(null);
-      if (!detailP) detailP = loadBackFonts().then(() => {
+      if (!detailP) {
         detailRT = target(detailSize);
         detailRT.texture.name = `${entry.name} back ${detailSize}`;
-        return enqueue(`${entry.name} back ${detailSize}`, () => renderBack(detailRT));
-      }).then(() => detailRT.texture);
+        detailP = Promise.all([loadBackFonts(), stripMark(detailRT)])
+          .then(([, img]) => enqueue(`${entry.name} back ${detailSize}`, () => renderBack(detailRT, img)))
+          .then(() => detailRT.texture);
+      }
       return detailP;
     },
     setAlive(on) {
