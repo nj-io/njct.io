@@ -19,13 +19,6 @@ poppins-extrabold-cover.woff2 — NJ Poppins, the Social Hook title
   1 052 bytes, sha256 d48f4294e9c981650833ca23eea50f61b72bd5917fe4ca2acbd94b97be49a432
   Licence: OFL-1.1 (https://github.com/itfoundry/Poppins)
 
-fraunces-144pt-black-soft-cover.woff2 — NJ Soft Serif, the Clauded title
-  Fraunces (Undercase Type), gstatic v38, opsz 144 · wght 900 · SOFT 100 · WONK 0
-  glyphs: "Cadelu" (from "Clauded")
-  css2?family=Fraunces:opsz,wght,SOFT,WONK@144,900,100,0&text=Cadelu
-  1 584 bytes, sha256 17368ffdd2925d2d87fc70c992dc7ea39571b1bee9f07c8a07bc0f5f8c4e5423
-  Licence: OFL-1.1 (https://github.com/undercasetype/Fraunces)
-
 fraunces-144pt-bold-cover.woff2 — NJ Serif, the Stellar Explorer title and the About back's headline
   Fraunces (Undercase Type), gstatic v38, opsz 144 · wght 700 · SOFT 0 · WONK 0
   glyphs: " ,.EHINSaeilmoprtx’" (from "Stellar Explorer" and about[0], "Hi, I’m Neil.")
