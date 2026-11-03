@@ -6,6 +6,7 @@
 // each. A drag of 150 px moves one sleeve, and the crate follows the finger; on release it carries on
 // with the finger's speed for 60 ms worth (a flick of 250 px in 120 ms moves two) and settles on the
 // nearest sleeve in about 600 ms. A trackpad or wheel moves one sleeve per notch, the arrow keys too.
+import * as THREE from 'three';
 import { SLEEVE } from './config.js';
 import { restPose } from './sleeves.js';
 
@@ -16,7 +17,41 @@ export const CRATE = {
   drag: 150, carry: 0.06, omega: 8.5,
   details: { size: 0.815, centreY: 0.404 },              // the sleeve in Details: share of the width, centre height
   wheelNotch: 60,
+  // The ground: 203 on the reference's phone against the shelf view's 218-220 here (a linear factor), and
+  // a soft shadow the crate casts to its left: from the screen's left edge to its centre, 40.3% to 79.4%
+  // of the screen height, 11 levels darker (192 of 203: 5.4% in display terms), 20 px soft edges.
+  groundGain: 0.838, edgeColour: 0x1c1c1c,
+  shadow: { y0: 0.403, y1: 0.794, alpha: 0.054, feather: 20 },
 };
+
+// The crate's shadow on the ground: a soft-edged rectangle drawn over the wall in display terms.
+export function createCrateShadow() {
+  const mat = new THREE.ShaderMaterial({
+    uniforms: { uSize: { value: new THREE.Vector2(1, 1) }, uFeather: { value: 1 }, uAlpha: { value: CRATE.shadow.alpha } },
+    vertexShader: `varying vec2 vP; uniform vec2 uSize; void main() { vP = uv * uSize; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+    fragmentShader: `varying vec2 vP; uniform vec2 uSize; uniform float uFeather, uAlpha;
+      void main() { float d = min(vP.y, uSize.y - vP.y);   // soft top and bottom; it runs off the left edge and under the crate
+        gl_FragColor = vec4(0.0, 0.0, 0.0, uAlpha * smoothstep(0.0, uFeather, d)); }`,
+    transparent: true, depthWrite: false, toneMapped: false,   // depth-tested: the sleeves stand in front of it
+  });
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
+  mesh.renderOrder = -0.5;   // after the wall, before the sleeves
+  mesh.visible = false;
+  return {
+    mesh,
+    // 0..1: the shadow comes in with the sleeves in the intro.
+    setOpacity(k) { mat.uniforms.uAlpha.value = CRATE.shadow.alpha * k; },
+    // Screen W x H at S px per world unit on the wall plane.
+    layout(W, H, S) {
+      const x0 = -W / 2 / S - 2, x1 = 0, y0 = (H / 2 - CRATE.shadow.y1 * H) / S, y1 = (H / 2 - CRATE.shadow.y0 * H) / S;
+      mesh.scale.set(x1 - x0, y1 - y0, 1);
+      mesh.position.set((x0 + x1) / 2, (y0 + y1) / 2, 0.5);
+      mesh.updateMatrixWorld();
+      mat.uniforms.uSize.value.set(x1 - x0, y1 - y0);
+      mat.uniforms.uFeather.value = CRATE.shadow.feather / S;
+    },
+  };
+}
 
 export function createCrate(count) {
   const L = SLEEVE.size;

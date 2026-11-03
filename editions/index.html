@@ -33,12 +33,25 @@
     font-display: block;
   }
   :root {
-    --ground: rgb(205, 205, 205);
+    /* The ground before the scene draws: the wall's light (scene/lighting.js LIGHTS.base, without the shelves)
+       as one radial gradient on the same ellipse, scaled with the view (config.js viewScale), so the canvas
+       fades in over it without a step. Stops: the wall's mean grey at 0, 0.2 ... 2.6 radii. */
+    --u: min(100vw / 1440, 100vh / 760);
+    --ground: radial-gradient(calc(806.6 * var(--u)) calc(309.6 * var(--u)) at 50% calc(50% + 293.5 * var(--u)),
+      rgb(211 211 211), rgb(214.7 214.7 214.7) 20%, rgb(216.1 216.1 216.1) 40%, rgb(216.9 216.9 216.9) 60%, rgb(217.5 217.5 217.5) 80%,
+      rgb(218 218 218) 100%, rgb(218.7 218.7 218.7) 140%, rgb(219.4 219.4 219.4) 200%, rgb(220 220 220) 260%) rgb(220 220 220);
     --ink: #000;
     --ink-soft: rgba(0, 0, 0, 0.6);
     --gutter: max(16px, calc((100vw - 1600px) / 2)); /* content is at most 1600 px wide, centred */
   }
-  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--ground); }
+  html, body { margin: 0; height: 100%; overflow: hidden; }
+  html { background: var(--ground); }
+  /* The phone crate's ground is darker (scene/crate.js CRATE.groundGain). */
+  @media (max-width: 599px) {
+    :root { --ground: radial-gradient(calc(806.6 * var(--u)) calc(309.6 * var(--u)) at 50% calc(50% + 293.5 * var(--u)),
+      rgb(195.5 195.5 195.5), rgb(198.4 198.4 198.4) 20%, rgb(199.7 199.7 199.7) 40%, rgb(200.5 200.5 200.5) 60%, rgb(201.1 201.1 201.1) 80%,
+      rgb(201.5 201.5 201.5) 100%, rgb(202.2 202.2 202.2) 140%, rgb(202.9 202.9 202.9) 200%, rgb(203.6 203.6 203.6) 300%, rgb(204.1 204.1 204.1) 380%, rgb(204.8 204.8 204.8) 520%) rgb(204.8 204.8 204.8); }
+  }
   body {
     font: 400 14px/20px 'Inter', system-ui, sans-serif; color: var(--ink);
     -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility;

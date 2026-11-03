@@ -11,7 +11,7 @@ import { createSleeves, applyPose, writeOccluders, setCover, restPose, hoverPose
 import { introPose, stepHover, fallPose, HOVER_DELAY, bezier, lerpPose, clamp01, dur, delay, setReducedMotion, reduced } from './scene/motion.js';
 import { createPost } from './scene/post.js';
 import { createSticker } from './scene/sticker.js';
-import { createCrate, CRATE } from './scene/crate.js';
+import { createCrate, createCrateShadow, CRATE } from './scene/crate.js';
 
 const entries = LINEUP;
 
@@ -63,26 +63,36 @@ let CAMZ = CAMERA_Z;
 const camera = new THREE.PerspectiveCamera(20, 1, 100, CAMZ * 2);
 camera.position.set(0, 0, CAMZ);
 const crate = createCrate(sleeves.length);
+const crateShadow = createCrateShadow();
+scene.add(crateShadow.mesh);
 
 // ---- covers -------------------------------------------------------------------------------------
 // Covers come only through createCover (editions/covers/): a 1024 front (Details shows it at about 830
 // device px) and no shelf back (backs face the wall); the back renders at 1024 when its sleeve enters
 // Details. A cover that fails to build leaves its sleeve plain, in the entry's accent colour or neutral
-// grey. The sleeves wait for the covers, at most 3 s.
-const covers = sleeves.map(() => null);
+// grey.
 // The cover module loads after the first frame, so its bytes and its work stay off the first frame's
-// path on a slow phone (the shelf's first frame needs only the scene).
+// path on a slow phone (the shelf's first frame needs only the scene). Covers are then created (and
+// their programs compiled) in shelf order, COVER_LANES at a time, so sleeve i's cover is in by its
+// appearance in the intro (INTRO.appear.at + stagger * i); the intro never waits for a cover, and a
+// sleeve whose cover is late shows plain until it lands.
+const covers = sleeves.map(() => null);
+const coverReadyAt = sleeves.map(() => null);   // ms after the first frame (test hook)
+const COVER_LANES = 1;
 const coversMod = new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))).then(() => import('./covers/covers.js'));
 const build = (s, i, opts) => coversMod.then(m => m.createCover(renderer, s.entry, i, opts));
-const coversReady = Promise.all(sleeves.map((s, i) => build(s, i, { size: 1024, backSize: 0 })
-  .then(c => { covers[i] = c; setCover(s, c.front, null); wake(); })
-  .catch(e => console.warn(`cover ${s.entry.name}: plain sleeve (${e?.message || e})`))));
-let coversAt = null;
-Promise.race([coversReady, new Promise(r => setTimeout(r, 3000))]).then(() => {
-  coversAt = performance.now();
-  if (introStart !== null) sleevesStart = Math.max(introStart, coversAt - INTRO.appear.at);
-  wake();
-});
+let nextCover = 0;
+function buildNext() {
+  const i = nextCover++;
+  if (i >= sleeves.length) return Promise.resolve();
+  const s = sleeves[i];
+  return build(s, i, { size: 1024, backSize: 0 })
+    .then(c => { covers[i] = c; setCover(s, c.front, null); wake(); })
+    .catch(e => console.warn(`cover ${s.entry.name}: plain sleeve (${e?.message || e})`))
+    .then(() => { coverReadyAt[i] = introStart === null ? null : Math.round(performance.now() - introStart); })
+    .then(buildNext);
+}
+const coversReady = coversMod.then(() => Promise.all(Array.from({ length: COVER_LANES }, buildNext)));
 // The cover module keeps the last two Details backs and renders an evicted one again on request, so the
 // sleeve asks on every entry, and gives its back up (to the placeholder) when it leaves Details.
 function backFor(i) {
@@ -90,6 +100,16 @@ function backFor(i) {
   covers[i]?.detailBack(1024).then(tex => {
     if (det && det.i === i) { s.back.map = tex || blank; s.back.color.set(tex ? 0xffffff : BACK_PLAIN); s.back.needsUpdate = true; wake(); }
   }).catch(e => console.warn(`cover ${s.entry.name}: no Details back (${e?.message || e})`));
+}
+// The back's faces load (and its first back renders) at idle once the intro is over, so a Details back
+// is a single render job when Details opens and never lands in a flip. The covers module loads the back
+// faces only on a back request, so this asks for the first sleeve's back once.
+let backsWarm = false;
+function warmBacks() {
+  if (backsWarm || !covers[0] || settled.some(v => !v)) return;
+  backsWarm = true;
+  const idle = window.requestIdleCallback || (f => setTimeout(f, 200));
+  idle(() => { if (!det) covers[0].detailBack(1024).catch(() => {}); }, { timeout: 2000 });
 }
 const BACK_PLAIN = 0xe9e6e0;   // the back's card colour in sleeves.js
 function releaseBack(s) { if (s.back.map !== blank) { s.back.map = blank; s.back.color.set(BACK_PLAIN); s.back.needsUpdate = true; } }
@@ -223,9 +243,16 @@ function layout() {
   detCY = crateMode ? CRATE.details.centreY * H : H / 2 - (REF_H / 2 - DETAILS.centreY) * S;
   DZ = CAMZ * (1 - SLEEVE.size * S / detSize);
   DY = (H / 2 - detCY) / S * (CAMZ - DZ) / CAMZ;
-  for (const m of shelfMeshes) m.visible = !crateMode;
-  // The crate has no shelves: the wall loses their shadows too.
-  SHELF.tops.forEach((top, r) => (crateMode ? uniforms.uShelf.value[r].set(0, 0, -1e5, -1e5)
+  // The crate has no shelves (and a test can ask for the bare wall).
+  const bare = crateMode || !!window.__editionsTest?.noShelves;
+  for (const m of shelfMeshes) m.visible = !bare;
+  // The crate's ground: darker, with its shadow, and the sleeves' edges dark as on the reference's crate.
+  wall.setGain(crateMode ? CRATE.groundGain : 1);
+  crateShadow.mesh.visible = crateMode;
+  if (crateMode) crateShadow.layout(W, H, S);
+  for (const s of sleeves) s.mats[0].color.set(crateMode ? CRATE.edgeColour : 0xf1efea);
+  // Without shelves the wall loses their shadows too.
+  SHELF.tops.forEach((top, r) => (bare ? uniforms.uShelf.value[r].set(0, 0, -1e5, -1e5)
     : uniforms.uShelf.value[r].set(-SHELF.width / 2, SHELF.width / 2, top - SHELF.thick, top)));
   document.body.classList.toggle('crate', crateMode);
   if (crateMode !== wasCrate) {
@@ -433,6 +460,8 @@ function frame(now) {
     }
   }
   if (bakeDirty) { writeOccluders(sleeves, uniforms, crateMode); wall.bake(); bakeDirty = false; bgDirty = true; }
+  // The crate's shadow comes in with its sleeves.
+  if (crateMode) crateShadow.setOpacity(ti < 0 ? 0 : clamp01((ti - delay(INTRO.appear.at)) / dur(600)));
   // In the crate the front sleeve wears the Now playing sticker, fading while the crate moves.
   if (crateMode && !det) {
     const c = Math.round(crate.p), k = settled[c] ? clamp01(1 - Math.abs(crate.p - c) * 3) : 0;
@@ -444,7 +473,7 @@ function frame(now) {
 
   if (det) {
     const s = sleeves[det.i];
-    sticker.place(s, det.sticker);
+    sticker.place(s, crateMode ? 0 : det.sticker);   // the crate's Details sleeve wears none, as on the reference
     const sigma = DETAILS.blur.sigma * det.blur;
     if (bgDirty || sigma !== lastSigma) {
       camera.layers.set(0);
@@ -469,6 +498,7 @@ function frame(now) {
     firstFrame.resolve();
     active = true;
   }
+  if (!backsWarm && !active) warmBacks();
   if (active || waiting || alive || crateMoving) wake(); else last = 0;
 }
 
@@ -484,7 +514,7 @@ function expEasing(tauOverDur) {
 }
 function startIntro(now) {
   introStart = now;
-  if (coversAt !== null) sleevesStart = now;
+  sleevesStart = window.__editionsTest?.noSleeves ? null : now;   // a test can hold the shelf empty
   canvas.animate([{ opacity: 0 }, { opacity: 1 }], { duration: dur(INTRO.canvasFade.dur), easing: INTRO.canvasFade.ease, fill: 'forwards' });
   const H = INTRO.header, d = dur(H.tau * 5);
   document.querySelectorAll('.rise').forEach((el, k) => el.animate(
@@ -844,6 +874,7 @@ const hooks = {
   setCover(i, front, back) { setCover(sleeves[i], front, back); wake(); },
   get project() { return inProject >= 0 ? slugOf(entries[inProject]) : null; },
   get sleevesAt() { return sleevesStart; },
+  coverReadyAt,
   get crate() { return crateMode ? { p: crate.p, current: crate.current, dragging: crate.dragging } : null; },
   get details() {
     return det ? { index: det.i, flipped: Math.round(det.flip.to / Math.PI) % 2 === 1, closing: !!det.exit, blur: det.blur, yaw: sleeves[det.i].pose.yaw } : null;

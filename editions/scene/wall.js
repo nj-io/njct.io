@@ -33,9 +33,10 @@ void main() {
 // Interleaved gradient noise, +-0.5 of an 8-bit step after encoding, so the soft gradients never band.
 const WALL_FRAG = /* glsl */`
 uniform sampler2D uBake;
+uniform float uGain;
 varying vec2 vUv;
 void main() {
-  vec3 c = texture2D(uBake, vUv).rgb;
+  vec3 c = texture2D(uBake, vUv).rgb * uGain;
   gl_FragColor = vec4(c, 1.0);
   #include <colorspace_fragment>
   float n = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
@@ -57,7 +58,7 @@ export function createWall(renderer, uniforms) {
   const bakeCam = new THREE.Camera();
 
   const mat = new THREE.ShaderMaterial({
-    uniforms: { uBake: { value: target.texture } },
+    uniforms: { uBake: { value: target.texture }, uGain: { value: 1 } },
     vertexShader: WALL_VERT, fragmentShader: WALL_FRAG, toneMapped: false,
   });
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
@@ -74,6 +75,8 @@ export function createWall(renderer, uniforms) {
       mesh.position.set((x0 + x1) / 2, (y0 + y1) / 2, 0);
       mesh.updateMatrixWorld();
     },
+    // Light on the wall as a factor of the fitted light (linear); the phone crate's ground is darker.
+    setGain(g) { mat.uniforms.uGain.value = g; },
     bake() {
       const prev = renderer.getRenderTarget();
       renderer.setRenderTarget(target);
