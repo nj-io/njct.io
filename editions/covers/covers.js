@@ -396,23 +396,32 @@ vec3 motif(vec2 p, float t) {
 vec3 claudedInk(vec2 p) { return mix(uInk0, uInk1, smoothstep(0.97, 0.8, p.y)); }
 #define INK0(p, t) claudedInk(p)`;
 
-// LikeWiki: two words stacked huge over large circular fields, cream above, green below.
+// LikeWiki: two words stacked huge over a split field, cream above the fold and green below, with large
+// circular fields cut by the fold; every field fitted to the concept (likewiki-a3) by least squares off the letters.
 MOTIFS.likewiki = /* glsl */`
+const float FOLD = 0.5035;
+// q: concept coordinates (x right, y down); each field shades from a to b along dir across its width
+vec3 field(vec3 col, vec2 q, vec3 a, vec3 b, vec2 dir, float m) {
+  return mix(col, mix(a, b, sat(dot(q - 0.5, dir) + 0.5)), m);
+}
+vec3 disc(vec3 col, vec2 q, vec2 c, vec2 r, vec3 a, vec3 b, vec2 dir, float m) {
+  vec2 o = q - c;
+  return mix(col, mix(a, b, sat(0.5 + 0.5 * dot(o / r, dir))), cover(sdEllipse(o, r)) * m);
+}
 vec3 motif(vec2 p, float t) {
-  float dr = 0.01 * sin(t * 0.3);
-  vec3 col = mix(uPal[0], uPal[1], cover(p.y - 0.502));
-  // cream half: a sage disc at the top left, a faint lighter field at the right
-  col = mix(col, uPal[5], cover(length(p - ic(0.93, 0.28)) - 0.42) * 0.5 * cover(0.5 - p.y));
-  col = mix(col, mix(uPal[2], uPal[3], 0.25), cover(length(p - ic(0.27 + dr, 0.0)) - 0.31) * cover(0.502 - p.y));
-  // a disc that straddles the fold
-  vec2 cm = ic(0.74 - dr, 0.47);
-  float dm = length(p - cm) - 0.16;
-  col = mix(col, p.y > 0.502 ? uPal[3] : uPal[4], cover(dm));
-  // green half: deeper discs behind the second word, a light disc rising from the bottom
-  col = mix(col, uPal[4], cover(length(p - ic(0.24, 0.64 + dr)) - 0.17) * cover(p.y - 0.502));
-  col = mix(col, uPal[6], cover(length(p - ic(0.52, 0.66)) - 0.13) * cover(p.y - 0.502) * 0.8);
-  vec2 cb = ic(0.53 + dr, 1.15);
-  col = mix(col, mix(uPal[2], uPal[3], smoothstep(0.1, 0.35, length(p - cb - vec2(0.0, 0.2)))), cover(length(p - cb) - 0.35));
+  vec2 q = vec2(p.x, 1.0 - p.y);
+  float dr = 0.008 * sin(t * 0.3);
+  float top = cover(q.y - FOLD), bot = 1.0 - top;
+  vec3 col = vec3(0.0);
+  col = field(col, q, vec3(0.8879, 0.8796, 0.7991), vec3(0.8228, 0.7913, 0.7157), vec2(1, -0.01), top);   // #F2F1E7 .. #EAE6DC
+  col = field(col, q, vec3(0.0116, 0.0423, 0.0319), vec3(0.0103, 0.0395, 0.0284), vec2(1, -0.002), bot);   // #1C3A32 .. #1A382F
+  col = disc(col, q, vec2(0.2263 + dr, -0.0418), vec2(0.2715, 0.2715), vec3(0.2542, 0.3968, 0.3419), vec3(0.2502, 0.4508, 0.314), vec2(0.0028, 1), top);   // #8AA99E .. #89B398
+  col = disc(col, q, vec2(1.0273, 0.5805), vec2(0.1596, 0.1596), vec3(0.0595, 0.1845, 0.1119), vec3(0.1329, 0.2789, 0.1912), vec2(0.0028, 1), top);   // #45775E .. #669079
+  col = disc(col, q, vec2(0.2766, 0.5296), vec2(0.0695, 0.0695), vec3(0.2664, 0.4621, 0.3419), vec3(0.159, 0.3231, 0.2346), vec2(0.0008, 1), top);   // #8DB59E .. #6F9A85
+  col = disc(col, q, vec2(-0.1446, 0.5953), vec2(0.2337, 0.2337), vec3(0.0319, 0.0865, 0.0648), vec3(0.0232, 0.0666, 0.0423), vec2(1, 0.004), bot);   // #325348 .. #2A493A
+  col = disc(col, q, vec2(0.5118, 0.3866 + dr), vec2(0.17, 0.17), vec3(0.3419, 0.521, 0.4072), vec3(0.1022, 0.2462, 0.162), vec2(1, 0.001), bot);   // #9EBFAB .. #5A8870
+  col = disc(col, q, vec2(0.7234 - dr, 0.4285), vec2(0.1966, 0.1966), vec3(0.1779, 0.402, 0.2664), vec3(0.0437, 0.1529, 0.0976), vec2(1, -0.003), bot);   // #75AA8D .. #3B6D58
+  col = disc(col, q, vec2(0.5783 - dr, 1.1004), vec2(0.3118, 0.2655), vec3(0.3813, 0.6795, 0.4969), vec3(0.0, 0.1274, 0.0666), vec2(0.9999, -0.015), bot);   // #A6D7BB .. #006449
   return col;
 }`;
 
@@ -1061,14 +1070,12 @@ function designFor(entry) {
     };
     case 'LikeWiki': return {
       motif: 'likewiki', t0: 0,
-      pal: ['#EFEBE2', '#1E4A38', '#94C0A8', '#7DB096', '#2D6650', '#F6F3EE', '#336F56'],
-      ground: '#1E4A38',   // its green field
-      type: [
-        { lines: ['Like'], font: 'NJ Text', weight: 800, track: -0.02, cap: 302, x: 50, base: 482, ch: 0 },
-        { lines: ['Wiki'], font: 'NJ Text', weight: 800, track: -0.02, cap: 302, x: 50, base: 852, ch: 1 },
-      ],
-      inks: ['#1E4A38', '#F3EFE6'],
-      mark: [852, 38, 120],
+      pal: [],
+      ground: '#1B3930',   // its green field
+      // the concept's own letters, traced (letters/likewiki.json; green "Like" on channel 0, cream "Wiki" on 1)
+      type: [{ paths: 'letters/likewiki.json' }],
+      inks: ['#1C3A30', '#F8F7F1'],
+      mark: [855, 38, 130],
       bandY: 0.5, strip: 'art', grain: [0.03, 0.016],
       back: { paper: '#F2EEE6', ink: '#1E4A38', soft: '#5E7A6C', accent: '#2F5D50' },
     };
