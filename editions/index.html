@@ -64,6 +64,18 @@
   .index .y { display: block; color: var(--ink-soft); min-height: 14px; }
   .index .n { display: block; margin-top: 1.5px; color: var(--ink); }
 
+  .in-details .slot button { opacity: 0 !important; pointer-events: none !important; transition-delay: 0s !important; }
+
+  /* Details: the title and tagline at left, Open under the sleeve (positions set by main.js). */
+  .details { position: fixed; inset: 0; pointer-events: none; outline: none; }
+  .d-title { position: absolute; left: calc(var(--gutter) + 20px); margin: 0; font-size: 24px; line-height: 28px; font-weight: 400; opacity: 0; }
+  .d-tag { position: absolute; left: calc(var(--gutter) + 20px); margin: 0; max-width: 300px; line-height: 18px; opacity: 0; }
+  .d-open {
+    position: fixed; left: 50%; transform: translateX(-50%); height: 40px; padding: 0 14.25px; border: 0; border-radius: 20px;
+    background: #000; color: #ececec; line-height: 40px; cursor: pointer; opacity: 0;
+  }
+  .d-open[inert] { pointer-events: none; }
+
   .rise, .late { opacity: 0; }
 </style>
 <script type="importmap">{ "imports": { "three": "/vendor/three-0.181.0/three.module.min.js" } }</script>
@@ -85,6 +97,11 @@
 </header>
 <div id="slots"></div>
 <nav class="index late" aria-label="Projects"><ol id="index"></ol></nav>
+<section class="details" id="details" aria-label="Project details" aria-live="polite" tabindex="-1" inert>
+  <h2 class="d-title"></h2>
+  <p class="d-tag"></p>
+</section>
+<button class="d-open" id="d-open" type="button" data-action="open" inert>Open</button>
 <script type="module" src="./main.js"></script>
 </body>
 </html>
