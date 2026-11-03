@@ -19,7 +19,7 @@ import * as THREE from 'three';
 // ---------- fonts ----------
 
 const FONT_DIR = new URL('../../vendor/fonts/', import.meta.url);
-// NJ Text is the page's own UI face (one variable file, already loaded for the header).
+// NJ Text is the page's own UI face (one variable file); where the page declares it, the covers use that face.
 // The other faces are subset to exactly the glyphs the covers draw (vendor/fonts/SOURCE.txt lists each
 // set and how to regenerate it when a title or back-cover string changes).
 const FACES = [
@@ -37,6 +37,9 @@ const BACK_FACES = [
   ['NJ Mono', 'jetbrains-mono-medium-cover.woff2', '500'],
 ];
 const loadFaces = list => Promise.all(list.map(([family, file, weight]) => {
+  // A face the page already declares under this family is the page's own download: wait for it, never fetch the file again.
+  const own = [...document.fonts].find(f => f.family.replace(/^["']|["']$/g, '') === family);
+  if (own) return own.load();
   const face = new FontFace(family, `url("${new URL(file, FONT_DIR).href}") format("woff2")`, { weight, style: 'normal' });
   document.fonts.add(face);
   return face.load();
@@ -947,6 +950,9 @@ vec3 motif(vec2 p, float t) {
 // shaderMips: the shader draws the front's mip levels itself, each filtered at its own sampling rate.
 // form: the logo (or, fromType, the front's own type) inflated into the motif's hero form: box [x, top, size], R bevel radius,
 //   soft blur (both cover units), key 'alpha' | 'tile' (tile: drop pixels near the tile colour).
+// ground: the colour the resting cover reads as; a flat stand-in for a late cover (sRGB). For most covers it is the
+//   area-weighted mean in linear light of the motif's ground; a cover whose ground is mostly covered or split takes
+//   the field it reads as.
 // back: paper, ink (name, values), soft (labels, stack), accent (rules, link).
 // bandY: centre of the band of art shown across the top of the back (bandH tall, 0.3 by default); strip: where that band comes from,
 //   'front' (a crop of the finished front, for bands with no type in them), 'art' (the motif without its
@@ -1010,6 +1016,7 @@ function designFor(entry) {
     case 'Mirra': return {
       motif: 'mirra', t0: 0,
       pal: ['#2E78CC', '#6AAAE6', '#B3D6F4', '#E3F1FD', '#C9DFF5', '#8CC0EE'],
+      ground: '#8BB7E7',
       type: [{ lines: ['Mirra'], font: 'NJ Text', weight: 900, track: -0.035, cap: 198, x: 56, base: 247, ch: 0 }],
       inks: ['#FFFFFF'],
       mark: [858, 864, 116],
@@ -1020,6 +1027,7 @@ function designFor(entry) {
     case 'stet': return {
       motif: 'stet', t0: 0,
       pal: ['#072529', '#051D21'],
+      ground: '#072327',
       // each letter placed on its concept letter (fillText x, 1024 units); the t's under the s and e
       type: [{ font: 'NJ Narrow', weight: 700, px: 862.7, base: 741.7,
         glyphs: [['t', 303.6, 0], ['t', 798.6, 0, 1.02], ['s', -11.6, 1], ['e', 483.3, 1]] }],
@@ -1033,6 +1041,7 @@ function designFor(entry) {
     case 'Social Hook': return {
       motif: 'hook', t0: 0,
       pal: ['#2A63E6', '#2E6AE9', '#4482F1', '#6AA2F6', '#1C50D7', '#5C96F3'],
+      ground: '#538DF3',   // the discs it reads as
       type: [{ lines: ['Social', 'Hook'], font: 'NJ Poppins', weight: 800, track: -0.02, fit: 806, x: 92, base: 278, lead: 224, ch: 0 }],
       inks: ['#FFFFFF'],
       mark: [62, 865, 108],
@@ -1042,6 +1051,7 @@ function designFor(entry) {
     case 'Clauded': return {
       motif: 'clauded', t0: 0,
       pal: ['#073B3E', '#0E5C5E', '#0D6566', '#5FE3D6', '#B8FFF6', '#FFFFFF'],
+      ground: '#0B4E50',
       type: [{ lines: ['Clauded'], font: 'NJ Soft Serif', weight: 900, track: -0.01, fit: 930, x: 512, align: 'center', base: 214, ch: 0 }],
       inks: ['#74F2E4', '#41D3C6'],
       mark: [30, 862, 140],
@@ -1052,6 +1062,7 @@ function designFor(entry) {
     case 'LikeWiki': return {
       motif: 'likewiki', t0: 0,
       pal: ['#EFEBE2', '#1E4A38', '#94C0A8', '#7DB096', '#2D6650', '#F6F3EE', '#336F56'],
+      ground: '#1E4A38',   // its green field
       type: [
         { lines: ['Like'], font: 'NJ Text', weight: 800, track: -0.02, cap: 302, x: 50, base: 482, ch: 0 },
         { lines: ['Wiki'], font: 'NJ Text', weight: 800, track: -0.02, cap: 302, x: 50, base: 852, ch: 1 },
@@ -1064,6 +1075,7 @@ function designFor(entry) {
     case 'Topshine': return {
       motif: 'topshine', t0: 0,
       pal: ['#F6F2FF', '#D8CDF6', '#C7B8FA', '#6046F4', '#A08CFF', '#F7C9F2', '#DDF0FF', '#3426C8'],
+      ground: '#E5DEFB',
       type: [{ lines: ['topshine'], font: 'NJ Hanken', weight: 650, track: -0.055, fit: 478, x: 52, base: 905, ch: 0 }],
       inks: ['#0F1030'],
       mark: [58, 56, 110],
@@ -1076,6 +1088,7 @@ function designFor(entry) {
     case 'Scorecard': return {
       motif: 'scorecard', t0: 0,
       pal: ['#0F1B3D', '#1F5DD8', '#2A6BE3', '#14916F', '#0E7458', '#F6C21C', '#F24A1D', '#F7872E'],
+      ground: '#0F1B3D',   // its navy field
       type: [{ lines: ['Scorecard'], font: 'NJ Text', weight: 800, track: -0.03, fit: 894, x: 60, base: 206, ch: 0 }],
       inks: ['#FFFFFF'],
       bandY: 0.5, grain: [0.02, 0.012],
@@ -1084,6 +1097,7 @@ function designFor(entry) {
     case 'Xactions': return {
       motif: 'xactions', t0: 0,
       pal: ['#060A22', '#0B1234'],
+      ground: '#080D28',
       type: [{ lines: ['Xactions'], font: 'NJ Text', weight: 900, track: -0.035, fit: 940, x: 36, base: 198, ch: 0 }],
       inks: ['#FFFFFF'],
       bandY: 0.5, grain: [0.012, 0.010], shaderMips: true,
@@ -1092,6 +1106,7 @@ function designFor(entry) {
     case 'Stellar Explorer': return {
       motif: 'stellar', t0: 0,
       pal: ['#0B0E1C', '#0D1440', '#1E2C8C', '#5B2E9E', '#5E6FC0', '#E2A6F0', '#1F44D8', '#5A8CF5'],
+      ground: '#0B0E1C',
       type: [{ lines: ['Stellar', 'Explorer'], font: 'NJ Serif', weight: 700, track: -0.01, fit: 596, x: 512, align: 'center', base: 137, lead: 104, ch: 0 }],
       inks: ['#FFF8EE'],
       bandY: 0.42, grain: [0.012, 0.010],
@@ -1100,6 +1115,7 @@ function designFor(entry) {
     case 'Chairtax': return {
       motif: 'chairtax', t0: 0,
       pal: ['#140F0B', '#140F0B', '#FFB020', '#F8F2E7', '#2E3D66', '#55669A', '#0E1018', '#6F8BD6'],
+      ground: '#140F0B',
       // the concept's own letters, traced (letters/chairtax.json; cream "Chair" on channel 0, amber "tax" on 1)
       type: [{ paths: 'letters/chairtax.json' }],
       // the concept's cream and amber (the operator's ruling for this cover)
@@ -1115,6 +1131,7 @@ function designFor(entry) {
     case 'Stats': return {
       motif: 'stats', t0: 0,
       pal: ['#EEF2F7', '#C9D3E1', '#3A6BD6', '#17845A', '#D9822B', '#D6E9FF', '#EEF2F7', '#17202B'],
+      ground: '#E3E9F0',
       type: [{ lines: ['Stats'], font: 'NJ Bricolage', weight: 800, track: -0.01, fit: 552, x: 52, base: 367, ch: 0 }],
       inks: ['#17202B'],
       mark: [49, 36, 125],
@@ -1124,6 +1141,7 @@ function designFor(entry) {
     case 'About Neil': return {
       motif: 'about', t0: 0,
       pal: ['#F2E7D3', '#E8D8BC', '#E4A23C', '#8E5214', '#FFE7A8'],
+      ground: '#EFE2CC',
       type: [{ lines: ['Neil'], font: 'NJ Text', weight: 900, track: -0.04, fit: 506, x: 60, base: 254, ch: 0 }],
       inks: ['#D2A64E', '#A8771F'],
       bandY: 0.45, grain: [0.03, 0.014],
@@ -1565,6 +1583,8 @@ async function buildForm(src) {
 
 // optional (label, fn) => fn() wrapper for timing; nonce (a number) makes every program's source unique, so
 // a measurement sees shader compiles that no driver cache has seen
+// The colour the resting cover reads as (sRGB hex); a flat stand-in the scene fills a sleeve with while its cover is late.
+export const coverGround = (entry, index) => designFor(entry, index).ground;
 export const coverProfiler = { wrap: null, nonce: 0 };
 const jobs = [];
 let pumping = false;
