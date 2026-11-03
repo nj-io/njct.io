@@ -30,6 +30,7 @@ const FACES = [
   ['NJ Hanken', 'hanken-grotesk-650-cover.woff2', '650'],
   ['NJ Narrow', 'archivo-narrow-700-cover.woff2', '700'],
   ['NJ Bricolage', 'bricolage-grotesque-96pt-extrabold-title-cover.woff2', '800'],
+  ['NJ Roboto', 'roboto-black-cover.woff2', '900'],
 ];
 // Faces only the backs use load with the first back.
 const BACK_FACES = [
@@ -507,7 +508,8 @@ vec3 motif(vec2 p, float t) {
 // Scorecard: a Swiss composition, a quartered disc over diagonal fields; alive, the quarters turn a step.
 MOTIFS.scorecard = /* glsl */`
 vec3 motif(vec2 p, float t) {
-  vec2 C = vec2(0.487, 0.49); float R = 0.213;
+  // C: where the fields and the disc's quarters meet; the disc's circle is centred a little above it, as in the concept
+  vec2 C = vec2(0.487, 0.49), CD = ic(0.4906, 0.4914); float R = 0.2629;
   // quadrant fields
   float vx = p.x - C.x, hy = p.y - C.y;
   vec3 tl = uPal[0];
@@ -531,8 +533,8 @@ vec3 motif(vec2 p, float t) {
   vec3 qt = mix(qtl, qtr, cover(-q.x));
   vec3 qb = mix(qbl, qbr, cover(-q.x));
   vec3 disc = mix(qb, qt, cover(-q.y));
-  disc *= 1.0 - 0.06 * smoothstep(0.0, R, length(p - C - vec2(-0.08, 0.08)));
-  col = mix(col, disc, cover(length(p - C) - R));
+  disc *= 1.0 - 0.06 * smoothstep(0.0, R, length(p - CD - vec2(-0.08, 0.08)));
+  col = mix(col, disc, cover(length(p - CD) - R));
   return col;
 }`;
 
@@ -1089,7 +1091,10 @@ function designFor(entry) {
       motif: 'scorecard', t0: 0,
       pal: ['#0F1B3D', '#1F5DD8', '#2A6BE3', '#14916F', '#0E7458', '#F6C21C', '#F24A1D', '#F7872E'],
       ground: '#0F1B3D',   // its navy field
-      type: [{ lines: ['Scorecard'], font: 'NJ Text', weight: 800, track: -0.03, fit: 894, x: 60, base: 206, ch: 0 }],
+      // each letter placed on its concept letter by its ink centre: [glyph, cx, cy, px, degrees, ink]
+      type: [{ font: 'NJ Roboto', weight: 900, set: [['S', 126.9, 127.8, 230.4, 0, 0], ['c', 251.1, 150.3, 220.1, 0, 0], ['o', 366.2, 150.3, 221.2, 0, 0],
+        ['r', 462.5, 150.3, 201.2, 0, 0], ['e', 544.4, 149.4, 210.3, 0, 0], ['c', 651.5, 149.4, 214.6, 0, 0], ['a', 749.6, 150.3, 207.1, 0, 0],
+        ['r', 835.9, 149.4, 204.4, 0, 0], ['d', 916, 127.8, 207.4, 0, 0]] }],
       inks: ['#FFFFFF'],
       bandY: 0.5, grain: [0.02, 0.012],
       back: { paper: '#0F1B3D', ink: '#FFFFFF', soft: '#A9B8DA', accent: '#F6C21C' },

@@ -58,6 +58,15 @@ bricolage-grotesque-96pt-extrabold-title-cover.woff2 — NJ Bricolage, the Stats
   Licence: OFL-1.1 (https://github.com/ateliertriay/bricolage); stats.njct.io sets "Stats" at 700, the
   cover at 800 to match the heavier concept
 
+roboto-black-cover.woff2 — NJ Roboto, the Scorecard title (each letter placed on its concept letter)
+  Roboto (Google), gstatic v51, wght 900
+  glyphs: "Sacdeor" (from "Scorecard")
+  css2?family=Roboto:wght@900&text=Scoreard
+  1 576 bytes, sha256 6571c7ddb8b65a8fdc6111a4b5c9724d36f78cb82429dda6e9242a109dcbff48
+  Licence: OFL-1.1 (https://github.com/googlefonts/roboto-classic). Chosen by fitting 55 OFL candidates (Inter at 800
+  and 900, Inter Tight, Archivo, Libre Franklin, Overpass, Heebo, Public Sans and others) to the concept's letter
+  masks; it fit best (IoU 0.91), every letter box within 0.4% of the cover.
+
 bricolage-grotesque-96pt-extrabold-cover.woff2 — NJ Display, back covers: names and figure values
   Bricolage Grotesque (Mathieu Triay), gstatic v9, opsz 96 · wdth 100 · wght 800
   glyphs: " $%+,-.012345679ACDEFHILMOPSTWXabcdefghiklmnoprstuvxy~" (every project name and figs value)
@@ -72,4 +81,4 @@ jetbrains-mono-medium-cover.woff2 — NJ Mono, back covers: the stack line
   3 684 bytes, sha256 b5669e1fd093231b17d55c0583a27371fc1689231fbf1eef3d25d237316aa17c
   Licence: OFL-1.1 (https://github.com/JetBrains/JetBrainsMono)
 
-The fronts load the first seven with the UI face; the last two load with the first back.
+The fronts load the first eight with the UI face; the last two load with the first back.
