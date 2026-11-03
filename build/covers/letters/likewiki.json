@@ -1,0 +1,128 @@
+{
+  "tile": "likewiki-a3",
+  "about": "LikeWiki cover letters traced from the concept tile likewiki-a3 (569 x 568 px): each letter's coverage by colour unmixing (its ink against the ground it stands on: green Like on cream, cream Wiki on green), traced at 4x, smoothed along the outline between corners. SVG path data in 1024 cover units, filled even-odd; ch is the type-mask channel.",
+  "rules": {
+    "dark": "L < 70 and g < 95",
+    "light": "L > 150 and s < 36 and (g - r < 11 or (y > 470 and 308 < x < 358) or (405 < x < 432 and 380 < y < 455))"
+  },
+  "words": [
+    {
+      "name": "like",
+      "rule": "dark",
+      "y": [
+        60,
+        276
+      ],
+      "x": [
+        0,
+        562
+      ],
+      "minpx": 300,
+      "ink": [
+        28,
+        58,
+        48
+      ],
+      "ground": [
+        242,
+        240,
+        231
+      ],
+      "ch": 0,
+      "repair": [
+        {
+          "letter": 0,
+          "fill": [
+            [
+              120,
+              233
+            ],
+            [
+              163.6,
+              233
+            ],
+            [
+              163.6,
+              274.6
+            ],
+            [
+              120,
+              274.6
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "name": "wiki",
+      "rule": "light",
+      "y": [
+        286,
+        500
+      ],
+      "x": [
+        0,
+        562
+      ],
+      "minpx": 300,
+      "ink": [
+        248,
+        248,
+        240
+      ],
+      "ground": [
+        28,
+        58,
+        48
+      ],
+      "ch": 1,
+      "repair": [
+        {
+          "letter": 0,
+          "fill": [
+            [
+              250,
+              286
+            ],
+            [
+              307.6,
+              286
+            ],
+            [
+              293.4,
+              338
+            ],
+            [
+              262,
+              338
+            ]
+          ]
+        },
+        {
+          "letter": 1,
+          "cut": [
+            [
+              296,
+              466
+            ],
+            [
+              311.5,
+              466
+            ],
+            [
+              311.5,
+              492
+            ],
+            [
+              296,
+              492
+            ]
+          ]
+        }
+      ]
+    }
+  ],
+  "trace": {
+    "SM": 14.0
+  }
+}
