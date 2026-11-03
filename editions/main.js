@@ -755,8 +755,9 @@ function closeDetails() {
   wake();
 }
 
-function endDetails(s, now) {
-  const { i, ret } = det;
+// opening: a page is opening over the shelf, so focus stays off the shelf and nothing lifts (or sounds).
+function endDetails(s, now, opening = false) {
+  const { i } = det, ret = opening ? null : det.ret;
   det = null;
   releaseBack(s);
   s.pose = crateMode ? crate.pose(s) : hoverPose();
@@ -774,7 +775,7 @@ function endDetails(s, now) {
     syncHot();
     return;
   }
-  pointerHit = hitAt(pointer.x, pointer.y);
+  pointerHit = opening ? -1 : hitAt(pointer.x, pointer.y);
   hovered = pointerHit;
   hoverAt = now;
   if (ret && ret.isConnected) ret.focus({ preventScroll: true });   // focusin lifts sleeve i
@@ -811,7 +812,7 @@ async function route() {
   if (i >= 0) {
     if (i === inProject) return;
     const v = await loadView();
-    if (det) dropDetails();
+    if (det) dropDetails(true);
     setHovered(-1);
     inProject = i;
     for (const a of canvas.getAnimations()) a.finish();   // a deep link skips the canvas fade
@@ -841,14 +842,14 @@ function backToShelf() {
 }
 window.addEventListener('hashchange', () => { if (!location.hash) openedFromShelf = false; route(); });
 
-// Details ends at once when a page opens from it, the view changes between shelf and crate, or the
-// context is lost. The tagline comes straight back (its intro fade, cancelled by Details, held it).
-function dropDetails() {
+// Details ends at once when a page opens from it (opening), the view changes between shelf and crate, or
+// the context is lost. The tagline comes straight back (its intro fade, cancelled by Details, held it).
+function dropDetails(opening = false) {
   const s = sleeves[det.i];
   for (const el of [dTitle, dTag, dOpen]) for (const a of el.getAnimations()) a.cancel();
   fade(tagline, 1, 0, 1);
   detailsEl.inert = true; dOpen.inert = true;
-  endDetails(s, performance.now());
+  endDetails(s, performance.now(), opening);
   s.fall = null;
   lifted = -1;
 }
