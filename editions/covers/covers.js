@@ -12,27 +12,23 @@ import * as THREE from 'three';
 // ---------- fonts ----------
 
 const FONT_DIR = new URL('../../vendor/fonts/', import.meta.url);
-// NJ Text is the page's own UI face (one variable file, already loaded for the header); the mono face
-// is only needed for backs, so it loads with the first back.
 const FACES = [
   ['NJ Display', 'bricolage-grotesque-96pt-extrabold-latin.woff2', '800'],
   ['NJ Serif', 'fraunces-144pt-semibold-soft-wonk-latin.woff2', '600'],
-  ['NJ Text', 'ui/inter-variable-ui.woff2', '100 900'],
+  ['NJ Text', 'inter-regular-latin.woff2', '400'],
+  ['NJ Text', 'inter-semibold-latin.woff2', '600'],
+  ['NJ Mono', 'jetbrains-mono-medium-latin.woff2', '500'],
 ];
-const BACK_FACES = [['NJ Mono', 'jetbrains-mono-medium-latin.woff2', '500']];
-const loadFaces = list => Promise.all(list.map(([family, file, weight]) => {
-  const face = new FontFace(family, `url("${new URL(file, FONT_DIR).href}") format("woff2")`, { weight, style: 'normal' });
-  document.fonts.add(face);
-  return face.load();
-}));
-let fontsReady = null, backFontsReady = null;
+let fontsReady = null;
 export function loadCoverFonts() {
-  if (!fontsReady) fontsReady = loadFaces(FACES);
+  if (!fontsReady) {
+    fontsReady = Promise.all(FACES.map(([family, file, weight]) => {
+      const face = new FontFace(family, `url("${new URL(file, FONT_DIR).href}") format("woff2")`, { weight, style: 'normal' });
+      document.fonts.add(face);
+      return face.load();
+    }));
+  }
   return fontsReady;
-}
-function loadBackFonts() {
-  if (!backFontsReady) backFontsReady = loadFaces(BACK_FACES);
-  return backFontsReady;
 }
 
 // ---------- colour ----------
@@ -610,8 +606,7 @@ function designFor(entry) {
       back: { paper: hsl(h, 0.6, 0.975), ink: hsl(h, 0.6, 0.2), soft: hsl(h, 0.18, 0.42), accent: hsl(h, 0.7, 0.55) },
     };
   }
-  // The fallback motif takes its hue from the entry's accent when it has one (Topshine), else from the name.
-  const h = acc ? new THREE.Color(acc).getHSL({}, THREE.SRGBColorSpace).h * 360 : hashHue(entry.name, 322, 344);
+  const h = hashHue(entry.name, 322, 344);
   return {
     motif: 'burst', t0: 2,
     pal: [hsl(h, 1, 0.64), hsl(h + 42, 1, 0.61), hsl(h + 60, 1, 0.96), hsl(h + 86, 1, 0.66), hsl(h - 50, 0.75, 0.17), hsl(h + 15, 1, 0.8)],
@@ -751,7 +746,7 @@ function drawBack(ctx, entry, d) {
       ctx.fillText(l, M, W - M - 24 * S - (all.length - 1 - j) * 17 * S));
     ctx.fillStyle = CH[2];
     setFont(ctx, 600, 13.5 * S, 'NJ Text', 0);
-    if (entry.url) ctx.fillText(entry.url.replace(/^https?:\/\//, '').replace(/\/$/, ''), M, W - M);   // Scorecard, Topshine: no public url
+    ctx.fillText(entry.url.replace(/^https?:\/\//, '').replace(/\/$/, ''), M, W - M);
   }
   ctx.fillStyle = CH[1];
   setFont(ctx, 600, 12 * S, 'NJ Text', 0.01);
@@ -883,10 +878,9 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
     minFilter: THREE.LinearMipmapLinearFilter, magFilter: THREE.LinearFilter,
     colorSpace: THREE.SRGBColorSpace, anisotropy: aniso,
   });
-  // backSize 0: no shelf back; the back is drawn on demand by detailBack().
-  const frontRT = target(size), backRT = backSize ? target(backSize) : null;
+  const frontRT = target(size), backRT = target(backSize);
   frontRT.texture.name = `${entry.name} front`;
-  if (backRT) backRT.texture.name = `${entry.name} back`;
+  backRT.texture.name = `${entry.name} back`;
 
   const maskTexture = ctx => {
     const tex = new THREE.Texture(ctx.canvas);
@@ -919,14 +913,13 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
 
   let time = d.t0, speed = 0, want = 0, aliveMask = null, disposed = false;
   if (d.motif === 'about') await enqueue(`${entry.name} sdf`, () => { uniforms.uSdf.value = titleSdf(entry, d, 512); });
-  if (backRT) await loadBackFonts();
   await Promise.all([
     enqueue(`${entry.name} front`, () => {
       const fm = frontMask();
       draw(frontRT, 0, fm, samples);
       fm.dispose();
     }),
-    backRT && enqueue(`${entry.name} back`, () => {
+    enqueue(`${entry.name} back`, () => {
       const bctx = textCtx(backSize);
       drawBack(bctx, entry, d);
       const bm = maskTexture(bctx);
@@ -940,26 +933,9 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
     if (aliveMask) { aliveMask.dispose(); aliveMask = null; }
     if (aliveCover === cover) aliveCover = null;
   };
-  let detailRT = null, detailP = null;
   const cover = {
     front: frontRT.texture,
-    back: backRT ? backRT.texture : null,
-    // The back at detail size (Details magnifies it), rendered once, on the first request.
-    detailBack(detailSize = 1024) {
-      if (disposed) return Promise.resolve(null);
-      if (!detailP) detailP = loadBackFonts().then(() => {
-        detailRT = target(detailSize);
-        detailRT.texture.name = `${entry.name} back ${detailSize}`;
-        return enqueue(`${entry.name} back ${detailSize}`, () => {
-          const bctx = textCtx(detailSize);
-          drawBack(bctx, entry, d);
-          const bm = maskTexture(bctx);
-          draw(detailRT, 1, bm, samples);
-          bm.dispose();
-        });
-      }).then(() => detailRT.texture);
-      return detailP;
-    },
+    back: backRT.texture,
     setAlive(on) {
       if (disposed) return;
       want = on ? 1 : 0;
@@ -980,8 +956,7 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
     dispose() {
       disposed = true;
       stop();
-      frontRT.dispose(); if (backRT) backRT.dispose(); material.dispose();
-      if (detailRT) detailRT.dispose();
+      frontRT.dispose(); backRT.dispose(); material.dispose();
       if (uniforms.uSdf.value !== BLANK_SDF) uniforms.uSdf.value.dispose();
     },
     _stop: stop,
