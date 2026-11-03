@@ -1025,7 +1025,8 @@ vec3 motif(vec2 p, float t) {
 //   type) or 'fill' (the title's own fill across the band). No band may cut through type.
 // t0: the moment the still cover shows; alive time runs on from it.
 
-// each letter's colour keys: [x, y (cover units, y up), r, g, b (sRGB)], fitted to the concept by least squares
+// each face's colour keys: [x, y (cover units, y up), r, g, b (sRGB)], fitted to the concept by least squares (the
+// faces in order: the s's top arm and its turned side, the first t, the e and its bar, the last t and its ascender's fold)
 const STET_KEYS = [
   [0.0713, 0.7021, 0.827, 0.876, 0.842], [0.1186, 0.7021, 0.859, 0.902, 0.876], [0.1659, 0.7021, 0.911, 0.918, 0.870], [0.2132, 0.7021, 0.941, 0.933, 0.878],
   [0.2605, 0.7021, 0.974, 0.956, 0.918], [0.3078, 0.7021, 0.874, 0.890, 0.833], [0.0713, 0.6520, 0.799, 0.891, 0.871], [0.1186, 0.6520, 0.794, 0.856, 0.824],
@@ -1121,7 +1122,7 @@ function designFor(entry) {
       motif: 'stet', t0: 0,
       pal: ['#072529', '#051D21'],
       ground: '#072327',
-      // each letter placed on its concept letter (fillText x, 1024 units); the t's under the s and e
+      // the concept's own letters, traced (letters/stet.json; the first t on channel 0, the s and the joined e and t on 1)
       type: [{ paths: 'letters/stet.json' }],
       inks: ['#F1E8D6', '#F1E8D6'],
       mark: [30, 26, 142],
