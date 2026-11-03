@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Editions sound preview</title>
+<style>
+  :root { --bg: #f4f4f1; --ink: #1c1c1c; --muted: #6d6d6d; --line: #d9d9d3; --chip: #fff; --accent: #1c1c1c; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 24px 16px 64px; background: var(--bg); color: var(--ink);
+    font: 400 14px/1.45 system-ui, -apple-system, sans-serif; }
+  main { max-width: 960px; margin: 0 auto; }
+  h1 { font-size: 18px; font-weight: 600; margin: 0 0 4px; }
+  p { margin: 0 0 16px; color: var(--muted); }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0; }
+  button { min-height: 40px; padding: 0 16px; border: 1px solid var(--line); border-radius: 20px; background: var(--chip);
+    color: var(--ink); font: 500 14px/1 inherit; font-family: inherit; cursor: pointer; }
+  button[aria-pressed="true"] { background: var(--accent); color: #fff; border-color: var(--accent); }
+  button:disabled { opacity: .45; cursor: default; }
+  label { display: inline-flex; gap: 8px; align-items: center; color: var(--muted); }
+  input[type=range] { width: 140px; }
+  output { min-width: 3ch; color: var(--ink); font-variant-numeric: tabular-nums; }
+  #status { color: var(--muted); font-variant-numeric: tabular-nums; }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; font-variant-numeric: tabular-nums; font-size: 13px; }
+  th, td { text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; }
+  .table-wrap { overflow-x: auto; }
+  .bad { color: #b3261e; font-weight: 600; }
+  figure { margin: 16px 0; }
+  figure img { display: block; width: 100%; height: auto; border: 1px solid var(--line); }
+  figcaption { color: var(--muted); font-size: 12px; margin-top: 4px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Editions sound preview</h1>
+  <p>Every sound is synthesised in code. Sound starts muted; switch it on, then play each one.
+    Analyse renders every sound offline through the same engine and measures it.</p>
+
+  <div class="row">
+    <button id="enable" aria-pressed="false">Sound off</button>
+    <button id="room" aria-pressed="false">Room tone</button>
+    <button id="analyse">Analyse</button>
+    <span id="status"></span>
+  </div>
+  <div class="row">
+    <label>Pan <input id="pan" type="range" min="-1" max="1" step="0.1" value="0"><output for="pan">0</output></label>
+    <label>Intensity <input id="intensity" type="range" min="0" max="1" step="0.05" value="1"><output for="intensity">1</output></label>
+    <label>Rate <input id="rate" type="range" min="0.5" max="2" step="0.05" value="1"><output for="rate">1</output></label>
+  </div>
+  <div class="row" id="sounds"></div>
+  <div id="results"></div>
+</main>
+<script type="module">
+import { createAudio } from './audio.js';
+import { NAMES } from './synth.js';
+import { analyseAll } from './analyse.js';
+
+const audio = createAudio();
+const $ = id => document.getElementById(id);
+const enableBtn = $('enable'), roomBtn = $('room'), status = $('status');
+let roomOn = false;
+
+addEventListener('pointerdown', () => audio.unlock(), { once: true });
+addEventListener('keydown', () => audio.unlock(), { once: true });
+
+function syncButtons() {
+  enableBtn.setAttribute('aria-pressed', String(audio.enabled));
+  enableBtn.textContent = audio.enabled ? 'Sound on' : 'Sound off';
+  roomBtn.setAttribute('aria-pressed', String(roomOn));
+}
+syncButtons();
+
+enableBtn.onclick = () => { audio.setEnabled(!audio.enabled); audio.play('tick'); syncButtons(); };
+roomBtn.onclick = () => { roomOn = !roomOn; audio.setRoomTone(roomOn); audio.play('tick'); syncButtons(); };
+
+for (const id of ['pan', 'intensity', 'rate']) {
+  const el = $(id);
+  el.oninput = () => { el.nextElementSibling.value = el.value; };
+}
+const opts = () => ({ pan: +$('pan').value, intensity: +$('intensity').value, rate: +$('rate').value });
+
+for (const name of NAMES) {
+  const b = document.createElement('button');
+  b.textContent = name;
+  b.onclick = () => audio.play(name, opts());
+  // Hovering the sleeve buttons plays hover, as a sleeve would.
+  if (name === 'hover') b.onpointerenter = () => audio.play('hover', opts());
+  $('sounds').appendChild(b);
+}
+
+const f = (x, d = 1) => (Number.isFinite(x) ? x.toFixed(d) : '-inf');
+function flag(ok, text) { return ok ? text : `<span class="bad">${text}</span>`; }
+
+function showResults(r) {
+  const rows = r.sounds.map(s => `<tr><td>${s.name}</td><td>${f(s.duration * 1000, 0)}</td>
+    <td>${flag(s.peakDb <= -6, f(s.peakDb))}</td><td>${f(s.rmsDb)}</td><td>${f(s.maxJumpDb)}</td>
+    <td>${flag(s.clickRatio < 9, f(s.clickRatio))}</td><td>${flag(s.attackMs >= 3, f(s.attackMs))}</td>
+    <td>${f(s.dc * 1e6, 2)}</td><td>${f(s.centroidHz, 0)}</td><td>${f(s.hfShare * 100)}</td></tr>`).join('');
+  const room = r.room;
+  const roomRow = `<tr><td>room</td><td>${f(room.duration * 1000, 0)}</td><td>${f(room.peakDb)}</td>
+    <td>${flag(Math.abs(room.rmsDb + 42) <= 2, f(room.rmsDb))}</td><td>${f(room.maxJumpDb)}</td>
+    <td>${flag(room.clickRatio < 9, f(room.clickRatio))}</td><td>-</td><td>${f(room.dc * 1e6, 2)}</td>
+    <td>${f(room.centroidHz, 0)}</td><td>${f(room.hfShare * 100)}</td></tr>`;
+  const bursts = r.bursts.map(b => `<tr><td>${b.label}</td><td>${flag(b.peakDb <= -6, f(b.peakDb))}</td>
+    <td>${f(b.rmsDb)}</td><td>${flag(b.clickRatio < 9, f(b.clickRatio))}</td></tr>`).join('');
+  const h = r.roomHour;
+  $('results').innerHTML = `
+    <div class="table-wrap"><table>
+      <tr><th>Sound</th><th>Duration ms</th><th>Peak dBFS</th><th>RMS dBFS</th><th>Max jump dBFS</th>
+        <th>Click ratio</th><th>Attack ms</th><th>DC ×1e-6</th><th>Centroid Hz</th><th>&gt;6 kHz %</th></tr>
+      ${rows}${roomRow}
+    </table></div>
+    <p>Peak is the worst of ten renders (seeds, pans -1 to 1, rate 0.5 and 2). Click ratio is the largest
+      sample jump against the RMS of jumps within 5 ms; noise sits near 5, a click well above 9.
+      Bus gain on a quiet sine: ${f(r.chainGainDb, 2)} dB. Room per-second RMS ${f(room.perSecondRms.min)} to ${f(room.perSecondRms.max)} dBFS.</p>
+    ${h ? `<p>One hour of room tone (8 kHz render): per-minute RMS drift ${f(h.driftDb, 2)} dB, crest factor ${f(h.crestDb)} dB,
+      worst click ratio ${f(h.clickRatio)} at ${f(h.clickAt, 1)} s.</p>` : ''}
+    <div class="table-wrap"><table>
+      <tr><th>Burst (rate limit and voice stealing)</th><th>Peak dBFS</th><th>RMS dBFS</th><th>Click ratio</th></tr>${bursts}
+    </table></div>
+    ${[...r.sounds, room].map(s => `<figure><img alt="${s.name} waveform" src="${s.wave}"><img alt="${s.name} spectrogram" src="${s.spec}">
+      <figcaption>${s.name}</figcaption></figure>`).join('')}
+    ${r.bursts.map(b => `<figure><img alt="${b.label}" src="${b.wave}"><figcaption>${b.label}</figcaption></figure>`).join('')}`;
+}
+
+async function runAnalysis(hour) {
+  $('analyse').disabled = true;
+  const t0 = performance.now();
+  const r = await analyseAll({ hour, onProgress: s => { status.textContent = `Rendering ${s}…`; } });
+  r.elapsedMs = performance.now() - t0;
+  status.textContent = `Analysed in ${f(r.elapsedMs / 1000)} s`;
+  showResults(r);
+  $('analyse').disabled = false;
+  return r;
+}
+$('analyse').onclick = () => runAnalysis(false);
+
+const q = new URLSearchParams(location.search);
+if (q.get('analyse') === '1') {
+  window.__audioAnalysis = runAnalysis(q.get('hour') !== '0').catch(e => ({ error: String(e && e.stack || e) }));
+}
+</script>
+</body>
+</html>
