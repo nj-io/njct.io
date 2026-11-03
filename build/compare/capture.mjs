@@ -1,9 +1,12 @@
 // Comparison harness: captures the same named moments from the reference site and ours,
 // then composites side-by-side pairs and an index page (compose.py).
 //
-//   node build/compare/capture.mjs --round r0 [--only theirs|ours]
+//   node build/compare/capture.mjs --round r0 [--only theirs|ours] [--dpr 2] [--frames] [--sizes]
 //
-// Output: .captures/<round>/<site>/{<moment>.png, meta.json, metrics.json}, pair-<moment>.jpg, index.html
+// Output: .captures/<round>/<site>/{<moment>.png, meta.json, metrics.json}, pair-<moment>.jpg, crop-*.png, index.html
+//   --dpr 2   adds a desktop pass at 1440x900, device scale factor 2 (rest, hover0-1000 screenshots) under <site>/dpr2/
+//   --sizes   adds rest screenshots at 1280x800 and 1920x1080 under <site>/size-<w>x<h>/
+//   --frames  also keeps every screencast frame of the intro and of hover0 under <site>/frames/{intro,hover0}/<ms>.png
 // Only headless Chrome is used, and network access is limited to the two sites below.
 import puppeteer from '/Users/neil/.cache/board-tools/node_modules/puppeteer-core/lib/esm/puppeteer/puppeteer-core.js';
 import fs from 'fs';
@@ -28,8 +31,11 @@ const args = process.argv.slice(2);
 const arg = k => { const i = args.indexOf(`--${k}`); return i >= 0 ? args[i + 1] : undefined; };
 const round = arg('round');
 const only = arg('only');
-if (!round || !/^[\w.-]+$/.test(round) || (only && !SITES[only])) {
-  console.error('usage: node build/compare/capture.mjs --round <name> [--only theirs|ours]');
+const dpr = arg('dpr');
+const keepFrames = args.includes('--frames');
+const extraSizes = args.includes('--sizes');
+if (!round || !/^[\w.-]+$/.test(round) || (only && !SITES[only]) || (dpr !== undefined && dpr !== '2')) {
+  console.error('usage: node build/compare/capture.mjs --round <name> [--only theirs|ours] [--dpr 2] [--frames] [--sizes]');
   process.exit(2);
 }
 const roundDir = path.join(ROOT, '.captures', round);
@@ -53,11 +59,14 @@ async function runSite(browser, siteKey) {
     const cdp = await pg.createCDPSession();
     let last = null;
     const queue = [];
+    const recorders = [];
     const settle = (q, frame) => {
       const rec = q.rec;
       if (!frame) { rec.status = 'error'; rec.note = 'no frame received'; }
       else {
-        fs.writeFileSync(path.join(dir, `${rec.name}.png`), Buffer.from(frame.data, 'base64'));
+        const file = path.join(dir, `${rec.name}.png`);
+        fs.mkdirSync(path.dirname(file), { recursive: true });
+        fs.writeFileSync(file, Buffer.from(frame.data, 'base64'));
         rec.frameEpoch = frame.ts;
         rec.ageMs = Math.round(q.at - frame.ts);
       }
@@ -66,6 +75,7 @@ async function runSite(browser, siteKey) {
     cdp.on('Page.screencastFrame', e => {
       cdp.send('Page.screencastFrameAck', { sessionId: e.sessionId }).catch(() => {});
       const f = { ts: e.metadata.timestamp * 1000, data: e.data };
+      for (const r of recorders) if (f.ts >= r.from && f.ts <= r.to) r.add(f);
       while (queue.length && f.ts > queue[0].at) settle(queue.shift(), last ?? f);
       last = f;
     });
@@ -75,6 +85,29 @@ async function runSite(browser, siteKey) {
     }, 20);
     await cdp.send('Page.startScreencast', { format: 'png', everyNthFrame: 1 });
     return {
+      // Keep every frame swapped between epoch `from` and `to`; `save(sub, origin)` writes them as <ms after origin>.png.
+      // Keep every frame swapped between epoch `from` and `to` (written to disk as it arrives);
+      // `save(sub, origin)` names them <ms after origin>.png under <site>/frames/<sub>/.
+      record(from, to) {
+        const tmp = fs.mkdtempSync(path.join(dir, '.rec-'));
+        const files = [];
+        const r = { from, to, add: f => { const p = path.join(tmp, `${files.length}.png`); files.push({ ts: f.ts, p }); fs.writeFile(p, Buffer.from(f.data, 'base64'), () => {}); } };
+        recorders.push(r);
+        return {
+          async save(sub, origin) {
+            recorders.splice(recorders.indexOf(r), 1);
+            await sleep(300); // pending writes
+            const out = path.join(dir, 'frames', sub);
+            fs.mkdirSync(out, { recursive: true });
+            for (const f of files) {
+              const ms = Math.round(f.ts - origin);
+              fs.renameSync(f.p, path.join(out, `${ms < 0 ? 'm' + pad(-ms) : pad(ms)}.png`));
+            }
+            fs.rmSync(tmp, { recursive: true, force: true });
+            return files.length;
+          },
+        };
+      },
       at(rec, at) {
         return new Promise(resolve => {
           const q = { rec, at, resolve };
@@ -153,6 +186,19 @@ async function runSite(browser, siteKey) {
 
   const pageErrors = [];
   page.on('pageerror', e => pageErrors.push(String(e.message).slice(0, 200)));
+  // Frame cadence: every requestAnimationFrame time from the start, to count frames and long gaps in the
+  // intro and hover windows (main-thread work shows up as late callbacks).
+  await page.evaluateOnNewDocument(() => {
+    window.__rafLog = [];
+    const f = t => { window.__rafLog.push(t); requestAnimationFrame(f); };
+    requestAnimationFrame(f);
+  });
+  const cadence = (from, to) => page.evaluate((from, to) => {
+    const ts = (window.__rafLog || []).filter(t => t >= from && t <= to);
+    let long = 0, worst = 0;
+    for (let i = 1; i < ts.length; i++) { const d = ts[i] - ts[i - 1]; worst = Math.max(worst, d); if (d > 25) long++; }
+    return ts.length > 1 ? { fps: +((ts.length - 1) / (ts[ts.length - 1] - ts[0]) * 1000).toFixed(1), longFrames: long, worstMs: Math.round(worst) } : null;
+  }, from, to).catch(() => null);
 
   // Intro: moments scheduled from just before navigation, re-based on the document's performance.timeOrigin
   // (navigation start) once it has committed.
@@ -160,11 +206,13 @@ async function runSite(browser, siteKey) {
   const navStart = Date.now();
   const nav = page.goto(site.url, { waitUntil: 'domcontentloaded', timeout: 60000 })
     .catch(e => { pageErrors.push('goto: ' + e.message.slice(0, 120)); });
+  const introRec = keepFrames ? caster.record(navStart, navStart + 4500) : null;
   const intro = burst(caster, 'intro-t', navStart, INTRO, 'intro');
   const rest = shoot(caster, 'rest', navStart, 10000, 'rest');
   await nav;
   const timeOrigin = await page.evaluate(() => performance.timeOrigin).catch(() => navStart);
   await intro; await rest;
+  if (introRec) metrics.introFrames = await introRec.save('intro', timeOrigin);
   for (const r of moments) r.originEpoch = timeOrigin;
   await caster.stop(); // the frame-rate count below runs without the screencast
 
@@ -176,12 +224,15 @@ async function runSite(browser, siteKey) {
   }).catch(() => ({}));
   const firstFrameAt = siteKey === 'ours'
     ? await page.evaluate(() => window.__editions?.firstFrameAt ?? null).catch(() => null) : null;
+  // Intro window: from the first canvas frame (ours: firstFrameAt; theirs: 0.9 s, about when theirs paints) for 2.5 s.
+  metrics.introCadence = await cadence(firstFrameAt ?? 900, (firstFrameAt ?? 900) + 2500);
   const fps = await page.evaluate(() => new Promise(res => {
     let n = 0; const s = performance.now();
     const f = () => { n++; if (performance.now() - s < 3000) requestAnimationFrame(f); else res({ frames: n, ms: performance.now() - s }); };
     requestAnimationFrame(f);
   })).catch(() => null);
   Object.assign(metrics, {
+    introCadence: metrics.introCadence,
     requests: net.requests, transferredBytes: net.bytes, byType: net.byType,
     domContentLoadedMs: nt.dcl ?? null, loadMs: nt.load ?? null,
     firstFrameAtMs: firstFrameAt === null ? null : Math.round(firstFrameAt),
@@ -201,7 +252,12 @@ async function runSite(browser, siteKey) {
 
   // Hover sleeve 0, then sleeve 2.
   await mouseTo(NEUTRAL); await sleep(1500);
-  await burst(caster, 'hover0-', c0 ? await mouseTo(c0) : Date.now(), [0, 120, 250, 500, 1000], 'hover', c0 ? {} : na('sleeve 0'));
+  const h0 = c0 ? await mouseTo(c0) : Date.now();
+  const hoverRec = keepFrames ? caster.record(h0 - 50, h0 + 1500) : null;
+  await burst(caster, 'hover0-', h0, [0, 120, 250, 500, 1000], 'hover', c0 ? {} : na('sleeve 0'));
+  if (hoverRec) { await sleep(500); metrics.hoverFrames = await hoverRec.save('hover0', h0); }
+  const h0Page = h0 - timeOrigin;
+  metrics.hoverCadence = await cadence(h0Page, h0Page + 1000);
   await shoot(caster, 'hover2-1000', c2 ? await mouseTo(c2) : Date.now(), 1000, 'hover', c2 ? {} : na('sleeve 2'));
 
   // Details on sleeve 0.
@@ -232,6 +288,53 @@ async function runSite(browser, siteKey) {
   metrics.urlAfterOpen = await page.evaluate(() => location.href).catch(() => null);
   await caster.stop();
   await page.close();
+
+  // ---- desktop at device scale factor 2 -------------------------------------
+  // The screencast delivers frames at CSS-pixel size, so this pass takes screenshots (device pixels) of
+  // settled states only: rest at 10 s and hover0 after 1 s. `ms` is when the screenshot was requested.
+  if (dpr === '2') {
+    const d2 = await browser.newPage();
+    await d2.setViewport({ width: 1440, height: 900, deviceScaleFactor: 2 });
+    d2.on('pageerror', e => pageErrors.push('dpr2: ' + String(e.message).slice(0, 200)));
+    const snap = async (name, origin, target, opts = {}) => {
+      await sleep(Math.max(0, origin + target - Date.now()));
+      const rec = { name, group: 'dpr2', target, originEpoch: origin, status: opts.status || 'ok', note: opts.note || 'screenshot', frameEpoch: Date.now(), ageMs: 0 };
+      const file = path.join(dir, `${name}.png`);
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      await d2.screenshot({ path: file }).catch(e => { rec.status = 'error'; rec.note = e.message.slice(0, 80); });
+      moments.push(rec);
+    };
+    await d2.goto(site.url, { waitUntil: 'domcontentloaded', timeout: 60000 })
+      .catch(e => { pageErrors.push('dpr2 goto: ' + e.message.slice(0, 120)); });
+    const dOrigin = await d2.evaluate(() => performance.timeOrigin).catch(() => Date.now());
+    await snap('dpr2/rest', dOrigin, 10000);
+    await d2.evaluate(() => { for (const b of document.querySelectorAll('button')) if (/^(accept|accept all|ok|got it)$/i.test((b.innerText || '').trim())) b.click(); }).catch(() => {});
+    await d2.mouse.move(NEUTRAL.x, NEUTRAL.y); await sleep(1500);
+    const dc0 = siteKey === 'theirs' ? THEIR_CENTRES[0]
+      : await d2.evaluate(() => { const r = window.__editions?.sleeveRect(0); return r ? { x: r.x + r.width / 2, y: r.y + r.height / 2 } : null; }).catch(() => null);
+    if (dc0) await d2.mouse.move(dc0.x, dc0.y);
+    await snap('dpr2/hover0-1000', Date.now(), 1000, dc0 ? {} : na('sleeve 0'));
+    await d2.close();
+  }
+
+  // ---- other desktop sizes (rest only) ---------------------------------------
+  if (extraSizes) {
+    for (const [w, h] of [[1280, 800], [1920, 1080]]) {
+      const sp = await browser.newPage();
+      await sp.setViewport({ width: w, height: h });
+      sp.on('pageerror', e => pageErrors.push(`${w}x${h}: ` + String(e.message).slice(0, 200)));
+      await sp.goto(site.url, { waitUntil: 'domcontentloaded', timeout: 60000 })
+        .catch(e => { pageErrors.push(`${w}x${h} goto: ` + e.message.slice(0, 120)); });
+      const so = await sp.evaluate(() => performance.timeOrigin).catch(() => Date.now());
+      await sleep(Math.max(0, so + 10000 - Date.now()));
+      const name = `size-${w}x${h}/rest`;
+      const rec = { name, group: 'sizes', target: 10000, originEpoch: so, status: 'ok', note: 'screenshot', frameEpoch: Date.now(), ageMs: 0 };
+      fs.mkdirSync(path.join(dir, `size-${w}x${h}`), { recursive: true });
+      await sp.screenshot({ path: path.join(dir, `${name}.png`) }).catch(e => { rec.status = 'error'; rec.note = e.message.slice(0, 80); });
+      moments.push(rec);
+      await sp.close();
+    }
+  }
 
   // ---- phone ---------------------------------------------------------------
   const m = await browser.newPage();

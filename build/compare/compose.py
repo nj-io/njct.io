@@ -33,6 +33,7 @@ def font(size):
 
 
 F = font(16)
+flat = lambda n: n.replace("/", "-")
 meta = {s: load_json(s, "meta.json") for s in SIDES}
 metrics = {s: load_json(s, "metrics.json") for s in SIDES}
 recs = {s: {r["name"]: r for r in meta[s]["moments"]} if meta[s] else {} for s in SIDES}
@@ -84,7 +85,43 @@ for name in order:
     pair = Image.new("RGB", (PANEL_W * 2 + GAP, height + LABEL_H), (255, 0, 255))
     for i, s in enumerate(SIDES):
         pair.paste(panel(s, name, height), (i * (PANEL_W + GAP), 0))
-    pair.save(os.path.join(round_dir, f"pair-{name}.jpg"), quality=88)
+    pair.save(os.path.join(round_dir, f"pair-{flat(name)}.jpg"), quality=88)
+
+
+# ---- 4x crops: the same CSS-pixel rectangle from both sides, side by side ----------
+# (name, moment, x, y, w, h) in CSS px at 1440x900. A dpr2 moment's PNG is 2x, so it is enlarged 2x.
+CROPS = [
+    ("sleeve0-topleft", "rest", 150, 190, 80, 60),
+    ("sleeve0-contact", "rest", 150, 370, 130, 60),
+    ("shelf-front", "rest", 1240, 380, 90, 50),
+    ("header-type", "rest", 8, 8, 240, 92),
+    ("index-label", "rest", 180, 826, 110, 52),
+    ("pills", "hover0-1000", 150, 320, 200, 70),
+]
+crops = []
+for cname, moment, x, y, w, h in CROPS:
+    for prefix in ("", "dpr2/"):
+        m = prefix + moment
+        srcs = {s: os.path.join(round_dir, s, f"{m}.png") for s in SIDES}
+        if not any(os.path.exists(v) for v in srcs.values()):
+            continue
+        panels = []
+        for s in SIDES:
+            img = Image.new("RGB", (w * 4, h * 4 + LABEL_H), (255, 255, 255))
+            d = ImageDraw.Draw(img)
+            d.rectangle([0, 0, w * 4, LABEL_H], fill=(20, 20, 20))
+            d.text((8, 8), f"{s.upper()} · {prefix}{cname}", fill=(255, 255, 255), font=F)
+            if os.path.exists(srcs[s]):
+                im = Image.open(srcs[s]).convert("RGB")
+                k = im.width / 1440
+                c = im.crop((round(x * k), round(y * k), round((x + w) * k), round((y + h) * k)))
+                img.paste(c.resize((w * 4, h * 4), Image.NEAREST), (0, LABEL_H))
+            panels.append(img)
+        out_img = Image.new("RGB", (w * 8 + GAP, h * 4 + LABEL_H), (255, 0, 255))
+        out_img.paste(panels[0], (0, 0)); out_img.paste(panels[1], (w * 4 + GAP, 0))
+        fname = f"crop-{flat(prefix)}{cname}.png"
+        out_img.save(os.path.join(round_dir, fname))
+        crops.append((f"{prefix}{cname}", fname, m, (x, y, w, h)))
 
 
 # ---- index.html ---------------------------------------------------------------
@@ -99,6 +136,12 @@ def metric_rows():
                        ("domContentLoadedMs", "DOMContentLoaded (ms)"), ("loadMs", "Load event (ms)"),
                        ("firstFrameAtMs", "First rendered frame (ms)"), ("fps", "rAF rate at rest (fps, 3 s)")]:
         cells = [kb(g(s, key)) if key == "transferredBytes" else ("-" if g(s, key) is None else g(s, key)) for s in SIDES]
+        rows.append((title, *cells))
+    for key, title in [("introCadence", "Intro frames (2.5 s from first canvas frame)"), ("hoverCadence", "Hover frames (1 s)")]:
+        cells = []
+        for s in SIDES:
+            c = (metrics[s] or {}).get(key)
+            cells.append(f"{c['fps']} fps, {c['longFrames']} gaps > 25 ms, worst {c['worstMs']} ms" if c else "-")
         rows.append((title, *cells))
     types = sorted(set().union(*[(metrics[s] or {}).get("byType", {}).keys() for s in SIDES]))
     for t in types:
@@ -130,7 +173,7 @@ for s in SIDES:
     if errs:
         out.append(f"<p class=bad>{s} page errors: {esc('; '.join(errs))}</p>")
 out.append("<h2 style='margin-top:24px'>Moments, in capture order</h2><nav>"
-           + "".join(f"<a href='#{esc(n)}'>{esc(n)}</a>" for n in order) + "</nav>")
+           + "".join(f"<a href='#{esc(flat(n))}'>{esc(n)}</a>" for n in order) + "</nav>")
 for name in order:
     parts = []
     for s in SIDES:
@@ -143,7 +186,12 @@ for name in order:
             parts.append(f"{s}: -")
     full = " ".join(f"<a href='{s}/{esc(name)}.png'>{s} full size</a>"
                     for s in SIDES if os.path.exists(os.path.join(round_dir, s, f"{name}.png")))
-    out.append(f"<section id='{esc(name)}'><h2>{esc(name)}</h2><p class=meta>{' | '.join(parts)} | {full}</p>"
-               f"<img loading=lazy src='pair-{esc(name)}.jpg' alt='{esc(name)}'></section>")
+    out.append(f"<section id='{esc(flat(name))}'><h2>{esc(name)}</h2><p class=meta>{' | '.join(parts)} | {full}</p>"
+               f"<img loading=lazy src='pair-{esc(flat(name))}.jpg' alt='{esc(name)}'></section>")
+if crops:
+    out.append("<h2 style='margin-top:24px'>Crops at 4x (CSS px rectangle, theirs left, ours right)</h2>")
+    for cname, fname, m, (x, y, w, h) in crops:
+        out.append(f"<section><h2>{esc(cname)}</h2><p class=meta>from {esc(m)} · x {x}, y {y}, {w}×{h}</p>"
+                   f"<img loading=lazy src='{esc(fname)}' alt='{esc(cname)}' style='width:auto'></section>")
 open(os.path.join(round_dir, "index.html"), "w").write("\n".join(out))
 print(f"composed {len(order)} pairs -> {os.path.join(round_dir, 'index.html')}")
