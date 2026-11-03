@@ -50,7 +50,7 @@ hanken-grotesk-650-cover.woff2 — NJ Hanken, the Topshine wordmark (650, set at
 
 space-grotesk-700-cover.woff2 — NJ Grotesk, the Chairtax wordmark (700, set at −0.02em)
   Space Grotesk (Florian Karsten), gstatic v22, wght 700
-  glyphs: "Caihrtx" (from "Chairtax")
+  glyphs: "Caihrtx" (from "Chair" and "tax", set as two stacked lines)
   css2?family=Space%20Grotesk:wght@700&text=Caihrtx
   1 380 bytes, sha256 7977f2f002e7947f559f44b4c670e81f2eb2dfa0b2ceec5bedc2228e9ee002cd
   Licence: OFL-1.1 (https://github.com/floriankarsten/space-grotesk)
@@ -65,16 +65,16 @@ bricolage-grotesque-96pt-extrabold-title-cover.woff2 — NJ Bricolage, the Stats
 
 bricolage-grotesque-96pt-extrabold-cover.woff2 — NJ Display, back covers: names and figure values
   Bricolage Grotesque (Mathieu Triay), gstatic v9, opsz 96 · wdth 100 · wght 800
-  glyphs: " $%+,-./012345679ACEFHILMOPSTWXabcdefghiklnoprstuvxy~" (every project name and figs value)
-  css2?family=Bricolage%20Grotesque:opsz,wdth,wght@96,100,800&text=%20%24%25%2B%2C-.%2F012345679ACEFHILMOPSTWXabcdefghiklnoprstuvxy~
-  8 256 bytes, sha256 01f9b840c9aa9c1e23ee457013f83575413ae89b9bdd7edfb604d5f0a2c1a211
+  glyphs: " $%+,-.012345679ACDEFHILMOPSTWXabcdefghiklmnoprstuvxy~" (every project name and figs value)
+  css2?family=Bricolage%20Grotesque:opsz,wdth,wght@96,100,800&text=%20%24%25%2B%2C-.012345679ACDEFHILMOPSTWXabcdefghiklmnoprstuvxy~
+  7 956 bytes, sha256 f8417d3ac9b0256083f09dad657971422ebc0d1c90e1aea85b82efe61de5e982
   Licence: OFL-1.1 (https://github.com/ateliertriay/bricolage)
 
 jetbrains-mono-medium-cover.woff2 — NJ Mono, back covers: the stack line
   JetBrains Mono (JetBrains), gstatic v24, wght 500
-  glyphs: " .02359ABCDEFGHIKLMNOPQRSTUVWXabcdefghijklnoprstuwxy·" (every stack value)
-  css2?family=JetBrains%20Mono:wght@500&text=%20.02359ABCDEFGHIKLMNOPQRSTUVWXabcdefghijklnoprstuwxy%C2%B7
-  3 616 bytes, sha256 6b91258ef13bd7ccf550ad3a10c0c681807e0c48d3f89ed174bfe81b20c8868a
+  glyphs: " .02359ABCDEFGHIKLMNOPQRSTUVWXabcdefghijklmnoprstuwxy·" (every stack value)
+  css2?family=JetBrains%20Mono:wght@500&text=%20.02359ABCDEFGHIKLMNOPQRSTUVWXabcdefghijklmnoprstuwxy%C2%B7
+  3 684 bytes, sha256 b5669e1fd093231b17d55c0583a27371fc1689231fbf1eef3d25d237316aa17c
   Licence: OFL-1.1 (https://github.com/JetBrains/JetBrainsMono)
 
 The fronts load the first seven with the UI face; the last two load with the first back.

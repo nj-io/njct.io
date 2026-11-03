@@ -71,6 +71,7 @@ uniform vec3 uFormRect;
 uniform sampler2D uRest, uArt;
 uniform float uRestMix, uMip;
 uniform vec4 uArtRect;
+uniform float uArtFade;
 uniform vec3 uInk0, uInk1, uInk2, uPaper;
 uniform vec3 uPal[8];
 uniform vec4 uAux[8];
@@ -188,6 +189,7 @@ void main() {
       vec2 au = (uv - uArtRect.xy - vec2(0.0, floor(ART_DY(uTime) * uRes.y + 0.5) / uRes.y)) / uArtRect.zw;
       vec4 a = texture2D(uArt, clamp(au, 0.0, 1.0));
       a *= step(0.0, au.x) * step(0.0, au.y) * step(au.x, 1.0) * step(au.y, 1.0);
+      if (uArtFade > 0.0) a *= smoothstep(0.0, uArtFade, au.y);   // a crop edge the type hides fades out
       s = s * (1.0 - a.a) + a.rgb;
     }
     s = mix(s, INK0(uv, uTime), m.r);
@@ -733,55 +735,67 @@ vec3 goldInk(vec2 p) {
 }
 #define INK0(p, t) goldInk(p)`;
 
-// Chairtax: a glowing amber C ring opening to the right, Bearly squatting in front of it (art/, drawn unaltered).
+// Chairtax: the name itself is the artwork, Bearly (art/, drawn unaltered) leaning over "Chair" with his chin
+// on his paw, the type lit from within, and his office chair rolled out to the corner.
 MOTIFS.chairtax = /* glsl */`
-const vec2 RC = vec2(0.4705, 0.4625);
-const float RR = 0.3185, RW = 0.031, YF = 0.068;
-// the C, as two arcs (radians, anticlockwise): the opening's upper end over the top to the break on the
-// left, then the break round the bottom to the opening's lower end
-const vec4 ARCS = vec4(0.64, 3.0, 3.3, 5.55);
-float lift(float t) { return 0.0065 * (0.5 - 0.5 * cos(t * 2.4)); }
+float lift(float t) { return 0.005 * (0.5 - 0.5 * cos(t * 2.0)); }
 #define ART_DY(t) lift(t)
-// the C widens a little toward the opening's lower end, as in the brand's ring
-float radius(float a) { return RR + 0.045 * smoothstep(4.3, 5.6, a); }
-// distance to an arc's centreline, round-ended; s is the position along it, 0..1
-float arcD(vec2 q, float a0, float a1, out float s) {
-  float a = a0 + mod(atan(q.y, q.x) - a0, TAU);
-  if (a <= a1) { s = (a - a0) / (a1 - a0); return abs(length(q) - radius(a)); }
-  float d0 = length(q - radius(a0) * vec2(cos(a0), sin(a0))), d1 = length(q - radius(a1) * vec2(cos(a1), sin(a1)));
-  s = d0 < d1 ? 0.0 : 1.0;
-  return min(d0, d1);
+// a stroke tapering from radius r0 at a to r1 at b
+float sdTaper(vec2 p, vec2 a, vec2 b, float r0, float r1) {
+  vec2 pa = p - a, ba = b - a; float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
+  return length(pa - ba * h) - mix(r0, r1, h);
+}
+float sdBox(vec2 p, vec2 c, vec2 hs, float r) { vec2 q = abs(p - c) - hs + r; return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r; }
+// a chair part in the brand's flat style: navy fill, a lighter rim toward the light (what the part leaves
+// uncovered when nudged down and right), and the dark outline the mascot art is drawn with
+vec3 part(vec3 col, float d, float dn) {
+  col = mix(col, uPal[6], cover(d - 0.0045));
+  return mix(col, mix(uPal[4], uPal[5], sat(cover(d + 0.0045) - cover(dn + 0.0045))), cover(d + 0.0015));
+}
+#define PART(col, sd) part(col, sd(q), sd(q - vec2(0.007, -0.007)))
+float dBack(vec2 q) { return sdBox(rot(0.08) * (q - vec2(0.978, 0.296)), vec2(0.0), vec2(0.072, 0.108), 0.045); }
+float dSeat(vec2 q) { return sdBox(q, vec2(0.92, 0.163), vec2(0.12, 0.031), 0.028); }
+float dArm(vec2 q) { return min(sdSeg(q, vec2(0.813, 0.257), vec2(0.879, 0.255)) - 0.0125, sdBox(q, vec2(0.853, 0.216), vec2(0.012, 0.034), 0.004)); }
+float dLift(vec2 q) { return sdBox(q, vec2(0.913, 0.108), vec2(0.011, 0.03), 0.003); }
+float dLegs(vec2 q) {
+  vec2 hub = vec2(0.913, 0.074);
+  return min(min(sdSeg(q, hub, vec2(0.82, 0.05)), sdSeg(q, hub, vec2(0.935, 0.02))), sdSeg(q, hub, vec2(1.02, 0.042))) - 0.011;
+}
+float dWheels(vec2 q) { return min(min(length(q - vec2(0.818, 0.046)), length(q - vec2(0.935, 0.017))), length(q - vec2(1.018, 0.038))) - 0.018; }
+vec3 chair(vec3 col, vec2 p, float t) {
+  // rolled out to the corner; alive, it rolls a few pixels and settles
+  float roll = 0.008 * sin(t * 0.9) * (0.6 + 0.4 * cos(t * 0.45));
+  vec2 q = p - vec2(roll, 0.0);
+  vec2 sq = (q - vec2(0.93, 0.03)) / vec2(0.16, 0.025);
+  col *= 1.0 - 0.5 * exp(-dot(sq, sq) * 1.5);                       // its shadow on the floor
+  col = PART(col, dBack);
+  col = PART(col, dLift);
+  col = PART(col, dLegs);
+  col = PART(col, dWheels);
+  col = PART(col, dSeat);
+  return PART(col, dArm);
+}
+// the amber motion ticks; alive, they pulse
+vec3 tick(vec3 col, vec2 p, vec2 a, vec2 b, float r0, float k) {
+  vec2 m = 0.5 * (a + b);
+  float d = sdTaper(p, m + (a - m) * k, m + (b - m) * k, r0 * k, r0 * 0.45 * k);
+  col += uPal[2] * 0.10 * falloff(d, 0.02);
+  return mix(col, uPal[2], cover(d));
 }
 vec3 motif(vec2 p, float t) {
-  vec2 q = p - RC;
-  float su, sl;
-  float du = arcD(q, ARCS.x, ARCS.y, su), dl = arcD(q, ARCS.z, ARCS.w, sl);
-  float dc = min(du, dl), d = dc - RW, od = max(d, 0.0);
-  float L1 = ARCS.y - ARCS.x, L2 = ARCS.w - ARCS.z, G = L1 + 0.3 + L2;
-  float g = du < dl ? (1.0 - su) * L1 : L1 + 0.3 + sl * L2;      // along the C from its upper end
-  float breath = 1.0 + 0.14 * sin(t * 1.3);
-  // ground: warm near-black, a little warmer toward the ring's middle
-  vec3 col = mix(uPal[1], uPal[0], smoothstep(0.0, 0.62, length((p - vec2(0.48, 0.5)) * vec2(1.0, 0.9))));
-  // the light the ring throws: a tight halo and a wide warm haze
-  col += uPal[2] * (0.22 * exp(-od / 0.02) + 0.06 * exp(-od / 0.07) + 0.025 * exp(-od / 0.25)) * breath;
-  // the floor: a line of warm light where Bearly stands, and his contact shadow, smaller as he lifts
-  float fx = exp(-pow((p.x - 0.52) / 0.3, 2.0));
-  col += uPal[2] * 0.26 * fx * exp(-pow((p.y - YF) / 0.012, 2.0)) * breath;
-  col += uPal[2] * 0.07 * fx * smoothstep(YF + 0.02, YF - 0.06, p.y);
-  float lf = lift(t) / 0.0065;
-  vec2 sq = (p - vec2(0.52, YF + 0.004)) / (vec2(0.18, 0.014) * (1.0 - 0.15 * lf));
-  col *= 1.0 - (0.8 - 0.3 * lf) * exp(-dot(sq, sq) * 1.6);
-  // the tube: deeper amber on its inner side, light amber toward the outside, a yellow rim on the outer edge
-  float u = sat(dc / RW);
-  float rs = clamp((length(q) - radius(atan(q.y, q.x) + (q.y < 0.0 ? TAU : 0.0))) / RW, -1.0, 1.0);
-  vec3 tube = mix(uPal[5], uPal[3], smoothstep(-1.0, 0.9, rs));
-  tube = mix(tube, uPal[4], 0.75 * exp(-pow((rs - 0.72) / 0.2, 2.0)));
-  // light running round the C when alive
-  float run = fract(t * 0.11) * (G + 1.6) - 0.8;
-  float k = exp(-pow((g - run) / 0.24, 2.0));
-  tube = mix(tube, vec3(1.0, 0.97, 0.88), 0.6 * k * (1.0 - u * u));
-  col += uPal[3] * 0.22 * k * exp(-od / 0.03);
-  return mix(col, tube * (0.94 + 0.06 * breath), cover(d));
+  vec3 col = mix(uPal[1], uPal[0], smoothstep(0.1, 0.8, length((p - vec2(0.48, 0.5)) * vec2(0.9, 1.0))));
+  // the type, lit from within: a soft glow from the mask's coarse levels
+  vec2 o = vec2(0.006, 0.0);
+  vec4 g = 0.25 * (texture2D(uText, p + o.xy, 3.5) + texture2D(uText, p - o.xy, 3.5) + texture2D(uText, p + o.yx, 3.5) + texture2D(uText, p - o.yx, 3.5));
+  col += (mix(uPal[3], uPal[2], 0.55) * 0.16 * g.r + uPal[2] * 0.24 * g.g) * (1.0 - uMode);
+  float k = 1.0 + 0.12 * sin(t * 2.6);
+  col = tick(col, p, ic(0.217, 0.194), ic(0.271, 0.226), 0.0085, k);
+  col = tick(col, p, ic(0.208, 0.271), ic(0.262, 0.273), 0.0085, k);
+  col = tick(col, p, ic(0.741, 0.090), ic(0.700, 0.145), 0.0085, k);
+  col = tick(col, p, ic(0.799, 0.170), ic(0.731, 0.195), 0.0085, k);
+  col = tick(col, p, ic(0.727, 0.905), ic(0.787, 0.932), 0.0095, k);
+  col = tick(col, p, ic(0.672, 0.962), ic(0.77, 0.953), 0.0095, k);
+  return chair(col, p, t);
 }`;
 
 // Stats: three rising bars of frosted glass, blue, green and amber, inside a thin glass orbit, on a cool white ground.
@@ -876,8 +890,10 @@ vec3 motif(vec2 p, float t) {
 //   runs: [[text, ch], ...] sets a one-line block in several inks.
 // inks: sRGB colour per type channel, used when the motif does not fill it itself.
 // mark: where the logo is drawn unaltered, [x, top, size].
-// art: brand artwork drawn unaltered over the motif at its own pixel size on a 1024 front,
-//   { src (beside this module), x, top }; a motif may lift it with ART_DY(t) (cover units).
+// art: brand artwork drawn unaltered over the motif and under the type, at its own pixel size on a 1024
+//   front: { src (beside this module), x, top, fade }; fade (px) softens a crop edge at its foot that the
+//   type covers. A motif may lift it with ART_DY(t) (cover units).
+// typeGlow: the type mask carries mips, so the motif can read it blurred (a glow around the type).
 // shaderMips: the shader draws the front's mip levels itself, each filtered at its own sampling rate.
 // form: the logo inflated into the motif's hero form: box [x, top, size], R bevel radius,
 //   soft blur (both cover units), key 'alpha' | 'tile' (tile: drop pixels near the tile colour).
@@ -977,12 +993,16 @@ function designFor(entry) {
     };
     case 'Chairtax': return {
       motif: 'chairtax', t0: 0,
-      pal: ['#100D0A', '#1A1611', '#FFB020', '#FFC23A', '#FFE45A', '#F9A616'],
-      type: [{ lines: ['Chairtax'], runs: [['Chair', 0], ['tax', 1]], font: 'NJ Grotesk', weight: 700, track: -0.02, fit: 738, x: 252, base: 168, ch: 0 }],
+      pal: ['#110E0A', '#1E1811', '#FFB020', '#F8F2E7', '#4B5B7C', '#66779F', '#24150F'],
+      type: [
+        { lines: ['Chair'], font: 'NJ Grotesk', weight: 700, track: -0.035, fit: 918, x: 36, base: 640, ch: 0 },
+        { lines: ['tax'], font: 'NJ Grotesk', weight: 700, track: -0.035, fit: 626, x: 180, base: 893, ch: 1 },
+      ],
       inks: ['#F8F2E7', '#FFB020'],
-      mark: [21, 14, 191],
-      art: { src: 'art/bearly-squat.webp', x: 326, top: 356 },
-      bandY: 0.52, grain: [0.012, 0.010],
+      mark: [8, 6, 164],
+      art: { src: 'art/bearly-squat-top.webp', x: 288, top: 6, fade: 56 },
+      typeGlow: true,
+      bandY: 0.845, grain: [0.012, 0.010],
       back: { paper: '#14110D', ink: '#F8F2E7', soft: '#B4A893', accent: '#FFB020' },
     };
     case 'Stats': return {
@@ -1130,8 +1150,13 @@ function drawBack(ctx, entry) {
       ctx.fillText(value, M + inkBox(ctx, value).left, ry + rowH / 2 + 10.5 * S);
       ctx.fillStyle = CH[1];
       setFont(ctx, 400, 14.5 * S, 'NJ Text', 0);
-      const lines = wrap(ctx, label, W - M - split).slice(0, 2);
-      const lh = 19 * S;
+      let lines = wrap(ctx, label, W - M - split), lh = 19 * S;
+      if (lines.length > 2) {
+        // a long label takes three tighter lines rather than losing its end
+        setFont(ctx, 400, 13 * S, 'NJ Text', 0);
+        lines = wrap(ctx, label, W - M - split).slice(0, 3);
+        lh = 16.5 * S;
+      }
       lines.forEach((l, j) => ctx.fillText(l, split, ry + rowH / 2 + 5 * S + (j - (lines.length - 1) / 2) * lh));
     });
     rule(y0 + entry.figs.length * rowH);
@@ -1443,6 +1468,7 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
     uRestMix: { value: 0 },
     uArt: { value: BLANK },
     uArtRect: { value: new THREE.Vector4(0, 0, 0, 0) },
+    uArtFade: { value: 0 },
     uMip: { value: 0 },
     uInk0: { value: inks[0] },
     uInk1: { value: inks[1] },
@@ -1495,6 +1521,7 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
     renderer.initTexture(art);
     uniforms.uArt.value = art;
     uniforms.uArtRect.value.set(d.art.x / 1024, 1 - (d.art.top + h) / 1024, w / 1024, h / 1024);
+    uniforms.uArtFade.value = (d.art.fade || 0) / h;
   }
 
   // layers of a front whose shader draws its own mip levels carry mips too, so each level reads its type
@@ -1513,7 +1540,7 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
   const layersAt = (sz, img) => {
     const ctx = textCtx(sz), k = sz / 1024;
     drawFront(ctx, d);
-    const mips = !!d.shaderMips;
+    const mips = !!(d.shaderMips || d.typeGlow);
     const text = upload(ctx.canvas, false, mips);
     let over = BLANK;
     if (img) {

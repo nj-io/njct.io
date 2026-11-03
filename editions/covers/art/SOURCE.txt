@@ -1,13 +1,21 @@
 Brand artwork the covers draw unaltered (designFor(...).art in covers.js). Each file is a downsized copy
-of the brand's own art: never redrawn, only cropped to its alpha bounds and resized.
+of the brand's own art: never redrawn, only cropped and resized.
 
-bearly-squat.webp — Bearly, the Chairtax mascot, mid-squat (the Chairtax cover)
+bearly-squat-top.webp — Bearly, the Chairtax mascot, from the waist up (the Chairtax cover, where he leans
+over the word "Chair")
   Source: ~/dev/chairtax/socials/brand/bearly/2d/bear-squat.png (2106 x 2000 RGBA), chairtax/socials
   commit abe8d78 (2026-10-27), sha256 11cc6a8bf85b76f7958c73c1bb6e0237669f8aa49ea3a81762203c86dc5bfc4b.
-  Chosen over squat-deep.png and move-squat.png (the same pose, each with a grey floor shadow baked
-  in, which would read as a grey smear on the cover's dark ground).
-  Made 2026-11-03: cropped to the alpha bounds plus a 2 px margin at the target size, resized to
-  399 x 600 with Lanczos in premultiplied alpha (Pillow RGBa), so the outline carries no colour
-  fringe; then cwebp -q 60 -m 6 -alpha_filter best -f 30 -sns 30 (lossy colour, lossless alpha).
-  399 x 600, 27 080 bytes, sha256 35bd5fa2c16c39763a0eb5e1eac05e589fa6a407b16d3feefe71ac9432f52a71.
-  It is drawn 1:1 on a 1024 front (600 px tall, about 59% of the cover).
+  Chosen over office-thinking.png (the paw-at-chin gesture, but a neutral mouth and the office shirt and
+  tie) because the cover's concept shows him smiling in the navy jacket; at the cover's crop his paws rest
+  on the top of the type. office-point.png winks, and desk-tall.png is a whole scene.
+  Made 2026-11-03: source columns 562-1543 and rows 497-1726 (the alpha bounds plus 4 px, cut at the
+  waist), resized by 0.42 to 412 x 516 with Lanczos in premultiplied alpha (Pillow RGBa), so the outline
+  carries no colour fringe; then cwebp -q 70 -m 6 -alpha_filter best -f 30 -sns 30 (lossy colour,
+  lossless alpha). 412 x 516, 24 178 bytes,
+  sha256 369bd48487b9ecbf7bfc352f86498dc6e02dee79d3cc0065c8273ff53897a764.
+  It is drawn 1:1 on a 1024 front. The cut at the waist sits behind the type; the cover fades its last
+  56 px so the narrow gaps between letters never show a hard edge.
+
+The chair on the Chairtax cover is drawn in the shader (no chair-only brand art exists in the folder above
+or on chairtax.app/assets/img/): the brand chair's fill #4B5B7C and rim #66779F, sampled from
+office-dozing.png, with the mascot art's outline colour.
