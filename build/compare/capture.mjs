@@ -3,6 +3,7 @@
 //
 //   node build/compare/capture.mjs --round r0 [--only theirs|ours] [--dpr 2] [--frames] [--sizes]
 //
+//   --port N  serves ours from 127.0.0.1:N (default 8750)
 // Output: .captures/<round>/<site>/{<moment>.png, meta.json, metrics.json}, pair-<moment>.jpg, crop-*.png, index.html
 //   --dpr 2   adds a desktop pass at 1440x900, device scale factor 2 (rest, hover0-1000 screenshots) under <site>/dpr2/
 //   --sizes   adds rest screenshots at 1280x800 and 1920x1080 under <site>/size-<w>x<h>/
@@ -18,9 +19,11 @@ import { fileURLToPath } from 'url';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '../..');
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+const portArg = process.argv.indexOf('--port');
+const PORT = portArg >= 0 ? process.argv[portArg + 1] : '8750';
 const SITES = {
   theirs: { url: 'https://www.shopify.com/editions', openUrl: 'https://www.shopify.com/editions/fall2026' },
-  ours: { url: 'http://127.0.0.1:8750/editions/', openUrl: 'http://127.0.0.1:8750/editions/#mirra' },
+  ours: { url: `http://127.0.0.1:${PORT}/editions/`, openUrl: `http://127.0.0.1:${PORT}/editions/#mirra` },
 };
 const PHONE_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1';
 const THEIR_CENTRES = { 0: { x: 275, y: 290 }, 2: { x: 720, y: 290 } };
@@ -60,8 +63,8 @@ const only = arg('only');
 const dpr = arg('dpr');
 const keepFrames = args.includes('--frames');
 const extraSizes = args.includes('--sizes');
-if (!round || !/^[\w.-]+$/.test(round) || (only && !SITES[only]) || (dpr !== undefined && dpr !== '2')) {
-  console.error('usage: node build/compare/capture.mjs --round <name> [--only theirs|ours] [--dpr 2] [--frames] [--sizes]');
+if (!round || !/^[\w.-]+$/.test(round) || (only && !SITES[only]) || (dpr !== undefined && dpr !== '2') || !/^\d{2,5}$/.test(PORT)) {
+  console.error('usage: node build/compare/capture.mjs --round <name> [--only theirs|ours] [--dpr 2] [--frames] [--sizes] [--port N]');
   process.exit(2);
 }
 const roundDir = path.join(ROOT, '.captures', round);
