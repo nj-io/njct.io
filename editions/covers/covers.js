@@ -820,9 +820,6 @@ vec3 motif(vec2 p, float t) {
   // the letters' drop shadow, 0.032 right and 0.033 down, 14% dark
   vec4 g = blurText(p + vec2(-0.032, 0.033), 0.002, 3.5);
   col *= 1.0 - 0.14 * sat(g.r + g.g + g.b) * type;
-  // contact shadows: a dark, sharp-edged band right under the t's foot, a softer one under the a
-  vec2 ct = (p - ic(0.266, 0.890)) / vec2(0.0616, 0.0058), ca = (p - ic(0.46, 0.872)) / vec2(0.08, 0.009);
-  col *= 1.0 - (0.75 * exp(-0.5 * (ct.x * ct.x * ct.x * ct.x + ct.y * ct.y * ct.y * ct.y)) + 0.4 * exp(-0.5 * dot(ca, ca))) * type;
   // the thin warm halo just outside every letter, lit from a little below; fainter round the amber letters,
   // brighter in the narrow gaps the concept lights from both sides (h-a, a-i, a-x) and under the x
   g = blurText(p + vec2(0.0, 0.004), 0.003, 3.5);
@@ -833,6 +830,9 @@ vec3 motif(vec2 p, float t) {
     + 3.0 * exp(-0.5 * dot(g4, g4)) + 6.0 * exp(-0.5 * dot(g5, g5));
   gap *= 1.0 - 0.8 * exp(-0.5 * dot(c1, c1)) - 0.6 * exp(-0.5 * dot(c2, c2));   // the C's left and top are nearly bare
   col += HALO * (0.85 * g.r + 0.45 * g.g) * gap * type;
+  // contact shadows, over the halo too: a dark, sharp-edged band right under the t's foot, a softer one under the a
+  vec2 ct = (p - ic(0.266, 0.8915)) / vec2(0.0616, 0.0067), ca = (p - ic(0.46, 0.872)) / vec2(0.08, 0.009);
+  col *= 1.0 - (0.8 * exp(-0.5 * (ct.x * ct.x * ct.x * ct.x + ct.y * ct.y * ct.y * ct.y)) + 0.4 * exp(-0.5 * dot(ca, ca))) * type;
   float k = 1.0 + 0.12 * sin(t * 2.6);
   // thick end first, measured on the concept
   col = tick(col, p, ic(0.738, 0.083), ic(0.689, 0.152), 0.0115, k);
