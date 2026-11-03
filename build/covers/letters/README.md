@@ -1,6 +1,10 @@
-# Chairtax cover letters
+# Cover letters
 
-`editions/covers/letters/chairtax.json` holds the Chairtax cover's letters as SVG paths, traced from the concept tile. To regenerate it from the tile, run these commands in an empty work directory, with `REPO` set to the checkout:
+`editions/covers/letters/<cover>.json` holds a cover's letters as SVG paths, traced from its concept tile: Chairtax and stet. `fields.py` and `trace.py` take `--cover chairtax|stet` (Chairtax by default).
+
+## Chairtax
+
+To regenerate `chairtax.json` from the tile, run these commands in an empty work directory, with `REPO` set to the checkout:
 
 ```sh
 TILE=$REPO/.captures/concepts/tiles/chairtax-e3.jpg   # the 554 px concept tile (gitignored, not committed)
@@ -19,7 +23,23 @@ The steps:
 
 The Python steps need Pillow. `glyphs.mjs` needs headless Chrome and the board-tools puppeteer-core.
 
-## Font
+## stet
+
+To regenerate `stet.json` from the tile, in an empty work directory:
+
+```sh
+TILE=$REPO/.captures/concepts/tiles/stet-a3.jpg   # the 546 px concept tile (gitignored, not committed)
+L=$REPO/build/covers/letters
+python3 $L/fields.py $TILE --cover stet && python3 $L/trace.py $REPO/editions/covers/letters/stet.json --cover stet
+```
+
+- `fields.py --cover stet` finds the letters as the parts of the tile above luma 95: the s, the first t, and the e with the last t, which touch along the t's stem. Every pixel above luma 50 goes to the part nearest it, so the one-pixel gap between the s and the t keeps them apart. Each letter's coverage at 4× is its luma between the ground and the letter's own interior near the pixel, since its letters are shaded in many colours. The tile's last two columns are its crop border, and the last t runs on through them.
+- `trace.py --cover stet` traces at 546 px and moves each corner to where the straight edges either side of it meet, so the cuts stay as sharp as the concept's.
+- The shader parts the joined e and t's colour fields along the seam (`SEAM` in the stet motif).
+
+Only Pillow is needed.
+
+## Chairtax font
 
 `nunito-900-cover.woff2` is the Nunito the glyphs come from. `glyphs.mjs` reads it from this folder unless it is given another file.
 
