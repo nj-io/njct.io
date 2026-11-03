@@ -88,6 +88,12 @@ html.in-project .details, html.in-project #d-open { display: none; }
 .pj-main { min-width: 0; }
 /* A section off screen skips layout and paint until it nears the view, so the cut lays out only the hero
    and the first section; its height is remembered once drawn. */
+/* The hero's runway, as the reference's: after the hero the first section waits 0.93 of the screen's
+   height less 171 px per 900 px of screen above 900 (at least 171) and 112 px (554 px at 900 tall). */
+@media (min-width: 900px) {
+  .pj-body { --pj-rw: max(1px, 100vh / 900); --pj-rw: max(1px, 100svh / 900);
+    margin-top: max(0px, 0.93 * 100vh - 171 * var(--pj-rw) - 112px); margin-top: max(0px, 0.93 * 100svh - 171 * var(--pj-rw) - 112px); }
+}
 .pj-sec { padding-bottom: clamp(64px, 47.0986px + 4.50704vw, 112px); content-visibility: auto; contain-intrinsic-size: auto 2400px; }
 .pj-cold .pj-body { content-visibility: hidden; }
 /* The section's head, as the reference's: at least 53% of the screen tall, the title on the grid's
@@ -98,6 +104,16 @@ html.in-project .details, html.in-project #d-open { display: none; }
 }
 .pj-num { align-self: end; margin: 0 0 18px; font: 500 12px/16px var(--mono); color: var(--pj-soft); }
 .pj-sec h2 { grid-row: 2; margin: 0; font-size: clamp(64px, 11.2vw - 41.28px, 120px); line-height: 1; font-weight: 500; letter-spacing: -0.035em; }
+/* The title's reveal (project.js signalTitles): desktop only, as on the reference. Its box reaches a
+   quarter of the type size above and below the line, and the reveal starts when that box is on screen. */
+.pj-fill { display: none; }
+@media (min-width: 900px) {
+  .pj-sec h2.pj-sig { position: relative; padding-block: 0.25em; margin-block: -0.25em; color: transparent; -webkit-text-stroke: 1px rgb(var(--fg) / 0.4); }
+  .pj-sig .pj-fill {
+    display: block; position: absolute; inset: 0; padding: inherit; color: var(--pj-ink); -webkit-text-stroke-color: transparent;
+    -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-image: linear-gradient(#0000, #0000); mask-image: linear-gradient(#0000, #0000);
+  }
+}
 .pj-h3 { margin: 0; padding: clamp(48px, 36.7324px + 3.0047vw, 80px) 0 40px; font-size: clamp(24px, 8.96px + 1.6vw, 32px); line-height: 1.25; font-weight: 500; letter-spacing: 0.01em; }
 .pj-part { scroll-margin-top: var(--pj-head); }
 .pj-lead { max-width: 30ch; margin: 0 0 48px; font-size: clamp(24px, 8.96px + 1.6vw, 32px); line-height: 1.25; letter-spacing: 0.01em; }

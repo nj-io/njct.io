@@ -106,7 +106,7 @@ const SECTIONS = [['overview', 'Overview'], ['under-the-hood', 'Under the hood']
 function pageHTML(entry, data, slugOf, entries) {
   const about = entry.kind === 'about';
   const sec = (id, n, title, body) => `<section class="pj-sec" aria-labelledby="pj-h-${id}">
-    <div class="pj-part" id="pj-${id}" data-sec="${id}"><header class="pj-sh"><p class="pj-num">${n}</p><h2 id="pj-h-${id}">${title}</h2></header>${body}</div></section>`;
+    <div class="pj-part" id="pj-${id}" data-sec="${id}"><header class="pj-sh"><p class="pj-num">${n}</p><h2 id="pj-h-${id}"${reduced() ? '' : ' class="pj-sig"'}>${title}${reduced() ? '' : `<span class="pj-fill" aria-hidden="true">${title}</span>`}</h2></header>${body}</div></section>`;
   if (about) {
     const a = entry.about;
     const list = entries.filter(e => e.kind !== 'about').map(e =>
@@ -127,6 +127,52 @@ function pageHTML(entry, data, slugOf, entries) {
     sec('under-the-hood', '02', 'Under the hood', `${diagram}<div class="pj-text">${data.arch}</div></div>
       <div class="pj-part" id="pj-build-process" data-sec="build-process"><h3 class="pj-h3">Build process</h3><div class="pj-text">${data.proc}</div>`),
   ].join('');
+}
+
+// The section titles' reveal, as on the reference's desktop page: a title waits as an outline (the ink at
+// 40%) until its line, with a quarter of its type size above and below, is wholly on screen; from 175 ms
+// later it fills with sixteen growing discs on two rows (0.42 and 0.75 down its line), eight columns
+// across its width, the rightmost column first: each column 55 ms after the one to its right, the lower
+// disc 50 ms after the upper, each growing over 720 ms (ease-out cubic) to 2.8 and 3.275 times the type
+// size across.
+// Phones show titles filled (project.css), as the reference does; under reduced motion titles are built
+// filled (pageHTML). Returns the disposer.
+const SIG = { delay: 175, cols: 8, pad: 0.25, rows: [[0.4167, 2.8, 0], [0.75, 3.275, 50]], stagger: 55, grow: 720 };
+const DISC = 'radial-gradient(closest-side, #fff 100%, #0000 100%)';
+function signalTitles(root) {
+  const runs = new Set();
+  const done = h => { h.classList.remove('pj-sig'); h.querySelector('.pj-fill')?.remove(); };
+  function play(h) {
+    const fill = h.querySelector('.pj-fill');
+    if (!fill) return;
+    const range = document.createRange();
+    range.selectNodeContents(fill);
+    const box = fill.getBoundingClientRect(), text = range.getBoundingClientRect(), em = parseFloat(getComputedStyle(h).fontSize);
+    const discs = [];
+    for (let c = SIG.cols - 1, k = 0; c >= 0; c--, k++) for (const [y, d, lag] of SIG.rows)
+      discs.push({ x: text.left - box.left + (c + 0.5) / SIG.cols * text.width, y: (SIG.pad + y) * em, d: d * em, at: k * SIG.stagger + lag });
+    fill.style.webkitMaskImage = fill.style.maskImage = discs.map(() => DISC).join(', ');
+    const t0 = performance.now() + SIG.delay, end = discs.at(-1).at + SIG.grow;
+    const run = { raf: 0 };
+    runs.add(run);
+    const frame = now => {
+      const t = now - t0, size = [], pos = [];
+      for (const o of discs) {
+        const u = Math.min(1, Math.max(0, (t - o.at) / SIG.grow)), r = (1 - (1 - u) ** 3) * o.d;
+        size.push(`${r.toFixed(1)}px ${r.toFixed(1)}px`); pos.push(`${(o.x - r / 2).toFixed(1)}px ${(o.y - r / 2).toFixed(1)}px`);
+      }
+      fill.style.webkitMaskSize = fill.style.maskSize = size.join(', ');
+      fill.style.webkitMaskPosition = fill.style.maskPosition = pos.join(', ');
+      if (t < end) run.raf = requestAnimationFrame(frame); else { runs.delete(run); done(h); }
+    };
+    run.raf = requestAnimationFrame(frame);
+  }
+  const desk = matchMedia('(min-width: 900px)');
+  const io = new IntersectionObserver(es => {
+    for (const e of es) if (e.intersectionRatio >= 0.999 && desk.matches) { io.unobserve(e.target); play(e.target); }
+  }, { threshold: 1 });   // the title's box carries the quarter above and below (project.css)
+  root.querySelectorAll('h2.pj-sig').forEach(h => io.observe(h));
+  return () => { io.disconnect(); for (const r of runs) cancelAnimationFrame(r.raf); runs.clear(); };
 }
 
 function heroColumn(entry, data, slugOf, entries) {
@@ -259,13 +305,14 @@ export function createProjectView({ renderer, entries, slugOf, onBack, onCta }) 
       for (const e of es) if (e.isIntersecting) rail.forEach(b => b.setAttribute('aria-current', String(b.dataset.sec === e.target.dataset.sec)));
     }, { rootMargin: '-45% 0px -50% 0px' });
     root.querySelectorAll('.pj-part').forEach(s => io.observe(s));
+    const sig = signalTitles(root);
 
     // Without WebGL (the static fallback) the window shows the accent's light in place of the world.
     const world = renderer ? createWorld(renderer, entry.name, col.hue, { reduced: reduced() })
       : { seed() {}, frame() {}, dispose() {}, still: true };
     if (!renderer) root.classList.add('pj-noworld');
     const cut = performance.now();
-    st = { i, root, world, io, raf: 0, last: 0, cut, frames: 0, panelDone: !vertical(), titleDone: false, fit };
+    st = { i, root, world, io, sig, raf: 0, last: 0, cut, frames: 0, panelDone: !vertical(), titleDone: false, fit };
     const warmBody = () => root.classList.remove('pj-cold');
     if (!vertical()) { panel.style.transform = 'none'; q('.pj-mascot')?.classList.add('in'); }
     const onScroll = () => { warmBody(); if (st && !st.raf) wake(); };
@@ -322,7 +369,7 @@ export function createProjectView({ renderer, entries, slugOf, onBack, onCta }) 
     const s = st;
     st = null;
     if (s.raf) cancelAnimationFrame(s.raf);
-    s.off(); s.io.disconnect();
+    s.off(); s.io.disconnect(); s.sig();
     s.world.dispose();
     s.root.remove();
     document.documentElement.classList.remove('in-project');
