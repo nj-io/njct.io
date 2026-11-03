@@ -8,7 +8,9 @@ def fl(v):
     s = f(v); return s if ('.' in s or 'e' in s) else s + '.0'
 def ln(r, t): return 'vec3(%s, %s, %s)' % (fl(math.cos(t)), fl(math.sin(t)), fl(r))
 NM = (DEG + 1) * (DEG + 2) // 2
-coef = ', '.join('vec3(%s)' % ', '.join(('%.4g' % c) for c in row) for row in K)
+def v3(row): return 'vec3(%s)' % ', '.join(fl(float('%.4g' % c)) for c in row)
+def field(r, m): return ' + '.join('%s * %s[%d]' % (v3(K[r * NM + k]), m, k) for k in range(NM))
+regions = '\n'.join('  if (w%d > 0.0) col += w%d * (%s);' % (r, r, field(r, 'mf' if r < NAMES.index('red') else 'md')) for r in range(len(NAMES)))
 mono = []
 for i in range(DEG + 1):
     for j in range(DEG + 1 - i): mono.append((i, j))
@@ -25,7 +27,6 @@ MOTIFS.scorecard = /* glsl */`
 #define SC_GRAIN (uMip < 0.5 ? 1.0 : 0.0)
 #define SC_GF 0.66
 #define SC_GA 0.0425
-const vec3 SCK[{len(K)}] = vec3[{len(K)}]({coef});
 float scCov(float d, float w) {{ return clamp(0.5 + d / w, 0.0, 1.0); }}
 float scLine(vec2 X, vec3 l) {{ return dot(X, l.xy) - l.z; }}
 vec3 motif(vec2 p, float t) {{
@@ -45,29 +46,26 @@ vec3 motif(vec2 p, float t) {{
   vec2 e = rot({fl(-(tilt % math.pi))}) * (X - vec2({fl(dcx)}, {fl(dcy)}));
   float rr = length(e / vec2({fl(R)}, {fl(Ry)})), gg = length(e / vec2({fl(R * R)}, {fl(Ry * Ry)})) + 1e-9;
   float D = scCov(-(rr - 1.0) * rr / gg, bw), O = 1.0 - D;
-  float w[13] = float[13](Tp * L * (1.0 - tri) * O, Tp * L * tri * O, Tp * (1.0 - L) * O,
-    (1.0 - Tp) * L * (1.0 - dg) * O, (1.0 - Tp) * L * dg * O, (1.0 - Tp) * (1.0 - L) * (1.0 - nb) * O, (1.0 - Tp) * (1.0 - L) * nb * O,
-    T2 * L2 * D, T2 * (1.0 - L2) * D * A, T2 * (1.0 - L2) * D * (1.0 - A), (1.0 - T2) * (1.0 - L2) * D,
-    (1.0 - T2) * L2 * D * B, (1.0 - T2) * L2 * D * (1.0 - B));
+  float w0 = Tp * L * (1.0 - tri) * O, w1 = Tp * L * tri * O, w2 = Tp * (1.0 - L) * O;
+  float w3 = (1.0 - Tp) * L * (1.0 - dg) * O, w4 = (1.0 - Tp) * L * dg * O;
+  float w5 = (1.0 - Tp) * (1.0 - L) * (1.0 - nb) * O, w6 = (1.0 - Tp) * (1.0 - L) * nb * O;
+  float w7 = T2 * L2 * D, w8 = T2 * (1.0 - L2) * D * A, w9 = T2 * (1.0 - L2) * D * (1.0 - A), w10 = (1.0 - T2) * (1.0 - L2) * D;
+  float w11 = (1.0 - T2) * L2 * D * B, w12 = (1.0 - T2) * L2 * D * (1.0 - B);
   // a turned quarter reads its colour inside the disc it was fitted in (a cubic runs off fast outside it)
   vec2 DC = vec2({fl(dcx)}, {fl(dcy)}), dq = Xq - DC;
   vec2 Xc = DC + dq * min(1.0, {fl(min(R, Ry))} / max(length(dq), 1e-3));
   vec2 u = (X - 283.0) / 283.0, v = (Xc - 283.0) / 283.0;
   {monos('u', 'mf')}
   {monos('v', 'md')}
-  vec3 col = vec3(0.0); float s2 = 0.0;
-  for (int r = 0; r < 13; r++) {{
-    s2 += w[r] * w[r];
-    if (w[r] <= 0.0) continue;
-    vec3 c = vec3(0.0);
-    for (int k = 0; k < {NM}; k++) c += SCK[r * {NM} + k] * (r < {nd} ? mf[k] : md[k]);
-    col += w[r] * c;
-  }}
+  vec3 col = vec3(0.0);
+  float s2 = w0 * w0 + w1 * w1 + w2 * w2 + w3 * w3 + w4 * w4 + w5 * w5 + w6 * w6 + w7 * w7 + w8 * w8 + w9 * w9 + w10 * w10 + w11 * w11 + w12 * w12;
+{regions}
   col *= 1.0 - {fl(sa)} * 2.0 * (1.0 - s2);
   // the paper's grain, static and level in sRGB (as the concept's is); the two levels under full size, which the
   // shader draws itself (shaderMips: 2), leave it out so at shelf size it settles to its mean
-  vec3 s = toSrgb(max(col, 0.0)) + (vnoise(X * SC_GF) - 0.5) * SC_GA * SC_GRAIN;
-  return toLin(clamp(s, 0.0, 1.0));
+  // (in linear light: d lin / d srgb taken as 2 sqrt(lin), gamma 2)
+  col = max(col, 0.0);
+  return col + (vnoise(X * SC_GF) - 0.5) * (SC_GA * 2.0 * SC_GRAIN) * sqrt(col);
 }}`;
 '''
 p = sys.argv[2]; s = open(p).read()
