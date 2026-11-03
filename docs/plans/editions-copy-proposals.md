@@ -145,6 +145,12 @@ Plan a whole ad campaign, music video or film on open video models, see an expec
 - An append-only log with a replayable projection: /Users/neil/dev/topshine/docs/topshine-production-plan-2026-10-28.md § 3.3 (ledger_rows: 'the file is the truth'), § 3.5 (settlement import)
 - Reconciliation as a scheduled job: /Users/neil/dev/topshine/docs/topshine-production-plan-2026-10-28.md § 3.3 (Balances paragraph); /Users/neil/dev/topshine-design-waitlist/docs/launch-2026-10-30.md § Stand-in runs (reconcile found no mismatch)
 
+**Points to check before approval**
+
+- Topshine has run end to end only on local stand-ins (backend-report-2026-10-28.md § 4). The draft describes the built system and quotes no usage.
+- "Ports and adapters" and "append-only log with a replayable projection" are the drafter's labels for mechanisms the plan describes; the plan does not use those names.
+- Music, voiceover and captions in the Review step come from review.py. The GPU speed check is left out of the draft.
+
 ## Row 34: Scorecard dossier (proposal)
 
 Ships as `editions/data/dossiers/scorecard.json` with `"proposal": true`. Fields as the page shows them: **what** is the Overview lead, **glance** the figure rows and cards, **archHi** the Overview narration, **arch** Under the hood, **proc** Build process.
@@ -248,3 +254,9 @@ Works out how a website gets its traffic, from rank, visits and channel mix to a
 - Data provenance on every value: /Users/neil/.claude/projects/-Users-neil/memory/project_site_scorecard.md ('Keep source, date and method visible'); /Users/neil/dev/site-scorecard/dashboard/index.html ('Where the data comes from')
 - Precision-first entity matching: /Users/neil/dev/site-scorecard/RECIPE.md § 3; /Users/neil/dev/site-scorecard/collect/README.md § Run (SITES profile: confirm and exclude patterns, brand word)
 - Secrets read once into memory: /Users/neil/dev/site-scorecard/collect/README.md § Keys
+
+**Points to check before approval**
+
+- The Cost figure ($0.35 for one full analysis, from COVERAGE.md) conflicts with $0.13–0.14 in collect/README.md and dashboard/data/spend.json. The operator picks the figure.
+- The monthly auto-update records a request; no scheduled job runs it. The draft says re-runs are requests.
+- "Eleven platforms" and "up to ten sites" are counted from the code (ad_platforms.py PLATFORMS; the compare ticks). The closing line paraphrases RECIPE.md's intro.
