@@ -10,7 +10,7 @@ Each project is a record sleeve on a shelf wall, in the interaction model of Sho
 
 | Shopify Editions | njct.io Editions |
 |---|---|
-| 10 editions on 2 shelves (5 + 5) | 10 sleeves on 2 shelves (5 + 5): the 9 projects plus "About Neil" |
+| 10 editions on 2 shelves (5 + 5) | 10 sleeves on 2 shelves (5 + 5): 9 projects plus "About Neil" (Decision 1) |
 | Illustrated cover images | Procedural cover shader per project, seeded from its name, in its accent colours; the hovered sleeve's cover animates |
 | Shadow catcher baked into a model | Soft contact shadows rendered once at load into a texture; studio light from three.js `RoomEnvironment` through `PMREMGenerator` |
 | Record model | Procedural vinyl disc: groove normal pattern with anisotropic sheen, the project's logo on the label |
@@ -72,7 +72,7 @@ The first version is the complete experience (phases 1–6), built in waves, the
 
 ### Shared data
 
-`editions/data/projects.json` — ten entries in shelf order (left to right, top shelf first): `name, kind ("project" | "about"), year, tag, blurb, url, stack, figs[[value, label]], accent {light, dark} | null, logo (data URI) | null`, and for About Neil `about[]` (four paragraphs). All strings are the copy already approved and live on njct.io. Xactions and Stellar Explorer carry no brand accent or logo: their covers derive a palette from the name.
+`editions/data/projects.json` — ten entries in shelf order (left to right, top shelf first): `name, kind ("project" | "about"), year, tag, blurb, url, stack, figs[[value, label]], accent {light, dark} | null, logo (data URI) | null`, and for About Neil `about[]` (four paragraphs). All strings are the copy already approved and live on njct.io. Xactions, Stellar Explorer and Scorecard carry no brand accent or logo: their covers derive a palette from the name. Topshine takes its colours and star mark from its current waitlist theme (`~/dev/topshine-design-waitlist/design/ui/tokens.css`), and likewiki its mark from `~/dev/_brand/kits/likewiki/`. Cover concepts for every sleeve: `.captures/concepts/` (board artifact `93sAKCyJDdgYshNWoQ9wWW`).
 
 ### Module contracts
 
@@ -109,7 +109,7 @@ The page exposes `window.__editions` for the harness only: `ready` (promise reso
 
 ## Decisions (operator, 2026-11-03)
 
-1. Ten sleeves: the nine projects plus "About Neil", shelved 5 + 5.
+1. Ten sleeves, shelved 5 + 5 in this order: Mirra, stet, Social Hook, Clauded, likewiki / Topshine, Scorecard, Xactions, Stellar Explorer, About Neil. Track Record and Claude Historian are off the shelf.
 2. Sound is in: procedural Web Audio (room tone, sleeve and record sounds) generated in code, behind a toggle that starts muted. Audio starts only after the visitor's first interaction.
 3. One light studio look. Dark mode is out of scope for this version.
 4. Every implementation step on this branch, first builds and fix rounds alike, runs on Opus at xhigh effort.
