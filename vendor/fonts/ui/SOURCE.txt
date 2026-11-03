@@ -1,13 +1,13 @@
-UI face for the Editions page (header, buttons, bottom index). SIL Open Font License 1.1
-(https://openfontlicense.org).
+UI face for the Editions page (header, buttons, bottom index, Details text, record labels, the
+sticker). SIL Open Font License 1.1 (https://openfontlicense.org).
 
 inter-variable-ui.woff2
   Inter (Rasmus Andersson), gstatic v20, variable weight axis wght 100-900 (opsz at its default, 14)
-  A Google Fonts text= subset, so it carries U+2192 (the standard "latin" subset does not):
-  css2?family=Inter:wght@100..900&text=<U+0020-007E, U+00A0-00FF, U+2013 U+2014 U+2018 U+2019
-    U+201C U+201D U+2022 U+2026 U+2190-2193 U+2122 U+20AC U+2212>
-  Google returned these ranges: U+20-7E, U+A0-FF, U+2013-2014, U+2018-2019, U+201C-201D, U+2022,
-  U+2026, U+20AC, U+2122, U+2190-2193, U+2212, plus composed Latin letters it added itself.
-  downloaded 2026-11-03 from fonts.gstatic.com/l/font?kit=... (v=v20), 51 348 bytes
-  sha256 5e6222478a81eb4039b3ed05b0cf92f489cda2a40167fc2c670d7774e59d5ab7
+  A Google Fonts text= subset: printable ASCII plus the punctuation the copy uses, 114 code points:
+  css2?family=Inter:wght@100..900&text=<U+0020-007E, U+00A0 U+00A9 U+00B7 U+00D7 U+2013 U+2014
+    U+2018 U+2019 U+201C U+201D U+2022 U+2026 U+2190-2193 U+2212 U+20AC U+2122>
+  Latin-1 letters (U+00C0-00FF) are left out to lighten the first view (51 348 to 33 884 bytes); none appear in the
+  copy, and any that are added later draw in the system face until the subset is re-taken with them.
+  downloaded 2026-11-03 from fonts.gstatic.com/l/font?kit=... (v=v20), 33 884 bytes
+  sha256 0000e816c2481bf8de6123098f5060c9ecf5444ee7719ad879d140656fc3a247
   Licence: OFL-1.1 (https://github.com/rsms/inter)

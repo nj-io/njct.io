@@ -1,0 +1,275 @@
+[
+ {
+  "name": "Mirra",
+  "kind": "project",
+  "year": "2025",
+  "tag": "Real-time X→Telegram mirror and digest",
+  "blurb": "Never miss a post from the accounts you care about — mirrored to Telegram in real time, then distilled into a digest of their posts and shifting sentiment.",
+  "url": "https://mirra.to",
+  "stack": "Next.js · Python · MTProto · Supabase",
+  "figs": [
+   [
+    "2,400+",
+    "accounts mirrored"
+   ],
+   [
+    "sub-60s",
+    "mirror latency"
+   ],
+   [
+    "~90%",
+    "gross margin"
+   ]
+  ],
+  "accent": {
+   "light": "#2C7AC2",
+   "dark": "#9EC7EA"
+  },
+  "logo": {
+   "png": "/editions/data/logos/mirra.png"
+  }
+ },
+ {
+  "name": "stet",
+  "kind": "project",
+  "year": "2026",
+  "tag": "The copy layer for your codebase",
+  "blurb": "Every sentence your product says — site copy, emails, SEO fields — managed as typed keys your team edits without a deploy, with a full copy committed in your repo.",
+  "url": "https://getstet.github.io/",
+  "stack": "TypeScript · Postgres · Cloudflare · Astro · MCP",
+  "figs": [
+   [
+    "Apache-2.0",
+    "open source, no CLA"
+   ],
+   [
+    "MCP",
+    "agents edit under your rules"
+   ],
+   [
+    "Every surface",
+    "copy, email, SEO, agents"
+   ]
+  ],
+  "accent": {
+   "light": "#0E6B74",
+   "dark": "#6FBAC4"
+  },
+  "logo": {
+   "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\" width=\"100\" height=\"100\"><rect width=\"100\" height=\"100\" rx=\"22\" fill=\"#0e6b74\"/><g transform=\"translate(50 50) scale(0.68) translate(-50 -50)\"><path fill=\"#ffffff\" d=\"M82 14 L40 14 A22 22 0 0 0 40 58 L40 86 L54 86 L54 28 L68 28 L68 86 L82 86 Z\"/></g></svg>"
+  }
+ },
+ {
+  "name": "Social Hook",
+  "kind": "project",
+  "year": "2026",
+  "tag": "Dev-workflow social publishing",
+  "blurb": "Watches your development, drafts what’s post-worthy in your voice, and publishes where your audience lives — with approval gates or fully autonomous.",
+  "url": "https://nj-io.github.io/social-hook/",
+  "stack": "Python · FastAPI · GitHub Actions",
+  "figs": [
+   [
+    "12k+",
+    "posts published"
+   ],
+   [
+    "X + LinkedIn",
+    "live channels"
+   ],
+   [
+    "fully",
+    "autonomous mode"
+   ]
+  ],
+  "accent": {
+   "light": "#2563EB",
+   "dark": "#5B8DEF"
+  },
+  "logo": {
+   "svg": "<svg viewBox=\"0 0 28 28\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><rect x=\"1\" y=\"1\" width=\"26\" height=\"26\" rx=\"0\" stroke=\"#2563EB\" stroke-width=\"1.5\" fill=\"#fff\"/><circle cx=\"8\" cy=\"14\" r=\"3\" fill=\"#2563EB\"/><line x1=\"11\" y1=\"14\" x2=\"17\" y2=\"14\" stroke=\"#2563EB\" stroke-width=\"1.5\"/><circle cx=\"20\" cy=\"14\" r=\"3\" stroke=\"#2563EB\" stroke-width=\"1.5\" fill=\"#EFF6FF\"/></svg>"
+  }
+ },
+ {
+  "name": "Clauded",
+  "kind": "project",
+  "year": "2026",
+  "tag": "Claude Code in a Docker sandbox",
+  "blurb": "Runs Claude Code in a Docker sandbox with full feature parity — skip permission prompts safely while clipboard, sound, Chrome, git and MCP all bridge back to the Mac.",
+  "url": "https://github.com/nj-io/clauded",
+  "stack": "Docker · Bash · Node 22 · Python 3",
+  "figs": [
+   [
+    "10k+",
+    "sandboxed sessions"
+   ],
+   [
+    "5",
+    "host bridges"
+   ],
+   [
+    "MIT",
+    "open source"
+   ]
+  ],
+  "accent": {
+   "light": "#0E8A90",
+   "dark": "#46D4D8"
+  },
+  "logo": {
+   "png": "/editions/data/logos/clauded.png"
+  }
+ },
+ {
+  "name": "LikeWiki",
+  "kind": "project",
+  "year": "2026",
+  "tag": "A wiki built from what you like",
+  "blurb": "A personal knowledge base compiled from X likes — an LLM incrementally builds and maintains a persistent, cited wiki from the raw sources.",
+  "url": "https://likewiki.njct.io",
+  "stack": "Python · MCP · SQLite",
+  "figs": [
+   [
+    "1,400+",
+    "concept pages"
+   ],
+   [
+    "12k+",
+    "cited sources"
+   ],
+   [
+    "nightly",
+    "self-maintaining"
+   ]
+  ],
+  "accent": {
+   "light": "#2f5d50",
+   "dark": "#7fbfa9"
+  },
+  "logo": {
+   "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 32 32\"><circle cx=\"16\" cy=\"16\" r=\"12.6\" fill=\"none\" stroke=\"#2f5d50\" stroke-width=\"1.8\" opacity=\".55\"/><circle cx=\"24.9\" cy=\"7.1\" r=\"2.6\" fill=\"#2f5d50\"/><path d=\"M12 20.5C12 20.5 3 14.5 3 8.8 3 6 5.1 4 7.6 4 9.5 4 11.1 5.1 12 6.6 12.9 5.1 14.5 4 16.4 4 18.9 4 21 6 21 8.8 21 14.5 12 20.5 12 20.5Z\" transform=\"translate(16 16.6) scale(.66) translate(-12 -12.25)\" fill=\"#2f5d50\"/></svg>"
+  }
+ },
+ {
+  "name": "Topshine",
+  "kind": "project",
+  "year": "2026",
+  "tag": "A video studio on open video models",
+  "blurb": "Make a whole ad campaign, music video or film on open video models: every variant in one run, with a price before every run.",
+  "url": null,
+  "stack": "Python · FastAPI · Postgres · rented RTX 5090s",
+  "figs": [
+   [
+    "$2.29",
+    "16-shot film plan"
+   ],
+   [
+    "$0.24",
+    "4 clips on two models"
+   ],
+   [
+    "$0.07",
+    "8-second clip"
+   ]
+  ],
+  "accent": {
+   "light": "#6c44f0",
+   "dark": "#9384fa"
+  },
+  "logo": {
+   "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><path d=\"M10 .6c.6 5 2.9 7.7 8.9 9.4-6 1.7-8.3 4.4-8.9 9.4-.6-5-2.9-7.7-8.9-9.4C7.1 8.3 9.4 5.6 10 .6z\" fill=\"#7e5ff9\"/><circle cx=\"16.2\" cy=\"3.8\" r=\"1.55\" fill=\"#7e5ff9\"/><circle cx=\"4.2\" cy=\"16.1\" r=\"1.45\" fill=\"#7e5ff9\"/></svg>"
+  }
+ },
+ {
+  "name": "Scorecard",
+  "kind": "project",
+  "year": "2026",
+  "tag": "How websites win their traffic",
+  "blurb": "A dashboard comparing how websites win traffic: their sources, links, social footprint and apps, every number with its source and date.",
+  "url": null,
+  "stack": "Python · D3 · DataForSEO",
+  "figs": [
+   [
+    "10",
+    "sites compared side by side"
+   ],
+   [
+    "4",
+    "views: sources, links, social, apps"
+   ],
+   [
+    "Free first",
+    "paid data only where free routes fail"
+   ]
+  ],
+  "accent": null,
+  "logo": null
+ },
+ {
+  "name": "Xactions",
+  "kind": "project",
+  "year": "2026",
+  "tag": "X automation suite (OSS contribution)",
+  "blurb": "An open-source X operations suite over MCP — publishing, analytics, audience CRM, personas and autonomous workflows. My contributions extend and harden the toolset that lets agents run an account end to end.",
+  "url": "https://github.com/nirholas/XActions",
+  "stack": "TypeScript · MCP · X API",
+  "figs": [
+   [
+    "1M+",
+    "actions executed"
+   ],
+   [
+    "190+",
+    "automation tools"
+   ],
+   [
+    "24/7",
+    "autonomous personas"
+   ]
+  ],
+  "accent": null,
+  "logo": null
+ },
+ {
+  "name": "Stellar Explorer",
+  "kind": "project",
+  "year": "2026",
+  "tag": "Interactive 3D star map",
+  "blurb": "Renders nearby stars in an explorable 3D scene with expandable detail views and spatial audio.",
+  "url": "https://njct.io/stellar-explorer",
+  "stack": "Three.js · WebAudio",
+  "figs": [
+   [
+    "117k",
+    "stars rendered"
+   ],
+   [
+    "60 fps",
+    "sustained"
+   ],
+   [
+    "spatial",
+    "audio scene"
+   ]
+  ],
+  "accent": null,
+  "logo": null
+ },
+ {
+  "name": "About Neil",
+  "kind": "about",
+  "year": "",
+  "tag": "",
+  "blurb": "",
+  "url": "",
+  "stack": "",
+  "figs": [],
+  "accent": null,
+  "logo": null,
+  "about": [
+   "Hi, I’m Neil.",
+   "I used to work as a solutions architect at one of the world’s largest asset management funds.",
+   "Now I create end-to-end scalable architecture for companies that use AI",
+   "Here are some of the projects I have been working on recently"
+  ]
+ }
+]

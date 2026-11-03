@@ -29,6 +29,29 @@ export const SLEEVE = {
   hoverLift: 21.2,      // bottom edge above the shelf when hovered
   hoverZ: 77,           // bottom edge distance from the wall when hovered
   hoverTau: 0.19,       // seconds: hover pose approaches its target exponentially
+  hoverRecord: 0.1,     // the record peeks out of the top of a hovered sleeve (share of its diameter)
+};
+
+// Off the sleeve, the reference lets it fall back: a pause, a drop onto the shelf (ease-in), a pause,
+// then the lean back against the wall (ease-in). ms after the pointer leaves.
+export const UNHOVER = { delay: 140, drop: 290, pause: 70, lean: 165 };
+
+// Details (ms after the click or key). The sleeve flies to the centre at 2.14x its shelf size (416 px at
+// 1440x900, centred at x 720, y 435.5), the shelf blurs, the title and tagline fade in at left, Open
+// fades in under the sleeve. Measured on the reference at 60 fps.
+export const DETAILS = {
+  fly: { at: 72, dur: 582, ease: [0.31, 0.02, 0.45, 1.0] },
+  size: 416, centreY: 435.5,                      // px at 1440x900
+  blur: { at: 70, dur: 250, sigma: 4 },           // Gaussian sigma, CSS px
+  headerOut: { at: 100, dur: 300 },               // the header tagline fades out
+  title: { at: 300, dur: 600 },
+  open: { at: 750, dur: 500 },
+  record: { at: 700, dur: 520, out: 0.42 },       // the record slides out to the right (share of diameter)
+  flip: { at: 140, dur: 480, ease: [0.15, 0, 0.3, 1.0] },   // yaw from the left edge on the blurred ground
+  // Escape: the flight back to the hover pose; a flipped sleeve turns to its front on the way (edge-on at
+  // about 280 ms on the reference). Flight measured from the sleeve's bottom edge.
+  exit: { at: 58, dur: 595, ease: [0.35, 0.05, 0.17, 1.03], textOut: 190, blurOut: { at: 240, dur: 210 },
+    headerIn: { at: 640, dur: 360 }, turn: { at: 150, dur: 230, ease: [0.42, 0, 0.58, 1] } },
 };
 
 // Intro timeline, ms after the first rendered frame (measured on the reference at 60 fps).

@@ -97,6 +97,11 @@ CROPS = [
     ("header-type", "rest", 8, 8, 240, 92),
     ("index-label", "rest", 180, 826, 110, 52),
     ("pills", "hover0-1000", 150, 320, 200, 70),
+    ("details-title", "details-held", 20, 370, 300, 100),
+    ("details-open", "details-held", 660, 645, 120, 70),
+    ("details-sticker", "details-held", 790, 235, 130, 120),
+    ("details-record", "details-held", 880, 300, 220, 280),
+    ("flip-back-type", "flip-held", 515, 230, 300, 150),
 ]
 crops = []
 for cname, moment, x, y, w, h in CROPS:
