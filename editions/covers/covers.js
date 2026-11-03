@@ -289,15 +289,20 @@ const vec2 SF[23] = vec2[23](vec2(26.8, 165.0), vec2(27.0, 190.0), vec2(27.7, 19
 // the seam, and the depth of its dark line; the s's fold, moved SHIFT tile px onto its turned side
 const float SEAM = 455.0 / 546.0, SEAMLINE = 0.25, SHIFT = -0.5;
 // grain: the letters' stipple (cell px, strength in light and in mid and dark tones), the ground's mottle (cell px, strength)
-const vec3 GL = vec3(1.7, 0.06, 0.13);
+const vec3 GL = vec3(1.7, 0.035, 0.13);
 const vec2 GG = vec2(4.0, 0.11);
+// the speckle: cell px, the noise level under which a spot shows, its softness, its depth
+const vec4 SPK = vec4(2.7, 0.19, 0.05, 0.05);
 // the concept's crisp edges, read off the blurred type mask (four taps r apart at mip bias b): a dark line just outside
 // the letters, where the mask blurred by TAP reads LINE.x (width LINE.y, depth LINE.z), and a light rim just inside,
-// where the mask blurred by RIM.xy is full and by RIM.zw not yet (towards white by RIMW)
+// where the mask blurred by RIM.xy reads RIM.z (width RIM.w), towards white by RIMW
 const vec2 TAP = vec2(0.0015, 1.0);
-const vec3 LINE = vec3(0.28, 0.14, 0.8);
-const vec4 RIM = vec4(0.0015, 1.0, 0.004, 2.0);
-const float RIMW = 0.5;
+const vec3 LINE = vec3(0.35, 0.2, 1.0);
+const vec4 RIM = vec4(0.0025, 1.0, 0.8, 0.06);
+const float RIMW = 0.45;
+const vec2 RIMB = vec2(1.5, 1.8);
+// a box's soft window, soft over s tile px
+float box(vec2 x, vec4 b, float s) { return smoothstep(b.x - s, b.x, x.x) * smoothstep(b.z + s, b.z, x.x) * smoothstep(b.y - s, b.y, x.y) * smoothstep(b.w + s, b.w, x.y); }
 float nearType(vec2 c, vec2 rb) {
   vec2 o = vec2(rb.x, 0.0);
   vec4 m = texture2D(uText, c + o.xy, rb.y) + texture2D(uText, c - o.xy, rb.y) + texture2D(uText, c + o.yx, rb.y) + texture2D(uText, c - o.yx, rb.y);
@@ -360,9 +365,17 @@ vec3 stetFill(vec2 p, float t, int L) {
   vec4 k = CREASE[L];
   c *= 1.0 + h * (k.x * exp(-pow((d - k.y) / 0.6, 2.0)) + k.z * exp(-pow((d - k.w) / 0.6, 2.0)));
   // the rim reads the front's type mask (the back's band has none)
-  if (uMode < 0.5) c = mix(c, vec3(1.0), RIMW * sat(nearType(p, RIM.xy) - nearType(p, RIM.zw)));
-  // the concept's stipple, stronger in the mid and dark tones
-  c += (vnoise(FC / GL.x + 5.0) - 0.5) * mix(GL.z, GL.y, smoothstep(0.72, 0.88, dot(c, vec3(0.299, 0.587, 0.114))));
+  if (uMode < 0.5) {
+    // the rim is strongest on the e's bar and round the s's upper counter (boxes in tile px)
+    vec2 x = vec2(p.x, 1.0 - p.y) * 546.0;
+    float boost = RIMB.x * box(x, vec4(326.0, 240.0, 458.0, 304.0), 6.0) + RIMB.y * box(x, vec4(58.0, 194.0, 192.0, 270.0), 6.0);
+    c = mix(c, vec3(1.0), sat(RIMW * (1.0 + boost)) * exp(-pow((nearType(p, RIM.xy) - RIM.z) / RIM.w, 2.0)));
+  }
+  // the concept's stipple, stronger in the mid and dark tones, and its dark speckle, sparse spots a few pixels across
+  // that show most on the light tones
+  float lum = dot(c, vec3(0.299, 0.587, 0.114));
+  c += (vnoise(FC / GL.x + 5.0) - 0.5) * mix(GL.z, GL.y, smoothstep(0.72, 0.88, lum));
+  c *= 1.0 - SPK.w * smoothstep(SPK.y + SPK.z, SPK.y - SPK.z, vnoise(FC / SPK.x + 23.0)) * smoothstep(0.55, 0.85, lum);
   return clamp(c, 0.0, 1.0);
 }
 // the band across the back: the four letters' fields side by side, blended across their borders
