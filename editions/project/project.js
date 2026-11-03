@@ -314,6 +314,10 @@ export function createProjectView({ renderer, entries, slugOf, onBack }) {
     const cut = performance.now();
     st = { i, root, world, io, sig, raf: 0, last: 0, cut, frames: 0, panelDone: !vertical(), titleDone: false, fit };
     const warmBody = () => root.classList.remove('pj-cold');
+    // After the body, each section is laid out in full in a frame of its own (pj-laid), so every heading and
+    // its content are in the accessibility tree wherever the page is scrolled (a section that
+    // content-visibility skips is left out of it).
+    const unlaid = [...root.querySelectorAll('.pj-sec')];
     if (!vertical()) { panel.style.transform = 'none'; q('.pj-mascot')?.classList.add('in'); }
     const onScroll = () => { warmBody(); if (st && !st.raf) wake(); };
     const onResize = () => { st?.fit(); wake(); };
@@ -338,8 +342,9 @@ export function createProjectView({ renderer, entries, slugOf, onBack }) {
       const dt = st.last ? Math.min(0.05, (now - st.last) / 1000) : 1 / 60;
       st.last = now;
       const t = now - st.cut;
-      let busy = ++st.frames < 3;
+      let busy = ++st.frames < 3 || unlaid.length > 0;
       if (st.frames === 2) warmBody();
+      else if (st.frames > 2) unlaid.shift()?.classList.add('pj-laid');
       if (!st.panelDone) {
         const P = OPEN.panel, u = bezier(P.ease, clamp01((t - delay(P.at)) / dur(P.dur)));
         panel.style.transform = u >= 1 ? 'none' : `translateX(${((u - 1) * 100).toFixed(3)}%)`;

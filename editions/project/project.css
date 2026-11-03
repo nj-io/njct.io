@@ -86,15 +86,16 @@ html.in-project .details, html.in-project #d-open { display: none; }
 .pj-rail button[aria-current="true"] { color: var(--pj-ink); }
 .pj-rail button[aria-current="true"]::after { content: '\25CF'; }
 .pj-main { min-width: 0; }
-/* A section off screen skips layout and paint until it nears the view, so the cut lays out only the hero
-   and the first section; its height is remembered once drawn. */
 /* The hero's runway, as the reference's: after the hero the first section waits 0.93 of the screen's
    height less 171 px per 900 px of screen above 900 (at least 171) and 112 px (554 px at 900 tall). */
 @media (min-width: 900px) {
   .pj-body { --pj-rw: max(1px, 100vh / 900); --pj-rw: max(1px, 100svh / 900);
     margin-top: max(0px, 0.93 * 100vh - 171 * var(--pj-rw) - 112px); margin-top: max(0px, 0.93 * 100svh - 171 * var(--pj-rw) - 112px); }
 }
+/* A section off screen skips layout and paint until project.js lays it out (pj-laid), one section a frame
+   after the body, so no frame of the Open lays out the whole dossier; its height is remembered once drawn. */
 .pj-sec { padding-bottom: clamp(64px, 47.0986px + 4.50704vw, 112px); content-visibility: auto; contain-intrinsic-size: auto 2400px; }
+.pj-sec.pj-laid { content-visibility: visible; }
 .pj-cold .pj-body { content-visibility: hidden; }
 /* The section's head, as the reference's: at least 53% of the screen tall, the title on the grid's
    middle row (two parts of the free space above it, one below). */
