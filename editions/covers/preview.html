@@ -109,6 +109,7 @@ function addHtml(r, entry) {
 const timer = gl.getExtension('EXT_disjoint_timer_query_webgl2');
 const timings = [], pending = [];
 const sync = () => { const px = new Uint8Array(4); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); };
+if (q.has("nonce")) coverProfiler.nonce = +q.get("nonce");
 if (measure) {
   coverProfiler.wrap = (label, fn) => {
     let qy = null;

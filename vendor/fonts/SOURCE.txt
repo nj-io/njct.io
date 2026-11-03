@@ -33,12 +33,14 @@ fraunces-144pt-bold-cover.woff2 — NJ Serif, the Stellar Explorer title and the
   3 032 bytes, sha256 5fb7f377b44dc7bc16204cce8ec513f0958473a35ade6e14459f093f98db6a54
   Licence: OFL-1.1 (https://github.com/undercasetype/Fraunces)
 
-archivo-condensed-extrabold-cover.woff2 — NJ Condensed, the stet title
-  Archivo (Omnibus-Type), gstatic v25, wdth 75 · wght 800
+archivo-narrow-700-cover.woff2 — NJ Narrow, the stet title (each letter placed on its concept letter)
+  Archivo Narrow (Omnibus-Type), gstatic v35, wght 700
   glyphs: "est" (from "stet")
-  css2?family=Archivo:wdth,wght@75,800&text=est
-  1 084 bytes, sha256 8c5b15b55920150728147c9c7261355ddabf243b5f9c31ff8d90fa1d98bbff97
-  Licence: OFL-1.1 (https://github.com/Omnibus-Type/Archivo)
+  css2?family=Archivo+Narrow:wght@700&text=est
+  992 bytes, sha256 cd4ba9c3c2bd42ef30ffa309f826b0432ecbbe0f29384f107be7db4bfabcdf23
+  Licence: OFL-1.1 (https://github.com/Omnibus-Type/ArchivoNarrow). Chosen by fitting 45 OFL candidates
+  (Inter, Archivo at several widths and weights, Archivo Black, Libre Franklin, Barlow, Roboto Condensed and
+  others) to the concept's letter masks; it fit best (IoU 0.87, every letter box within 1.1% of the cover).
 
 hanken-grotesk-650-cover.woff2 — NJ Hanken, the Topshine wordmark (650, set at −0.055em)
   Hanken Grotesk (The Hanken Grotesk Project Authors), gstatic v12, wght 650

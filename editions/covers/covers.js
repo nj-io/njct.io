@@ -28,7 +28,7 @@ const FACES = [
   ['NJ Soft Serif', 'fraunces-144pt-black-soft-cover.woff2', '900'],
   ['NJ Serif', 'fraunces-144pt-bold-cover.woff2', '700'],
   ['NJ Hanken', 'hanken-grotesk-650-cover.woff2', '650'],
-  ['NJ Condensed', 'archivo-condensed-extrabold-cover.woff2', '800'],
+  ['NJ Narrow', 'archivo-narrow-700-cover.woff2', '700'],
   ['NJ Grotesk', 'space-grotesk-700-cover.woff2', '700'],
   ['NJ Bricolage', 'bricolage-grotesque-96pt-extrabold-title-cover.woff2', '800'],
 ];
@@ -68,7 +68,7 @@ uniform vec2 uRes, uGrain;
 uniform float uTime, uSS, uMode, uBandY, uBandH, uStrip;
 uniform sampler2D uText, uOver, uForm, uFormCol, uFront;
 uniform vec3 uFormRect;
-uniform sampler2D uRest, uArt;
+uniform sampler2D uRest, uArt, uKeys;
 uniform float uRestMix, uMip;
 uniform vec4 uArtRect;
 uniform float uArtFade;
@@ -192,9 +192,10 @@ void main() {
       if (uArtFade > 0.0) a *= smoothstep(0.0, uArtFade, au.y);   // a crop edge the type hides fades out
       s = s * (1.0 - a.a) + a.rgb;
     }
-    s = mix(s, INK0(uv, uTime), m.r);
-    s = mix(s, INK1(uv, uTime), m.g);
-    s = mix(s, INK2(uv, uTime), m.b);
+    // each ink is evaluated only where its channel covers (a motif's fill can be costly)
+    if (m.r > 0.0) s = mix(s, INK0(uv, uTime), m.r);
+    if (m.g > 0.0) s = mix(s, INK1(uv, uTime), m.g);
+    if (m.b > 0.0) s = mix(s, INK2(uv, uTime), m.b);
     // the brand mark, premultiplied, drawn unaltered
     vec4 o = texture2D(uOver, uv);
     s = s * (1.0 - o.a) + o.rgb;
@@ -271,29 +272,48 @@ vec3 motif(vec2 p, float t) {
   return col;
 }`;
 
-// stet: the word itself is the artwork, its letters filled with a grained teal,
-// cream and gold gradient that drifts when the cover is alive.
+// stet: the word itself is the artwork, each letter shaded like a folded ribbon: a colour field per letter
+// (sRGB keys on a grid over the letter, fitted to the concept, blended smoothly and stippled where they
+// meet), and the last t's ascender folded crisply along its medial axis, where the slope of the type's
+// distance field (formAt) turns over. The t's fill type channel 0, the s and e channel 1, so the s and e
+// lie over the t's where the tight letters overlap.
 MOTIFS.stet = /* glsl */`
+// the letters' keys come from uKeys: row 0 (x, y, sigma), row 1 (r, g, b), letter L at K0[L] .. K0[L + 1]
+const int K0[5] = int[5](0, 56, 92, 148, 184);
+// each letter's fold: the side of the medial axis facing away from xy takes the shade z (the concept folds
+// only the last t's ascender)
+const vec3 FOLD[4] = vec3[4](vec3(0.0, 1.0, 0.0), vec3(0.0, 1.0, 0.0), vec3(0.0, 1.0, 0.0), vec3(-1.0, 0.1, 0.13));
 vec3 motif(vec2 p, float t) {
-  float v = length((p - vec2(0.5, 0.52)) * vec2(1.0, 1.1));
+  float v = length((p - vec2(0.5, 0.55)) * vec2(1.0, 1.1));
   return mix(uPal[0], uPal[1], smoothstep(0.25, 0.85, v));
 }
-vec3 stetFill(vec2 p, float t) {
-  vec2 w = vec2(fbm(p * 2.1 + vec2(3.0, 7.0) + t * 0.025), fbm(p * 2.1 + vec2(9.0, 1.0) - t * 0.02));
-  float ph = p.x * 1.15 - p.y * 0.95 + (w.x - 0.5) * 0.9 + t * 0.018;
-  ph += (h12(FC * 0.71 + 3.0) - 0.5) * 0.16;            // stipple the transitions
-  float k = fract(ph);
-  vec3 a = uPal[2], b = uPal[3], c = uPal[4], d = uPal[5];
-  vec3 col = k < 0.25 ? mix(a, b, smoothstep(0.0, 0.25, k))
-           : k < 0.5 ? mix(b, c, smoothstep(0.25, 0.5, k))
-           : k < 0.75 ? mix(c, d, smoothstep(0.5, 0.75, k))
-           : mix(d, a, smoothstep(0.75, 1.0, k));
-  // a soft fold of shade through the strokes
-  col *= 0.86 + 0.14 * smoothstep(0.2, 0.8, w.y);
-  col *= 1.0 + (h12(FC * 1.91 + 5.0) - 0.5) * 0.10;
-  return toSrgb(col);
+vec3 stetFill(vec2 p, float t, int L) {
+  // the keys drift a little when alive; the stipple jitters where the blend is read
+  vec2 q = p + 0.010 * vec2(sin(t * 0.37), cos(t * 0.29) - 1.0) + (h22(FC * 0.731 + 3.0) - 0.5) * 0.016;
+  vec3 c = vec3(0.0); float ws = 0.0;
+  for (int i = K0[L]; i < K0[L + 1]; i++) {
+    vec4 k = texelFetch(uKeys, ivec2(i, 0), 0);
+    vec2 d = q - k.xy;
+    float w = exp(-dot(d, d) / (k.z * k.z));
+    c += texelFetch(uKeys, ivec2(i, 1), 0).rgb * w; ws += w;
+  }
+  c /= max(ws, 1e-6);
+  // the fold: across the medial axis the field's slope turns over, and one side of every stroke is shaded
+  vec4 f = formAt(p);
+  vec2 dir = f.gb / max(length(f.gb), 1e-5);
+  float lit = smoothstep(-0.12, 0.12, dot(dir, normalize(FOLD[L].xy)));
+  c *= 1.0 - FOLD[L].z * (1.0 - lit) * smoothstep(0.7, 0.95, abs(dir.x)) * smoothstep(0.70, 0.74, p.y);
+  c *= 1.0 + (h12(FC * 1.91 + 5.0) - 0.5) * 0.08;
+  return clamp(c, 0.0, 1.0);
 }
-#define INK0(p, t) stetFill(p, t)`;
+// the band across the back: the four letters' fields side by side, blended across their borders
+vec3 stripFill(vec2 p, float t) {
+  vec3 c = mix(stetFill(p, t, 0), stetFill(p, t, 1), smoothstep(0.25, 0.32, p.x));
+  c = mix(c, stetFill(p, t, 2), smoothstep(0.46, 0.53, p.x));
+  return mix(c, stetFill(p, t, 3), smoothstep(0.80, 0.87, p.x));
+}
+#define INK0(p, t) (uMode > 0.5 ? stripFill(p, t) : stetFill(p, t, p.x < 0.64 ? 1 : 3))
+#define INK1(p, t) stetFill(p, t, p.x < 0.41 ? 0 : 2)`;
 
 // Social Hook: a field of large geometric arcs and planes in the brand's blues.
 MOTIFS.hook = /* glsl */`
@@ -895,13 +915,65 @@ vec3 motif(vec2 p, float t) {
 //   type covers. A motif may lift it with ART_DY(t) (cover units).
 // typeGlow: the type mask carries mips, so the motif can read it blurred (a glow around the type).
 // shaderMips: the shader draws the front's mip levels itself, each filtered at its own sampling rate.
-// form: the logo inflated into the motif's hero form: box [x, top, size], R bevel radius,
+// form: the logo (or, fromType, the front's own type) inflated into the motif's hero form: box [x, top, size], R bevel radius,
 //   soft blur (both cover units), key 'alpha' | 'tile' (tile: drop pixels near the tile colour).
 // back: paper, ink (name, values), soft (labels, stack), accent (rules, link).
 // bandY: centre of the band of art shown across the top of the back; strip: where that band comes from,
 //   'front' (a crop of the finished front, for bands with no type in them), 'art' (the motif without its
 //   type) or 'fill' (the title's own fill across the band). No band may cut through type.
 // t0: the moment the still cover shows; alive time runs on from it.
+
+// each letter's colour keys: [x, y (cover units, y up), r, g, b (sRGB)], fitted to the concept by least squares
+const STET_KEYS = [
+  [0.0413, 0.7016, 0.836, 0.854, 0.795], [0.0874, 0.7016, 0.660, 0.797, 0.776], [0.1334, 0.7016, 0.875, 0.904, 0.873], [0.1795, 0.7016, 0.938, 0.934, 0.878],
+  [0.2255, 0.7016, 0.921, 0.923, 0.876], [0.2716, 0.7016, 0.975, 0.954, 0.905], [0.3176, 0.7016, 0.826, 0.845, 0.771], [0.0413, 0.6432, 0.349, 0.706, 0.706],
+  [0.0874, 0.6432, 1.000, 1.000, 1.000], [0.1334, 0.6432, 0.688, 0.827, 0.807], [0.1795, 0.6432, 1.000, 1.000, 0.964], [0.2255, 0.6432, 0.952, 0.929, 0.868],
+  [0.2716, 0.6432, 1.000, 0.979, 0.956], [0.3176, 0.6432, 0.986, 0.960, 0.907], [0.0413, 0.5848, 0.061, 0.559, 0.581], [0.0874, 0.5848, 0.514, 0.726, 0.704],
+  [0.1334, 0.5848, 0.358, 0.639, 0.638], [0.1795, 0.5848, 0.488, 0.700, 0.673], [0.2255, 0.5848, 0.810, 0.854, 0.797], [0.2716, 0.5848, 0.981, 0.951, 0.886],
+  [0.3176, 0.5848, 0.830, 0.846, 0.772], [0.0413, 0.5264, 0.484, 0.722, 0.701], [0.0874, 0.5264, 0.000, 0.564, 0.619], [0.1334, 0.5264, 0.244, 0.637, 0.641],
+  [0.1795, 0.5264, 0.349, 0.672, 0.673], [0.2255, 0.5264, 0.781, 0.852, 0.839], [0.2716, 0.5264, 0.978, 0.955, 0.922], [0.3176, 0.5264, 0.856, 0.863, 0.791],
+  [0.0413, 0.4681, 0.471, 0.462, 0.371], [0.0874, 0.4681, 0.505, 0.566, 0.527], [0.1334, 0.4681, 0.600, 0.855, 0.861], [0.1795, 0.4681, 0.900, 0.926, 0.925],
+  [0.2255, 0.4681, 0.994, 0.948, 0.878], [0.2716, 0.4681, 0.911, 0.927, 0.883], [0.3176, 0.4681, 0.994, 0.960, 0.913], [0.0413, 0.4097, 0.673, 0.448, 0.190],
+  [0.0874, 0.4097, 0.820, 0.288, 0.000], [0.1334, 0.4097, 0.912, 0.723, 0.434], [0.1795, 0.4097, 0.804, 0.822, 0.747], [0.2255, 0.4097, 0.904, 0.918, 0.881],
+  [0.2716, 0.4097, 1.000, 0.953, 0.890], [0.3176, 0.4097, 0.941, 0.935, 0.889], [0.0413, 0.3513, 0.977, 0.633, 0.187], [0.0874, 0.3513, 1.000, 0.749, 0.392],
+  [0.1334, 0.3513, 0.974, 0.762, 0.524], [0.1795, 0.3513, 1.000, 0.971, 0.911], [0.2255, 0.3513, 1.000, 0.980, 0.924], [0.2716, 0.3513, 0.914, 0.912, 0.865],
+  [0.3176, 0.3513, 0.640, 0.750, 0.751], [0.0413, 0.2929, 0.818, 0.763, 0.612], [0.0874, 0.2929, 0.934, 0.755, 0.561], [0.1334, 0.2929, 0.989, 0.963, 0.905],
+  [0.1795, 0.2929, 0.870, 0.869, 0.802], [0.2255, 0.2929, 0.783, 0.823, 0.813], [0.2716, 0.2929, 0.426, 0.624, 0.632], [0.3176, 0.2929, 0.645, 0.734, 0.682],
+  [0.3661, 0.7983, 0.802, 0.860, 0.821], [0.4059, 0.7983, 1.000, 0.986, 0.938], [0.4457, 0.7983, 0.994, 0.955, 0.892], [0.4856, 0.7983, 0.718, 0.821, 0.790],
+  [0.3661, 0.7357, 0.959, 0.945, 0.886], [0.4059, 0.7357, 0.961, 0.934, 0.904], [0.4457, 0.7357, 1.000, 0.970, 0.901], [0.4856, 0.7357, 0.844, 0.893, 0.850],
+  [0.3661, 0.6730, 0.961, 0.941, 0.888], [0.4059, 0.6730, 0.943, 0.928, 0.889], [0.4457, 0.6730, 0.968, 0.933, 0.887], [0.4856, 0.6730, 1.000, 0.979, 0.928],
+  [0.3661, 0.6103, 0.895, 0.909, 0.863], [0.4059, 0.6103, 0.989, 0.955, 0.898], [0.4457, 0.6103, 0.992, 0.953, 0.902], [0.4856, 0.6103, 0.764, 0.845, 0.804],
+  [0.3661, 0.5476, 0.621, 0.763, 0.767], [0.4059, 0.5476, 1.000, 0.983, 0.923], [0.4457, 0.5476, 1.000, 0.988, 0.934], [0.4856, 0.5476, 0.717, 0.823, 0.793],
+  [0.3661, 0.4849, 0.163, 0.591, 0.601], [0.4059, 0.4849, 0.964, 0.948, 0.914], [0.4457, 0.4849, 1.000, 0.969, 0.924], [0.4856, 0.4849, 0.717, 0.824, 0.796],
+  [0.3661, 0.4223, 0.000, 0.139, 0.169], [0.4059, 0.4223, 0.555, 1.000, 1.000], [0.4457, 0.4223, 0.958, 0.812, 0.785], [0.4856, 0.4223, 0.738, 0.818, 0.791],
+  [0.3661, 0.3596, 0.024, 0.282, 0.305], [0.4059, 0.3596, 0.000, 0.477, 0.506], [0.4457, 0.3596, 0.607, 0.856, 0.843], [0.4856, 0.3596, 1.000, 0.987, 0.933],
+  [0.3661, 0.2969, 0.387, 0.600, 0.599], [0.4059, 0.2969, 0.000, 0.320, 0.351], [0.4457, 0.2969, 0.024, 0.532, 0.556], [0.4856, 0.2969, 0.390, 0.705, 0.693],
+  [0.5196, 0.7000, 0.961, 1.000, 1.000], [0.5662, 0.7000, 0.826, 0.433, 0.185], [0.6128, 0.7000, 0.882, 0.424, 0.138], [0.6593, 0.7000, 0.935, 0.485, 0.068],
+  [0.7059, 0.7000, 0.965, 0.845, 0.707], [0.7525, 0.7000, 0.989, 1.000, 0.976], [0.7991, 0.7000, 0.848, 0.835, 0.732], [0.5196, 0.6421, 0.948, 0.798, 0.642],
+  [0.5662, 0.6421, 0.809, 0.117, 0.000], [0.6128, 0.6421, 0.976, 0.682, 0.357], [0.6593, 0.6421, 1.000, 0.832, 0.663], [0.7059, 0.6421, 0.982, 1.000, 1.000],
+  [0.7525, 0.6421, 0.952, 0.872, 0.792], [0.7991, 0.6421, 0.994, 0.988, 0.953], [0.5196, 0.5841, 0.920, 0.600, 0.305], [0.5662, 0.5841, 0.938, 0.725, 0.461],
+  [0.6128, 0.5841, 1.000, 1.000, 0.879], [0.6593, 0.5841, 0.795, 0.784, 0.670], [0.7059, 0.5841, 0.840, 0.826, 0.730], [0.7525, 0.5841, 1.000, 1.000, 0.980],
+  [0.7991, 0.5841, 0.893, 0.904, 0.845], [0.5196, 0.5262, 0.659, 0.736, 0.664], [0.5662, 0.5262, 1.000, 1.000, 1.000], [0.6128, 0.5262, 0.000, 0.180, 0.302],
+  [0.6593, 0.5262, 0.347, 0.763, 0.772], [0.7059, 0.5262, 1.000, 0.980, 0.953], [0.7525, 0.5262, 0.973, 0.951, 0.861], [0.7991, 0.5262, 0.794, 0.833, 0.811],
+  [0.5196, 0.4683, 0.753, 0.828, 0.784], [0.5662, 0.4683, 1.000, 1.000, 1.000], [0.6128, 0.4683, 0.029, 0.418, 0.413], [0.6593, 0.4683, 0.450, 0.730, 0.726],
+  [0.7059, 0.4683, 1.000, 1.000, 0.987], [0.7525, 0.4683, 0.893, 0.960, 0.961], [0.7991, 0.4683, 0.599, 0.794, 0.808], [0.5196, 0.4104, 0.973, 0.956, 0.923],
+  [0.5662, 0.4104, 0.615, 0.780, 0.768], [0.6128, 0.4104, 0.629, 0.862, 0.847], [0.6593, 0.4104, 0.763, 0.774, 0.659], [0.7059, 0.4104, 0.818, 0.740, 0.529],
+  [0.7525, 0.4104, 0.652, 0.422, 0.026], [0.7991, 0.4104, 0.267, 0.250, 0.158], [0.5196, 0.3524, 0.750, 0.862, 0.840], [0.5662, 0.3524, 0.429, 0.745, 0.727],
+  [0.6128, 0.3524, 0.000, 0.527, 0.585], [0.6593, 0.3524, 0.818, 0.892, 0.819], [0.7059, 0.3524, 1.000, 0.725, 0.275], [0.7525, 0.3524, 0.913, 0.740, 0.400],
+  [0.7991, 0.3524, 0.908, 0.681, 0.280], [0.5196, 0.2945, 0.481, 0.721, 0.688], [0.5662, 0.2945, 0.335, 0.666, 0.664], [0.6128, 0.2945, 0.350, 0.748, 0.749],
+  [0.6593, 0.2945, 0.805, 0.820, 0.745], [0.7059, 0.2945, 0.880, 0.775, 0.509], [0.7525, 0.2945, 0.953, 0.725, 0.341], [0.7991, 0.2945, 0.805, 0.752, 0.591],
+  [0.8526, 0.8073, 0.540, 0.514, 0.409], [0.8947, 0.8073, 0.969, 0.742, 0.295], [0.9368, 0.8073, 0.978, 0.764, 0.423], [0.9789, 0.8073, 0.888, 0.756, 0.593],
+  [0.8526, 0.7442, 0.337, 0.301, 0.057], [0.8947, 0.7442, 1.000, 1.000, 0.715], [0.9368, 0.7442, 0.891, 0.857, 0.755], [0.9789, 0.7442, 0.893, 0.862, 0.799],
+  [0.8526, 0.6811, 0.951, 0.818, 0.564], [0.8947, 0.6811, 0.948, 0.886, 0.803], [0.9368, 0.6811, 0.937, 0.936, 0.882], [0.9789, 0.6811, 1.000, 1.000, 0.985],
+  [0.8526, 0.6180, 0.935, 0.907, 0.856], [0.8947, 0.6180, 1.000, 0.973, 0.856], [0.9368, 0.6180, 0.918, 0.913, 0.880], [0.9789, 0.6180, 0.932, 0.836, 0.716],
+  [0.8526, 0.5549, 0.375, 0.470, 0.436], [0.8947, 0.5549, 1.000, 1.000, 1.000], [0.9368, 0.5549, 0.545, 0.639, 0.652], [0.9789, 0.5549, 0.882, 0.759, 0.607],
+  [0.8526, 0.4919, 0.117, 0.333, 0.349], [0.8947, 0.4919, 1.000, 1.000, 1.000], [0.9368, 0.4919, 0.535, 0.719, 0.772], [0.9789, 0.4919, 0.878, 0.759, 0.610],
+  [0.8526, 0.4288, 0.177, 0.146, 0.043], [0.8947, 0.4288, 1.000, 1.000, 0.920], [0.9368, 0.4288, 0.684, 0.842, 0.908], [0.9789, 0.4288, 0.880, 0.764, 0.618],
+  [0.8526, 0.3657, 0.417, 0.269, 0.177], [0.8947, 0.3657, 1.000, 0.489, 0.027], [0.9368, 0.3657, 0.986, 0.765, 0.484], [0.9789, 0.3657, 0.981, 0.547, 0.212],
+  [0.8526, 0.3026, 0.811, 0.626, 0.464], [0.8947, 0.3026, 0.736, 0.291, 0.036], [0.9368, 0.3026, 0.893, 0.483, 0.174], [0.9789, 0.3026, 0.827, 0.422, 0.149],
+];
+const STET_KEY_STARTS = [0, 56, 92, 148, 184];
+const STET_KEY_SIGMA = [0.0496, 0.0533, 0.0492, 0.0536];
 
 function designFor(entry) {
   switch (entry.name) {
@@ -916,12 +988,16 @@ function designFor(entry) {
       back: { paper: '#EEF6FD', ink: '#123E78', soft: '#4F6E92', accent: '#2C7AC2' },
     };
     case 'stet': return {
-      motif: 'stet', t0: 2,
-      pal: ['#0B2628', '#06171A', '#3E9EA0', '#F1E8D6', '#E8873C', '#E9B85E'],
-      type: [{ lines: ['stet'], font: 'NJ Condensed', weight: 800, track: -0.03, fit: 1040, x: 12, base: 752, ch: 0 }],
-      inks: ['#F1E8D6'],
+      motif: 'stet', t0: 0,
+      pal: ['#072529', '#051D21'],
+      // each letter placed on its concept letter (fillText x, 1024 units); the t's under the s and e
+      type: [{ font: 'NJ Narrow', weight: 700, px: 862.7, base: 741.7,
+        glyphs: [['t', 303.6, 0], ['t', 798.6, 0, 1.02], ['s', -11.6, 1], ['e', 483.3, 1]] }],
+      inks: ['#F1E8D6', '#F1E8D6'],
       mark: [30, 26, 142],
-      bandY: 0.48, strip: 'fill', grain: [0.05, 0.02],
+      form: { fromType: true, box: [0, 0, 1024], R: 0.06, soft: 0.002, key: 'alpha', res: 512 },
+      keys: { list: STET_KEYS, starts: STET_KEY_STARTS, sigma: STET_KEY_SIGMA },
+      bandY: 0.48, strip: 'fill', grain: [0.03, 0.012],
       back: { paper: '#0D2A2C', ink: '#F3EBDB', soft: '#9BBDBB', accent: '#E9B85E' },
     };
     case 'Social Hook': return {
@@ -1089,14 +1165,23 @@ function wrap(ctx, text, width) {
 }
 
 // One title block, set to its cap height or fitted to its width, aligned by ink.
-function drawType(ctx, b, S) {
+function drawType(ctx, b, S, fill) {
+  if (b.glyphs) {
+    // glyphs placed one by one: [text, x, ch, scale]
+    for (const [g, x, ch, k = 1] of b.glyphs) {
+      setFont(ctx, b.weight, b.px * k * S, b.font, 0);
+      ctx.fillStyle = fill || CH[ch];
+      ctx.fillText(g, x * S, b.base * S);
+    }
+    return;
+  }
   setFont(ctx, b.weight, 100, b.font, b.track);
   let px;
   if (b.px) px = b.px;
   else if (b.cap) px = 100 * b.cap / ctx.measureText('H').actualBoundingBoxAscent;
   else px = 100 * b.fit / Math.max(...b.lines.map(l => inkBox(ctx, l).width));
   setFont(ctx, b.weight, px * S, b.font, b.track);
-  ctx.fillStyle = CH[b.ch];
+  ctx.fillStyle = fill || CH[b.ch];
   b.lines.forEach((line, i) => {
     const box = inkBox(ctx, line);
     const y = (b.base + i * (b.lead || 0)) * S;
@@ -1104,7 +1189,7 @@ function drawType(ctx, b, S) {
     if (!b.runs) { ctx.fillText(line, x, y); return; }
     // a line set in runs of different inks: each run starts at the advance of the runs before it
     let rx = x;
-    for (const [run, ch] of b.runs) { ctx.fillStyle = CH[ch]; ctx.fillText(run, rx, y); rx += ctx.measureText(run).width; }
+    for (const [run, ch] of b.runs) { ctx.fillStyle = fill || CH[ch]; ctx.fillText(run, rx, y); rx += ctx.measureText(run).width; }
   });
 }
 function drawFront(ctx, d) {
@@ -1224,6 +1309,16 @@ function artTexture(src) {
   return p;
 }
 const validLogo = logo => logo && (typeof logo.svg === 'string' || typeof logo.png === 'string') ? logo : null;
+// the front's type alone, white on clear, at the size the form field rasterises it (a cover whose form is its type)
+function typeImage(d) {
+  const n = Math.round((d.form.res || 512) / (1 + 2 * MARGIN));
+  const c = document.createElement('canvas');
+  c.width = c.height = n;
+  const ctx = c.getContext('2d');
+  ctx.textBaseline = 'alphabetic';
+  for (const b of d.type) drawType(ctx, b, n / 1024, '#fff');
+  return c;
+}
 // draw the image centred in a square box, keeping its aspect
 function drawContained(ctx, img, x, y, s) {
   const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
@@ -1403,7 +1498,9 @@ async function buildForm(src) {
 // ---------- scheduling ----------
 // Renders are queued and run one job (a front, a back, or a form field) per frame.
 
-export const coverProfiler = { wrap: null };   // optional (label, fn) => fn() wrapper for timing
+// optional (label, fn) => fn() wrapper for timing; nonce (a number) makes every program's source unique, so
+// a measurement sees shader compiles that no driver cache has seen
+export const coverProfiler = { wrap: null, nonce: 0 };
 const jobs = [];
 let pumping = false;
 const nextFrame = f => (document.hidden ? setTimeout(f, 16) : requestAnimationFrame(f));
@@ -1469,6 +1566,7 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
     uArt: { value: BLANK },
     uArtRect: { value: new THREE.Vector4(0, 0, 0, 0) },
     uArtFade: { value: 0 },
+    uKeys: { value: BLANK },
     uMip: { value: 0 },
     uInk0: { value: inks[0] },
     uInk1: { value: inks[1] },
@@ -1477,6 +1575,20 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
     uPal: { value: pal },
     uAux: { value: Array.from({ length: 8 }, () => new THREE.Vector4()) },
   };
+  // a motif's colour keys (stet), as a two-row float texture the shader reads with texelFetch
+  let keysTex = null;
+  if (d.keys) {
+    const { list, starts, sigma } = d.keys, n = list.length, data = new Float32Array(n * 8);
+    list.forEach(([x, y, r, g, b], i) => {
+      const L = starts.findIndex(s => s > i) - 1;
+      data.set([x, y, sigma[L], 0], i * 4);
+      data.set([r, g, b, 1], (n + i) * 4);
+    });
+    keysTex = new THREE.DataTexture(data, n, 2, THREE.RGBAFormat, THREE.FloatType);
+    keysTex.minFilter = keysTex.magFilter = THREE.NearestFilter;
+    keysTex.needsUpdate = true;
+    uniforms.uKeys.value = keysTex;
+  }
   // marked regions of the form, from the mark's own viewBox to cover space
   (d.orbs || []).forEach(([cx, cy, r], i) => {
     const [bx, by, bs] = d.form.box;
@@ -1485,7 +1597,8 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
   const material = new THREE.ShaderMaterial({
     name: `cover:${entry.name}`,
     vertexShader: VERT,
-    fragmentShader: PRELUDE + MOTIFS[d.motif] + MAIN,
+    fragmentShader: (PRELUDE + MOTIFS[d.motif] + MAIN).replace('gl_FragColor = vec4(o, 1.0);', coverProfiler.nonce
+      ? `gl_FragColor = vec4(o, 1.0 + uRestMix * ${coverProfiler.nonce.toFixed(1)}e-30);` : 'gl_FragColor = vec4(o, 1.0);'),
     uniforms, depthTest: false, depthWrite: false,
   });
   const scene = new THREE.Scene();
@@ -1512,7 +1625,7 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
   const markAt = sz => logo && d.mark ? logoImage(logo, Math.round(d.mark[2] * sz / 1024)) : Promise.resolve(null);
   const [markImg, formImg, art] = await Promise.all([
     markAt(size),
-    logo && d.form ? logoImage(logo, Math.round((d.form.res || 512) / (1 + 2 * MARGIN))) : null,
+    d.form?.fromType ? typeImage(d) : logo && d.form ? logoImage(logo, Math.round((d.form.res || 512) / (1 + 2 * MARGIN))) : null,
     d.art ? artTexture(d.art.src) : null,
     compiled,
   ]);
@@ -1701,6 +1814,7 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
       frontRT.dispose(); if (backRT) backRT.dispose(); material.dispose();
       if (detail) detail.evict();
       if (form) { form.tex.dispose(); if (form.col) form.col.dispose(); }
+      if (keysTex) keysTex.dispose();
     },
     // resident GPU bytes (preview diagnostics): mipmapped RGBA8 targets, half-float form fields
     gpuBytes() {
