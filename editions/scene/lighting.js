@@ -8,6 +8,7 @@ import * as THREE from 'three';
 import { SLEEVE } from './config.js';
 const SLEEVE_LIFT = SLEEVE.hoverLift.toFixed(2);
 const COLS = SLEEVE.cols;   // sleeves a shelf (config.js); slabs and feet are indexed row * COLS + col
+const HALF_PITCH = (SLEEVE.pitch / 2).toFixed(2);
 
 // Fitted against the reference wall (build/compare/fit). Rect: x0, y0, x1, y1 in the light's plane.
 export const LIGHTS = {
@@ -21,8 +22,14 @@ export const LIGHTS = {
   edgeShade: { strength: 0.989, reach: 5.54 }, // narrow shadow along a sleeve's shaded (left) edge
   liftShade: { strength: 0.5, reach: 8 },       // band under a lifted sleeve, full at the hover lift (set by eye)
   // Light the sleeves throw back onto the wall beside them (inter-reflection): strength to the right,
-  // left and above a sleeve, rise and fall distances, the share for the lower row, fall above a sleeve.
-  halo: { right: 0.4, left: 0.383, top: 0.06, rise: 0.328, fall: 60.395, row2: 0.724, vfall: 10 },
+  // left and above a sleeve, rise and fall distances, the share for the lower row, fall above a sleeve;
+  // the light beside a sleeve fades toward its top edge, where the sleeve meets the wall: the share it
+  // loses level with that edge, and the distance below the edge by which it is back in full.
+  halo: { right: 0.4, left: 0.383, top: 0.056, rise: 0.308, fall: 60.395, row2: 0.724, vfall: 10, drop: 0.881, dropReach: 31.417 },
+  // The broad glow on the wall above the sleeves' top edges: strength, fall upward from those edges,
+  // softness at the ends of a row, how far below the edges it fades out between the sleeves, and the
+  // half-width of the centred band it is strongest in.
+  glow: { strength: 0.2, fall: 100, side: 60, fade: 24.653, width: 1100 },
 };
 
 
@@ -44,6 +51,9 @@ export function createLightUniforms() {
     uContact: { value: new THREE.Vector2() },
     uHalo: { value: new THREE.Vector3() },
     uHaloShape: { value: new THREE.Vector4() },
+    uHaloDrop: { value: new THREE.Vector2() },
+    uGlow: { value: new THREE.Vector4() },
+    uGlowWidth: { value: 1e4 },
     uEdgeShade: { value: new THREE.Vector4() },
     uKeyMix: { value: 0.5 },
     uBase: { value: new THREE.Vector3() },
@@ -62,6 +72,9 @@ export function applyLights(u, L = LIGHTS) {
   u.uContact.value.set(L.contact.strength, L.contact.reach);
   u.uHalo.value.set(L.halo.right, L.halo.left, L.halo.top);
   u.uHaloShape.value.set(L.halo.rise, L.halo.fall, L.halo.row2, L.halo.vfall);
+  u.uHaloDrop.value.set(L.halo.drop, L.halo.dropReach);
+  u.uGlow.value.set(L.glow.strength, L.glow.fall, L.glow.side, L.glow.fade);
+  u.uGlowWidth.value = L.glow.width;
   u.uEdgeShade.value.set(L.edgeShade.strength, L.edgeShade.reach, L.liftShade.strength, L.liftShade.reach);
   u.uKeyMix.value = L.keyMix;
   u.uBase.value.set(L.base.centre, L.base.edge, L.base.cy);
@@ -166,13 +179,18 @@ float wallBase(vec2 p) {
 }
 
 // Light the sleeves of row 'row' throw back onto the wall beside them: rises from the sleeve's outline,
-// then falls away; strongest on the side the key light comes from.
+// then falls away; strongest on the side the key light comes from, and fading beside a sleeve toward its
+// top edge, where the sleeve meets the wall. Above the row, a broad glow falls away upward: each sleeve
+// lights the width of its pitch, so the glow runs on unbroken over the gaps.
 uniform vec3 uHalo;       // strength right, left, above
 uniform vec4 uHaloShape;  // rise, fall, lower row share, fall above a sleeve
+uniform vec2 uHaloDrop;   // share lost beside a sleeve level with its top edge, distance below it back in full
+uniform vec4 uGlow;       // glow strength, fall upward, softness at a row's ends, fade below the top edges
+uniform float uGlowWidth; // half-width of the glow's centred band
 uniform vec4 uEdgeShade;  // left edge strength, reach; under a lifted sleeve strength, reach
 float haloAt(vec2 p, int row) {
   if (row < 0) return 0.0;
-  float e = 0.0;
+  float e = 0.0, g = 0.0;
   for (int k = 0; k < ${COLS}; k++) {
     int i = row * ${2 * COLS} + k * 2;
     vec4 a = uSlab[i], b = uSlab[i + 1];
@@ -181,10 +199,16 @@ float haloAt(vec2 p, int row) {
     vec2 o = max(max(r.xy - p, p - r.zw), 0.0);
     float d = length(o);
     if (d <= 0.0) continue;
-    float side = p.x > 0.5 * (r.x + r.z) ? uHalo.x : uHalo.y;
+    float up = p.y - r.w;
+    float side = (p.x > 0.5 * (r.x + r.z) ? uHalo.x : uHalo.y) * (1.0 - uHaloDrop.x * (1.0 - smoothstep(0.0, uHaloDrop.y, -up)));
     float k2 = mix(uHalo.z, side, o.x / d);
     e += uSlabA[i] * k2 * (1.0 - exp(-d / uHaloShape.x)) * exp(-d / uHaloShape.y) * exp(-o.y / uHaloShape.w);
+    float cx = p.x - 0.5 * (r.x + r.z);
+    float wx = smoothstep(-uGlow.z, uGlow.z, cx + ${HALF_PITCH}) - smoothstep(-uGlow.z, uGlow.z, cx - ${HALF_PITCH});
+    g += uSlabA[i] * wx * exp(-max(up, 0.0) / uGlow.y) * smoothstep(-uGlow.w, 0.0, up);
   }
+  float x = p.x / uGlowWidth;
+  e += uGlow.x * g * exp(-x * x);
   return row == 1 ? e * uHaloShape.z : e;
 }
 
@@ -197,7 +221,9 @@ float edgeShade(vec2 p, int row) {
     vec4 a = uSlab[i], b = uSlab[i + 1];
     if (a.z <= a.x) continue;
     float dx = min(a.x, b.x) - p.x;
-    if (dx > 0.0 && p.y >= a.y && p.y <= b.w) f *= 1.0 - uSlabA[i] * uEdgeShade.x * exp(-dx / uEdgeShade.y);
+    // It fades toward the top edge with the light beside the sleeve (uHaloDrop), where the sleeve meets the wall.
+    if (dx > 0.0 && p.y >= a.y && p.y <= b.w)
+      f *= 1.0 - uSlabA[i] * uEdgeShade.x * exp(-dx / uEdgeShade.y) * (1.0 - uHaloDrop.x * (1.0 - smoothstep(0.0, uHaloDrop.y, b.w - p.y)));
     // Under a lifted sleeve: a band from its bottom edge, offset a little to the left.
     float lift = clamp(uFoot[row * ${COLS} + k].w / ${SLEEVE_LIFT}, 0.0, 1.0);
     float dy = a.y - p.y;
