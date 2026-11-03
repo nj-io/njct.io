@@ -812,6 +812,8 @@ async function route() {
   if (i >= 0) {
     if (i === inProject) return;
     const v = await loadView();
+    // The address may have moved on while the page module loaded (Back during a cold load).
+    if (entries.findIndex(e => slugOf(e) === decodeURIComponent(location.hash.slice(1))) !== i || i === inProject) return;
     if (det) dropDetails(true);
     setHovered(-1);
     inProject = i;
