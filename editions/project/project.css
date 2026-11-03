@@ -32,7 +32,7 @@ html.in-project .details, html.in-project #d-open { display: none; }
 .pj-head .pj-sp { flex: 1; }
 .pj-head .pj-back { height: 34px; padding: 0 14px; border: 0; border-radius: 17px; background: transparent; color: rgb(var(--fg)); cursor: pointer; }
 .pj-head .pj-back:hover { background: rgb(var(--fg) / 0.14); }
-.pj-head .pj-cta { height: 34px; padding: 0 14px; border: 0; border-radius: 17px; background: rgb(var(--fg)); color: rgb(var(--fg-inv)); cursor: pointer; }
+.pj-head .pj-cta { height: 34px; padding: 0 14px; border-radius: 17px; background: rgb(var(--fg)); color: rgb(var(--fg-inv)); line-height: 34px; text-decoration: none; }
 .pj :focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 .pj-title:focus { outline: none; }
 
