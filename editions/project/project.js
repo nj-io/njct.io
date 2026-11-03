@@ -52,8 +52,8 @@ const SECTIONS = [['overview', 'Overview'], ['under-the-hood', 'Under the hood']
 
 function pageHTML(entry, data, slugOf, entries) {
   const about = entry.kind === 'about';
-  const sec = (id, n, title, body) => `<section class="pj-sec" id="pj-${id}" data-sec="${id}" aria-labelledby="pj-h-${id}">
-    <p class="pj-num">${n}</p><h2 id="pj-h-${id}">${title}</h2>${body}</section>`;
+  const sec = (id, n, title, body) => `<section class="pj-sec" aria-labelledby="pj-h-${id}">
+    <div class="pj-part" id="pj-${id}" data-sec="${id}"><p class="pj-num">${n}</p><h2 id="pj-h-${id}">${title}</h2>${body}</div></section>`;
   if (about) {
     const a = entry.about;
     const list = entries.filter(e => e.kind !== 'about').map(e =>
@@ -66,10 +66,12 @@ function pageHTML(entry, data, slugOf, entries) {
     ? `<table class="pj-glance"><tbody>${data.glance.map(([k, v]) => `<tr><th scope="row">${k}</th><td>${v}</td></tr>`).join('')}</tbody></table>` : '';
   const diagram = data.diagram
     ? `<figure class="pj-figure"><div class="pj-diagram" tabindex="0" role="region" aria-label="${esc(data.loCap || 'Architecture diagram')}">${data.diagram}</div>${data.loCap ? `<figcaption>${data.loCap}</figcaption>` : ''}</figure>` : '';
+  // As on the live site: Overview is the lead, the figures and the narration; Under the hood is the
+  // diagram and the spec sheet, with Build process as its second part (never under Overview).
   return [
     sec('overview', '01', 'Overview', `<p class="pj-lead">${data.what}</p>${glance}${data.archHi ? `<div class="pj-text">${data.archHi}</div>` : ''}`),
-    sec('under-the-hood', '02', 'Under the hood', `${diagram}<div class="pj-text">${data.arch}</div>`),
-    sec('build-process', '03', 'Build process', `<div class="pj-text">${data.proc}</div>`),
+    sec('under-the-hood', '02', 'Under the hood', `${diagram}<div class="pj-text">${data.arch}</div></div>
+      <div class="pj-part" id="pj-build-process" data-sec="build-process"><h3 class="pj-h3">Build process</h3><div class="pj-text">${data.proc}</div>`),
   ].join('');
 }
 
@@ -186,7 +188,7 @@ export function createProjectView({ renderer, entries, slugOf, onBack, onCta }) 
     const io = new IntersectionObserver(es => {
       for (const e of es) if (e.isIntersecting) rail.forEach(b => b.setAttribute('aria-current', String(b.dataset.sec === e.target.dataset.sec)));
     }, { rootMargin: '-45% 0px -50% 0px' });
-    root.querySelectorAll('.pj-sec').forEach(s => io.observe(s));
+    root.querySelectorAll('.pj-part').forEach(s => io.observe(s));
 
     const world = createWorld(renderer, entry.name, col.hue, { reduced: reduced() });
     const cut = performance.now();

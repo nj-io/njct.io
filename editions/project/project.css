@@ -2,7 +2,7 @@
    first view. The page scrolls the document; the shelf's fixed layers are hidden while it is open. */
 @font-face {
   font-family: 'NJ Page Mono';
-  src: url('/vendor/fonts/jetbrains-mono-medium-latin.woff2') format('woff2');
+  src: url('/vendor/fonts/ui/jetbrains-mono-500-page.woff2') format('woff2');
   font-weight: 500; font-style: normal; font-display: swap;
 }
 /* overflow-x: clip keeps sideways scrolling off without making html or body a scroll container,
@@ -82,6 +82,8 @@ html.in-project .details, html.in-project #d-open { display: none; }
 .pj-sec { padding-top: 140px; }
 .pj-sec .pj-num { font: 500 13px/1 var(--mono); color: var(--acc-ink); margin: 0 0 18px; }
 .pj-sec h2 { margin: 0 0 56px; font-size: 120px; line-height: 0.95; font-weight: 500; letter-spacing: -0.035em; }
+.pj-h3 { margin: 112px 0 40px; font-size: 64px; line-height: 1; font-weight: 500; letter-spacing: -0.03em; }
+.pj-part { scroll-margin-top: calc(var(--pj-head) + 24px); }
 .pj-lead { max-width: 30ch; margin: 0 0 48px; font-size: 32px; line-height: 1.22; letter-spacing: -0.01em; }
 .pj-text { max-width: 68ch; font-size: 17px; line-height: 1.6; }
 .pj-text p, .pj-text ul, .pj-text ol, .pj-text table { margin: 0 0 1.1em; }
@@ -129,6 +131,7 @@ html.in-project .details, html.in-project #d-open { display: none; }
   .pj-rail { display: none; }
   .pj-sec { padding-top: 88px; }
   .pj-sec h2 { font-size: clamp(44px, 14vw, 64px); margin-bottom: 32px; }
+  .pj-h3 { font-size: clamp(32px, 10vw, 44px); margin: 72px 0 24px; }
   .pj-lead { font-size: 24px; }
   .pj-text, .pj-glance td, .pj-list a { font-size: 16px; }
   .pj-glance th { width: 7.5em; font-size: 12px; }

@@ -11,3 +11,12 @@ inter-variable-ui.woff2
   downloaded 2026-11-03 from fonts.gstatic.com/l/font?kit=... (v=v20), 33 884 bytes
   sha256 0000e816c2481bf8de6123098f5060c9ecf5444ee7719ad879d140656fc3a247
   Licence: OFL-1.1 (https://github.com/rsms/inter)
+
+jetbrains-mono-500-page.woff2
+  The project pages' mono face (hero boxes, rail, labels, captions). Loaded with the page's stylesheet
+  on Open, never in the first view. JetBrains Mono (JetBrains), gstatic, weight 500.
+  A Google Fonts text= subset with the same 114 code points as inter-variable-ui.woff2:
+  css2?family=JetBrains+Mono:wght@500&text=<the same list as above>
+  downloaded 2026-11-03 from fonts.gstatic.com/l/font?kit=..., 18 728 bytes
+  sha256 597e3a37b4825a8b0625870cbfbbf6658fd43e7c3d58d88e177a5927dec14047
+  Licence: OFL-1.1 (https://github.com/JetBrains/JetBrainsMono)

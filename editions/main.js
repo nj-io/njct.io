@@ -7,7 +7,7 @@ import { CAMERA_Z, REF_H, SHELF, SLEEVE, INTRO, DETAILS, OPEN, viewScale } from 
 import { createLightUniforms, applyLights } from './scene/lighting.js';
 import { createWall } from './scene/wall.js';
 import { createShelves } from './scene/shelves.js';
-import { createSleeves, applyPose, writeOccluders, setCover, restPose, hoverPose } from './scene/sleeves.js';
+import { createSleeves, applyPose, writeOccluders, setCover, restPose, hoverPose, COVER_BIAS } from './scene/sleeves.js';
 import { introPose, stepHover, fallPose, HOVER_DELAY, bezier, lerpPose, clamp01, dur, delay, setReducedMotion } from './scene/motion.js';
 import { createPost } from './scene/post.js';
 import { createSticker } from './scene/sticker.js';
@@ -40,6 +40,7 @@ const wall = createWall(renderer, uniforms);
 scene.add(wall.mesh);
 for (const m of createShelves(uniforms)) scene.add(m);
 const sleeves = createSleeves(entries);
+COVER_BIAS.value = window.__editionsTest?.coverBias ?? -0.5;   // a test can set the cover mip bias before load
 // Placeholder maps, so the covers arriving later swap a texture instead of compiling a new program.
 const blank = new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1);
 blank.colorSpace = THREE.SRGBColorSpace;
@@ -60,12 +61,13 @@ camera.position.set(0, 0, CAMERA_Z);
 
 // ---- covers -------------------------------------------------------------------------------------
 // Covers come only through createCover (editions/covers/): a 1024 front (Details shows it at about 830
-// device px) and the 512 shelf back. A cover that fails to build leaves its sleeve plain, in the entry's
-// accent colour or neutral grey. The sleeves wait for the covers, at most 3 s.
+// device px) and no shelf back (backs face the wall); the back renders at 1024 when its sleeve enters
+// Details. A cover that fails to build leaves its sleeve plain, in the entry's accent colour or neutral
+// grey. The sleeves wait for the covers, at most 3 s.
 const covers = sleeves.map(() => null);
 const build = (s, i, opts) => Promise.resolve().then(() => createCover(renderer, s.entry, i, opts));
-const coversReady = Promise.all(sleeves.map((s, i) => build(s, i, { size: 1024 })
-  .then(c => { covers[i] = c; setCover(s, c.front, c.back); wake(); })
+const coversReady = Promise.all(sleeves.map((s, i) => build(s, i, { size: 1024, backSize: 0 })
+  .then(c => { covers[i] = c; setCover(s, c.front, null); wake(); })
   .catch(e => console.warn(`cover ${s.entry.name}: plain sleeve (${e?.message || e})`))));
 let coversAt = null;
 Promise.race([coversReady, new Promise(r => setTimeout(r, 3000))]).then(() => {
@@ -73,14 +75,16 @@ Promise.race([coversReady, new Promise(r => setTimeout(r, 3000))]).then(() => {
   if (introStart !== null) sleevesStart = Math.max(introStart, coversAt - INTRO.appear.at);
   wake();
 });
-// Details magnifies the back, so a sleeve entering Details gets its back at 1024, from a second cover
-// built with a minimal front (the contract has no back-only call). Built once per sleeve.
-const detailCovers = sleeves.map(() => null);
+// The cover module keeps the last two Details backs and renders an evicted one again on request, so the
+// sleeve asks on every entry, and gives its back up (to the placeholder) when it leaves Details.
 function backFor(i) {
-  if (!detailCovers[i]) detailCovers[i] = build(sleeves[i], i, { size: 16, backSize: 1024 })
-    .then(c => { setCover(sleeves[i], null, c.back); wake(); return c; })
-    .catch(e => console.warn(`cover ${sleeves[i].entry.name}: no 1024 back (${e?.message || e})`));
+  const s = sleeves[i];
+  covers[i]?.detailBack(1024).then(tex => {
+    if (det && det.i === i) { s.back.map = tex || blank; s.back.color.set(tex ? 0xffffff : BACK_PLAIN); s.back.needsUpdate = true; wake(); }
+  }).catch(e => console.warn(`cover ${s.entry.name}: no Details back (${e?.message || e})`));
 }
+const BACK_PLAIN = 0xe9e6e0;   // the back's card colour in sleeves.js
+function releaseBack(s) { if (s.back.map !== blank) { s.back.map = blank; s.back.color.set(BACK_PLAIN); s.back.needsUpdate = true; } }
 
 // The cover under the pointer (or in Details) animates; at most one at a time. A released cover keeps
 // easing to a stop for about 1.6 s.
@@ -507,6 +511,7 @@ function closeDetails() {
 function endDetails(s, now) {
   const { i, ret } = det;
   det = null;
+  releaseBack(s);
   s.pose = hoverPose();
   applyPose(s);
   for (const o of [s.mesh, s.record.mesh]) o.layers.set(0);
