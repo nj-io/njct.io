@@ -27,7 +27,7 @@ const FACES = [
   ['NJ Poppins', 'poppins-extrabold-cover.woff2', '800'],
   ['NJ Soft Serif', 'fraunces-144pt-black-soft-cover.woff2', '900'],
   ['NJ Serif', 'fraunces-144pt-bold-cover.woff2', '700'],
-  ['NJ Hanken', 'hanken-grotesk-650-cover.woff2', '650'],
+  ['NJ Hanken', 'hanken-grotesk-600-cover.woff2', '600'],
   ['NJ Narrow', 'archivo-narrow-700-cover.woff2', '700'],
   ['NJ Bricolage', 'bricolage-grotesque-96pt-extrabold-title-cover.woff2', '800'],
   ['NJ Roboto', 'roboto-black-cover.woff2', '900'],
@@ -417,93 +417,136 @@ vec3 motif(vec2 p, float t) {
   return col;
 }`;
 
-// Topshine: the star mark as clear violet glass, lit from inside and at its rims, inside a thin glass ring.
-MOTIFS.topshine = /* glsl */`
-const float YF = 0.205;
-vec3 ground(vec2 p) {
-  float v = length((p - vec2(0.5, 0.56)) * vec2(1.0, 1.1));
-  vec3 col = mix(uPal[0], uPal[1], smoothstep(0.1, 0.8, v));
-  col = mix(col, uPal[2], 0.35 * exp(-pow(length(p - vec2(0.5, 0.55)) / 0.3, 2.0)));
-  // violet haze drifting through the room
-  col = mix(col, uPal[2], 0.45 * exp(-pow(length((p - ic(0.78, 0.55)) * vec2(1.0, 1.6)) / 0.2, 2.0)));
-  col = mix(col, uPal[4], 0.25 * exp(-pow(length((p - ic(0.62, 0.86)) * vec2(0.8, 2.0)) / 0.18, 2.0)));
-  float fl = smoothstep(YF + 0.02, YF - 0.06, p.y);
-  col = mix(col, mix(uPal[0], uPal[1], smoothstep(0.0, 0.35, abs(p.x - 0.5)) * 0.8), fl * 0.5);
-  return col;
+// Topshine's fit to its concept, in concept px (574 to the cover, y down): the star's centre O and its tips' reach
+// A (right, left) and B (up, down), through which its crease levels run; the orbs (x, y, r) and their highlights
+// (x, y, half-length, half-width, degrees); the ring's outer edge (centre, semi-axes, degrees); the brand mark as the
+// overlay draws it (star centre, reach, superellipse power, two dots), for its halo. Then the colour fields: uniform
+// cubic B-splines, each block [x0, y0, size (cover units, y down), n, g, r - g and b - g offsets, step]. The data
+// holds per block the mask of controls the fit used, as run lengths (dropped first, alternating), then the planes
+// g, r - g, b - g over those controls in row order, each value as its error from a prediction (its left neighbour
+// when used, else the one above, else the last value). alpha[k] is a run length k or an error k - 31; '~' and two
+// symbols a run length a * 63 + b or an error (a * 63 + b) - 1984.
+const TOPSHINE = {
+  O: [296.0, 251.0], A: [175.5, 176.0], B: [189.5, 189.5],
+  orbs: [[447.38, 128.86, 50.57], [144.3, 379.24, 62.16]],
+  specs: [[[420.5, 111.5, 7.5, 1.8, -44.0]], [[103.3, 355.3, 4.1, 2.4, 113.0], [118.4, 355.2, 5.3, 2.1, -31.0]]],
+  ring: [273.15, 319.94, 252.39, 42.16, 28.18],
+  mark: [61.9, 62.5, 28.26, 29.85, 0.61, 81.6, 42.8, 4.92, 43.5, 81.9, 4.6], halo: 3.0,
+  blocks: [[0, 0, 1, 24, -0.0435721, -0.120207, -0.72908, 0.010223], [0, 0, 1, 16, -0.0384307, -0.014644, -0.301326, 0.00415019], [0, 0, 1, 16, -0.0269597, -0.00667472, -0.0558797, 0.000997704], [0, 0, 1, 16, -0.101953, -0.0218281, -0.0190753, 0.00132585], [0, 0, 1, 16, -0.114756, -0.0196049, -0.106363, 0.00277978], [0.03484, 0.03484, 0.14808, 6, -0.0103541, 0.000113082, 0.000104971, 0.000118731], [0.19, 0.095, 0.67, 32, -1.76549, -0.636247, -1.50712, 0.0344205], [0.19, 0.095, 0.67, 12, -0.385157, -0.0369409, -0.211996, 0.00712032], [0.19, 0.095, 0.67, 12, -0.323323, -0.0936015, -0.322203, 0.00843606], [0.19, 0.095, 0.67, 12, -0.317982, -0.113914, -0.41649, 0.00925722], [0.19, 0.095, 0.67, 14, -0.135325, -0.0178629, -0.0667056, 0.0026131], [0.19, 0.095, 0.67, 14, -0.168594, -0.0378874, -0.101451, 0.0036077], [0.19, 0.095, 0.67, 14, -0.0926642, -0.0351296, -0.229665, 0.00414661], [0.19, 0.095, 0.67, 14, -0.0427921, -0.01725, -0.0505674, 0.00118021], [0.67809, 0.12318, 0.20263, 20, -0.916447, -0.122698, -0.255125, 0.0170493], [0.67809, 0.12318, 0.20263, 8, -0.0721425, -0.00332776, -0.0539251, 0.00267586], [0.67809, 0.12318, 0.20263, 8, -0.136753, -0.0133184, -0.0105053, 0.00243848], [0.67809, 0.12318, 0.20263, 4, 0.313207, -0.0338462, -0.55793, 0.00207335], [0.12686, 0.53616, 0.24907, 20, -0.28569, -0.0656491, -0.276635, 0.0115007], [0.12686, 0.53616, 0.24907, 8, -0.0318398, -0.00569976, -0.112584, 0.00356312], [0.12686, 0.53616, 0.24907, 8, -0.0190211, -0.00510983, -0.0532528, 0.00136563], [0.12686, 0.53616, 0.24907, 4, 0.381885, 0.00231185, -0.630943, 0.00262]],
+  alpha: '()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_abcdefgh',
+  data: '4(~+O)>+=*?)~)*)~+<~H_GGGDGKKC@DHFFHEDFFFDDDJIHEIFGEDEGEDFAHDFEEEDGEdFIEHGFEGCDFBLBEEEEFDECC~H7GHHGFECAEIFJDCBFCHDEDBD~HDGHJCHABLBAJO?F>HEEEACFB~HNGJGEDFB4ISJNE>=AINN=3IC~HSBQ@IJ7=dI4JRBAC>JGC3GKB~HNCU;T<N^~FW6OWS;-9NT=PJ<JP~H:GP@KME~F[bNAeA~FgU?/OD<<gGMbFL?]D@O9=1T5*~H/~Fd/W^B4bS.DM9~H*,9R0SQ.Dh~FH93~HFQ~Fc~HG~E_AJBSMM~Fg^>O7~F__E7Ne/~H=EH~F,EGCODOT4DG~H(~FS_O2MMCT~HS~F>R0I?GDLQEZ>0GAB:h9?DT~H4~FC~H*?gG>HBDK7ZaH;Nb~FU4cHAb~FOeI<~H>H?CDFC)^OD]+EUEOZ~F<gR<T~H/KCEAE]~Fh@PYF_7O;92V~HL~F0~H,J=YLM=FDMUC@GALL1I@]7SR~FU~H3BGIJCCFHE>CAB~H*Q~Ff?B.O~H(a~F[~H)HKHHEEFKHV~FRMF~H4~F^^9@gT~F?HUOS~H)ICEHI=3~H*d~F[*~HW~F/~H56R;6]G6GH~HAJ>I=SI~FgEOIE~H3~FN~HR~FX~FdPIBDOHE~HBF=IEJN5OAG]~FeEIYBA=FE?FG~H6FCEBCI>LRFA7FIeA2?ACKIJVRIHEGFEEHIIEGGEHIGFFHFHHFHIFHGGGJBHGFKCIFGHGGEGEHHHGGFGHFGFJCHHHFHGFFHFDIIDEIHHCIGHEIGGFIEHEHGFFGIBJGGFGIFGEJEHGGHDGHGFFFHFHGFGHEHFJEHHFHNF@EICHFGIFHEHGKFFHFGFGENEBGGHDHIEGGHGJGEEMIJDEDI@IGEIBFHHHGFHCIHGMIK>GJCHBHFGCGKEGFKDHFODCBLA?JGM>GK@EKDLDHFMFIEIN??CDKEL=EMFIGFIBKKFIQD>AM?T@FCILDHGGIHHCFGMK:JCCNAJDDHJFGJEFLIHBFLLHDBGHDIBGBHIEIFIFEDMIGLBEPBFDJBFHBGIGFHHIHGEFQEF?LGIEEEFFHHEGJGHGDMCFICMLB@HKEIEEHGIEDJGIEELDIGEIPJ:HDKFAEHIDJGFHFKFEKCP@AJFFKEI?EKGFIGICODKECHCPRM4>JGIAHKFGFKH@KMEK?XKB?AII@FGGIHGGFLBHGES;DTJ8NGGCGKBGGHGGEHGHFLM6MWG@GBGFGCJJFEHKIHGDHLGIB:CHMNKFDFLM~HSMHCHDAELMKGGFIKHDDLNJ=*ASJFHGIKGIGJIJIIHGJIEIB~F<FUIFGFKGJIILCLHIIKHFFDO~EeITGEGLJLJEICJKLGLEFHIBL~EdIT@LHLKDKND>PEREKHHEEGI~EeIOFJJFMXF<D?LNPLFBDNFDI~EdPCNFBXN/FYB@LKJS=DJV@CR~E[L>Q<S?4~H4W?:7P~H)PA<J9KI?L~EXDDOD@L~H-1@N/5WRcX?LPA3FN~EXIEO8IMBTQ[~Fe/6S~H5Z4:LM5G~F8GFT/ZY8^:;:-F~HLWN~FSAh~FQAEPIF?Bg4N?0OacY9/a~FTGM6BXFIL?;ZIL~F[DQ~H*Y??L=~F>~HLB~F;FZHHS;K2O[Q2;~H25NQH=~FW~HM~FeM~EYKWEJR:@EHBU>/~H<U1DN0~H>~Fh>X~ELLOIJK5JZJF3dI<HA4~HJ~Fg?NA~EVHLKEN:JOU<F2V?QU^7~FJ~HN0ER~E^CIMHIF<IPFJD=cEN1X9>~H+*N~F+AOHJJHGQIPM~Ff?gQJ[@,7_6G~EfEPKFHGG6~H9BJ~F[~H/2UN-;~HH-ADK~E[IRGGHOX(5~H-c~F:~H]~F]V>SU5JCFI~EeDUBR>K[HDFQ~FY~H=~F@~H5h9DHF@GJ~F-FVDJDJN?ON3~H(JC8LMMAFGFH~FFADGPMAEGFJBUOE*NcK@@AFK?=~)+*5.2.2.**/202/12.3-ZLEPC?HKJNOF>AFGYX@6>:F:VLCIB?<?F2UUJE@:BF>7QPYYH7721~H*V2.4~FdS>9>KGFGHHGFGGHIGFGFGIIGFGHFHKIFGHFDHJIHHHF@DHEHIIJE@CHDJIDAFCIFDF~HUI>LPDCDAAJNJGG89LSOVIR:AGEPQSOEY8;ILOSJFMX>B96DWXYW~Fh6[fX~H(;OVQ=~)+*5-3.3-**0101102.4,ZfFMND<CJ]Q.7GDg33@EE~FfLJH=FL@95TQDJG@1D2MNIL)FJ7RN~FW?b/1BWMFHEFJIGFEJKEHEFIIIFGCIMFHJFCKIHDIKF@HFEGKIAEIIILDAGDFDG~H?HABHOME5;[^FH(W_PIHh?GKOHFMO[==I?HSRK[>4CSa@M^>R~H6?/[^E5=~),)5-3.3-*)1101102.4,Z~HY>JOEFC7HSOIJ7EOS_Y2@GT[YLCa84D[UQGOg=A8EO~H.SZ2.:~H5h~H*9Y]WHGFFGGHEEGHFFEFHGGFEGDEDHMHFCAEDHQMICEFFOKGMFEHIIKFHHQOD?IHKTG>>FF[N>9*7bRG5-.BP+[]H/3:KA~FcSPYF:~Fd80d_K~F](~F^S53;~)++4.2.22/3/2/11/3-Zg=KX92AWWMF;-CYJZW~Fa~FeHURLG>R4,=IUQDFL@B>;QJEG_FID@HFQ>gDNIRN~FYQaDE.EXNGHEGHLHDGFINJDGFHJNJCDDFHFIQOCCCCBGIOMDGG@<EKAJIMNC8>HBMQK=7D;LC?D~H9PC7T]L98@GUcL5E5<~H.hE8=BHQ>XaPF9=KHBLKOS=CKF3IEKLDHAN/JAD=B~H1A2KI_I91+)+,*2*,/~H[*0H_4~FeJ~H+~H7G~FW(G~H(]5FYGONIAMRJ>5FVQI=ANGAH_WD5WdC*~FfH~H,dH+5XI8gV+E+E,C-C-C.A/A0?1?2=3;77:3@/C-D,C1=4996;4=2>1@/A/B-C-D,D+E+W~HFC7MD~Ff8MFa,V2Z~HCIN=F~HSY6FA~H1(VR~FbLSS(c)*d2~H2~FX0~HAh~FKG[,~H+P~F.L9(d9[(~HH~F]@aG~FgLT:W9O~H1+5WK-CUDFHS1a~H)D4~Fb<]P:DMNBJCPQ0Xa]0)UI8BL;IIOBIFHDVR7EUQ.<J?O>FNM?NJHBIGHEJDMYDDRND4CKAZPXE9IB=EJGGGGEKH?SK=GNICP<SXB~FcX[?GPEAGHGGHIBR8?^MZ>(HATW==PMDFHFM>N1]~H+=54POaL@)KOCGKEB?W~H6~F^3+]T~F]SGBP<?P~H;~FX/*~H*I~Fec0W-P~H1Q~F]~Fg~H14>JB2~H3f)HdK4Z~F]]~H-9+e>G-g+P]@C4h~Fa~Fb~H535~H:V~H+~F^PZ5<ALh~Fe~FG65~FZ]GEHGDHEHDHHGFCGGHHBDKGHD>SEHDPB1IDFJFO4QFIFGHFIDQGJCIJAQ>GGELEGLCGFQ:BNEILALFGFEIN;:ORIEEICJIEHFDGIOCAHFILFBHGGHJCIFGFCJENICJHCDGGFEJIHGGDIGHFGEDIGIGGHIGFHHFGKGFFEGHFHGHFGFDGHHGHGIFEFGFEGIJIGEFHGHFHEHIFIGHFFDEJEGJHGGFHGHGIFDNBGCEIIHEHIGHEIGGHEQ:HHGGGIHHFGJAV6GKHGGGIFJBT=;MGGFKEIHL0MGHFGJDP?>IFGGGK?CFKDLGCJFGMCHGEMCFFLDEJJGIH~H:NFNQDPE>.YPT9~FNEUNH~FBAdDO~F[X9ReC@6_3~H4W:R~Ff~H*O~FT9~HCB:_~Fg;~HNJb_0Y/h~FI~H+B*^~H);EP9R?~FbYP@I~H)<CMDH;[/~FhCN~H)VCBU@CLDHJ?;_50*Vc>HZSCQCHF@LIDJ:9XH:<XL@SHQJCAO@FFCJJFJBIB5JJ=AJVJDX9?7FVELPHEEIHFICFN;BPFAGJDB19J~H0>4OG@JLGEHFGDL<UP3B3NY>?D<QP@BIHFI@PA[5~FdMNY;17MQdCAIHCILM;~FV~H(SS>A~H/<HJ?RN@~FQ~H/QY3H~H)/]8c>~F[:f],[PBM]~F[~FgYA:G[4~H14~F^I[6SDe~FhP8<XJW~FhXa0[X~FS>5~H.?~FcWPK1~Fg~H.~H=TheA-*1,0,/-.0+2*2*2,./,0,1*-~H>HFJNBOIF>UT:~FgJgMP3~FfT^IRO0E=7M^Y=EC1CH5+[~H7L9C>HK;~FaK~H1ULGAB>IA7DVJCFKTGLGGGFGGGFIDFKLG@EEORC>FFGHGMLBAFGGIIHJLG=BHHHIGHKN>@GEHEELGFFCHGFEGGGfFEDGL>ETN49S~H+D,>=Yg?7F?DRDPVB:=LINTEIU[7)BQLMFBQg@*=BGFESIJM@CEICD@GA-*1,0,/.,1+2*2*2,./,0,1*-~H-HGHLEOIG>WQ>/<OaSPI1~Fg>NQVX@;0/>GKTDQ;668;EOV8J=8?A?HSR?>EGFKQLKBMPI?CFRGFFFIFEEJIEDFIJIGFDEEGIKGHFCDDFJLIGHGCCDGIKIGHFECCHJJIGFCDHKHEEHGGFGHG~H-FGEDK@FMN5>SeP;.=>Hb~H+P;9;9OUcbOC=7JAU[ZWQD:4SGU]SLK@5;KYPDA<;K@B=FCG?G=9*1,0,.0+1+2+0.,0,1*9~HBG7hS+2T~H7;~F_>9A~H<[<8:<9T@Y~H(V1G;9YASbY65N?<B~H1RE>MM~H,AQBTMJHVFGIEEDFFIHDDDLMFFHGCEELMCFGIFHBBIGJIFJI@;IMJED>HDGDGFGeFT/:^X9~F[T~H,PRI~FY8RUOOV=J9,<ZFPW9K=29VUDOSM~Ff;HNAD*I<I>DEFA<*3+3,1./0-2,2,1/.1,2+4*<~HFF@FCP2+U~H)[0~FLcdFIJF9~H+?44UR7NX]15LAQT=TC.f]8WFDQc5~F[T~H+TZL?1B,8dJLKLRDLGFEJCGSJ<DP_B9>HJQR??ADDMMKFDDDFFELMHDFFFFHGJKFEGGFGHFGHFGGEGFHEEGdGFPL>Ya:17S~H760KPF=R*LVSAFX:33^X>K@9T>DY4=N:FDE5N~H(A0B=GGRN_T.BBHB;JA<*3+3,2,00-2,2-0/-2,2+4*<~HPC>c>5JMG,9~H-TEA.?~H-?HNLG<HEH=RMJJG0ZTEP;3OAGdI0ND9Qa>~FUM<@~FWQ5:7?GSFGHGEHGHBFNIGD>ISFBHJHCCKNBBIIFDAMONE@CGFCMLOI?BLEIOHGGMHJFIIGTIM7MRHGDXU6:?ETZ5NC=@CJ=TSX=7DC=W@@OIPL@RG9CXHKNE5S~H/>OP~H1;TMVMI?J*3+3,1..2,2-00,2+4*4)=~H*DGWDDcS4-@G~H/a,1HGDA~H+g(.DHNI9?LIDJLAF:?EAQQMI@CLK@5HJPGHGEIFBGMI@BMIFIJI?COGDFGKJBABLLFFEHFD?GNIHHAEFIECGF~H6HF6HJ/<YcOB~Ff1c[CHWF~Fd,h[HF=BaO@GN??NFWOLN=<AIRFEIMOGC=J*4*3,1..1-2-/1,2+4*J~H@GCN~Fd;VHP@:9H^U@KD@2E~H*IF:JJFRcL)>LC;N~H7X2?M~HBBP8dQMVFCGDFMI@@MT>GOE?ALH>OLGGEFEHDGGIEHGAGKFEBANFDEJF~H)FF@[NAL:@T~H)D17OG;K~H+B,KGUO=E?-EhMEOQ@~F[7YI<~FTP=M1FBME*7024/6.6-8,8,8+:*:+8,8,8-6.6/4207*E~HMG/U^KFG26XER^A?HMU;><N>@Z=>HFIC~H)M@<d~FdAEGJHKLGLaJA9T~FaDPHGGKKRRSQ;0T:~Fa~H=J~FP]AOKPLYOD6H32b)QHHJNNSUGP,2OS94KKEKHOK@Cgg~FJ.AD~H233DODIJR@3UWf~FW1P~H=~Fh)FTCIKR3BSWh~FcA~HC?(,TKIMIE9ZQ[~FIJ~H2R7~F]LVIJG^@c~FhP~Fb1~H+A~Fe+~H+@SSJJN+M8~H,8L,:~H<>OJQ?N~Fh,U=H+O~H1P@3I>4Wa~Fe~Fh72^N:PHEIGGGHEDKFJGEHEHHEIDGMCGGFFHHGHFBHDMEEHHGGFIGIHAIFLCLECHGGEHGEIGIFHDR>EHGGFHGFGJCMCND@KEIFGEGHFIEGLFDGIEHGHEHDHICIGINBGFGGFIFGFEIFGHGHR<GIEGGGGGBJGDP8MP=KEGDJEHDGHFD@CV=IFEIEGICLEDM9UGAKAIFGFFLCCDNN<FJCGGFIEEGDPHCGCGIEGHFHGAKGGGGHeHQLDFIED>JQQ8KMCFDCG?N_G;S?HIEK;<H9MS:O@PCJCP?7ADGU]JNE:ICL<<>9UGQQf~F_M~H).OGJ=C4@KLBaNFV-QEIDA=7I=c@WBHY4TCIKEDLI,+~H2?Kc~Fh]FMHEIN8S?BI(~H+7D~FT~H)b6VAH@BU>F;~Fh~H0B~F[J~H/JLCH>CNO9;7~H,0B5d_I@>IB5L2^DMM0M~H0DJ;D<AG<f4?AWOTJ1;DE=P8NEF[]GG.<RMC79KTSWKR;3K7+*,.*.)8).*.,*+SHa81L_Qe;~FfIeK@~H/E,@P?3D_NE?@991ZU5@@?ZV65F)EHGGFHHFGHGGHFFHJHFFGGEGMIEDFGFHICCEGDHDDFGDGdF9MXJ>?>LaO<?>;NZOCBCIGMLOID=SGBQN?EDCMRAGG7+*,.*.)8).*.,*+~HIF<WU<6?-W~H(D0CA~FaJ~H1[KJAJ9HL[bM5~H,?)R^LG;,HdLYEMFIIFFGFIIFEEFJKHECDFHGOHBBBEJCGFFCECGHICEEGJG]I7?HIZO*6GIQ~H+N01@EEF[LE84BI+P_D(AAP]O+=5I/)*)+)+-Z>W~I/~F@?~H6~FFNHCCLHEL~I3O7~Ee~HKO~FY~HFMD,6024/6.6-8,8+:*:*:*:+8,8-6.6/4206,D~H.QNH~FdcdR?T:,S:F~H)A9GIWLF-dS~FAd?BEJKNZ[A-]~FX,U8SCINQ]SMDEG~FMT=f,IKMSNhU;*h~F@~H-~F^RL*MFOLXZh:*/~H-+]~FH^G;MGJMZ[YO~Fb~FdJ?cI~FXa7CIHJLUY_V~FT~FTDJ~H.@~FO~H+*DEFLNG^QZ~FW~FU<e~H/E~FD[D2JKBGJVhJC~FJD~H.U~FP7K:INCHSQb+~HD:~H4[:~FFIIJJVPP~H3~Fe~F[~H74eY~FF4PSOPZVA=~FV)~H,~H(3~F^;~H(SKYM96~Fc~FeaOD,N~H6T?B(5~FfU^~Fd0^DO~FgC5APIFEKHDHGFNB?IMAJHGHFLCDHJEEHGFFHGJHGBALFFGGJEHHFLGAFFOHDMBBIHHALFHFCOLGBP<IEGHEIAIM?GREDLN8JEHGEIEJFFGILLAQ=IEEHFHDIFHIGLPH>_4DEGFGFGHDKIHLDOHIJ<JAHHEHFFIHQ6NSBL9LBFHEGHHD>EAU@IJ?GECLFIKAN:JT?HCGHFGGHED>JPHBCEFGHFMEIMFQ?DEHFHKC=LNKADICEIEE~H,LE?^EALGADDCfS;EQHB?A:??b~H*:FQ>KCJ:6E8I~H.M@X4PFID?6G0:~H,~H6CP4U8ICD=.8V@@~HW~Fh~H+<Ec2JEI7:~FgSU9Rh9~H84V7<KCG>91F^@O~H/8HeBN=J9NAC;59~H,FJg-J~HB~Fa~H,9A<HGD?<?bCH]~FfJ~HD4OWFD3DCE3CMI@/9~H>W?V@<MD=?2X~Fd;C1V~HCDK;I9B?~F[~H(~H)~FMI>1~HJTA;E946LYNCI3_~H+S):B8EONAENMR_>~F^;OCQA=PE~H(b+B+<]Y87+*,.*.)8).*.,*+GH~H,J.DPFaX~Fh9K??~H5[64:68FgXD:34?1TKC?:<MJGEA6HJGEHIGEFGGIGFFGFHHHGGFGFHGHHGFIFFHGHGFFHGGHG~H+G9FRKFE<BWQIE@3CUTMIFG;FPPMIDWHGLHFLGGIGEGG7+*,.*.)8).*.,*+eDAR~H)6*;WHh9~Fb8a_KKE9>AFYKAT~H)D~FRGD4M~H*N7B<FYNFFJGIJFGJEFKHHJD?GJKHFDDHIIHEDDIGGHFGDFGHFHFFF~H1GJU?DDE4_KBFH/0T_MJGBI:KXK<GRRL[G4BSOWF5@?G/)*)+)+-Z=b~Hh~F=?~H0~FDIFKFDFFD~I)O4~F1~HEN~Fb~H@',
+};
+// Topshine: the star mark as clear violet glass, two glass orbs and a thin glass ring, in a lavender room. Every
+// part's colour is a smooth field fitted to the concept (TOPSHINE); the crisp structure that makes the glass read
+// as glass is computed here: the star's lit rim and rim zone (from its distance field) and its creases (level
+// curves of a superellipse through its tips), the orbs' limbs and highlights, the ring's edges and fill, and the
+// brand mark's halo. Alive, a glint runs round the ring and caustics shimmer in the star.
+MOTIFS.topshine = (() => {
+  const T = TOPSHINE, k = 1 / 574, f = v => (+v).toFixed(5);
+  const FO = [], FN = [], FB = [];
+  let off = 0;
+  for (const [x0, y0, s, n] of T.blocks) { FO.push(off); FN.push(n); FB.push(`vec3(${f(x0)}, ${f(y0)}, ${f(s)})`); off += n * n; }
+  const [rx, ry, ra, rb, rang] = T.ring, ar = rang * Math.PI / 180;
+  const orb = ([x, y, r]) => `vec3(${f(x * k)}, ${f(y * k)}, ${f(r * k)})`;
+  // an orb's highlights: elongated gaussians, summed
+  const spec = list => list.map(([x, y, sx, sy, deg]) => {
+    const a = deg * Math.PI / 180;
+    return `streak(u, vec2(${f(x * k)}, ${f(y * k)}), vec2(${f(sx * k)}, ${f(sy * k)}), vec2(${f(Math.cos(a))}, ${f(Math.sin(a))}))`;
+  }).join(' + ');
+  const M = T.mark;
+  return /* glsl */`
+const float CPX = 574.0;   // concept px per cover unit: the fit's widths are in concept px
+const int KW = ${Math.min(off, 2048)};
+const int FO[${FO.length}] = int[${FO.length}](${FO.join(', ')});
+const int FN[${FN.length}] = int[${FN.length}](${FN.join(', ')});
+const vec3 FB[${FB.length}] = vec3[${FB.length}](${FB.join(', ')});
+const vec2 SO = vec2(${f(T.O[0] * k)}, ${f(T.O[1] * k)}), SA = vec2(${f(T.A[0] * k)}, ${f(T.A[1] * k)}), SB = vec2(${f(T.B[0] * k)}, ${f(T.B[1] * k)});
+const vec3 ORB0 = ${orb(T.orbs[0])}, ORB1 = ${orb(T.orbs[1])};
+const vec2 RC = vec2(${f(rx * k)}, ${f(ry * k)}), RAB = vec2(${f(ra * k)}, ${f(rb * k)}), RCS = vec2(${f(Math.cos(ar))}, ${f(Math.sin(ar))});
+const vec4 MS = vec4(${f(M[0] * k)}, ${f(M[1] * k)}, ${f(M[2] * k)}, ${f(M[3] * k)});
+const vec3 MD0 = ${orb(M.slice(5, 8))}, MD1 = ${orb(M.slice(8, 11))};
+vec4 bw(float t) { float s = 1.0 - t; return vec4(s * s * s, (3.0 * t - 6.0) * t * t + 4.0, ((-3.0 * t + 3.0) * t + 3.0) * t + 1.0, t * t * t) / 6.0; }
+vec3 key(int i) { return texelFetch(uKeys, ivec2(i % KW, 2 * (i / KW) + 1), 0).rgb; }
+// field k at u (concept coordinates: cover units, y down): a uniform cubic B-spline over its box
+vec3 field(int k, vec2 u) {
+  int n = FN[k], o = FO[k];
+  vec3 b = FB[k];
+  vec2 g = (u - b.xy) * (float(n - 3) / b.z) + 1.0, i = floor(g), t = g - i;
+  vec4 wx = bw(t.x), wy = bw(t.y);
+  ivec2 c0 = ivec2(i) - 1;
+  vec3 s = vec3(0.0);
+  for (int y = 0; y < 4; y++) {
+    int row = o + clamp(c0.y + y, 0, n - 1) * n;
+    vec3 r = vec3(0.0);
+    for (int x = 0; x < 4; x++) r += wx[x] * key(row + clamp(c0.x + x, 0, n - 1));
+    s += wy[y] * r;
+  }
+  return s;
 }
-vec3 orb(vec4 f, vec2 p, float t, vec4 o) {
-  // a clear glass sphere: the room refracted and flipped, a dark violet limb, a hard highlight
-  vec2 q = (p - o.xy) / o.z;
-  float rr = dot(q, q);
-  vec3 n = vec3(q, sqrt(sat(1.0 - rr)));
-  vec3 seen = ground(o.xy - q * o.z * 0.8) * mix(vec3(1.0), uPal[4], 0.55);
-  vec3 col = mix(seen, uPal[7], 0.7 * pow(sat(rr), 1.2));
-  col += uPal[6] * 0.55 * exp(-length(q - vec2(0.35, -0.45)) / 0.22);   // light focused through the ball
-  col = mix(col, uPal[6], 0.55 * pow(1.0 - n.z, 5.0));
-  col += vec3(1.0) * 1.2 * pow(sat(dot(reflect(-normalize(vec3(-0.5, 0.6, 0.62)), n), vec3(0.0, 0.0, 1.0))), 90.0);
-  return col;
+// concept px from a superellipse |x/a|^q + |y/b|^q = 1 about c, measured along the ray from c (negative inside)
+float superD(vec2 u, vec2 c, vec2 ab, float q) {
+  vec2 d = u - c;
+  float g = max(pow(abs(d.x) / ab.x, q) + pow(abs(d.y) / ab.y, q), 1e-6);
+  return length(d) * (1.0 - pow(g, -1.0 / q)) * CPX;
 }
-vec3 glass(vec4 f, vec2 p, float t) {
-  for (int i = 0; i < 2; i++) { vec4 o = uAux[i]; if (o.z > 0.0 && length(p - o.xy) < o.z * 1.3) return orb(f, p, t, o); }
-  vec3 n = formNormal(f);
-  float th = f.a;
-  // the two faces of every arm: deep violet away from the light, lavender toward it
-  float tilt = length(n.xy);
-  float side = dot(n.xy / max(tilt, 1e-4), normalize(vec2(0.62, 0.78))) * smoothstep(0.0, 0.35, tilt);
-  vec3 body = mix(uPal[7], uPal[4], sat(0.5 + 0.55 * side));
-  body = mix(body, uPal[3], 0.35 * th);
-  // the room seen through the glass
-  vec3 seen = ground(p - n.xy * 0.06 * (0.3 + th)) * mix(vec3(1.0), uPal[3], 0.5);
-  body = mix(body, seen, 0.22 * (1.0 - th));
-  // reflection of the room: a bright softbox at the upper left, pink and ice toward the rims
-  float fres = pow(1.0 - n.z, 3.0);
-  vec3 env = mix(mix(uPal[5], uPal[6], 0.5 + 0.5 * n.x), vec3(1.0), sat(dot(n.xy, vec2(-0.6, 0.7)) * 1.6));
-  body = mix(body, env, sat(fres * 0.7));
-  body += vec3(1.0) * 0.55 * ring(f.r + 0.0045, 0.0013);             // a thin lit rim just inside the edge
-  vec3 L1 = normalize(vec3(-0.5, 0.6, 0.62));
-  vec3 L2 = normalize(vec3(0.75, -0.15, 0.64));
-  body += vec3(1.0) * 0.85 * spec(n, L1, 70.0) + uPal[5] * 0.4 * spec(n, L2, 36.0);
-  // caustics: bright threads inside the glass that shimmer when alive
-  float cz = sin(dot(p, vec2(31.0, 23.0)) + n.x * 9.0 - n.y * 7.0 + t * 1.1) * sin(dot(p, vec2(-19.0, 29.0)) + n.y * 8.0 - t * 0.8);
-  body += vec3(0.95, 0.9, 1.0) * 0.20 * pow(sat(cz), 6.0) * th;
-  return body;
+// the star's crease level q: through its four tips
+float crease(vec2 u, float q) { vec2 d = u - SO; return superD(u, SO, vec2(d.x > 0.0 ? SA.x : SA.y, d.y < 0.0 ? SB.x : SB.y), q); }
+float line(float d, float w) { return exp(-d * d / (w * w)); }
+float sig(float x) { return 1.0 / (1.0 + exp(-x)); }
+float streak(vec2 u, vec2 c, vec2 s, vec2 cs) {
+  vec2 d = u - c, e = vec2(d.x * cs.x + d.y * cs.y, -d.x * cs.y + d.y * cs.x) / s;
+  return exp(-dot(e, e));
 }
-vec3 glassRing(vec3 col, vec2 p, float t, bool front) {
-  vec2 C = ic(0.50, 0.53);
-  vec2 o = rot(0.45) * (p - C);
-  vec2 ab = vec2(0.43, 0.125);
-  float d = sdEllipse(o, ab);
-  float k = smoothstep(-0.01, 0.01, front ? -o.y : o.y);
-  float w = 0.0105;
-  float x = sat(abs(d) / w);                                          // 0 tube centre .. 1 tube edge
-  float ang = atan(o.y / ab.y, o.x / ab.x);
-  float sweep = 0.5 + 0.5 * sin(ang * 2.0 - t * 0.6 + 1.0);
-  vec3 tube = col * mix(vec3(1.0), uPal[3], 0.25) + uPal[6] * 0.12;
-  tube += vec3(1.0) * 0.55 * pow(x, 6.0) * (0.6 + 0.4 * sweep);      // the tube's bright edges
-  tube += vec3(1.0) * 0.45 * exp(-pow((d + w * 0.3) / (w * 0.18), 2.0)) * sweep;   // a running highlight
-  col = mix(col, tube, ring(d, w) * k);
-  col += uPal[5] * 0.10 * exp(-abs(d) / 0.012) * k;
-  return col;
+vec3 orbCol(int k, vec2 u, vec3 o, float hi) {
+  float d = (length(u - o.xy) - o.z) * CPX;
+  return field(k, u) + field(k + 1, u) * line(d + 1.0, 1.0) + field(k + 2, u) * line(d + 3.5, 1.5) + field(k + 3, u) * hi;
 }
 vec3 motif(vec2 p, float t) {
-  vec3 col = ground(p);
-  // a faint haze ring behind everything
-  vec2 hq = rot(-0.25) * (p - ic(0.56, 0.40));
-  col += uPal[5] * 0.10 * exp(-abs(sdEllipse(hq, vec2(0.36, 0.22))) / 0.012);
-  if (p.y < YF) {
-    float dz = YF - p.y;
-    vec2 pm = vec2(p.x, 2.0 * YF - p.y);
-    vec4 fm = formAt(pm);
-    float b = 0.002 + dz * 0.12;
-    col = mix(col, glass(fm, pm, t), smoothstep(b, -b, fm.r) * exp(-dz / 0.05) * 0.4);
+  vec2 u = vec2(p.x, 1.0 - p.y);
+  float live = 1.0 - exp(-t * 1.2);
+  // the ring: its edges and fill, in front of the star on its lower half
+  vec2 d = u - RC, o = vec2(d.x * RCS.x + d.y * RCS.y, -d.x * RCS.y + d.y * RCS.x);
+  float rd = sdEllipse(o, RAB) * CPX, front = sig(o.y * CPX / 2.0);
+  vec3 ring = vec3(0.0);
+  if (rd > -14.0 && rd < 6.0) {
+    ring = field(1, u) * line(rd + 0.5, 1.0) + field(2, u) * line(rd + 3.0, 1.0) + field(3, u) * line(rd + 6.0, 1.0)
+         + field(4, u) * sig(-rd / 0.8) * sig((rd + 7.0) / 0.8);
+    float ang = atan(o.y / RAB.y, o.x / RAB.x) - t * 0.9;
+    ring += vec3(0.9, 0.88, 1.0) * 0.45 * live * line(rd + 1.0, 1.4) * exp(-pow(abs(mod(ang + PI, TAU) - PI) / 0.35, 2.0));
   }
-  col = glassRing(col, p, t, false);
   vec4 f = formAt(p);
-  col = mix(col, col * 0.92 + uPal[3] * 0.05, falloff(f.r, 0.05));
-  col = mix(col, glass(f, p, t), cover(f.r));
-  col = glassRing(col, p, t, true);
-  return col;
+  float cs = cover(f.r);
+  vec3 col = vec3(0.0);
+  if (cs < 1.0) {
+    col = field(0, u) + ring;
+    // the brand mark's halo
+    vec2 m = u - MS.xy;
+    if (dot(m, m) < 0.01) {
+      float md = min(superD(u, MS.xy, MS.zw, ${f(M[4])}), min(length(u - MD0.xy) - MD0.z, length(u - MD1.xy) - MD1.z) * CPX);
+      col += field(5, u) * exp(-max(md, 0.0) / ${f(T.halo)});
+    }
+  }
+  if (cs > 0.0) {
+    float ds = f.r * CPX, thin = smoothstep(2.0, 6.0, -ds);
+    vec3 s = field(6, u) + field(7, u) * line(ds + 1.0, 0.9) + field(8, u) * exp(min(ds, 0.0) / 6.0)
+           + field(9, u) * sig(-crease(u, 0.42) / 1.5)
+           + thin * (field(10, u) * line(crease(u, 0.53), 1.3) + field(11, u) * line(crease(u, 0.47), 1.3)
+                   + field(12, u) * line(crease(u, 0.42), 1.3) + field(13, u) * line(crease(u, 0.37), 1.3));
+    if (live > 0.0) {
+      // caustics: bright threads in the glass that shimmer
+      vec3 n = formNormal(f);
+      float cz = sin(dot(p, vec2(31.0, 23.0)) + n.x * 9.0 - n.y * 7.0 + t * 1.1) * sin(dot(p, vec2(-19.0, 29.0)) + n.y * 8.0 - t * 0.8);
+      s += vec3(0.95, 0.9, 1.0) * 0.18 * live * pow(sat(cz), 6.0) * f.a;
+    }
+    col = mix(col, s + ring * front, cs);
+  }
+  float c0 = cover(length(u - ORB0.xy) - ORB0.z), c1 = cover(length(u - ORB1.xy) - ORB1.z);
+  if (c0 > 0.0) col = mix(col, orbCol(14, u, ORB0, ${spec(T.specs[0])}), c0);
+  if (c1 > 0.0) col = mix(col, orbCol(18, u, ORB1, ${spec(T.specs[1])}), c1);
+  return max(col, vec3(0.0));
 }`;
+})();
+
 
 // Scorecard: a Swiss composition, a quartered disc over diagonal fields; alive, the quarters turn a step.
 MOTIFS.scorecard = /* glsl */`
@@ -941,6 +984,7 @@ vec3 motif(vec2 p, float t) {
 // pal: up to eight sRGB colours the motif indexes as uPal[i].
 // type: title blocks; each line goes to channel ch of the type mask (R, G, B -> INK0..2).
 //   size by cap (cap height), fit (widest line's ink width) or px; x/base place the first line.
+//   set: [[glyph, cx, cy, px, degrees, ch], ...] places each glyph by its ink centre.
 //   runs: [[text, ch], ...] sets a one-line block in several inks.
 //   paths: a letters/*.json file of traced letter outlines ({ ch, d } in 1024 units), drawn in place of set type.
 // inks: sRGB colour per type channel, used when the motif does not fill it itself.
@@ -950,8 +994,10 @@ vec3 motif(vec2 p, float t) {
 //   type covers. A motif may lift it with ART_DY(t) (cover units).
 // typeGlow: the type mask carries mips, so the motif can read it blurred (a glow or a shadow around the type).
 // shaderMips: the shader draws the front's mip levels itself, each filtered at its own sampling rate.
-// form: the logo (or, fromType, the front's own type) inflated into the motif's hero form: box [x, top, size], R bevel radius,
-//   soft blur (both cover units), key 'alpha' | 'tile' (tile: drop pixels near the tile colour).
+// form: the logo (or, fromType, the front's own type; or svg, a shape drawn for the cover) inflated into the motif's
+//   hero form: box [x, top, size], R bevel radius, soft blur (both cover units), key 'alpha' | 'tile' (tile: drop
+//   pixels near the tile colour).
+// keys: { list of [x, y, r, g, b], starts, sigma }: colour keys the motif reads from uKeys.
 // ground: the colour the resting cover reads as; a flat stand-in for a late cover (sRGB). For most covers it is the
 //   area-weighted mean in linear light of the motif's ground; a cover whose ground is mostly covered or split takes
 //   the field it reads as.
@@ -1013,6 +1059,61 @@ const STET_KEYS = [
 const STET_KEY_STARTS = [0, 56, 92, 148, 184];
 const STET_KEY_SIGMA = [0.0496, 0.0533, 0.0492, 0.0536];
 
+// Topshine's star outline, and its colour fields decoded into keys (row 1 of uKeys: linear rgb per control)
+const TOPSHINE_STAR = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="178 98 700 700"><path fill="#fff" d="M527.2 109.7C619.3 397.3 663.0 402.2 841.1 449.6C643.2 495.5 560.6 605.5 528.1 785.8C503.9 646.5 405.5 455.2 214.1 448.7C433.3 384.7 466.4 355.1 527.2 109.7Z"/></svg>';
+// TOPSHINE's fields decoded into keys (linear rgb per control); the codec is described with TOPSHINE
+let topshineKeyList = null;
+function topshineKeys() {
+  if (!topshineKeyList) {
+    const { blocks, alpha, data } = TOPSHINE, list = [];
+    let i = 0;
+    const sym = off => {
+      const ch = data[i++];
+      if (ch !== '~') return alpha.indexOf(ch) - off;
+      const v = alpha.indexOf(data[i]) * 63 + alpha.indexOf(data[i + 1]);
+      i += 2;
+      return off ? v - 1984 : v;
+    };
+    for (const [, , , n, lg, ld, lb, step] of blocks) {
+      const used = new Uint8Array(n * n);
+      const runs = sym(0);
+      for (let r = 0, k = 0; r < runs; r++) { const len = sym(0); if (r % 2) used.fill(1, k, k + len); k += len; }
+      const X = [new Float32Array(n * n), new Float32Array(n * n), new Float32Array(n * n)];
+      X.forEach((a, c) => {
+        let last = 0;
+        for (let k = 0; k < n * n; k++) {
+          if (!used[k]) continue;
+          const x = k % n, p = x && used[k - 1] ? a[k - 1] : k >= n && used[k - n] ? a[k - n] : last;
+          a[k] = last = p + sym(31);
+        }
+      });
+      // controls the fit left out take the mean of their used neighbours, one ring at a time
+      const rgb = new Float32Array(n * n * 3), done = used.slice();
+      for (let k = 0; k < n * n; k++) if (used[k]) {
+        const g = lg + X[0][k] * step;
+        rgb.set([ld + X[1][k] * step + g, g, lb + X[2][k] * step + g], k * 3);
+      }
+      for (let left = n * n - used.reduce((a, v) => a + v, 0), was = -1; left > 0 && left !== was;) {
+        const now = done.slice();
+        was = left;
+        for (let k = 0; k < n * n; k++) {
+          if (done[k]) continue;
+          const x = k % n, y = (k - x) / n, acc = [0, 0, 0];
+          let m = 0;
+          for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+            const xx = x + dx, yy = y + dy, j = yy * n + xx;
+            if ((dx || dy) && xx >= 0 && yy >= 0 && xx < n && yy < n && done[j]) { for (let c = 0; c < 3; c++) acc[c] += rgb[j * 3 + c]; m++; }
+          }
+          if (m) { rgb.set(acc.map(v => v / m), k * 3); now[k] = 1; left--; }
+        }
+        done.set(now);
+      }
+      for (let k = 0; k < n * n; k++) list.push([0, 0, rgb[k * 3], rgb[k * 3 + 1], rgb[k * 3 + 2]]);
+    }
+    topshineKeyList = { list, starts: [0, list.length], sigma: [0] };
+  }
+  return topshineKeyList;
+}
 function designFor(entry) {
   switch (entry.name) {
     case 'Mirra': return {
@@ -1076,14 +1177,17 @@ function designFor(entry) {
     };
     case 'Topshine': return {
       motif: 'topshine', t0: 0,
-      pal: ['#F6F2FF', '#D8CDF6', '#C7B8FA', '#6046F4', '#A08CFF', '#F7C9F2', '#DDF0FF', '#3426C8'],
-      ground: '#E5DEFB',
-      type: [{ lines: ['topshine'], font: 'NJ Hanken', weight: 650, track: -0.055, fit: 478, x: 52, base: 905, ch: 0 }],
-      inks: ['#0F1030'],
-      mark: [58, 56, 110],
-      form: { box: [146, 76, 738], R: 0.1, soft: 0.005, key: 'alpha' },
-      // the mark's two dots, in its 20-unit viewBox: shaded as clear orbs
-      orbs: [[16.2, 3.8, 1.55], [4.2, 16.1, 1.45]],
+      pal: [],   // its colours are its fitted fields (TOPSHINE)
+      ground: '#D3D0F9',   // the lavender room, without the star, orbs and type
+      // each letter placed on its concept letter by its ink centre: [glyph, cx, cy, px, degrees, ink]
+      type: [{ font: 'NJ Hanken', weight: 600, set: [['t', 72.3, 892.9, 130.4, 0, 0], ['o', 131.1, 902.7, 135.3, 0, 0], ['p', 204.3, 916.1, 133.9, 0, 0],
+        ['s', 268.5, 904.5, 130, 0, 0], ['h', 333.6, 890.2, 136.3, 0, 0], ['i', 381.8, 889.3, 130.2, 0, 0], ['n', 429, 903.6, 137.7, 0, 0],
+        ['e', 497.7, 902.7, 134.1, 0, 0]] }],
+      inks: ['#0C1229'],
+      mark: [53.8, 54.9, 113.3],
+      // the concept's star (the mark's star drawn fuller, as the concept renders it), in cover px
+      form: { box: [178, 98, 700], R: 0.1, soft: 0.005, key: 'alpha', res: 640, svg: TOPSHINE_STAR },
+      keys: topshineKeys(),
       bandY: 0.55, grain: [0.010, 0.008],
       back: { paper: '#F5F2FF', ink: '#0F1030', soft: '#5E5A86', accent: '#6C44F0' },
     };
@@ -1666,25 +1770,22 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
     uPal: { value: pal },
     uAux: { value: Array.from({ length: 8 }, () => new THREE.Vector4()) },
   };
-  // a motif's colour keys (stet), as a two-row float texture the shader reads with texelFetch
+  // a motif's colour keys (stet, Topshine), as a float texture the shader reads with texelFetch: key i at column
+  // i % KW in row pair i / KW (row 2k: x, y, sigma; row 2k + 1: r, g, b), KW = min(keys, 2048)
   let keysTex = null;
   if (d.keys) {
-    const { list, starts, sigma } = d.keys, n = list.length, data = new Float32Array(n * 8);
+    const { list, starts, sigma } = d.keys, n = list.length, kw = Math.min(n, 2048), pairs = Math.ceil(n / kw);
+    const data = new Float32Array(kw * pairs * 8);
     list.forEach(([x, y, r, g, b], i) => {
-      const L = starts.findIndex(s => s > i) - 1;
-      data.set([x, y, sigma[L], 0], i * 4);
-      data.set([r, g, b, 1], (n + i) * 4);
+      const L = starts.findIndex(s => s > i) - 1, row = 2 * Math.floor(i / kw) * kw + i % kw;
+      data.set([x, y, sigma[L], 0], row * 4);
+      data.set([r, g, b, 1], (row + kw) * 4);
     });
-    keysTex = new THREE.DataTexture(data, n, 2, THREE.RGBAFormat, THREE.FloatType);
+    keysTex = new THREE.DataTexture(data, kw, 2 * pairs, THREE.RGBAFormat, THREE.FloatType);
     keysTex.minFilter = keysTex.magFilter = THREE.NearestFilter;
     keysTex.needsUpdate = true;
     uniforms.uKeys.value = keysTex;
   }
-  // marked regions of the form, from the mark's own viewBox to cover space
-  (d.orbs || []).forEach(([cx, cy, r], i) => {
-    const [bx, by, bs] = d.form.box;
-    uniforms.uAux.value[i].set((bx + cx / 20 * bs) / 1024, 1 - (by + cy / 20 * bs) / 1024, r / 20 * bs / 1024, 0);
-  });
   const material = new THREE.ShaderMaterial({
     name: `cover:${entry.name}`,
     vertexShader: VERT,
@@ -1716,7 +1817,9 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
   const markAt = sz => logo && d.mark ? logoImage(logo, Math.round(d.mark[2] * sz / 1024)) : Promise.resolve(null);
   const [markImg, formImg, art] = await Promise.all([
     markAt(size),
-    d.form?.fromType ? lettersReady.then(() => typeImage(d)) : logo && d.form ? logoImage(logo, Math.round((d.form.res || 512) / (1 + 2 * MARGIN))) : null,
+    d.form?.fromType ? lettersReady.then(() => typeImage(d))
+      : d.form?.svg ? logoImage({ svg: d.form.svg }, Math.round((d.form.res || 512) / (1 + 2 * MARGIN)))   // a form drawn for the cover
+      : logo && d.form ? logoImage(logo, Math.round((d.form.res || 512) / (1 + 2 * MARGIN))) : null,
     d.art ? artTexture(d.art.src) : null,
     compiled,
     lettersReady,
