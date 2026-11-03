@@ -4,7 +4,7 @@
 import { INTRO, SLEEVE, UNHOVER } from './config.js';
 import { REST_Z, restPose, hoverPose, POSE_KEYS } from './sleeves.js';
 
-export const HOVER_DELAY = 35;   // the reference responds about two frames after the pointer arrives
+export const HOVER_DELAY = 15;   // the reference's sleeve first moves in the third frame after the pointer arrives
 
 const easeIn = u => u * u;
 export const clamp01 = u => Math.min(1, Math.max(0, u));
