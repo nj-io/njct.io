@@ -291,22 +291,23 @@ const float SEAM = 455.0 / 546.0, SEAMLINE = 0.25, SHIFT = -0.5;
 // grain: the letters' stipple (cell px, strength in light and in mid and dark tones), the ground's mottle (cell px, strength)
 const vec3 GL = vec3(1.7, 0.06, 0.13);
 const vec2 GG = vec2(4.0, 0.11);
-// the concept's crisp edges, read off the blurred type mask (four taps TAP.x apart at mip bias TAP.y): a dark line just
-// outside the letters, where the blurred mask reads LINE.x (width LINE.y, depth LINE.z), and a light rim just inside
-// (gain RIM)
+// the concept's crisp edges, read off the blurred type mask (four taps r apart at mip bias b): a dark line just outside
+// the letters, where the mask blurred by TAP reads LINE.x (width LINE.y, depth LINE.z), and a light rim just inside,
+// where the mask blurred by RIM.xy is full and by RIM.zw not yet (towards white by RIMW)
 const vec2 TAP = vec2(0.0015, 1.0);
 const vec3 LINE = vec3(0.28, 0.14, 0.8);
-const float RIM = 0.15;
-float nearType(vec2 c) {
-  vec2 o = vec2(TAP.x, 0.0);
-  vec4 m = texture2D(uText, c + o.xy, TAP.y) + texture2D(uText, c - o.xy, TAP.y) + texture2D(uText, c + o.yx, TAP.y) + texture2D(uText, c - o.yx, TAP.y);
+const vec4 RIM = vec4(0.0015, 1.0, 0.004, 2.0);
+const float RIMW = 0.5;
+float nearType(vec2 c, vec2 rb) {
+  vec2 o = vec2(rb.x, 0.0);
+  vec4 m = texture2D(uText, c + o.xy, rb.y) + texture2D(uText, c - o.xy, rb.y) + texture2D(uText, c + o.yx, rb.y) + texture2D(uText, c - o.yx, rb.y);
   return sat(0.25 * (m.r + m.g + m.b));
 }
 vec3 motif(vec2 p, float t) {
   float v = length((p - vec2(0.5, 0.55)) * vec2(1.0, 1.1));
   // the ground's faint mottle, a few pixels across (linear light), and the concept's dark line hugging every letter
   vec3 col = mix(uPal[0], uPal[1], smoothstep(0.25, 0.85, v)) * (1.0 + (vnoise(FC / GG.x + 9.0) - 0.5) * GG.y);
-  float g = nearType(p);
+  float g = nearType(p, TAP);
   return col * (1.0 - LINE.z * exp(-pow((g - LINE.x) / LINE.y, 2.0)) * smoothstep(0.0, 0.05, g) * (1.0 - uMode));
 }
 vec3 face(vec2 q, int F) {
@@ -359,7 +360,7 @@ vec3 stetFill(vec2 p, float t, int L) {
   vec4 k = CREASE[L];
   c *= 1.0 + h * (k.x * exp(-pow((d - k.y) / 0.6, 2.0)) + k.z * exp(-pow((d - k.w) / 0.6, 2.0)));
   // the rim reads the front's type mask (the back's band has none)
-  if (uMode < 0.5) c *= 1.0 + RIM * (1.0 - nearType(p));
+  if (uMode < 0.5) c = mix(c, vec3(1.0), RIMW * sat(nearType(p, RIM.xy) - nearType(p, RIM.zw)));
   // the concept's stipple, stronger in the mid and dark tones
   c += (vnoise(FC / GL.x + 5.0) - 0.5) * mix(GL.z, GL.y, smoothstep(0.72, 0.88, dot(c, vec3(0.299, 0.587, 0.114))));
   return clamp(c, 0.0, 1.0);
