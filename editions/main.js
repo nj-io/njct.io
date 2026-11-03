@@ -3,7 +3,7 @@
 // flips it to its back cover, Escape puts it back); keyboard; sound. Renders only while something moves.
 import * as THREE from 'three';
 import { RoomEnvironment } from '/vendor/three-0.181.0/addons/environments/RoomEnvironment.js';
-import { CAMERA_Z, REF_H, SHELF, SLEEVE, INTRO, DETAILS, OPEN, viewScale } from './scene/config.js';
+import { CAMERA_Z, REF_H, SHELF, SLEEVE, INTRO, DETAILS, OPEN, LINEUP, viewScale } from './scene/config.js';
 import { createLightUniforms, applyLights } from './scene/lighting.js';
 import { createWall } from './scene/wall.js';
 import { createShelves } from './scene/shelves.js';
@@ -12,8 +12,9 @@ import { introPose, stepHover, fallPose, HOVER_DELAY, bezier, lerpPose, clamp01,
 import { createPost } from './scene/post.js';
 import { createSticker } from './scene/sticker.js';
 import { createCover } from './covers/covers.js';
+import { createCrate, CRATE } from './scene/crate.js';
 
-const entries = await fetch(new URL('./data/projects.json', import.meta.url)).then(r => r.json());
+const entries = LINEUP;
 
 // ---- renderer, light, scene ---------------------------------------------------------------------
 const canvas = document.getElementById('c');
@@ -38,7 +39,8 @@ uniforms.uShelfDepth.value = SHELF.depth;
 
 const wall = createWall(renderer, uniforms);
 scene.add(wall.mesh);
-for (const m of createShelves(uniforms)) scene.add(m);
+const shelfMeshes = createShelves(uniforms);
+for (const m of shelfMeshes) scene.add(m);
 const sleeves = createSleeves(entries);
 COVER_BIAS.value = window.__editionsTest?.coverBias ?? -0.5;   // a test can set the cover mip bias before load
 // Placeholder maps, so the covers arriving later swap a texture instead of compiling a new program.
@@ -56,8 +58,12 @@ sticker.mesh.layers.set(FOCUS);
 scene.add(sticker.mesh);
 const post = createPost(renderer);
 
-const camera = new THREE.PerspectiveCamera(20, 1, 100, CAMERA_Z * 2);
-camera.position.set(0, 0, CAMERA_Z);
+// The camera stands CAMERA_Z from the wall over the shelves; for the phone crate it stands four times as
+// far (the crate's depth then reads almost flat, as on the reference).
+let CAMZ = CAMERA_Z;
+const camera = new THREE.PerspectiveCamera(20, 1, 100, CAMZ * 2);
+camera.position.set(0, 0, CAMZ);
+const crate = createCrate(sleeves.length);
 
 // ---- covers -------------------------------------------------------------------------------------
 // Covers come only through createCover (editions/covers/): a 1024 front (Details shows it at about 830
@@ -134,22 +140,38 @@ soundBtn.addEventListener('click', async () => {
 syncSound();
 
 // ---- DOM: pills, index, header, Details -----------------------------------------------------------
+// The shelf as a list for screen readers and the keyboard: one item per sleeve, in shelf order, with its
+// name, tag and the Open and Details pills (shown on the sleeve when it is hovered or focused).
 const slotsEl = document.getElementById('slots');
 const slots = sleeves.map(s => {
-  const el = document.createElement('div');
+  const e = entries[s.i];
+  const el = document.createElement('li');
   el.className = 'slot';
+  const art = document.createElement('article');
+  art.setAttribute('aria-labelledby', `sl-${s.i}`);
+  const h = document.createElement('h2'); h.className = 'sr'; h.id = `sl-${s.i}`; h.textContent = e.name;
+  art.appendChild(h);
+  if (e.tag) { const t = document.createElement('p'); t.className = 'sr'; t.textContent = e.year ? `${e.tag}, ${e.year}` : e.tag; art.appendChild(t); }
   for (const [action, label] of [['open', 'Open'], ['details', 'Details']]) {
     const b = document.createElement('button');
     b.type = 'button';
     b.dataset.action = action;
     b.dataset.index = String(s.i);
     b.textContent = label;
-    b.setAttribute('aria-label', `${label}: ${entries[s.i].name}`);
-    el.appendChild(b);
+    b.setAttribute('aria-label', `${label}: ${e.name}`);
+    art.appendChild(b);
   }
+  el.appendChild(art);
   slotsEl.appendChild(el);
   return el;
 });
+// The crate's bottom bar (the front sleeve's year and name, Details and Open; Back in Details) and rail.
+const cbBar = document.getElementById('crate-bar');
+const cbYear = cbBar.querySelector('.cb-year'), cbName = cbBar.querySelector('.cb-name');
+const cbDetails = cbBar.querySelector('.cb-details'), cbOpen = cbBar.querySelector('.cb-open');
+const railThumb = document.querySelector('.crate-rail span');
+const announcer = document.getElementById('announce');
+function announce(text) { announcer.textContent = ''; requestAnimationFrame(() => { announcer.textContent = text; }); }
 document.getElementById('index').append(...entries.map(e => {
   const li = document.createElement('li');
   const y = document.createElement('span'); y.className = 'y'; y.textContent = e.year || '';
@@ -171,12 +193,19 @@ function fade(el, to, at, ms) {
 }
 
 // ---- layout ---------------------------------------------------------------------------------------
-let W = 0, H = 0, S = 1;
+// Below 600 px wide (a phone held upright) the sleeves stand in a crate instead of on the shelves, as on
+// the reference; landscape phones and tablets keep the shelves.
+let W = 0, H = 0, S = 1, crateMode = false, detSize = 0, detCY = 0, DZ = 0, DY = 0;
 const dbSize = new THREE.Vector2();
 function layout() {
-  W = window.innerWidth; H = window.innerHeight; S = viewScale(W, H);
+  W = window.innerWidth; H = window.innerHeight;
+  const wasCrate = crateMode;
+  crateMode = W < 600;
+  CAMZ = crateMode ? CAMERA_Z * 4 : CAMERA_Z;
+  S = crateMode ? crate.layout(W, H, CAMZ) : viewScale(W, H);
+  camera.position.z = CAMZ; camera.far = CAMZ * 2;
   const hw = W / 2 / S, hh = H / 2 / S;
-  camera.fov = THREE.MathUtils.radToDeg(2 * Math.atan(hh / CAMERA_Z));
+  camera.fov = THREE.MathUtils.radToDeg(2 * Math.atan(hh / CAMZ));
   camera.aspect = W / H;
   camera.updateProjectionMatrix();
   camera.updateMatrixWorld();
@@ -184,13 +213,32 @@ function layout() {
   renderer.setSize(W, H, false);
   renderer.getDrawingBufferSize(dbSize);
   post.resize(dbSize.x, dbSize.y);
-  wall.resize(-hw * 1.02, -hh * 1.02, hw * 1.02, hh * 1.02, Math.ceil(W / 2), Math.ceil(H / 2));
+  const sw = crateMode ? viewScale(W, H) : S, rw = W / 2 / sw * 1.02, rh = H / 2 / sw * 1.02;
+  wall.resize(-hw * 1.02, -hh * 1.02, hw * 1.02, hh * 1.02, Math.ceil(W / 2), Math.ceil(H / 2), crateMode ? [-rw, -rh, rw, rh] : null);
   bakeDirty = bgDirty = true;
+  // Details: the sleeve's size and centre on screen, then the depth and height that give them.
+  detSize = crateMode ? CRATE.details.size * W : DETAILS.size * S;
+  detCY = crateMode ? CRATE.details.centreY * H : H / 2 - (REF_H / 2 - DETAILS.centreY) * S;
+  DZ = CAMZ * (1 - SLEEVE.size * S / detSize);
+  DY = (H / 2 - detCY) / S * (CAMZ - DZ) / CAMZ;
+  for (const m of shelfMeshes) m.visible = !crateMode;
+  // The crate has no shelves: the wall loses their shadows too.
+  SHELF.tops.forEach((top, r) => (crateMode ? uniforms.uShelf.value[r].set(0, 0, -1e5, -1e5)
+    : uniforms.uShelf.value[r].set(-SHELF.width / 2, SHELF.width / 2, top - SHELF.thick, top)));
+  document.body.classList.toggle('crate', crateMode);
+  if (crateMode !== wasCrate) {
+    if (det) dropDetails();
+    setHovered(-1);
+    for (const s of sleeves) if (settled[s.i]) { s.fall = null; s.pose = homePose(s); applyPose(s); }
+    syncCrate(true);
+  } else if (crateMode) for (const s of sleeves) if (settled[s.i] && !(det && det.i === s.i)) { s.pose = homePose(s); applyPose(s); }
   hitRects = sleeves.map(s => restRect(s));
-  sleeves.forEach(placeSlot);
+  if (!crateMode) sleeves.forEach(placeSlot);
   placeDetails();
   wake();
 }
+// Where a sleeve rests: leaning on its shelf, or its place in the crate.
+const homePose = s => (crateMode ? crate.pose(s) : restPose());
 
 const v = new THREE.Vector3(), box = new THREE.Box3();
 function project(x, y, z) {
@@ -234,24 +282,22 @@ function placeSlot(s) {
   slots[s.i].style.transform = `translate3d(${snap(bl.x + w * 0.1175)}px, ${snap(bl.y - w * 0.025 - 32)}px, 0)`;
 }
 
-// Details: where the sleeve flies (its centre DETAILS.size px wide, 14.5 px above the view centre at
-// 1440x900, both scaled with the view), and the text beside it.
-const DZ = CAMERA_Z * (1 - SLEEVE.size / DETAILS.size);            // depth of the sleeve's centre
-const DY = (REF_H / 2 - DETAILS.centreY) * (CAMERA_Z - DZ) / CAMERA_Z;
+// Details: where the sleeve flies (on the shelves its centre DETAILS.size px wide, 14.5 px above the view
+// centre at 1440x900, both scaled with the view; in the crate CRATE.details), and the text beside it.
 function detailsPose(s) {
   return { ...restPose(), lean: 0, dx: -s.x, lift: DY - SLEEVE.size / 2 - s.shelfY, z: DZ - SLEEVE.thick / 2 };
 }
 function placeDetails() {
-  const cy = H / 2 - (REF_H / 2 - DETAILS.centreY) * S;
+  const cy = detCY;
   // Title cap top 386.5 and baseline 404, tagline first baseline 436, at 1440x900 (Inter's line boxes).
   dTitle.style.top = `${snap(cy - 54.2)}px`;
   dTag.style.top = `${snap(cy - 13.6)}px`;
-  dOpen.style.top = `${snap(cy + DETAILS.size / 2 * S + 16)}px`;
+  dOpen.style.top = `${snap(cy + detSize / 2 + 16)}px`;
 }
 
 // ---- state ----------------------------------------------------------------------------------------
 let raf = 0, last = 0, bakeDirty = true, bgDirty = true, introStart = null, sleevesStart = null;
-let hovered = -1, lifted = -1, hoverAt = 0, det = null, lastSigma = -1;
+let hovered = -1, lifted = -1, hoverAt = 0, det = null, lastSigma = -1, crateBusy = false;
 const settled = sleeves.map(() => false);  // intro finished for this sleeve
 const pointer = { x: -1, y: -1 };
 const firstFrame = {};
@@ -268,11 +314,11 @@ function centreOf(s, p) {
 function flight(s, a, b, e) {
   const p = lerpPose(a, b, e), L = SLEEVE.size;
   const ca = centreOf(s, a), cb = centreOf(s, b);
-  const ka = CAMERA_Z / (CAMERA_Z - ca.z), kb = CAMERA_Z / (CAMERA_Z - cb.z), k = ka + (kb - ka) * e;
+  const ka = CAMZ / (CAMZ - ca.z), kb = CAMZ / (CAMZ - cb.z), k = ka + (kb - ka) * e;
   const x = (ca.x * ka + (cb.x * kb - ca.x * ka) * e) / k, y = (ca.y * ka + (cb.y * kb - ca.y * ka) * e) / k;
   p.dx = x - s.x;
   p.lift = y - s.shelfY - L / 2 * Math.cos(p.lean);
-  p.z = CAMERA_Z * (1 - 1 / k) + L / 2 * Math.sin(p.lean) - SLEEVE.thick / 2;
+  p.z = CAMZ * (1 - 1 / k) + L / 2 * Math.sin(p.lean) - SLEEVE.thick / 2;
   return p;
 }
 const easeOut = u => 1 - (1 - u) ** 3;
@@ -294,7 +340,7 @@ function stepDetails(s, now) {
     const slide = easeOut(clamp01((t - delay(R.at)) / dur(R.dur)));
     if (slide > 0) {
       if (!det.slid) { det.slid = true; play('slide', { pan: 0.3, intensity: 0.7 }); }
-      p.recX = 1; p.recY = 0; p.rec = R.out * slide * (1 + Math.cos(p.yaw)) / 2;
+      p.recX = 1; p.recY = 0; p.rec = crateMode ? 0 : R.out * slide * (1 + Math.cos(p.yaw)) / 2;   // no room beside it on a phone
     } else {
       p.recX = det.from.recX; p.recY = det.from.recY; p.rec = det.from.rec * (1 - e);
     }
@@ -306,9 +352,10 @@ function stepDetails(s, now) {
     // Back to the hover pose on the shelf, turning the rest of the way round if it was flipped.
     const x = det.exit, t = now - x.t0;
     const e = bezier(X.ease, clamp01((t - delay(X.at)) / dur(X.dur)));
-    p = flight(s, x.from, { ...hoverPose(), yaw: x.yawTo }, e);
+    p = flight(s, x.from, { ...(crateMode ? crate.pose(s) : hoverPose()), yaw: x.yawTo }, e);
     p.yaw = x.from.yaw + (x.yawTo - x.from.yaw) * bezier(X.turn.ease, clamp01((t - delay(X.turn.at)) / dur(X.turn.dur)));
     if (e < 0.5) { p.recX = x.from.recX; p.recY = x.from.recY; p.rec = x.from.rec * (1 - e * 2); }
+    else if (crateMode) p.rec = 0;
     else { p.recX = 0; p.recY = 1; p.rec = SLEEVE.hoverRecord * (e - 0.5) * 2; }
     det.blur = x.blur * (1 - smooth(clamp01((t - delay(X.blurOut.at)) / dur(X.blurOut.dur))));
     det.sticker = x.sticker * (1 - clamp01((t - delay(X.at)) / dur(X.textOut)));
@@ -326,7 +373,12 @@ function frame(now) {
   last = now;
   let active = false;
   const ti = sleevesStart === null ? -1 : now - sleevesStart;
-  const want = det ? -1 : hovered;
+  const crateWas = crateBusy;
+  const crateMoving = crateMode && crate.step(dt);
+  crateBusy = crateMoving;
+  if (crateMoving) syncCrate();
+  else if (crateWas && crateMode) { syncCrate(); crateRest(); }
+  const want = det || crateMode ? -1 : hovered;
   if (lifted !== want && (det || now - hoverAt >= delay(HOVER_DELAY))) {
     if (lifted >= 0 && !(det && det.i === lifted)) sleeves[lifted].fall = { from: { ...sleeves[lifted].pose }, t0: hoverAt };
     lifted = want;
@@ -340,10 +392,12 @@ function frame(now) {
       moved = stepDetails(s, now);
     } else if (!settled[s.i]) {
       if (ti >= 0) {   // hidden until the covers are in
-        const p = introPose(s.i, ti);
-        if (p) s.pose = p; else { s.pose = restPose(); settled[s.i] = true; }
+        const p = crateMode ? crateIntro(s, ti) : introPose(s.i, ti);
+        if (p) s.pose = p; else { s.pose = homePose(s); settled[s.i] = true; }
         moved = true;
       }
+    } else if (crateMode) {
+      if (crateMoving) { s.pose = crate.pose(s); moved = true; }
     } else if (lifted === s.i) {
       moved = stepHover(s, dt);
     } else if (s.fall) {
@@ -352,16 +406,24 @@ function frame(now) {
       moved = true;
     }
     if (moved) {
-      applyPose(s); placeSlot(s);
-      // A sleeve shades the wall until it is well clear of it (Details flies it out of range).
-      const shades = s.pose.z < 270;
+      applyPose(s);
+      if (!crateMode) placeSlot(s);
+      // A sleeve shades the wall until it is well clear of it (Details flies it out of range). The crate
+      // stands clear of the wall and shades none of it.
+      const shades = !crateMode && s.pose.z < 270;
       if (shades || s.shaded) bakeDirty = true;
       s.shaded = shades;
       if (!det || s.i !== det.i) bgDirty = true;
       active = true;
     }
   }
-  if (bakeDirty) { writeOccluders(sleeves, uniforms); wall.bake(); bakeDirty = false; bgDirty = true; }
+  if (bakeDirty) { writeOccluders(sleeves, uniforms, crateMode); wall.bake(); bakeDirty = false; bgDirty = true; }
+  // In the crate the front sleeve wears the Now playing sticker, fading while the crate moves.
+  if (crateMode && !det) {
+    const c = Math.round(crate.p), k = settled[c] ? clamp01(1 - Math.abs(crate.p - c) * 3) : 0;
+    sticker.mesh.layers.enable(0);
+    sticker.place(sleeves[c] || sleeves[0], k);
+  } else sticker.mesh.layers.disable(0);
   const alive = aliveIdx >= 0 || now < aliveUntil;
   if (alive) for (const c of covers) c?.update(dt);
 
@@ -392,7 +454,7 @@ function frame(now) {
     firstFrame.resolve();
     active = true;
   }
-  if (active || waiting || alive) wake(); else last = 0;
+  if (active || waiting || alive || crateMoving) wake(); else last = 0;
 }
 
 // ---- intro: canvas fade, header rise, late fade ---------------------------------------------------
@@ -442,7 +504,7 @@ function overFocus() {
 }
 let pointerHit = -1;   // keyboard focus moves the hover too; the pointer takes it back when it moves to another sleeve
 window.addEventListener('pointermove', e => {
-  if (e.pointerType === 'touch') return;
+  if (e.pointerType === 'touch' || crateMode) return;
   pointer.x = e.clientX; pointer.y = e.clientY;
   if (det) { syncHot(); return; }
   const hit = hitAt(e.clientX, e.clientY);
@@ -455,17 +517,104 @@ window.addEventListener('resize', layout);
 // A click on a sleeve opens its Details; in Details, a click on the sleeve flips it and a click on the
 // ground puts it back.
 canvas.addEventListener('click', e => {
+  if (crateMode) return;   // the crate's own pointer handling below takes taps
   pointer.x = e.clientX; pointer.y = e.clientY;
   if (det) { if (det.exit) return; if (overFocus()) flip(); else closeDetails(); return; }
   const hit = hitAt(e.clientX, e.clientY);
   if (hit >= 0) openDetails(hit);
 });
 
+// ---- the crate ------------------------------------------------------------------------------------
+// The intro in the crate: front to back, each sleeve fades in as it settles into its place.
+function crateIntro(s, ti) {
+  const u = clamp01((ti - delay(INTRO.appear.at + INTRO.appear.stagger * s.i)) / dur(360));
+  if (u >= 1) return null;
+  const p = crate.pose(s);
+  p.opacity = u;
+  p.lift += (1 - easeOut(u)) * 40 / S;
+  return p;
+}
+// The bar and rail follow the front sleeve; the screen reader hears it once the crate comes to rest.
+let crateShown = -1, crateSaid = 0;
+function syncCrate(force = false) {
+  if (!crateMode) return;
+  const n = sleeves.length, c = crate.current, e = entries[c];
+  const track = railThumb.parentElement.clientHeight - railThumb.offsetHeight;
+  railThumb.style.transform = `translateY(${((1 - clamp01(crate.p / Math.max(1, n - 1))) * track).toFixed(1)}px)`;
+  if (c === crateShown && !force) return;
+  crateShown = c;
+  cbYear.textContent = e.year || '';
+  cbName.textContent = e.name;
+  for (const [b, label] of [[cbDetails, 'Details'], [cbOpen, 'Open']]) { b.dataset.index = String(c); b.setAttribute('aria-label', `${label}: ${e.name}`); }
+}
+function crateRest() {
+  const c = crate.current;
+  if (c !== crateSaid) { crateSaid = c; announce(`${entries[c].name}, ${c + 1} of ${sleeves.length}`); }
+}
+// Which sleeve is at screen point (x, y): the passed ones lie in front, then the front sleeve, then the
+// strips behind it, front to back.
+function crateHit(x, y) {
+  const c = Math.round(crate.p), order = [];
+  for (let i = 0; i < c; i++) order.push(i);
+  for (let i = c; i < sleeves.length; i++) order.push(i);
+  for (const i of order) {
+    if (!settled[i]) continue;
+    const r = sleeveRect(i);
+    if (x >= r.x && x <= r.x + r.width && y >= r.y && y <= r.y + r.height) return i;
+  }
+  return -1;
+}
+// A finger (or mouse) drags the crate; a tap (under 8 px of travel) on the front sleeve opens its
+// Details, on another sleeve brings it to the front; in Details a tap on the sleeve flips it and a tap
+// beside it puts it back.
+let press = null;
+canvas.addEventListener('pointerdown', e => {
+  if (!crateMode || inProject >= 0 || !e.isPrimary) return;
+  press = { x: e.clientX, y: e.clientY, id: e.pointerId };
+  canvas.setPointerCapture(e.pointerId);
+  if (!det) { crate.begin(e.clientY, e.timeStamp); wake(); }
+});
+canvas.addEventListener('pointermove', e => {
+  if (!press || e.pointerId !== press.id || det) return;
+  crate.move(e.clientY, e.timeStamp);
+  syncCrate();
+  wake();
+});
+const endPress = cancel => e => {
+  if (!press || e.pointerId !== press.id) return;
+  const { x, y } = press;
+  press = null;
+  const travel = Math.hypot(e.clientX - x, e.clientY - y);
+  if (cancel) { crate.cancel(); wake(); return; }
+  if (!det) crate.end(e.timeStamp);
+  wake();
+  if (travel >= 8) return;
+  pointer.x = e.clientX; pointer.y = e.clientY;
+  if (det) { if (det.exit) return; if (overFocus()) flip(); else closeDetails(); return; }
+  const hit = crateHit(e.clientX, e.clientY);
+  if (hit < 0) return;
+  if (hit === crate.current && Math.abs(crate.p - hit) < 0.05) openDetails(hit);
+  else { crate.go(hit); play('tick'); }
+};
+canvas.addEventListener('pointerup', endPress(false));
+canvas.addEventListener('pointercancel', endPress(true));
+let wheelAt = 0;
+window.addEventListener('wheel', e => {
+  if (!crateMode || det || inProject >= 0) return;
+  e.preventDefault();
+  if (e.timeStamp - wheelAt > 200) crate.wheel(0);
+  wheelAt = e.timeStamp;
+  crate.wheel(e.deltaY);
+  wake();
+}, { passive: false });
+cbBar.querySelector('.cb-back').addEventListener('click', () => closeDetails());
+
 // ---- Details --------------------------------------------------------------------------------------
 function openDetails(i) {
   if (det || !settled[i]) return;
   const s = sleeves[i], now = performance.now();
   s.fall = null;
+  if (crateMode) crate.go(i);
   const ret = slotOf(document.activeElement) === i ? document.activeElement : null;   // focus comes back here
   det = { i, t0: now, from: { ...s.pose }, flip: { from: 0, to: 0, t0: -1e9 }, exit: null, blur: 0, sticker: 0, slid: false, ret };
   for (const o of [s.mesh, s.record.mesh]) o.layers.set(FOCUS);
@@ -484,6 +633,7 @@ function openDetails(i) {
   fade(dOpen, 1, D.open.at, D.open.dur);
   detailsEl.focus({ preventScroll: true });   // Tab reaches Open; Space stays the flip
   play('details', { pan: panOf(i) });
+  announce(s.entry.tag ? `Details: ${s.entry.name}. ${s.entry.tag}` : `Details: ${s.entry.name}`);
   syncHot();
   wake();
 }
@@ -494,6 +644,7 @@ function flip() {
   const yaw = f.from + (f.to - f.from) * bezier(P.ease, clamp01((now - f.t0 - delay(P.at)) / dur(P.dur)));
   det.flip = { from: yaw, to: f.to + Math.PI, t0: now };
   play('flip');
+  announce(Math.round(det.flip.to / Math.PI) % 2 ? 'Back of the sleeve' : 'Front of the sleeve');
   wake();
 }
 
@@ -505,6 +656,7 @@ function closeDetails() {
   fade(tagline, 1, X.headerIn.at, X.headerIn.dur);
   detailsEl.inert = true; dOpen.inert = true;
   play('close', { pan: panOf(det.i) });
+  announce('Back to the shelf');
   wake();
 }
 
@@ -512,7 +664,7 @@ function endDetails(s, now) {
   const { i, ret } = det;
   det = null;
   releaseBack(s);
-  s.pose = hoverPose();
+  s.pose = crateMode ? crate.pose(s) : hoverPose();
   applyPose(s);
   for (const o of [s.mesh, s.record.mesh]) o.layers.set(0);
   sticker.mesh.visible = false;
@@ -521,6 +673,12 @@ function endDetails(s, now) {
   document.body.classList.remove('in-details');
   // The sleeve lands lifted; it stays up if the pointer (or the keyboard focus, returned to the pill
   // that opened Details) is on it.
+  if (crateMode) {
+    if (ret && ret.isConnected) ret.focus({ preventScroll: true });
+    syncCrate(true);
+    syncHot();
+    return;
+  }
   pointerHit = hitAt(pointer.x, pointer.y);
   hovered = pointerHit;
   hoverAt = now;
@@ -547,6 +705,7 @@ function openProject(i) {
   if (entries[i].kind !== 'about') import('./project/project.js').then(m => m.loadDossier(slugOf(entries[i])));
   openedFromShelf = true;
   cutAfter = OPEN.cut;
+  announce(`Open: ${entries[i].name}`);
   location.hash = slugOf(entries[i]);
 }
 
@@ -572,6 +731,7 @@ async function route() {
     play('close', { pan: panOf(i0) });
     // Back on the shelf with the same sleeve focused (and lifted, as focus does).
     layout();
+    if (crateMode) { crate.jump(i0); for (const s of sleeves) if (settled[s.i]) { s.pose = crate.pose(s); applyPose(s); } syncCrate(true); }
     bakeDirty = bgDirty = true;
     slots[i0].querySelector('[data-action="open"]').focus({ preventScroll: true });
     wake();
@@ -611,6 +771,7 @@ const slotOf = el => (el && el.closest && el.closest('.slot') ? slots.indexOf(el
 slotsEl.addEventListener('focusin', e => {
   const i = slotOf(e.target);
   if (i < 0) return;
+  if (crateMode) { if (!det) { crate.go(i); wake(); } return; }
   setHovered(i, true);
 });
 slotsEl.addEventListener('focusout', e => {
@@ -622,6 +783,20 @@ window.addEventListener('keydown', e => {
   if (det) {
     if (e.key === 'Escape') { e.preventDefault(); closeDetails(); }
     else if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); if (!e.repeat) flip(); }
+    return;
+  }
+  if (crateMode) {
+    // The crate: arrows step through it; focus, if it is on the list, moves with the front sleeve.
+    const step = { ArrowLeft: -1, ArrowUp: -1, ArrowRight: 1, ArrowDown: 1 }[e.key];
+    if (step === undefined) return;
+    e.preventDefault();
+    const to = Math.max(0, Math.min(sleeves.length - 1, crate.current + step));
+    if (to === crate.current) return;
+    crate.go(to);
+    const f = slotOf(document.activeElement);
+    if (f >= 0) slots[to].querySelector(`[data-action="${document.activeElement.dataset.action}"]`).focus({ preventScroll: true });
+    play('tick');
+    wake();
     return;
   }
   const step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -SLEEVE.cols, ArrowDown: SLEEVE.cols }[e.key];
@@ -651,6 +826,7 @@ const hooks = {
   sleeveRect,
   setCover(i, front, back) { setCover(sleeves[i], front, back); wake(); },
   get project() { return inProject >= 0 ? slugOf(entries[inProject]) : null; },
+  get crate() { return crateMode ? { p: crate.p, current: crate.current, dragging: crate.dragging } : null; },
   get details() {
     return det ? { index: det.i, flipped: Math.round(det.flip.to / Math.PI) % 2 === 1, closing: !!det.exit, blur: det.blur, yaw: sleeves[det.i].pose.yaw } : null;
   },

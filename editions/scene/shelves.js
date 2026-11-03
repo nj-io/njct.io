@@ -1,7 +1,7 @@
 // Two white floating shelves: a box with rounded front edges, lit by the same soft boxes as the wall.
 // The top surface darkens where a sleeve stands on it (contact shadow).
 import * as THREE from 'three';
-import { SHELF } from './config.js';
+import { SHELF, SLEEVE } from './config.js';
 import { LIGHT_GLSL } from './lighting.js';
 
 function shelfGeometry() {
@@ -48,8 +48,8 @@ void main() {
   if (n.y > 0.5) {
     // Contact shadow in front of each sleeve standing on this shelf.
     float shade = 0.0;
-    for (int k = 0; k < 5; k++) {
-      vec4 f = uFoot[uRow * 5 + k];   // x0, x1, bottom edge depth, height above the shelf
+    for (int k = 0; k < ${SLEEVE.cols}; k++) {
+      vec4 f = uFoot[uRow * ${SLEEVE.cols} + k];   // x0, x1, bottom edge depth, height above the shelf
       float inX = smoothstep(f.x - 4.0, f.x + 8.0, vPos.x) * (1.0 - smoothstep(f.y - 8.0, f.y + 4.0, vPos.x));
       float dz = vPos.z - f.z;
       shade = max(shade, inX * step(-1.0, dz) * exp(-max(dz, 0.0) / uContact.y) * exp(-f.w / 6.0));

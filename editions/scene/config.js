@@ -12,24 +12,32 @@ export const viewScale = (w, h) => Math.min(w / REF_W, h / 760);
 // edge, and a sleeve hovering 77 units out reads 3.1% larger: both give a distance of about 2556.
 export const CAMERA_Z = 2556;
 
+// The lineup, in shelf order (left to right, top shelf first). The layout follows its length: two
+// shelves, the top one taking the odd sleeve. Up to five a shelf, sleeves keep the reference's size and
+// pitch; a longer shelf scales both by sqrt(5 / per shelf) and the shelf grows to hold them, so the sleeves
+// shrink and the shelf widens by about the same share (six a shelf: 177 px sleeves on a 1228 px shelf).
+export const LINEUP = await fetch(new URL('../data/projects.json', import.meta.url)).then(r => r.json());
+const PER_SHELF = Math.max(5, Math.ceil(LINEUP.length / 2));
+const K = Math.sqrt(5 / PER_SHELF);
+
+export const SLEEVE = {
+  size: 194 * K,        // square; 194 px at the wall plane at five a shelf
+  thick: 2,             // about 3 mm of card at this scale
+  pitch: 221.3 * K,
+  cols: PER_SHELF,      // sleeves on the top shelf; the bottom shelf takes the rest, centred
+  lean: 12.76 * Math.PI / 180, // rest lean against the wall; the top edge touches the wall
+  hoverLift: 21.2 * K,  // bottom edge above the shelf when hovered
+  hoverZ: 77 * K,       // bottom edge distance from the wall when hovered
+  hoverTau: 0.19,       // seconds: hover pose approaches its target exponentially
+  hoverRecord: 0.1,     // the record peeks out of the top of a hovered sleeve (share of its diameter)
+};
+
 export const SHELF = {
-  width: 1120,          // back edge spans 160..1280 px on screen
+  width: Math.max(1120, (PER_SHELF - 1) * SLEEVE.pitch + SLEEVE.size + 40.8),   // 160..1280 px on screen at five a shelf
   depth: 115,
   thick: 8.6,
   bevel: 1.6,           // radius of the rounded front edges
   tops: [50.6, -199.1], // top surface height of each shelf
-};
-
-export const SLEEVE = {
-  size: 194,            // square; 194 px at the wall plane
-  thick: 2,             // about 3 mm of card at this scale
-  pitch: 221.3,
-  cols: 5,
-  lean: 12.76 * Math.PI / 180, // rest lean against the wall; the top edge touches the wall
-  hoverLift: 21.2,      // bottom edge above the shelf when hovered
-  hoverZ: 77,           // bottom edge distance from the wall when hovered
-  hoverTau: 0.19,       // seconds: hover pose approaches its target exponentially
-  hoverRecord: 0.1,     // the record peeks out of the top of a hovered sleeve (share of its diameter)
 };
 
 // Off the sleeve, the reference lets it fall back: a pause, a drop onto the shelf (ease-in), a pause,

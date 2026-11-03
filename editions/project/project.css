@@ -25,14 +25,14 @@ html.in-project .details, html.in-project #d-open { display: none; }
 .pj-head {
   position: fixed; top: 0; left: 0; right: 0; height: var(--pj-head); z-index: 5; box-sizing: border-box;
   display: flex; align-items: center; gap: 12px; padding: 0 var(--gutter);
-  background: var(--acc); color: #fff; border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+  background: var(--acc); color: rgb(var(--fg)); border-bottom: 1px solid rgb(var(--fg) / 0.16);
 }
-.pj-head .pj-mark { color: #fff; font-weight: 500; text-decoration: none; }
-.pj-head .pj-name { color: rgba(255, 255, 255, 0.62); }
+.pj-head .pj-mark { color: rgb(var(--fg)); font-weight: 500; text-decoration: none; }
+.pj-head .pj-name { color: rgb(var(--fg) / 0.62); }
 .pj-head .pj-sp { flex: 1; }
-.pj-head .pj-back { height: 34px; padding: 0 14px; border: 0; border-radius: 17px; background: transparent; color: #fff; cursor: pointer; }
-.pj-head .pj-back:hover { background: rgba(255, 255, 255, 0.14); }
-.pj-head .pj-cta { height: 34px; padding: 0 14px; border: 0; border-radius: 17px; background: #fff; color: #000; cursor: pointer; }
+.pj-head .pj-back { height: 34px; padding: 0 14px; border: 0; border-radius: 17px; background: transparent; color: rgb(var(--fg)); cursor: pointer; }
+.pj-head .pj-back:hover { background: rgb(var(--fg) / 0.14); }
+.pj-head .pj-cta { height: 34px; padding: 0 14px; border: 0; border-radius: 17px; background: rgb(var(--fg)); color: rgb(var(--fg-inv)); cursor: pointer; }
 .pj :focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 .pj-title:focus { outline: none; }
 
@@ -44,27 +44,27 @@ html.in-project .details, html.in-project #d-open { display: none; }
 .pj-window { position: absolute; top: var(--pj-frame); bottom: var(--pj-frame); left: var(--pj-panel); right: 0; }
 .pj-panel {
   position: absolute; top: 0; bottom: 0; left: 0; width: var(--pj-panel); z-index: 2; box-sizing: border-box;
-  background: var(--acc); color: #fff; display: grid; grid-template-columns: 39.5% 1fr; transform: translateX(-100%);
+  background: var(--acc); color: rgb(var(--fg)); display: grid; grid-template-columns: 39.5% 1fr; transform: translateX(-100%);
   will-change: transform;
 }
-.pj-titlecol { position: relative; border-right: 1px solid rgba(255, 255, 255, 0.16); overflow: hidden; }
+.pj-titlecol { position: relative; border-right: 1px solid rgb(var(--fg) / 0.16); overflow: hidden; }
 .pj-title {
   position: absolute; left: 10px; bottom: var(--pj-frame); margin: 0; font-weight: 500; line-height: 0.8; letter-spacing: -0.02em;
-  writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; color: #fff;
+  writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; color: rgb(var(--fg));
 }
 .pj-sub {
   position: absolute; right: 12px; top: calc(var(--pj-frame) + 10px); margin: 0; font: 500 12px/1 var(--mono);
-  writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; color: rgba(255, 255, 255, 0.85);
+  writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; color: rgb(var(--fg) / 0.85);
 }
 .pj-col { padding: calc(var(--pj-frame) + 10px) 10px var(--pj-frame) 11px; display: flex; flex-direction: column; gap: 11px; overflow: hidden; }
-.pj-box { border: 1px solid rgba(255, 255, 255, 0.24); padding: 8px 8px 10px; font: 500 13px/1.38 var(--mono); }
+.pj-box { border: 1px solid rgb(var(--fg) / 0.24); padding: 8px 8px 10px; font: 500 13px/1.38 var(--mono); }
 .pj-index ol { list-style: none; margin: 0; padding: 0; }
 .pj-index button {
-  all: unset; box-sizing: border-box; display: flex; justify-content: space-between; gap: 12px; width: 100%; cursor: pointer; color: #fff;
+  all: unset; box-sizing: border-box; display: flex; justify-content: space-between; gap: 12px; width: 100%; cursor: pointer; color: rgb(var(--fg));
 }
-.pj-index button span:last-child { color: rgba(255, 255, 255, 0.62); }
+.pj-index button span:last-child { color: rgb(var(--fg) / 0.62); }
 .pj-index button:hover span:first-child { text-decoration: underline; text-underline-offset: 3px; }
-.pj-fig .k { display: block; color: rgba(255, 255, 255, 0.62); font-size: 11.5px; margin-bottom: 6px; }
+.pj-fig .k { display: block; color: rgb(var(--fg) / 0.62); font-size: 11.5px; margin-bottom: 6px; }
 .pj-fig .v { display: block; font-size: 14px; }
 
 /* ---- the page ---- */
@@ -118,7 +118,7 @@ html.in-project .details, html.in-project #d-open { display: none; }
   .pj-head { padding: 0 16px; }
   .pj-head .pj-cta { display: none; }
   /* The hero's pieces each carry the accent so the world's box stays a hole onto the canvas. */
-  .pj-hero { position: relative; top: 0; height: auto; overflow: visible; display: flex; flex-direction: column; color: #fff; }
+  .pj-hero { position: relative; top: 0; height: auto; overflow: visible; display: flex; flex-direction: column; color: rgb(var(--fg)); }
   .pj-hero::before, .pj-hero::after { display: none; }
   .pj-panel { display: contents; }
   .pj-titlecol { order: 1; border: 0; overflow: visible; background: var(--acc); padding: 8px 16px 0; }

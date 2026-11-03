@@ -7,6 +7,7 @@
 import * as THREE from 'three';
 import { SLEEVE } from './config.js';
 const SLEEVE_LIFT = SLEEVE.hoverLift.toFixed(2);
+const COLS = SLEEVE.cols;   // sleeves a shelf (config.js); slabs and feet are indexed row * COLS + col
 
 // Fitted against the reference wall (build/compare/fit). Rect: x0, y0, x1, y1 in the light's plane.
 export const LIGHTS = {
@@ -25,7 +26,7 @@ export const LIGHTS = {
 };
 
 
-export const MAX_SLABS = 20; // two per sleeve
+export const MAX_SLABS = 4 * COLS; // two per sleeve, two shelves
 
 export function createLightUniforms() {
   return {
@@ -37,7 +38,7 @@ export function createLightUniforms() {
     uSlab: { value: Array.from({ length: MAX_SLABS }, () => new THREE.Vector4(0, 0, 0, 0)) },
     uSlabZ: { value: new Array(MAX_SLABS).fill(1) },
     uSlabA: { value: new Array(MAX_SLABS).fill(0) },
-    uFoot: { value: Array.from({ length: 10 }, () => new THREE.Vector4(0, 0, 0, 1e3)) },
+    uFoot: { value: Array.from({ length: 2 * COLS }, () => new THREE.Vector4(0, 0, 0, 1e3)) },
     uShelfAlbedo: { value: 1 },
     uShelfAmbient: { value: 0 },
     uContact: { value: new THREE.Vector2() },
@@ -78,7 +79,7 @@ uniform float uShelfDepth;
 uniform vec4 uSlab[${MAX_SLABS}];  // x0, y0, x1, y1 of a slab parallel to the wall
 uniform float uSlabZ[${MAX_SLABS}];
 uniform float uSlabA[${MAX_SLABS}];  // occlusion strength: the sleeve's opacity
-uniform vec4 uFoot[10];      // per sleeve: x0, x1, bottom edge depth, height of the bottom edge above its shelf
+uniform vec4 uFoot[${2 * COLS}];      // per sleeve: x0, x1, bottom edge depth, height of the bottom edge above its shelf
 
 // Form factor from a point (normal +z) to the part of a parallel rectangle with one corner straight
 // above the point and the opposite corner at q, the plane at distance c. Odd in q.x and q.y.
@@ -144,8 +145,8 @@ float wallLight(int l, vec2 p, int row) {
     vis *= 1.0 - clamp(occ / full, 0.0, 1.0);
   }
   if (row >= 0) {
-    for (int k = 0; k < 10; k++) {
-      int i = row * 10 + k;
+    for (int k = 0; k < ${2 * COLS}; k++) {
+      int i = row * ${2 * COLS} + k;
       vec4 r = uSlab[i];
       if (r.z <= r.x) continue;
       float m = c / uSlabZ[i];
@@ -172,8 +173,8 @@ uniform vec4 uEdgeShade;  // left edge strength, reach; under a lifted sleeve st
 float haloAt(vec2 p, int row) {
   if (row < 0) return 0.0;
   float e = 0.0;
-  for (int k = 0; k < 5; k++) {
-    int i = row * 10 + k * 2;
+  for (int k = 0; k < ${COLS}; k++) {
+    int i = row * ${2 * COLS} + k * 2;
     vec4 a = uSlab[i], b = uSlab[i + 1];
     if (a.z <= a.x) continue;
     vec4 r = vec4(min(a.xy, b.xy), max(a.zw, b.zw));
@@ -191,14 +192,14 @@ float haloAt(vec2 p, int row) {
 float edgeShade(vec2 p, int row) {
   if (row < 0) return 1.0;
   float f = 1.0;
-  for (int k = 0; k < 5; k++) {
-    int i = row * 10 + k * 2;
+  for (int k = 0; k < ${COLS}; k++) {
+    int i = row * ${2 * COLS} + k * 2;
     vec4 a = uSlab[i], b = uSlab[i + 1];
     if (a.z <= a.x) continue;
     float dx = min(a.x, b.x) - p.x;
     if (dx > 0.0 && p.y >= a.y && p.y <= b.w) f *= 1.0 - uSlabA[i] * uEdgeShade.x * exp(-dx / uEdgeShade.y);
     // Under a lifted sleeve: a band from its bottom edge, offset a little to the left.
-    float lift = clamp(uFoot[row * 5 + k].w / ${SLEEVE_LIFT}, 0.0, 1.0);
+    float lift = clamp(uFoot[row * ${COLS} + k].w / ${SLEEVE_LIFT}, 0.0, 1.0);
     float dy = a.y - p.y;
     if (lift > 0.0 && dy > 0.0 && p.x > a.x - 6.0 && p.x < a.z - 4.0)
       f *= 1.0 - lift * uEdgeShade.z * exp(-dy / uEdgeShade.w) * smoothstep(a.x - 6.0, a.x + 2.0, p.x) * (1.0 - smoothstep(a.z - 12.0, a.z - 4.0, p.x));

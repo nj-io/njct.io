@@ -65,10 +65,11 @@ export function createWall(renderer, uniforms) {
 
   return {
     mesh,
-    // Cover the world rectangle (x0, y0)-(x1, y1) at texW x texH texels.
-    resize(x0, y0, x1, y1, texW, texH) {
+    // Cover the world rectangle (x0, y0)-(x1, y1) at texW x texH texels, lit as that rectangle or, given
+    // region [x0, y0, x1, y1], as that one (the phone crate's close view keeps the shelf view's light).
+    resize(x0, y0, x1, y1, texW, texH, region = null) {
       target.setSize(texW, texH);
-      bakeMat.uniforms.uRegion.value.set(x0, y0, x1, y1);
+      bakeMat.uniforms.uRegion.value.set(...(region || [x0, y0, x1, y1]));
       mesh.scale.set(x1 - x0, y1 - y0, 1);
       mesh.position.set((x0 + x1) / 2, (y0 + y1) / 2, 0);
       mesh.updateMatrixWorld();

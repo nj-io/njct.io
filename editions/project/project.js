@@ -23,27 +23,36 @@ export function loadDossier(slug) {
   return dossiers.get(slug);
 }
 
-// Colours: the panel takes the accent, the culture the accent's hue (in the home page's dark-theme pigment). Entries without an
-// accent take the hue their cover derives from the name (covers.js designFor: a name hash inside the
-// band the accented covers leave open); About Neil takes its cover's coral.
-const fnv1a = str => { let h = 2166136261; for (const ch of str) { h ^= ch.codePointAt(0); h = Math.imul(h, 16777619) >>> 0; } return h; };
-const hsl = (h, s, l) => {
-  const f = n => { const k = (n + h / 30) % 12; return l - s * Math.min(l, 1 - l) * Math.max(-1, Math.min(k - 3, 9 - k, 1)); };
-  return '#' + [f(0), f(8), f(4)].map(v => Math.round(v * 255).toString(16).padStart(2, '0')).join('');
+// Colours: the panel takes the accent, the culture the accent's hue (in the home page's dark-theme pigment).
+// Entries without an accent, and About Neil, take colours from their cover's palette (covers.js designFor):
+// panel, the culture's tint and the page's ink. Panel text is white unless white reads under 4.5:1 on the
+// panel; the page's ink is darkened until it reads at 4.5:1 on the page ground.
+const COVER_COLOURS = {
+  'Scorecard': { panel: '#1F5DD8', tint: '#F6C21C' },
+  'Xactions': { panel: '#0B1234', tint: '#FF8A2A' },
+  'Stellar Explorer': { panel: '#1E2C8C', tint: '#DBA95C' },
+  'About Neil': { panel: '#9A6418', tint: '#E4A23C' },
 };
+const GROUND = '#ECECEA';
+const rgbOf = hex => { const n = parseInt(hex.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
+const lum = hex => { const [r, g, b] = rgbOf(hex).map(v => { v /= 255; return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+const contrast = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m); return (x + 0.05) / (y + 0.05); };
+const darken = (hex, k) => '#' + rgbOf(hex).map(v => Math.round(v * k).toString(16).padStart(2, '0')).join('');
+function readable(hex, on) { let c = hex; for (let k = 1; contrast(c, on) < 4.5 && k > 0.2; k -= 0.04) c = darken(hex, k); return c; }
 const hueOf = hex => {
-  const n = parseInt(hex.slice(1), 16), r = (n >> 16 & 255) / 255, g = (n >> 8 & 255) / 255, b = (n & 255) / 255;
+  const [r, g, b] = rgbOf(hex).map(v => v / 255);
   const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
   if (!d) return 0;
   const h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
   return (h * 60 + 360) % 360;
 };
-function colours(entry) {
-  if (entry.kind === 'about') return { panel: '#D9533F', hue: hueOf('#FF7A66'), ink: '#C2412D' };
-  if (entry.accent) return { panel: entry.accent.light, hue: hueOf(entry.accent.light), ink: entry.accent.light };
-  const [a, b] = entry.name === 'Stellar Explorer' ? [250, 270] : [322, 344];
-  const h = a + (fnv1a(entry.name) % 1000) / 1000 * (b - a);
-  return { panel: hsl(h, 0.62, 0.40), hue: h, ink: hsl(h, 0.62, 0.36) };
+// An entry with neither (one whose cover takes the module's fallback design) takes the fallback's colours.
+const FALLBACK = COVER_COLOURS.Xactions;
+export function colours(entry) {
+  const c = entry.accent ? { panel: entry.accent.light, tint: entry.accent.light } : COVER_COLOURS[entry.name] || FALLBACK;
+  const dark = contrast('#FFFFFF', c.panel) < 4.5;
+  return { panel: c.panel, hue: hueOf(c.tint), ink: readable(c.panel, GROUND),
+    fg: dark ? '23 18 11' : '255 255 255', fgInv: dark ? '255 255 255' : '0 0 0' };
 }
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -88,12 +97,15 @@ function heroColumn(entry, data, slugOf, entries) {
 }
 
 // The giant title's size: as long as the panel's title column is tall (desktop) or the screen is wide
-// (phone), never wider than the column.
+// (phone), never wider than the column. On desktop the tag runs down from the column's top: a title long
+// enough to reach it either stops short of it or thins to pass beside it, whichever leaves it larger.
 const measure = document.createElement('canvas').getContext('2d');
 function fitTitle(el, text, vertical, box) {
   measure.font = '500 100px Inter, system-ui, sans-serif';
   const w100 = measure.measureText(text).width - 2 * (text.length - 1);   // letter-spacing -0.02em
-  const size = vertical ? Math.min((box.w - 22) / 0.74, box.h / (w100 / 100)) : Math.min(box.w / (w100 / 100), 140);
+  let size = vertical ? Math.min((box.w - 22) / 0.74, box.h / (w100 / 100)) : Math.min(box.w / (w100 / 100), 140);
+  if (vertical && box.sub && size * w100 / 100 + box.sub + 24 > box.h)
+    size = Math.min(size, Math.max((box.h - box.sub - 24) / (w100 / 100), (box.w - 52) / 0.74));
   el.style.fontSize = `${Math.floor(size * 10) / 10}px`;
 }
 
@@ -128,6 +140,8 @@ export function createProjectView({ renderer, entries, slugOf, onBack, onCta }) 
     root.setAttribute('aria-label', entry.name);
     root.style.setProperty('--acc', col.panel);
     root.style.setProperty('--acc-ink', col.ink);
+    root.style.setProperty('--fg', col.fg);
+    root.style.setProperty('--fg-inv', col.fgInv);
     const sub = entry.kind === 'about' ? entry.about[2] : entry.tag;
     const proposal = data?.proposal ? '<p class="pj-num" style="margin-top:-36px">Draft for review</p>' : '';
     root.innerHTML = `
@@ -165,7 +179,7 @@ export function createProjectView({ renderer, entries, slugOf, onBack, onCta }) 
     const fit = () => {
       const tc = q('.pj-titlecol').getBoundingClientRect(), hero = q('.pj-hero').getBoundingClientRect();
       fitTitle(title, entry.name, vertical(), vertical()
-        ? { w: tc.width, h: hero.height - 2 * parseFloat(getComputedStyle(root).getPropertyValue('--pj-frame')) - 12 }
+        ? { w: tc.width, h: hero.height - 2 * parseFloat(getComputedStyle(root).getPropertyValue('--pj-frame')) - 12, sub: q('.pj-sub')?.getBoundingClientRect().height || 0 }
         : { w: hero.width - 32 });
     };
     fit();

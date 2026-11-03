@@ -255,6 +255,36 @@
   "logo": null
  },
  {
+  "name": "Chairtax",
+  "kind": "project",
+  "year": "2026",
+  "tag": "Camera-counted squat breaks for the Mac",
+  "blurb": "When a break is due, Chairtax takes over your Mac's screen. Do a few squats, or one of five other movements, in front of the camera and the screen is yours again.",
+  "url": "https://chairtax.app",
+  "stack": "Swift · SwiftUI · AppKit · Apple Vision · Cloudflare Workers",
+  "figs": [
+   [
+    "6",
+    "movements the camera counts"
+   ],
+   [
+    "3",
+    "ranks of how hard a break is to skip"
+   ],
+   [
+    "On-device",
+    "rep counting; the picture is never uploaded"
+   ]
+  ],
+  "accent": {
+   "light": "#ffb020",
+   "dark": "#ffc85a"
+  },
+  "logo": {
+   "png": "/editions/data/logos/chairtax.png"
+  }
+ },
+ {
   "name": "About Neil",
   "kind": "about",
   "year": "",

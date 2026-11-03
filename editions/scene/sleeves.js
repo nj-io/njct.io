@@ -1,4 +1,4 @@
-// Ten sleeves: thin card boxes standing on the shelves, each holding a record. A sleeve's pose is its
+// The sleeves: thin card boxes standing on the shelves, each holding a record. A sleeve's pose is its
 // bottom edge's height above its shelf (lift), that edge's distance from the wall (z), its lean back
 // toward the wall (pivoting on that edge), a sideways offset (dx), a turn about its own vertical axis
 // (yaw, for the flip) and how far its record is drawn out (rec, along recDir). Poses also drive the
@@ -42,6 +42,7 @@ export function createSleeves(entries) {
   return entries.map((entry, i) => {
     const edge = neutral(new THREE.MeshStandardMaterial({ color: 0xf1efea, roughness: 0.8 }));
     const col = i % SLEEVE.cols, row = Math.floor(i / SLEEVE.cols);
+    const onRow = Math.min(SLEEVE.cols, entries.length - row * SLEEVE.cols);
     const front = neutral(new THREE.MeshStandardMaterial({ color: new THREE.Color(entry.accent?.light || NEUTRAL), roughness: 0.8 }), COVER_BIAS);
     const back = neutral(new THREE.MeshStandardMaterial({ color: 0xe9e6e0, roughness: 0.7 }));
     const mats = [edge, edge, edge, edge, front, back];   // +x -x +y -y +z(front) -z(back)
@@ -50,7 +51,7 @@ export function createSleeves(entries) {
     const record = createRecord(entry);
     const s = {
       i, row, col, mesh, front, back, mats, record, entry,
-      x: (col - (SLEEVE.cols - 1) / 2) * SLEEVE.pitch,
+      x: (col - (onRow - 1) / 2) * SLEEVE.pitch,
       shelfY: SHELF.tops[row],
       pose: { ...restPose(), opacity: 0 },
     };
@@ -93,17 +94,18 @@ export function applyPose(s) {
 
 // Occluders for the light shaders: each sleeve as two slabs parallel to the wall (its lower and upper
 // halves at their mean depth) and its foot for the shelf's contact shadow. A sleeve flying toward the
-// camera (Details) stops shading the wall.
-export function writeOccluders(sleeves, u) {
+// camera (Details) stops shading the wall; with none set, no sleeve shades it (the phone crate).
+export function writeOccluders(sleeves, u, none = false) {
   for (const s of sleeves) {
     const p = s.pose, c = Math.cos(p.lean), sn = Math.sin(p.lean);
     const y0 = s.shelfY + p.lift, t = SLEEVE.thick / 2, x = s.x + p.dx;
     const away = THREE.MathUtils.smoothstep(p.z, 110, 260);
-    const a = s.mesh.visible ? p.opacity * (1 - away) : 0;
-    const k = (s.row * 5 + s.col) * 2;
+    const a = s.mesh.visible && !none ? p.opacity * (1 - away) : 0;
+    const k = (s.row * SLEEVE.cols + s.col) * 2;
     for (let h = 0; h < 2; h++) {
       const f0 = h / 2, f1 = (h + 1) / 2;
-      u.uSlab.value[k + h].set(x - L / 2, y0 + L * f0 * c, x + L / 2, y0 + L * f1 * c);
+      if (a > 0) u.uSlab.value[k + h].set(x - L / 2, y0 + L * f0 * c, x + L / 2, y0 + L * f1 * c);
+      else u.uSlab.value[k + h].set(0, 0, 0, 0);   // an empty slab: no shade of any kind
       u.uSlabZ.value[k + h] = Math.max(1.5, p.z - L * (f0 + f1) / 2 * sn + t);
       u.uSlabA.value[k + h] = a;
     }
