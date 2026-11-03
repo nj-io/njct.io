@@ -166,12 +166,18 @@ html.in-project .details, html.in-project #d-open { display: none; }
 @media (max-width: 899px) {
   .pj { --pj-head: 56px; --pj-frame: 16px; }
   .pj-head { padding: 0 16px; }
-  .pj-head .pj-cta { display: none; }
+  /* Get in touch stays in the header on phones, as the reference's phone header keeps its action: a
+     34 px pill with 12 px sides, its touch area 44 px tall; the project's name gives way first. */
+  .pj-head .pj-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pj-head .pj-back, .pj-head .pj-cta { flex: none; }
+  .pj-head .pj-cta { position: relative; padding: 0 12px; }
+  .pj-head .pj-cta::before { content: ''; position: absolute; inset: -5px 0; }
   /* The hero's pieces each carry the accent so the world's box stays a hole onto the canvas. */
   .pj-hero { position: relative; top: 0; height: auto; overflow: visible; display: flex; flex-direction: column; color: rgb(var(--fg)); }
   .pj-hero::before, .pj-hero::after { display: none; }
   .pj-panel { display: contents; }
-  .pj-titlecol { order: 1; border: 0; overflow: visible; background: var(--acc); padding: 8px 16px 0; }
+  /* overflow-x: clip keeps the title's scrambled letters (wider than the settled ones) from widening the page */
+  .pj-titlecol { order: 1; border: 0; overflow: visible; overflow-x: clip; background: var(--acc); padding: 8px 16px 0; }
   .pj-window { order: 2; box-shadow: inset 0 0 0 16px var(--acc); }
   .pj-col { order: 3; background: var(--acc); padding: 0 16px 16px; }
   .pj-title { position: static; writing-mode: horizontal-tb; transform: none; line-height: 0.9; }
