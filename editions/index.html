@@ -22,6 +22,7 @@
 <link rel="modulepreload" href="/editions/scene/post.js">
 <link rel="modulepreload" href="/editions/scene/sticker.js">
 <link rel="modulepreload" href="/editions/scene/crate.js">
+<link rel="modulepreload" href="/editions/menu.js">
 <link rel="modulepreload" href="/vendor/three-0.181.0/addons/environments/RoomEnvironment.js">
 <style>
   @font-face {
@@ -58,7 +59,7 @@
   canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; opacity: 0; }
   button { font: inherit; color: inherit; margin: 0; }
 
-  .masthead { position: fixed; top: 0; left: 0; right: 0; pointer-events: none; }
+  .masthead { position: fixed; top: 0; left: 0; right: 0; z-index: 3; pointer-events: none; }
   .masthead > * { pointer-events: auto; }
   .wordmark { position: absolute; left: var(--gutter); top: 15px; font-weight: 500; line-height: 20px; text-decoration: none; color: var(--ink); }
   .tagline { position: absolute; left: var(--gutter); top: 60px; margin: 0; font-size: 14px; font-weight: 400; line-height: 18px; color: var(--ink-soft); }
@@ -67,6 +68,49 @@
     position: absolute; right: var(--gutter); top: 8px; height: 34px; padding: 0 14px; border: 0; border-radius: 17px;
     background: #000; color: #fff; line-height: 34px; text-decoration: none;
   }
+  /* The Projects menu (editions/menu.js), as the reference's Editions menu: measured at 1440x900 and
+     390x844. menu.js sets its left edge 40 px after the wordmark. */
+  .pm { position: absolute; top: 8px; left: calc(var(--gutter) + 86px); --pm-ease: cubic-bezier(0.4, 0, 0.2, 1); }
+  .pm-btn {
+    display: flex; align-items: center; gap: 4px; height: 34px; padding: 0 8px; border: 0; border-radius: 4px;
+    background: transparent; color: var(--ink); font-weight: 500; line-height: 14px; letter-spacing: -0.01em; cursor: pointer;
+    transition: color 0.3s var(--pm-ease), background-color 0.3s var(--pm-ease);
+  }
+  @media (hover: hover) { .pm-btn:hover { background: #000; color: #fff; } .pm-list li:hover { background: rgb(244 244 244); } }
+  .pm-btn svg { width: 16px; height: 16px; display: block; }
+  .pm.open .pm-btn svg { transform: rotate(180deg); }
+  .pm-list {
+    position: absolute; left: 0; top: calc(100% + 8px); margin: 0; padding: 0; list-style: none; box-sizing: border-box;
+    min-width: 220px; width: max-content; max-height: calc(100vh - 66px); overflow-y: auto; overscroll-behavior: contain;
+    background: #fff; border-radius: 4px; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+    opacity: 0; visibility: hidden; translate: 0 -10px;
+    transition: opacity 0.3s var(--pm-ease), visibility 0.3s var(--pm-ease), translate 0.3s var(--pm-ease);
+  }
+  /* Opening waits 0.1 s, as on the reference; the list is visible (still transparent) at once, so the
+     arrow keys can move into it straight away. */
+  .pm.open .pm-list {
+    opacity: 1; visibility: visible; translate: none;
+    transition: opacity 0.3s var(--pm-ease) 0.1s, visibility 0s, translate 0.3s var(--pm-ease) 0.1s;
+  }
+  .pm-list li { border-bottom: 1px solid rgb(236 236 236); }
+  .pm-list li:last-child { border-bottom: 0; }
+  .pm-item { display: flex; align-items: center; gap: 10px; padding: 10px 10px 7px; color: #000; text-decoration: none; }
+  .pm-item:focus-visible { outline-offset: -2px; }
+  .pm-icon { flex: none; width: 24px; height: 24px; border-radius: 5px; overflow: hidden; }
+  .pm-icon img { display: block; width: 24px; height: 24px; object-fit: contain; }
+  .pm-text { display: flex; flex-direction: column; }
+  .pm-name { font-size: 14px; line-height: 16.8px; }
+  .pm-sub { font-size: 12px; line-height: 12px; color: rgb(140 140 140); }
+  /* A phone: the list is a sheet from the bottom of the screen. */
+  @media (max-width: 599px) {
+    .pm-list {
+      position: fixed; left: 0; right: 0; top: auto; bottom: 0; width: auto; min-width: 0; max-height: calc(100dvh - 60px);
+      border-radius: 4px 4px 0 0; padding-bottom: env(safe-area-inset-bottom); translate: 0 50px;
+    }
+    .pm-name { font-size: 16px; line-height: 19.2px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .pm-btn, .pm-list, .pm.open .pm-list { transition: none; } }
+
   .sound {
     position: absolute; right: var(--gutter); top: 61px; width: 40px; height: 40px; padding: 0; border: 0; border-radius: 50%;
     background: rgba(255, 255, 255, 0.3); color: #5b5a5b; display: grid; place-items: center; cursor: pointer;
@@ -138,6 +182,8 @@
   @media (pointer: coarse) {
     .wordmark { top: 3px; padding: 12px 0; min-width: 44px; }
     .cta { top: 5px; height: 44px; line-height: 44px; border-radius: 22px; padding: 0 18px; }
+    .pm { top: 5px; }
+    .pm-btn { height: 44px; }
     .sound { top: 58px; width: 44px; height: 44px; }
     .slot button { height: 44px; line-height: 44px; border-radius: 22px; }
     .d-open { height: 44px; line-height: 44px; border-radius: 22px; }
@@ -169,6 +215,10 @@
 <header class="masthead">
   <a class="wordmark rise" href="/">njct.io</a>
   <h1 class="tagline late">Systems I've designed and built.</h1>
+  <nav class="pm">
+    <button class="pm-btn rise" id="pm-btn" type="button" aria-expanded="false" aria-controls="pm-list">Projects<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></button>
+    <ul class="pm-list" id="pm-list" aria-labelledby="pm-btn"></ul>
+  </nav>
   <a class="cta rise" href="mailto:neil@njct.io">Get in touch</a>
   <button class="sound late" type="button" aria-pressed="false" aria-label="Sound">
     <svg class="off" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">
@@ -198,6 +248,7 @@
   // WebGL 2 draws the shelf; without it (or if the scene fails to start) the shelf is plain cards.
   const gl = (() => { try { return !!document.createElement('canvas').getContext('webgl2'); } catch { return false; } })();
   const fallback = () => import('./fallback.js').then(m => m.start());
+  import('./menu.js').then(m => m.start()).catch(e => console.warn('menu', e));
   if (!gl || window.__editionsTest?.noWebGL) fallback();
   else import('./main.js').catch(e => { console.warn('shelf: static fallback', e); fallback(); });
 </script>

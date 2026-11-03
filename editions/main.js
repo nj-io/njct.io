@@ -3,7 +3,7 @@
 // it back); keyboard; sound. Renders only while something moves.
 import * as THREE from 'three';
 import { RoomEnvironment } from '/vendor/three-0.181.0/addons/environments/RoomEnvironment.js';
-import { CAMERA_Z, REF_H, SHELF, SLEEVE, INTRO, DETAILS, OPEN, LINEUP, viewScale } from './scene/config.js';
+import { CAMERA_Z, REF_H, SHELF, SLEEVE, INTRO, DETAILS, OPEN, LINEUP, viewScale, slugOf } from './scene/config.js';
 import { createLightUniforms, applyLights } from './scene/lighting.js';
 import { createWall } from './scene/wall.js';
 import { createShelves } from './scene/shelves.js';
@@ -600,7 +600,7 @@ window.addEventListener('pointermove', e => {
   if (e.pointerType === 'touch' || crateMode) return;
   pointer.x = e.clientX; pointer.y = e.clientY;
   if (det) { syncHot(); return; }
-  const hit = hitAt(e.clientX, e.clientY);
+  const hit = e.target.closest?.('.pm') ? -1 : hitAt(e.clientX, e.clientY);   // the open Projects menu covers the sleeves under it
   if (hit !== pointerHit) { pointerHit = hit; setHovered(hit); }
 });
 document.documentElement.addEventListener('pointerleave', () => { pointerHit = -1; setHovered(-1); });
@@ -786,7 +786,6 @@ function endDetails(s, now, opening = false) {
 // Open sets the hash; the route opens the page, so deep links and the browser's Back work the same way.
 // The page module loads on demand; the shelf stops drawing while a page is open and the page's world
 // draws on the same canvas.
-const slugOf = e => (e.kind === 'about' ? 'about' : e.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''));
 let view = null, viewP = null, inProject = -1, openedFromShelf = false, cutAfter = 0;
 const loadView = () => viewP || (viewP = import('./project/project.js').then(m => (view = m.createProjectView({
   renderer, entries, slugOf, onBack: backToShelf,

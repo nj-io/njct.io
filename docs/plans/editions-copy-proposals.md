@@ -7,9 +7,9 @@ Every string here waits for operator approval before it ships. Approved copy alr
 | 1 | Every cover front (top-left) and back (bottom-right): edition mark | njct.io | Covers, Wave 1a |
 | 2 | About Neil cover front, top-right (where other covers carry the year) | About | Covers, Wave 1a |
 | 3 | About Neil cover front title | Neil | Covers, Wave 1a |
-| 4 | Back-cover link format | host and path without protocol, e.g. `github.com/nj-io/clauded`, `getstet.github.io` | Covers, Wave 1a |
+| 4 | Back-cover link format | host and path without protocol, e.g. `github.com/nj-io/clauded`, `getstet.github.io`; an entry's `urlText` replaces it (Stats: `stats.njct.io`) | Covers, Wave 1a; ruling 7 |
 | 5 | Header tagline | Systems I've designed and built. | Scene, Wave 1c |
-| 6 | Header call-to-action button | Get in touch | Scene, Wave 1c |
+| 6 | Header and project page call to action, a link to mailto:neil@njct.io | Get in touch | Scene, Wave 1c; ruling 1 |
 | 7 | Topshine entry: name | Topshine (the product's own site writes it lowercase: "topshine") | Wave 2, from the lineup ruling |
 | 8 | Topshine entry: tag | A video studio on open video models | Wave 2, drafted from the Topshine waitlist page |
 | 9 | Topshine entry: blurb | Make a whole ad campaign, music video or film on open video models: every variant in one run, with a price before every run. | Wave 2, drafted from the Topshine waitlist page ("Make your whole ad campaign. Every variant, one run."; "A price before every run.") |
@@ -19,16 +19,16 @@ Every string here waits for operator approval before it ships. Approved copy alr
 | 13 | Scorecard entry: blurb | A dashboard comparing how websites win traffic: their sources, links, social footprint and apps, every number with its source and date. | Wave 2, the operator's description plus `~/dev/site-scorecard/COVERAGE.md` ("Every number carries its source and date") |
 | 14 | Scorecard entry: figures | Free first · paid data only where free routes fail (row 56 proposes the other two; ruling 4) | Wave 2, `~/dev/site-scorecard/RECIPE.md`; ruling 4 |
 | 15 | Scorecard entry: stack, year, url | Python · D3 · DataForSEO; 2026; no url (its only home is a private artifact) | Wave 2, from `~/dev/site-scorecard/` |
-| 16 | Details: sticker on the sleeve's front, top right | Now playing (set in capitals on the sticker: NOW PLAYING) | Wave 2, the reference's Details sticker |
+| 16 | Sticker on the newest sleeve's front, top right (Stats), on the shelf, in the crate and in Details | Now playing (set in capitals on the sticker: NOW PLAYING) | Wave 2, the reference's sticker; ruling 8 |
 | 17 | Details: button under the sleeve | Open | Wave 2, the reference's Details button |
 | 18 | Shelf: the two pills on a hovered or focused sleeve | Open; Details | Scene, Wave 1c, the reference's pills |
 | 19 | Accessible names of the pills and the Details button | Open: <project name>; Details: <project name> | Scene, Waves 1c and 2 |
 | 20 | Accessible names: sound toggle, the bottom index, the Details text | Sound on / Sound off; Projects; Project details | Scene, Waves 1c and 2 |
 | 21 | Page title (browser tab) | njct.io Editions | Scene, Wave 1c |
-| 22 | Record label of a project without a logo (Scorecard) | the project name, e.g. Scorecard | Wave 2 |
+| 22 | (withdrawn: the record left the design with ruling 3) | | Ruling 3 |
 | 23 | Project page header, button | Back | Wave 3 |
 | 24 | Project page footer, button | Back to the shelf | Wave 3 |
-| 25 | Project page footer, link to the project | the project's host and path (row 4 format), e.g. `mirra.to`; no link when the project has no url | Wave 3 |
+| 25 | Project page footer, link to the project | the project's host and path (row 4 format), e.g. `mirra.to`, or its `urlText` (Stats: `stats.njct.io`, linked to https://stats.njct.io/live); no link when the project has no url | Wave 3; ruling 7 |
 | 26 | Project page: the hero's index box and the left rail | Overview 01, Under the hood 02, Build process 03 (approved section names; the numbers are new) | Wave 3 |
 | 27 | Project page: the vertical line beside the giant title | the project's tag (approved), e.g. "Real-time X→Telegram mirror and digest"; About Neil: its third About paragraph | Wave 3 |
 | 28 | Project page: the hero's figure cards | the dossier's glance rows (approved), one card each | Wave 3 |
@@ -65,6 +65,9 @@ Every string here waits for operator approval before it ships. Approved copy alr
 | 59 | Chairtax dossier (finished vision; changes to row 38's what, glance, archHi and arch) | Below | Ruling 6 |
 | 60 | Stats entry: tag, blurb (finished vision; replaces row 46's tag and blurb) | Tag: See which post made the sale (alternative: row 46, "Visitors, sources and sales in one place"). Blurb: Find out which post, email or ad made each sale. One dashboard for every product site shows visitors, sources and sales, a Telegram summary arrives every morning, and ads that stop selling pause themselves. | Ruling 6; `~/dev/new-site-analytics/README.md` § What it does (Traces each sale to its source; Pauses ads that don't sell); `~/.claude/CLAUDE.md` § Product analytics (every site ships with it) |
 | 61 | Stats dossier (finished vision; replaces row 49's what, glance and archHi, and adds to its arch and proc) | Below | Ruling 6 |
+| 62 | Header: the Projects menu's trigger, beside the wordmark | Projects (the operator's word) | Ruling 11 |
+| 63 | Projects menu: one item per sleeve, in shelf order | the project's mark, its name (approved) over its tag (approved), e.g. "Mirra" over "Real-time X→Telegram mirror and digest"; About Neil: "About Neil" over "Hi, I’m Neil." (about[0], approved). Alternative for the second line: the year, as the shelf's index shows it | Ruling 11; the reference's Editions menu (season over edition name) |
+| 64 | Projects menu: accessible names | the list is named by its trigger, "Projects"; the marks are decorative (empty alt) | Ruling 11 |
 
 ## Row 33: Topshine dossier (proposal)
 

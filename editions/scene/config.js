@@ -17,6 +17,8 @@ export const CAMERA_Z = 2556;
 // pitch; a longer shelf scales both by sqrt(5 / per shelf) and the shelf grows to hold them, so the sleeves
 // shrink and the shelf widens by about the same share (six a shelf: 177 px sleeves on a 1228 px shelf).
 export const LINEUP = await fetch(new URL('../data/projects.json', import.meta.url)).then(r => r.json());
+// A project's address on the hash route: #mirra, #social-hook; About Neil is #about.
+export const slugOf = e => (e.kind === 'about' ? 'about' : e.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''));
 // Get in touch, on the shelf header (index.html carries the same address, so it works without script)
 // and on every project page.
 export const CONTACT = 'mailto:neil@njct.io';
