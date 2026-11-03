@@ -141,7 +141,9 @@ async function runDevice(browser, siteKey, devKey) {
     return res;
   });
   await step('details', async () => {
-    const b = await find(pg, /details/);
+    let b = await find(pg, /details/);
+    // Ours on a touch shelf: the pills show on hover only, and a tap on the sleeve opens Details.
+    if (!b) { const r = await pg.evaluate(() => window.__editions?.sleeveRect?.(0)); if (r) b = { x: r.x + r.width / 2, y: r.y + r.height / 2, name: 'tap on sleeve 0' }; }
     if (!b) { await shot('details-missing'); return 'no Details control'; }
     await tap(pg, b.x, b.y); await sleep(1800); await shot('details');
     save('probe-details', await pg.evaluate(probe));
