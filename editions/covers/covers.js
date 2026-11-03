@@ -745,28 +745,37 @@ vec3 motif(vec2 p, float t) {
 
 // About Neil: one gold sphere resting on cream paper, a soft contact shadow, the light moving across it when alive.
 MOTIFS.about = /* glsl */`
+float blob(vec2 s, vec2 o, vec2 w) { vec2 d = (s - o) / w; return exp(-dot(d, d)); }
 vec3 motif(vec2 p, float t) {
   vec2 C = ic(0.481, 0.555); float R = 0.246;
   float v = length((p - vec2(0.48, 0.5)) * vec2(1.0, 0.9));
   vec3 col = mix(uPal[0], uPal[1], smoothstep(0.1, 0.85, v));
-  // contact shadow, cast a little to the left
-  vec2 sq = (p - vec2(C.x - 0.035, C.y - R + 0.004)) / vec2(0.27, 0.04);
-  col *= 1.0 - 0.34 * exp(-dot(sq, sq) * 1.4);
-  vec2 sc = (p - vec2(C.x - 0.005, C.y - R + 0.002)) / vec2(0.1, 0.012);
-  col *= 1.0 - 0.45 * exp(-dot(sc, sc));
-  // the sphere
+  // contact shadow, cast to the left (light from the upper right), in sphere radii from its foot, y down: a
+  // near-black core just under it, a warm penumbra reaching left (the gold's light on the paper), a faint wide falloff
+  // (skipped where the sphere hides it and well above its foot, where every term is under 1e-5)
+  vec2 s = vec2(p.x - C.x, C.y - R - p.y) / R;
   vec2 q = (p - C) / R;
   float rr = dot(q, q);
+  if (rr > 0.95 && s.y > -1.2) {
+    col *= 1.0 - vec3(0.8478, 0.9624, 0.9624) * blob(s, vec2(-0.1188, 0.0348), vec2(0.4657, 0.0807));
+    col *= 1.0 - vec3(0.1929, 0.5562, 0.9643) * blob(s, vec2(-0.2807, 0.0546), vec2(1.0000, 0.1536));
+    col *= 1.0 - vec3(0.0896, 0.2299, 0.4482) * blob(s, vec2(-0.1869, 0.2519), vec2(1.0000, 0.4000));
+  }
+  // the sphere, matte satin: a wrapped key from the upper right with a soft terminator, a dark core on the
+  // left, light bounced up from the paper at the lower left, a lifted limb, a broad low sheen, and the
+  // occlusion darkening it towards its foot (terms and colours fitted to the concept's sphere, in Lab)
   if (rr < 1.08) {
     vec3 n = vec3(q, sqrt(sat(1.0 - rr)));
-    float la = 0.55 + 0.35 * sin(t * 0.4);
-    vec3 L = normalize(vec3(-cos(la) * 0.45, 0.7, 0.6 + 0.1 * sin(la)));
-    float dif = sat(dot(n, L));
-    vec3 g = mix(uPal[3], uPal[2], pow(dif, 0.9));
-    g += uPal[4] * 0.32 * pow(sat(dot(reflect(-L, n), vec3(0.0, 0.0, 1.0))), 5.0);
-    // bounce from the paper on the underside
-    g += uPal[1] * 0.12 * sat(-n.y) * (1.0 - n.z);
-    g *= 1.0 + (h12(floor(p * 900.0)) - 0.5) * 0.05;
+    // alive, the key and its sheen swing a little about the vertical
+    float sw = 0.3 * sin(t * 0.4);
+    vec3 m = vec3(n.x * cos(sw) - n.z * sin(sw), n.y, n.x * sin(sw) + n.z * cos(sw));
+    float key = pow(sat((dot(m, vec3(0.4435, 0.5528, 0.7055)) + 0.2894) / 1.2894), 2.9111);
+    float bounce = pow(sat(dot(n, vec3(-0.3915, -0.8281, 0.4012))), 1.3768);
+    float sheen = pow(sat(dot(m, vec3(0.4936, 0.6834, 0.5378))), 10.5262);
+    vec3 g = vec3(-0.1923, -0.0957, 0.0088) + vec3(1.0754, 0.4021, 0.0076) * key + vec3(0.4761, 0.1464, -0.0006) * bounce
+      + vec3(0.6248, 0.2100, -0.0016) * (1.0 - n.z) + vec3(-0.1733, 0.3691, 0.2959) * sheen;
+    g *= 1.0 - 1.0000 * exp(-(1.0 + n.y) / 0.1551);
+    g = max(g, 0.0) * (1.0 + (h12(floor(p * 900.0)) - 0.5) * 0.05);
     col = mix(col, g, cover((sqrt(rr) - 1.0) * R));
   }
   return col;
@@ -1163,7 +1172,7 @@ function designFor(entry) {
     };
     case 'About Neil': return {
       motif: 'about', t0: 0,
-      pal: ['#F2E7D3', '#E8D8BC', '#E4A23C', '#8E5214', '#FFE7A8'],
+      pal: ['#F2E7D3', '#E8D8BC'],
       ground: '#EFE2CC',
       type: [{ lines: ['Neil'], font: 'NJ Text', weight: 900, track: -0.04, fit: 506, x: 60, base: 254, ch: 0 }],
       inks: ['#D2A64E', '#A8771F'],
