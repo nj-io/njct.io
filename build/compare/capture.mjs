@@ -19,14 +19,39 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '../..');
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const SITES = {
-  theirs: { url: 'https://www.shopify.com/editions' },
-  ours: { url: 'http://127.0.0.1:8750/editions/' },
+  theirs: { url: 'https://www.shopify.com/editions', openUrl: 'https://www.shopify.com/editions/fall2026' },
+  ours: { url: 'http://127.0.0.1:8750/editions/', openUrl: 'http://127.0.0.1:8750/editions/#mirra' },
 };
 const PHONE_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1';
 const THEIR_CENTRES = { 0: { x: 275, y: 290 }, 2: { x: 720, y: 290 } };
 const NEUTRAL = { x: 1400, y: 450 };   // empty ground right of the shelves, clear of header and timeline
 const EMPTY_CLICK = { x: 1400, y: 120 };
 const INTRO = [300, 900, 1200, 1500, 1800, 2400, 4000];
+
+// The opened page as a visitor meets it: document size, the largest type on screen, the headings, the
+// fixed layers and canvases, and the top-level blocks with their heights. Runs in the page.
+function pageOutline() {
+  const r = el => { const b = el.getBoundingClientRect(); return [Math.round(b.x), Math.round(b.y + scrollY), Math.round(b.width), Math.round(b.height)]; };
+  const txt = el => (el.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+  const all = [...document.querySelectorAll('body *')];
+  let big = null, bigSize = 0;
+  for (const el of all) {
+    if (!el.childNodes.length || ![...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())) continue;
+    const cs = getComputedStyle(el), fs = parseFloat(cs.fontSize);
+    if (fs > bigSize && el.getBoundingClientRect().width > 0) { bigSize = fs; big = el; }
+  }
+  const bcs = big && getComputedStyle(big);
+  return {
+    url: location.href, scrollHeight: document.documentElement.scrollHeight, innerHeight,
+    title: big && { text: txt(big), fontSize: bigSize, fontFamily: bcs.fontFamily.slice(0, 60), fontWeight: bcs.fontWeight,
+      transform: bcs.transform, writingMode: bcs.writingMode, rect: r(big), color: bcs.color },
+    headings: [...document.querySelectorAll('h1,h2,h3')].slice(0, 60).map(h => [h.tagName, txt(h), r(h)[1], parseFloat(getComputedStyle(h).fontSize)]),
+    fixed: all.filter(el => ['fixed', 'sticky'].includes(getComputedStyle(el).position)).slice(0, 20).map(el => [el.tagName, el.className.toString().slice(0, 40), getComputedStyle(el).position, r(el)]),
+    canvases: [...document.querySelectorAll('canvas')].map(c => [c.width, c.height, r(c), getComputedStyle(c).position]),
+    blocks: [...(document.querySelector('main') || document.body).children].slice(0, 60).map(el => [el.tagName, el.className.toString().slice(0, 40), r(el)[1], r(el)[3], txt(el).slice(0, 50)]),
+    bodyBg: getComputedStyle(document.body).backgroundColor,
+  };
+}
 
 const args = process.argv.slice(2);
 const arg = k => { const i = args.indexOf(`--${k}`); return i >= 0 ? args[i + 1] : undefined; };
@@ -308,16 +333,71 @@ async function runSite(browser, siteKey) {
   await page.mouse.click(EMPTY_CLICK.x, EMPTY_CLICK.y).catch(() => {});
   await sleep(1500);
 
-  // Open sleeve 0 (theirs navigates to /editions/fall2026 about 1.7 s after the click).
+  // Open sleeve 0 (theirs navigates to /editions/fall2026 about 1.7 s after the click), then the page:
+  // its top, middle and end, then the browser's Back.
   await mouseTo(NEUTRAL); await sleep(1000);
   if (c0) { await mouseTo(c0); await sleep(900); }
   const openFound = await clickControl(page, 'open', 0);
   const openT = Date.now();
   const openOpts = openFound ? {} : na('Open control');
-  await burst(caster, 'open-', openT, [0, 300, 600, 900, 1200, 1500, 1800, 2100, 2400, 2700, 3000, { name: 'open-held', at: 6000 }], 'open', openOpts);
+  await recorded('open', openT, 7000, () => burst(caster, 'open-', openT,
+    [0, 300, 600, 900, 1200, 1500, 1800, 2100, 2400, 2700, 3000, 4000, 5000, { name: 'open-held', at: 6000 }], 'open', openOpts));
   metrics.urlAfterOpen = await page.evaluate(() => location.href).catch(() => null);
+  metrics.openPage = await page.evaluate(pageOutline).catch(e => ({ error: e.message.slice(0, 120) }));
+  // Frame cadence over the last 3 s of the open page (the document's own clock; theirs is a new page).
+  metrics.openCadence = await page.evaluate(() => {
+    const ts = (window.__rafLog || []).filter(t => t >= performance.now() - 3000);
+    let long = 0, worst = 0;
+    for (let i = 1; i < ts.length; i++) { const d = ts[i] - ts[i - 1]; worst = Math.max(worst, d); if (d > 25) long++; }
+    return ts.length > 1 ? { fps: +((ts.length - 1) / (ts[ts.length - 1] - ts[0]) * 1000).toFixed(1), longFrames: long, worstMs: Math.round(worst) } : null;
+  }).catch(() => null);
+  // The first section's heading, then a quarter, half and the end of the page.
+  await page.evaluate(() => { const h = [...document.querySelectorAll('h2')].find(e => e.getBoundingClientRect().height > 0); if (h) window.scrollTo({ top: h.getBoundingClientRect().top + scrollY - 160, behavior: 'instant' }); }).catch(() => {});
+  await sleep(300);
+  await shoot(caster, 'page-s1', Date.now(), 1200, 'page', openFound ? {} : openOpts);
+  for (const [name, f] of [['page-top', 0], ['page-q1', 0.25], ['page-mid', 0.5], ['page-end', 1]]) {
+    await page.evaluate(f => window.scrollTo({ top: f * (document.documentElement.scrollHeight - innerHeight), behavior: 'instant' }), f).catch(() => {});
+    await sleep(300);
+    await shoot(caster, name, Date.now(), 1200, 'page', openFound ? {} : openOpts);
+  }
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' })).catch(() => {});
+  await sleep(800);
+  const backT = Date.now();
+  page.evaluate(() => history.back()).catch(() => {});
+  await recorded('back', backT, 2600, () => burst(caster, 'back-', backT, [0, 300, 600, 1000, 1500, { name: 'back-held', at: 2500 }], 'back', openOpts));
+  metrics.urlAfterBack = await page.evaluate(() => location.href).catch(() => null);
+  metrics.focusAfterBack = await page.evaluate(() => document.activeElement?.getAttribute('aria-label') || document.activeElement?.tagName || null).catch(() => null);
   await caster.stop();
   await page.close();
+
+  // ---- Open: when the page first scrolls ------------------------------------
+  // A wheel turn every 100 ms from the click; the first time scrollY moves.
+  {
+    const sp = await browser.newPage();
+    await sp.setViewport({ width: 1440, height: 900 });
+    await sp.goto(site.url, { waitUntil: 'domcontentloaded', timeout: 60000 }).catch(() => {});
+    await sleep(7000);
+    await sp.evaluate(() => { for (const b of document.querySelectorAll('button')) if (/^(accept|accept all|ok|got it)$/i.test((b.innerText || '').trim())) b.click(); }).catch(() => {});
+    await sp.mouse.move(NEUTRAL.x, NEUTRAL.y); await sleep(800);
+    const sc0 = siteKey === 'theirs' ? THEIR_CENTRES[0] : await sleeveCentre(sp, 0);
+    if (sc0) { await sp.mouse.move(sc0.x, sc0.y); await sleep(900); }
+    const startUrl = await sp.evaluate(() => location.href).catch(() => '');
+    if (await clickControl(sp, 'open', 0)) {
+      const t = Date.now();
+      await sp.mouse.move(900, 500);
+      let ready = null, opened = null;
+      while (Date.now() - t < 9000 && ready === null) {
+        await sp.mouse.wheel({ deltaY: 120 }).catch(() => {});
+        await sleep(100);
+        const st = await sp.evaluate(() => ({ y: window.scrollY, url: location.href })).catch(() => ({ y: 0, url: '' }));
+        if (st.url && st.url !== startUrl && opened === null) opened = Date.now() - t;
+        if (st.url !== startUrl && st.y > 0) ready = Date.now() - t;
+      }
+      metrics.openUrlChangeMs = opened;
+      metrics.openScrollReadyMs = ready;
+    }
+    await sp.close();
+  }
 
   // ---- desktop at device scale factor 2 -------------------------------------
   // The screencast delivers frames at CSS-pixel size, so this pass takes screenshots (device pixels) of
@@ -349,6 +429,14 @@ async function runSite(browser, siteKey) {
     await d2.keyboard.press('Space');
     await snap('dpr2/flip-held', Date.now(), 1500, dDet ? {} : na('Details control'));
     await d2.keyboard.press('Escape');
+    await sleep(1500);
+    await d2.mouse.click(EMPTY_CLICK.x, EMPTY_CLICK.y).catch(() => {});
+    await sleep(800);
+    if (dc0) { await d2.mouse.move(dc0.x, dc0.y); await sleep(900); }
+    const dOpen = await clickControl(d2, 'open', 0);
+    await snap('dpr2/open-held', Date.now(), 6000, dOpen ? {} : na('Open control'));
+    await d2.evaluate(() => window.scrollTo({ top: 0.5 * (document.documentElement.scrollHeight - innerHeight), behavior: 'instant' })).catch(() => {});
+    await snap('dpr2/page-mid', Date.now(), 1200, dOpen ? {} : na('Open control'));
     await d2.close();
   }
 
@@ -382,6 +470,16 @@ async function runSite(browser, siteKey) {
   await shoot(mc, 'phone-rest', pOrigin, 10000, 'phone');
   await m.touchscreen.tap(195, 422).catch(() => {});
   await shoot(mc, 'phone-tap', Date.now(), 1800, 'phone', { note: 'tap at (195,422)' });
+  // The project page by its own address (ours: the hash route), top and middle.
+  await m.goto(site.openUrl, { waitUntil: 'domcontentloaded', timeout: 60000 }).catch(e => { pageErrors.push('phone open goto: ' + e.message.slice(0, 120)); });
+  const poOrigin = await m.evaluate(() => performance.timeOrigin).catch(() => Date.now());
+  await shoot(mc, 'phone-page-world', poOrigin, 6000, 'phone', { note: site.openUrl });
+  for (const [name, f] of [['phone-page-q1', 0.25], ['phone-page-mid', 0.5]]) {
+    await m.evaluate(f => window.scrollTo({ top: f * (document.documentElement.scrollHeight - innerHeight), behavior: 'instant' }), f).catch(() => {});
+    await sleep(300);
+    await shoot(mc, name, Date.now(), 1200, 'phone');
+  }
+  metrics.phonePage = await m.evaluate(() => ({ scrollHeight: document.documentElement.scrollHeight, scrollWidth: document.documentElement.scrollWidth, innerWidth })).catch(() => null);
   await mc.stop();
   await m.close();
 
