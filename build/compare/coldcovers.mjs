@@ -1,5 +1,6 @@
-// Covers on a cold start: each sleeve's cover-ready time against its appearance in the intro
-// (INTRO.appear.at + stagger * i), with no shader cache (a fresh profile per run and the GPU shader disk
+// Covers on a cold start: each sleeve's cover-ready time against its scheduled appearance in the intro
+// (INTRO.appear.at + stagger * i; a sleeve whose cover is late is held, and appeared records when it
+// came), with no shader cache (a fresh profile per run and the GPU shader disk
 // cache off), at 1x and under a 4x CPU slowdown.
 //
 //   node build/compare/coldcovers.mjs --round r0 [--runs 3]
@@ -52,6 +53,7 @@ for (const rate of [1, 4]) {
       return { introWorstMs: +Math.max(...d).toFixed(1), introOver33: d.filter(x => x > 33.4).length, introOver20: d.filter(x => x > 20).length };
     }));
     r.appear = r.ready.map((_, i) => INTRO_APPEAR(i));
+    r.appeared = await pg.evaluate(() => window.__editions.appearAt.map(t => (t == null ? null : Math.round(t))));   // after any hold
     r.late = r.ready.map((t, i) => (t == null ? null : t - r.appear[i]));
     res.runs[`cpu${rate}x`].push(r);
     await browser.close();

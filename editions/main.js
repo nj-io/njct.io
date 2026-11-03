@@ -8,7 +8,7 @@ import { createLightUniforms, applyLights } from './scene/lighting.js';
 import { createWall } from './scene/wall.js';
 import { createShelves } from './scene/shelves.js';
 import { createSleeves, applyPose, writeOccluders, setCover, restPose, hoverPose, COVER_BIAS } from './scene/sleeves.js';
-import { introPose, stepHover, fallPose, HOVER_DELAY, bezier, lerpPose, clamp01, dur, delay, setReducedMotion, reduced } from './scene/motion.js';
+import { introPose, appearTime, stepHover, fallPose, HOVER_DELAY, bezier, lerpPose, clamp01, dur, delay, setReducedMotion, reduced } from './scene/motion.js';
 import { createPost } from './scene/post.js';
 import { createSticker } from './scene/sticker.js';
 import { createCrate, createCrateShadow, CRATE } from './scene/crate.js';
@@ -69,27 +69,40 @@ scene.add(crateShadow.mesh);
 // ---- covers -------------------------------------------------------------------------------------
 // Covers come only through createCover (editions/covers/): a 1024 front (Details shows it at about 830
 // device px) and no shelf back (backs face the wall); the back renders at 1024 when its sleeve enters
-// Details. A cover that fails to build leaves its sleeve plain, in the entry's accent colour or neutral
-// grey.
+// Details. A cover that fails to build leaves its sleeve a flat fill (introShift below).
 // The cover module loads after the first frame, so its bytes and its work stay off the first frame's
 // path on a slow phone (the shelf's first frame needs only the scene). Covers are then created (and
 // their programs compiled) in shelf order, COVER_LANES at a time, so sleeve i's cover is in by its
-// appearance in the intro (INTRO.appear.at + stagger * i); the intro never waits for a cover, and a
-// sleeve whose cover is late shows plain until it lands.
+// appearance in the intro (INTRO.appear.at + stagger * i). A sleeve never shows without its cover: the
+// intro holds a sleeve whose cover is late (introShift below) and never waits on the others.
 const covers = sleeves.map(() => null);
 const coverReadyAt = sleeves.map(() => null);   // ms after the first frame (test hook)
+const coverIn = sleeves.map(() => null);        // intro ms when the cover landed (or failed)
 const COVER_LANES = 1;
-const coversMod = new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))).then(() => import('./covers/covers.js'));
+let coversM = null;
+const coversMod = new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))).then(() => import('./covers/covers.js'))
+  .then(m => (coversM = m));
 const build = (s, i, opts) => coversMod.then(m => m.createCover(renderer, s.entry, i, opts));
+const introMs = () => (introStart === null ? 0 : performance.now() - introStart);
+// A test can make cover i land no sooner than coverLate[i] ms after its sleeve's scheduled appearance;
+// the covers after it keep building.
+const coverLate = window.__editionsTest?.coverLate || {};
 let nextCover = 0;
 function buildNext() {
   const i = nextCover++;
   if (i >= sleeves.length) return Promise.resolve();
   const s = sleeves[i];
+  const landed = () => {
+    coverIn[i] = introMs();
+    coverReadyAt[i] = introStart === null ? null : Math.round(coverIn[i]);
+    wake();
+  };
   return build(s, i, { size: 1024, backSize: 0 })
-    .then(c => { covers[i] = c; setCover(s, c.front, null); wake(); })
-    .catch(e => console.warn(`cover ${s.entry.name}: plain sleeve (${e?.message || e})`))
-    .then(() => { coverReadyAt[i] = introStart === null ? null : Math.round(performance.now() - introStart); })
+    .then(c => {
+      const land = () => { covers[i] = c; setCover(s, c.front, null); landed(); };
+      if (coverLate[i] == null) land();
+      else setTimeout(land, Math.max(0, schedAppear(i) + coverLate[i] - introMs()));
+    }, e => { console.warn(`cover ${s.entry.name}: flat sleeve (${e?.message || e})`); landed(); })
     .then(buildNext);
 }
 const coversReady = coversMod.then(() => Promise.all(Array.from({ length: COVER_LANES }, buildNext)));
@@ -112,6 +125,33 @@ function warmBacks() {
   idle(() => { if (!det) covers[0].detailBack(1024).catch(() => {}); }, { timeout: 2000 });
 }
 const BACK_PLAIN = 0xe9e6e0;   // the back's card colour in sleeves.js
+
+// The intro holds each sleeve until its cover is in. Sleeve i appears at its scheduled time, or when its
+// cover lands if that is later, and never sooner after the sleeve before it than the schedule spaces
+// them (76 ms), so the stagger stays even behind a held sleeve; its whole intro runs that much later. A
+// cover still missing COVER_WAIT ms after the scheduled time, or one that failed, lets its sleeve appear
+// with the cover's ground colour as a flat fill, until the cover lands.
+const COVER_WAIT = 600;
+const appearAt = sleeves.map(() => null), shiftOf = sleeves.map(() => 0);   // intro ms; decided once
+const schedAppear = i => (crateMode ? delay(INTRO.appear.at + INTRO.appear.stagger * i) : appearTime(i));
+function introShift(i, ti) {
+  if (appearAt[i] === null) {
+    if (i > 0 && appearAt[i - 1] === null) return null;
+    const sched = schedAppear(i);
+    const earliest = i > 0 ? Math.max(sched, appearAt[i - 1] + sched - schedAppear(i - 1)) : sched;
+    const ready = coverIn[i] ?? (ti >= sched + COVER_WAIT ? sched + COVER_WAIT : null);
+    if (ready === null || ti < Math.max(earliest, ready)) return null;
+    appearAt[i] = Math.max(earliest, ready);
+    shiftOf[i] = appearAt[i] - sched;
+    if (!covers[i]) flatFill(sleeves[i]);
+  }
+  return shiftOf[i];
+}
+// The flat fill: the cover's resting ground colour from the cover module, else the entry's accent.
+function flatFill(s) {
+  const ground = coversM?.coverGround?.(s.entry, s.i) || s.entry.accent?.light;
+  if (ground) s.front.color.set(ground);
+}
 function releaseBack(s) { if (s.back.map !== blank) { s.back.map = blank; s.back.color.set(BACK_PLAIN); s.back.needsUpdate = true; } }
 
 // The cover under the pointer (or in Details) animates; at most one at a time. A released cover keeps
@@ -433,9 +473,12 @@ function frame(now) {
     if (det && s.i === det.i) {
       moved = stepDetails(s, now);
     } else if (!settled[s.i]) {
-      if (ti >= 0) {   // hidden until the covers are in
-        const p = crateMode ? crateIntro(s, ti) : introPose(s.i, ti);
-        if (p) s.pose = p; else { s.pose = homePose(s); settled[s.i] = true; }
+      if (ti >= 0) {
+        const shift = introShift(s.i, ti);   // null: still held, hidden
+        if (shift !== null) {
+          const p = crateMode ? crateIntro(s, ti - shift) : introPose(s.i, ti - shift);
+          if (p) s.pose = p; else { s.pose = homePose(s); settled[s.i] = true; }
+        }
         moved = true;
       }
     } else if (crateMode) {
@@ -461,7 +504,7 @@ function frame(now) {
   }
   if (bakeDirty) { writeOccluders(sleeves, uniforms, crateMode); wall.bake(); bakeDirty = false; bgDirty = true; }
   // The crate's shadow comes in with its sleeves.
-  if (crateMode) crateShadow.setOpacity(ti < 0 ? 0 : clamp01((ti - delay(INTRO.appear.at)) / dur(600)));
+  if (crateMode) crateShadow.setOpacity(ti < 0 || appearAt[0] === null ? 0 : clamp01((ti - appearAt[0]) / dur(600)));
   // In the crate the front sleeve wears the Now playing sticker, fading while the crate moves.
   if (crateMode && !det) {
     const c = Math.round(crate.p), k = settled[c] ? clamp01(1 - Math.abs(crate.p - c) * 3) : 0;
@@ -875,6 +918,7 @@ const hooks = {
   get project() { return inProject >= 0 ? slugOf(entries[inProject]) : null; },
   get sleevesAt() { return sleevesStart; },
   coverReadyAt,
+  appearAt,
   get crate() { return crateMode ? { p: crate.p, current: crate.current, dragging: crate.dragging } : null; },
   get details() {
     return det ? { index: det.i, flipped: Math.round(det.flip.to / Math.PI) % 2 === 1, closing: !!det.exit, blur: det.blur, yaw: sleeves[det.i].pose.yaw } : null;

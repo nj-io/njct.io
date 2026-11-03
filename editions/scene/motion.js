@@ -44,10 +44,13 @@ export function introTimes(i) {
   return { appear, drop, land, lean, rest: lean + INTRO.lean.dur };
 }
 
+// When sleeve i is due to appear on the shelves (intro ms), with or without reduced motion.
+export const appearTime = i => (reduce ? 200 + 40 * i : introTimes(i).appear);
+
 // Pose of sleeve i at intro time t (ms). Returns null once it rests.
 export function introPose(i, t) {
   if (reduce) {   // sleeves fade in where they rest, in shelf order
-    const a = 200 + 40 * i;
+    const a = appearTime(i);
     if (t >= a + 160) return null;
     return { ...restPose(), opacity: clamp01((t - a) / 160) };
   }
