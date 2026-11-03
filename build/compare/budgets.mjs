@@ -57,9 +57,10 @@ const cadence = (pg, t0, t1) => pg.evaluate((t0, t1) => {
   return { frames: d.length, fps: +(d.length / ((a[a.length - 1] - a[0]) / 1000)).toFixed(1), worstMs: +Math.max(...d).toFixed(1), over20: d.filter(x => x > 20).length };
 }, t0, t1);
 const now = pg => pg.evaluate(() => performance.now());
+const fresh = async browser => { const pg = await browser.newPage(); await pg.bringToFront(); return pg; };
 
 async function coldLoad(browser) {
-  const pg = await browser.newPage();
+  const pg = await fresh(browser);
   const cdp = await pg.createCDPSession();
   await pg.emulate({ viewport: { width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true }, userAgent: PHONE_UA });
   await cdp.send('Network.enable');
@@ -72,7 +73,12 @@ async function coldLoad(browser) {
   cdp.on('Network.loadingFinished', e => { bytes += e.encodedDataLength; const r = reqs.get(e.requestId); if (r) { r.bytes = e.encodedDataLength; r.end = e.timestamp; } });
   await pg.goto(URL0, { waitUntil: 'domcontentloaded', timeout: 120000 });
   await pg.waitForFunction(() => window.__editions?.firstFrameAt != null, { timeout: 120000 });
-  const r = await pg.evaluate(() => ({ firstFrameAt: Math.round(window.__editions.firstFrameAt), dcl: Math.round(performance.getEntriesByType('navigation')[0].domContentLoadedEventEnd) }));
+  // firstPaint: the CSS ground (a background alone counts as a paint, not as contentful); firstContentful:
+  // the first text or canvas content; firstFrameAt: the scene's first WebGL frame.
+  const r = await pg.evaluate(() => {
+    const p = Object.fromEntries(performance.getEntriesByType('paint').map(e => [e.name, Math.round(e.startTime)]));
+    return { firstPaint: p['first-paint'] ?? null, firstContentful: p['first-contentful-paint'] ?? null, firstFrameAt: Math.round(window.__editions.firstFrameAt), dcl: Math.round(performance.getEntriesByType('navigation')[0].domContentLoadedEventEnd) };
+  });
   const atFirst = bytes;
   await pg.waitForFunction(() => window.__editions.sleevesAt != null, { timeout: 60000 }).catch(() => {});
   r.sleevesAt = await pg.evaluate(() => Math.round(window.__editions.sleevesAt ?? -1));   // the covers are in; the sleeves start to appear
@@ -86,7 +92,7 @@ async function coldLoad(browser) {
 async function motion(browser, rate) {
   const out = {};
   // Desktop: intro, hover, Details, flip, Escape, Open, page scroll.
-  let pg = await browser.newPage();
+  let pg = await fresh(browser);
   let cdp = await pg.createCDPSession();
   await pg.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
   pg.on('console', m => { if (['warn', 'error'].includes(m.type())) console.error('page', m.type(), m.text().slice(0, 200)); });
@@ -122,7 +128,7 @@ async function motion(browser, rate) {
   out.pageScroll = await cadence(pg, t, await now(pg));
   await pg.close();
   // Phone: the crate.
-  pg = await browser.newPage();
+  pg = await fresh(browser);
   cdp = await pg.createCDPSession();
   await pg.emulate({ viewport: { width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true }, userAgent: PHONE_UA });
   await pg.evaluateOnNewDocument(sampler);
@@ -154,7 +160,7 @@ const browser = await puppeteer.launch({
 const res = { capturedAt: new Date().toISOString(), cold: [], motion: {} };
 try {
   for (let k = 0; k < runs; k++) res.cold.push(await coldLoad(browser));
-  res.coldMedian = { firstFrameAt: median(res.cold.map(r => r.firstFrameAt)), sleevesAt: median(res.cold.map(r => r.sleevesAt)), bytesAtFirstFrame: median(res.cold.map(r => r.bytesAtFirstFrame)), bytesAfter3s: median(res.cold.map(r => r.bytesAfter3s)) };
+  res.coldMedian = { firstPaint: median(res.cold.map(r => r.firstPaint)), firstContentful: median(res.cold.map(r => r.firstContentful)), firstFrameAt: median(res.cold.map(r => r.firstFrameAt)), sleevesAt: median(res.cold.map(r => r.sleevesAt)), bytesAtFirstFrame: median(res.cold.map(r => r.bytesAtFirstFrame)), bytesAfter3s: median(res.cold.map(r => r.bytesAfter3s)) };
   for (const rate of [1, 4]) res.motion[`cpu${rate}x`] = await motion(browser, rate);
 } finally {
   await browser.close();
