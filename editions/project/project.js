@@ -2,7 +2,7 @@
 // in its accent), the accent panel sliding in with the giant vertical title, then the dossier below:
 // Overview, Under the hood, Build process. About Neil gets the same structure with its own text.
 // Loaded on demand with its stylesheet and the project's dossier file; disposed on Back.
-import { createWorld } from './world.js';
+import { createWorld, warmWorld } from './world.js';
 import { OPEN } from '../scene/config.js';
 import { bezier, clamp01, dur, delay, reduced } from '../scene/motion.js';
 
@@ -129,13 +129,15 @@ export function createProjectView({ renderer, entries, slugOf, onBack, onCta }) 
     close();
     const my = ++token, t0 = performance.now(), entry = entries[i];
     const [data] = await Promise.all([entry.kind === 'about' ? null : loadDossier(slugOf(entry)), loadCss()]);
-    const wait = t0 + cutAfter - performance.now();
-    if (wait > 0) await new Promise(r => setTimeout(r, wait));
     if (my !== token) return;
 
+    // The page is built and parsed before the cut (hidden, so nothing is laid out yet). At the cut only the
+    // header and hero are laid out; the dossier below them (pj-cold) is laid out two frames later, so
+    // neither lands in one long frame.
     const col = colours(entry);
     const root = document.createElement('main');
-    root.className = 'pj';
+    root.className = 'pj pj-cold';
+    root.hidden = true;
     root.setAttribute('aria-label', entry.name);
     root.style.setProperty('--acc', col.panel);
     root.style.setProperty('--acc-ink', col.ink);
@@ -168,6 +170,10 @@ export function createProjectView({ renderer, entries, slugOf, onBack, onCta }) 
         </div>
       </div>`;
     document.body.append(root);
+    const wait = t0 + cutAfter - performance.now();
+    if (wait > 0) await new Promise(r => setTimeout(r, wait));
+    if (my !== token) { root.remove(); return; }
+    root.hidden = false;
     document.documentElement.classList.add('in-project');
     history.scrollRestoration = 'manual';
     window.scrollTo(0, 0);
@@ -208,9 +214,10 @@ export function createProjectView({ renderer, entries, slugOf, onBack, onCta }) 
       : { seed() {}, frame() {}, dispose() {}, still: true };
     if (!renderer) root.classList.add('pj-noworld');
     const cut = performance.now();
-    st = { i, root, world, io, raf: 0, last: 0, cut, panelDone: !vertical(), titleDone: false, fit };
+    st = { i, root, world, io, raf: 0, last: 0, cut, frames: 0, panelDone: !vertical(), titleDone: false, fit };
+    const warmBody = () => root.classList.remove('pj-cold');
     if (!vertical()) { panel.style.transform = 'none'; q('.pj-mascot')?.classList.add('in'); }
-    const onScroll = () => { if (st && !st.raf) wake(); };
+    const onScroll = () => { warmBody(); if (st && !st.raf) wake(); };
     const onResize = () => { st?.fit(); wake(); };
     const onKey = e => { if (e.key === 'Escape' && !e.defaultPrevented) { e.preventDefault(); onBack(); } };
     st.off = () => { removeEventListener('scroll', onScroll); removeEventListener('resize', onResize); removeEventListener('keydown', onKey); };
@@ -233,7 +240,8 @@ export function createProjectView({ renderer, entries, slugOf, onBack, onCta }) 
       const dt = st.last ? Math.min(0.05, (now - st.last) / 1000) : 1 / 60;
       st.last = now;
       const t = now - st.cut;
-      let busy = false;
+      let busy = ++st.frames < 3;
+      if (st.frames === 2) warmBody();
       if (!st.panelDone) {
         const P = OPEN.panel, u = bezier(P.ease, clamp01((t - delay(P.at)) / dur(P.dur)));
         panel.style.transform = u >= 1 ? 'none' : `translateX(${((u - 1) * 100).toFixed(3)}%)`;
@@ -272,6 +280,12 @@ export function createProjectView({ renderer, entries, slugOf, onBack, onCta }) 
 
   return {
     open, close,
+    // Before the first Open, at idle on the shelf: the stylesheet, and the world's programs (resolves to
+    // the warm-up's draw, for the shelf to run in one of its frames).
+    warm() {
+      loadCss().then(() => document.fonts.load("500 13px 'NJ Page Mono'")).catch(() => {});
+      return renderer ? warmWorld(renderer) : Promise.resolve(null);
+    },
     get index() { return st ? st.i : -1; },
     get busy() { return !!st?.raf; },
   };

@@ -117,12 +117,18 @@ function backFor(i) {
 // The back's faces load (and its first back renders) at idle once the intro is over, so a Details back
 // is a single render job when Details opens and never lands in a flip. The covers module loads the back
 // faces only on a back request, so this asks for the first sleeve's back once.
-let backsWarm = false;
+// The page module, its stylesheet and the world's programs load at idle after that, so Open's cut neither
+// fetches nor compiles; the world's first draws run in a shelf frame (worldWarm), under the shelf.
+let backsWarm = false, worldWarm = null;
 function warmBacks() {
   if (backsWarm || !covers[0] || settled.some(v => !v)) return;
   backsWarm = true;
   const idle = window.requestIdleCallback || (f => setTimeout(f, 200));
-  idle(() => { if (!det) covers[0].detailBack(1024).catch(() => {}); }, { timeout: 2000 });
+  idle(() => {
+    if (!det) covers[0].detailBack(1024).catch(() => {});
+    idle(() => loadView().then(v => v.warm()).then(w => { if (w) { worldWarm = w; wake(); } })
+      .catch(e => console.warn(`world warm-up: ${e?.message || e}`)), { timeout: 3000 });
+  }, { timeout: 2000 });
 }
 const BACK_PLAIN = 0xe9e6e0;   // the back's card colour in sleeves.js
 
@@ -531,6 +537,7 @@ function frame(now) {
     renderer.autoClear = true;
     camera.layers.set(0);
   } else {
+    if (worldWarm) { worldWarm.draw(); worldWarm = null; }   // drawn over at once by the shelf
     renderer.render(scene, camera);
   }
 

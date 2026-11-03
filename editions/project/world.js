@@ -6,8 +6,8 @@
 import * as THREE from 'three';
 
 const COARSE = matchMedia('(pointer: coarse)').matches;
-const SIM = COARSE ? 512 : 1024;
-const FS = COARSE ? 128 : 256;
+const SIM_SIDE = COARSE ? 512 : 1024;
+const FIELD_SIDE = COARSE ? 128 : 256;
 const MAXSEEDS = 12;
 
 // Organism classes, each on an ignition-robust Gray-Scott regime (Du 1, Dv 0.5, dt 1).
@@ -148,8 +148,10 @@ void main() {
 // The home page's pigment for a hue in its dark theme: saturation 0.55, lightness 0.62.
 const hsl2rgb = (h, s, l) => [0, 8, 4].map(n => { const k = (n + h / 30) % 12; return l - s * Math.min(l, 1 - l) * Math.max(-1, Math.min(k - 3, 9 - k, 1)); });
 
-// hue: degrees; the culture takes its pigment from it.
-export function createWorld(renderer, name, hue, { reduced = false } = {}) {
+// hue: degrees; the culture takes its pigment from it. size: the simulation's side in cells, when not
+// the device's (the shelf's warm-up world below).
+export function createWorld(renderer, name, hue, { reduced = false, size = 0 } = {}) {
+  const SIM = size || SIM_SIDE, FS = size || FIELD_SIDE;
   const g = derive(name);
   const rtOpts = { type: THREE.HalfFloatType, depthBuffer: false, wrapS: THREE.RepeatWrapping, wrapT: THREE.RepeatWrapping,
     minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, generateMipmaps: false };
@@ -175,6 +177,17 @@ export function createWorld(renderer, name, hue, { reduced = false } = {}) {
   const scene = new THREE.Scene(); scene.add(quad);
   const cam = new THREE.Camera();
   const pass = (m, target) => { quad.material = m; renderer.setRenderTarget(target); renderer.render(scene, cam); };
+  // Each pass compiled against the target it draws into (a program is keyed on its target's colour space).
+  function compile() {
+    const prev = renderer.getRenderTarget(), jobs = [];
+    for (const [m, target] of [[fieldM, field], [simM, sim[0]], [viewM, null]]) {
+      quad.material = m; renderer.setRenderTarget(target);
+      jobs.push(renderer.compileAsync(scene, cam));   // reads the bound target synchronously
+    }
+    renderer.setRenderTarget(prev);
+    return Promise.all(jobs);
+  }
+  const disposeTargets = () => { for (const t of sim) t.dispose(); field.dispose(); };
 
   // Seeds: one strong founder per letter plus two weaker companions (the home page's first users).
   const rndH = j => (Math.imul(g.hash ^ (j * 2654435761), 2246822519) >>> 0) / 4294967296;
@@ -270,11 +283,26 @@ export function createWorld(renderer, name, hue, { reduced = false } = {}) {
     },
     // Under reduced motion: whether the world has reached its still frame (nothing more to animate).
     get still() { return still; },
+    compile, disposeTargets,
     dispose() {
-      for (const t of sim) t.dispose();
-      field.dispose();
+      disposeTargets();
       fieldM.dispose(); simM.dispose(); viewM.dispose();
       quad.geometry.dispose();
     },
   };
+}
+
+// The world's programs, ready before the first Open: a 4-cell world compiles them in parallel, then
+// draw(), called inside a shelf frame before the shelf draws over the canvas, draws each pass once (the
+// driver finishes a program on its first draw). The warm-up world keeps its materials, so the programs
+// stay built for every Open (disposing the last material using a program deletes it).
+let warmP = null;
+export function warmWorld(renderer) {
+  if (!warmP) {
+    const w = createWorld(renderer, 'warm', 0, { size: 4 });
+    warmP = w.compile().then(() => ({
+      draw() { w.seed(); w.frame(1 / 60, [0, 0, 1, 1]); w.disposeTargets(); },
+    }));
+  }
+  return warmP;
 }
