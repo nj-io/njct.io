@@ -29,7 +29,7 @@ const FACES = [
   ['NJ Serif', 'fraunces-144pt-bold-cover.woff2', '700'],
   ['NJ Hanken', 'hanken-grotesk-650-cover.woff2', '650'],
   ['NJ Narrow', 'archivo-narrow-700-cover.woff2', '700'],
-  ['NJ Grotesk', 'space-grotesk-700-cover.woff2', '700'],
+  ['NJ Rounded', 'nunito-900-cover.woff2', '900'],
   ['NJ Bricolage', 'bricolage-grotesque-96pt-extrabold-title-cover.woff2', '800'],
 ];
 // Faces only the backs use load with the first back.
@@ -755,10 +755,10 @@ vec3 goldInk(vec2 p) {
 }
 #define INK0(p, t) goldInk(p)`;
 
-// Chairtax: the name itself is the artwork, Bearly (art/, drawn unaltered) leaning over "Chair" with his chin
-// on his paw, the type lit from within, and his office chair rolled out to the corner.
+// Chairtax: the name itself is the artwork, Bearly (art/, drawn unaltered) leaning on "Chair" with his chin
+// on his paw, the type lit from within, and his navy office chair rolled out to the corner.
 MOTIFS.chairtax = /* glsl */`
-float lift(float t) { return 0.005 * (0.5 - 0.5 * cos(t * 2.0)); }
+float lift(float t) { return 0.004 * (0.5 - 0.5 * cos(t * 2.0)); }
 #define ART_DY(t) lift(t)
 // a stroke tapering from radius r0 at a to r1 at b
 float sdTaper(vec2 p, vec2 a, vec2 b, float r0, float r1) {
@@ -766,34 +766,35 @@ float sdTaper(vec2 p, vec2 a, vec2 b, float r0, float r1) {
   return length(pa - ba * h) - mix(r0, r1, h);
 }
 float sdBox(vec2 p, vec2 c, vec2 hs, float r) { vec2 q = abs(p - c) - hs + r; return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r; }
-// a chair part in the brand's flat style: navy fill, a lighter rim toward the light (what the part leaves
-// uncovered when nudged down and right), and the dark outline the mascot art is drawn with
-vec3 part(vec3 col, float d, float dn) {
-  col = mix(col, uPal[6], cover(d - 0.0045));
-  return mix(col, mix(uPal[4], uPal[5], sat(cover(d + 0.0045) - cover(dn + 0.0045))), cover(d + 0.0015));
+// a chair part: flat fill, a thin lit rim just inside its edge, and a dark outline
+vec3 part(vec3 col, float d, vec3 fill) {
+  col = mix(col, uPal[6], cover(d - 0.004));
+  vec3 c = fill + (uPal[7] - fill) * 0.85 * ring(d + 0.0045, 0.0014);
+  return mix(col, c, cover(d + 0.001));
 }
-#define PART(col, sd) part(col, sd(q), sd(q - vec2(0.007, -0.007)))
-float dBack(vec2 q) { return sdBox(rot(0.08) * (q - vec2(0.978, 0.296)), vec2(0.0), vec2(0.072, 0.108), 0.045); }
-float dSeat(vec2 q) { return sdBox(q, vec2(0.92, 0.163), vec2(0.12, 0.031), 0.028); }
-float dArm(vec2 q) { return min(sdSeg(q, vec2(0.813, 0.257), vec2(0.879, 0.255)) - 0.0125, sdBox(q, vec2(0.853, 0.216), vec2(0.012, 0.034), 0.004)); }
-float dLift(vec2 q) { return sdBox(q, vec2(0.913, 0.108), vec2(0.011, 0.03), 0.003); }
+float dBack(vec2 q) { return sdBox(rot(-0.10) * (q - vec2(0.985, 0.29)), vec2(0.0), vec2(0.068, 0.112), 0.028); }
+float dSeat(vec2 q) { return sdBox(rot(0.14) * (q - vec2(0.925, 0.13)), vec2(0.0), vec2(0.11, 0.036), 0.034); }
+float dPad(vec2 q) { return sdSeg(q, vec2(0.811, 0.262), vec2(0.876, 0.253)) - 0.017; }
+float dPost(vec2 q) { return sdBox(q, vec2(0.84, 0.21), vec2(0.015, 0.032), 0.004); }
 float dLegs(vec2 q) {
-  vec2 hub = vec2(0.913, 0.074);
-  return min(min(sdSeg(q, hub, vec2(0.82, 0.05)), sdSeg(q, hub, vec2(0.935, 0.02))), sdSeg(q, hub, vec2(1.02, 0.042))) - 0.011;
+  vec2 hub = vec2(0.898, 0.07);
+  return min(sdSeg(q, hub, vec2(0.80, 0.045)), sdSeg(q, hub, vec2(0.915, 0.012))) - 0.011;
 }
-float dWheels(vec2 q) { return min(min(length(q - vec2(0.818, 0.046)), length(q - vec2(0.935, 0.017))), length(q - vec2(1.018, 0.038))) - 0.018; }
+float dLift(vec2 q) { return sdBox(q, vec2(0.898, 0.085), vec2(0.016, 0.022), 0.004); }
+float dWheels(vec2 q) { return min(length(q - vec2(0.80, 0.043)), length(q - vec2(0.915, 0.012))) - 0.021; }
 vec3 chair(vec3 col, vec2 p, float t) {
   // rolled out to the corner; alive, it rolls a few pixels and settles
   float roll = 0.008 * sin(t * 0.9) * (0.6 + 0.4 * cos(t * 0.45));
   vec2 q = p - vec2(roll, 0.0);
-  vec2 sq = (q - vec2(0.93, 0.03)) / vec2(0.16, 0.025);
+  vec2 sq = (q - vec2(0.9, 0.025)) / vec2(0.16, 0.022);
   col *= 1.0 - 0.5 * exp(-dot(sq, sq) * 1.5);                       // its shadow on the floor
-  col = PART(col, dBack);
-  col = PART(col, dLift);
-  col = PART(col, dLegs);
-  col = PART(col, dWheels);
-  col = PART(col, dSeat);
-  return PART(col, dArm);
+  col = part(col, dBack(q), uPal[4]);
+  col = part(col, dLegs(q), uPal[5]);
+  col = part(col, dLift(q), uPal[5]);
+  col = part(col, dWheels(q), uPal[5]);
+  col = part(col, dSeat(q), uPal[4]);
+  col = part(col, dPost(q), uPal[5]);
+  return part(col, dPad(q), uPal[5]);
 }
 // the amber motion ticks; alive, they pulse
 vec3 tick(vec3 col, vec2 p, vec2 a, vec2 b, float r0, float k) {
@@ -809,12 +810,13 @@ vec3 motif(vec2 p, float t) {
   vec4 g = 0.25 * (texture2D(uText, p + o.xy, 3.5) + texture2D(uText, p - o.xy, 3.5) + texture2D(uText, p + o.yx, 3.5) + texture2D(uText, p - o.yx, 3.5));
   col += (mix(uPal[3], uPal[2], 0.55) * 0.16 * g.r + uPal[2] * 0.24 * g.g) * (1.0 - uMode);
   float k = 1.0 + 0.12 * sin(t * 2.6);
-  col = tick(col, p, ic(0.217, 0.194), ic(0.271, 0.226), 0.0085, k);
-  col = tick(col, p, ic(0.208, 0.271), ic(0.262, 0.273), 0.0085, k);
-  col = tick(col, p, ic(0.741, 0.090), ic(0.700, 0.145), 0.0085, k);
-  col = tick(col, p, ic(0.799, 0.170), ic(0.731, 0.195), 0.0085, k);
-  col = tick(col, p, ic(0.727, 0.905), ic(0.787, 0.932), 0.0095, k);
-  col = tick(col, p, ic(0.672, 0.962), ic(0.77, 0.953), 0.0095, k);
+  // thick end first, measured on the concept
+  col = tick(col, p, ic(0.738, 0.083), ic(0.689, 0.152), 0.0115, k);
+  col = tick(col, p, ic(0.801, 0.172), ic(0.726, 0.199), 0.0115, k);
+  col = tick(col, p, ic(0.216, 0.196), ic(0.276, 0.225), 0.0100, k);
+  col = tick(col, p, ic(0.204, 0.273), ic(0.265, 0.272), 0.0100, k);
+  col = tick(col, p, ic(0.712, 0.870), ic(0.775, 0.893), 0.0092, k);
+  col = tick(col, p, ic(0.664, 0.931), ic(0.758, 0.919), 0.0095, k);
   return chair(col, p, t);
 }`;
 
@@ -918,7 +920,7 @@ vec3 motif(vec2 p, float t) {
 // form: the logo (or, fromType, the front's own type) inflated into the motif's hero form: box [x, top, size], R bevel radius,
 //   soft blur (both cover units), key 'alpha' | 'tile' (tile: drop pixels near the tile colour).
 // back: paper, ink (name, values), soft (labels, stack), accent (rules, link).
-// bandY: centre of the band of art shown across the top of the back; strip: where that band comes from,
+// bandY: centre of the band of art shown across the top of the back (bandH tall, 0.3 by default); strip: where that band comes from,
 //   'front' (a crop of the finished front, for bands with no type in them), 'art' (the motif without its
 //   type) or 'fill' (the title's own fill across the band). No band may cut through type.
 // t0: the moment the still cover shows; alive time runs on from it.
@@ -1069,16 +1071,20 @@ function designFor(entry) {
     };
     case 'Chairtax': return {
       motif: 'chairtax', t0: 0,
-      pal: ['#110E0A', '#1E1811', '#FFB020', '#F8F2E7', '#4B5B7C', '#66779F', '#24150F'],
-      type: [
-        { lines: ['Chair'], font: 'NJ Grotesk', weight: 700, track: -0.035, fit: 918, x: 36, base: 640, ch: 0 },
-        { lines: ['tax'], font: 'NJ Grotesk', weight: 700, track: -0.035, fit: 626, x: 180, base: 893, ch: 1 },
-      ],
+      pal: ['#110E0A', '#1E1811', '#FFB020', '#F8F2E7', '#2E3D66', '#55669A', '#0E1018', '#6F8BD6'],
+      // each letter set on its concept letter (ink centre, size and tilt fitted to the concept, 1024 units)
+      type: [{ font: 'NJ Rounded', weight: 900, set: [
+        ['C', 173.75, 494.44, 413.95, 1, 0], ['h', 422.35, 478.73, 394.98, -2, 0], ['a', 626.6, 496.29, 386.38, -2.5, 0],
+        ['i', 769.85, 438.99, 370.54, -1, 0], ['r', 890.92, 464.87, 392.26, -2.5, 0],
+        ['t', 253.23, 758.76, 439.58, 2.5, 1], ['a', 465.79, 760.61, 457.55, -2, 1], ['x', 696.84, 727.33, 463.13, -5, 1],
+      ] }],
       inks: ['#F8F2E7', '#FFB020'],
       mark: [8, 6, 164],
-      art: { src: 'art/bearly-squat-top.webp', x: 288, top: 6, fade: 56 },
+      // his forearms' underside rests on the top of the "a" in "Chair"
+      art: { src: 'art/bearly-lean.webp', x: 300, top: 18 },
       typeGlow: true,
-      bandY: 0.845, grain: [0.012, 0.010],
+      // the band stops above the dot of the i
+      bandY: 0.86, bandH: 0.28, grain: [0.012, 0.010],
       back: { paper: '#14110D', ink: '#F8F2E7', soft: '#B4A893', accent: '#FFB020' },
     };
     case 'Stats': return {
@@ -1167,11 +1173,25 @@ function wrap(ctx, text, width) {
 // One title block, set to its cap height or fitted to its width, aligned by ink.
 function drawType(ctx, b, S, fill) {
   if (b.glyphs) {
-    // glyphs placed one by one: [text, x, ch, scale]
+    // glyphs placed one by one: [text, x, ch, scale] on the block's baseline
     for (const [g, x, ch, k = 1] of b.glyphs) {
       setFont(ctx, b.weight, b.px * k * S, b.font, 0);
       ctx.fillStyle = fill || CH[ch];
       ctx.fillText(g, x * S, b.base * S);
+    }
+    return;
+  }
+  if (b.set) {
+    // glyphs set one by one by their ink centre: [text, cx, cy, px, degrees clockwise, ch]
+    for (const [g, cx, cy, px, deg, ch] of b.set) {
+      setFont(ctx, b.weight, px * S, b.font, 0);
+      const m = ctx.measureText(g);
+      ctx.save();
+      ctx.translate(cx * S, cy * S);
+      ctx.rotate(deg * Math.PI / 180);
+      ctx.fillStyle = fill || CH[ch];
+      ctx.fillText(g, -(m.actualBoundingBoxRight - m.actualBoundingBoxLeft) / 2, -(m.actualBoundingBoxDescent - m.actualBoundingBoxAscent) / 2);
+      ctx.restore();
     }
     return;
   }
@@ -1554,7 +1574,7 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
     uMode: { value: 0 },
     uBandY: { value: d.bandY },
     uStrip: { value: { front: 0, art: 1, fill: 2 }[d.strip || 'front'] },
-    uBandH: { value: 0.3 },
+    uBandH: { value: d.bandH || 0.3 },
     uText: { value: null },
     uOver: { value: BLANK },
     uForm: { value: BLANK_FORM },
