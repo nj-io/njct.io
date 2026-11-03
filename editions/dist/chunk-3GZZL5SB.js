@@ -1,0 +1,1 @@
+var o={Mirra:"#8BB7E7",stet:"#072327","Social Hook":"#427FED",Clauded:"#0F5B62",LikeWiki:"#1B3930",Topshine:"#D3D0F9",Scorecard:"#101D37",Xactions:"#080D28","Stellar Explorer":"#0B0E1C",Chairtax:"#140F0B",Stats:"#E3E9F0","About Neil":"#EFE2CC"},e=t=>o[t.name]??o.Xactions;export{o as a,e as b};

@@ -1,0 +1,1 @@
+var d=t=>Math.min(1,Math.max(0,t)),r=!1,p=t=>{r=!!t},f=()=>r,u=t=>r?Math.min(t,120):t,h=t=>r?0:t;function M([t,x,l,s],o){if(o<=0)return 0;if(o>=1)return 1;let n=0,c=1,e=o;for(let i=0;i<24;i++)e=(n+c)/2,3*(1-e)*(1-e)*e*t+3*(1-e)*e*e*l+e*e*e<o?n=e:c=e;return 3*(1-e)*(1-e)*e*x+3*(1-e)*e*e*s+e*e*e}export{d as a,p as b,f as c,u as d,h as e,M as f};

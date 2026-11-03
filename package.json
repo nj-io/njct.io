@@ -1,6 +1,10 @@
 {
   "name": "njct-io",
   "private": true,
+  "scripts": {
+    "build": "node build/bundle.mjs",
+    "check": "node build/bundle.mjs --check"
+  },
   "devDependencies": {
     "esbuild": "0.28.2"
   }

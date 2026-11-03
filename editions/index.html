@@ -7,23 +7,25 @@
 <link rel="icon" href="data:,">
 <link rel="preload" href="/vendor/fonts/ui/inter-variable-ui.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/editions/data/projects.json" as="fetch" crossorigin>
-<!-- The import map comes before every module preload: a preloaded module that imports "three" resolves it then. -->
-<script type="importmap">{ "imports": { "three": "/vendor/three-0.181.0/three.module.min.js" } }</script>
-<link rel="modulepreload" href="/vendor/three-0.181.0/three.module.min.js">
-<link rel="modulepreload" href="/vendor/three-0.181.0/three.core.min.js">
-<link rel="modulepreload" href="/editions/main.js">
-<link rel="modulepreload" href="/editions/scene/config.js">
-<link rel="modulepreload" href="/editions/scene/lighting.js">
-<link rel="modulepreload" href="/editions/scene/wall.js">
-<link rel="modulepreload" href="/editions/scene/shelves.js">
-<link rel="modulepreload" href="/editions/scene/sleeves.js">
-<link rel="modulepreload" href="/editions/scene/tonemap.js">
-<link rel="modulepreload" href="/editions/scene/motion.js">
-<link rel="modulepreload" href="/editions/scene/post.js">
-<link rel="modulepreload" href="/editions/scene/sticker.js">
-<link rel="modulepreload" href="/editions/scene/crate.js">
-<link rel="modulepreload" href="/editions/menu.js">
-<link rel="modulepreload" href="/vendor/three-0.181.0/addons/environments/RoomEnvironment.js">
+<script>
+  // WebGL 2 draws the shelf; without it the shelf is plain cards (fallback.js), which never load three.js.
+  // ?src runs the page from its source modules (development), which name three.js through an import map;
+  // otherwise the page runs the bundle in dist/ (build/bundle.mjs) and, with WebGL 2, preloads its first view.
+  window.__editionsGL = (() => { try { return !!document.createElement('canvas').getContext('webgl2'); } catch { return false; } })()
+    && !window.__editionsTest?.noWebGL;
+  window.__editionsSrc = new URLSearchParams(location.search).has('src');
+  if (window.__editionsSrc) {
+    const m = document.createElement('script');
+    m.type = 'importmap';
+    m.textContent = '{ "imports": { "three": "/vendor/three-0.181.0/three.module.min.js" } }';
+    document.currentScript.after(m);
+  } else if (window.__editionsGL) {
+    // bundle: first-view chunks, written by build/bundle.mjs
+    const first = ["/editions/dist/main.js","/editions/dist/chunk-CBEJLKG4.js","/editions/dist/chunk-U3AZOSC6.js","/editions/dist/chunk-OOBDN6GE.js","/editions/dist/menu.js"];
+    // /bundle
+    for (const href of first) document.head.append(Object.assign(document.createElement('link'), { rel: 'modulepreload', href }));
+  }
+</script>
 <style>
   @font-face {
     font-family: 'NJ Text';
@@ -245,12 +247,12 @@
 </section>
 <button class="d-open" id="d-open" type="button" data-action="open" inert>Open</button>
 <script type="module">
-  // WebGL 2 draws the shelf; without it (or if the scene fails to start) the shelf is plain cards.
-  const gl = (() => { try { return !!document.createElement('canvas').getContext('webgl2'); } catch { return false; } })();
-  const fallback = () => import('./fallback.js').then(m => m.start());
-  import('./menu.js').then(m => m.start()).catch(e => console.warn('menu', e));
-  if (!gl || window.__editionsTest?.noWebGL) fallback();
-  else import('./main.js').catch(e => { console.warn('shelf: static fallback', e); fallback(); });
+  // Without WebGL 2 (or if the scene fails to start) the shelf is plain cards.
+  const at = window.__editionsSrc ? './' : './dist/';
+  const fallback = () => import(`${at}fallback.js`).then(m => m.start());
+  import(`${at}menu.js`).then(m => m.start()).catch(e => console.warn('menu', e));
+  if (!window.__editionsGL) fallback();
+  else import(`${at}main.js`).catch(e => { console.warn('shelf: static fallback', e); fallback(); });
 </script>
 </body>
 </html>
