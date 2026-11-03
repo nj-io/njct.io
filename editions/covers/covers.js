@@ -1938,8 +1938,9 @@ let workerUrl = null;
 function fieldOffThread(px, ...args) {
   try {
     if (!workerUrl) {
+      // The functions' own names, as a minifier may have renamed them (the bundle does).
       const src = [edt1d, edt, boxBlur, toHalfBits, formField].map(fn => fn.toString()).join('\n') +
-        '\nonmessage = e => { const out = formField(...e.data); postMessage(out, [out.buffer]); };';
+        `\nonmessage = e => { const out = ${formField.name}(...e.data); postMessage(out, [out.buffer]); };`;
       workerUrl = URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
     }
     const w = new Worker(workerUrl);
