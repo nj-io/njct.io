@@ -82,7 +82,6 @@ export function createRecord(entry) {
   };
 }
 
-const LOGO_BASE = new URL('../data/', import.meta.url);
 function loadImage(src) {
   return new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = src; });
 }
@@ -96,11 +95,10 @@ async function drawLabel(entry) {
   g.strokeStyle = 'rgba(255,255,255,0.35)';
   g.lineWidth = S * 0.006;
   g.beginPath(); g.arc(S / 2, S / 2, S * 0.45, 0, Math.PI * 2); g.stroke();
+  // logo: {svg: a standalone SVG document} | {png: a root-relative path} | null
   const logo = entry.logo;
-  if (logo) {
-    const src = logo.trim().startsWith('<svg')
-      ? URL.createObjectURL(new Blob([logo], { type: 'image/svg+xml' }))
-      : new URL(logo, LOGO_BASE).href;
+  if (logo?.svg || logo?.png) {
+    const src = logo.svg ? URL.createObjectURL(new Blob([logo.svg], { type: 'image/svg+xml' })) : logo.png;
     try {
       const im = await loadImage(src);
       const w = S * 0.46;

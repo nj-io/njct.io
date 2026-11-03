@@ -59,20 +59,27 @@ const camera = new THREE.PerspectiveCamera(20, 1, 100, CAMERA_Z * 2);
 camera.position.set(0, 0, CAMERA_Z);
 
 // ---- covers -------------------------------------------------------------------------------------
-// Fronts render at 1024 (Details shows them at about 830 device px); a back renders at 1024 on demand,
-// the first time its sleeve enters Details. The sleeves wait for the fronts, at most 3 s.
+// Covers come only through createCover (editions/covers/): a 1024 front (Details shows it at about 830
+// device px) and the 512 shelf back. A cover that fails to build leaves its sleeve plain, in the entry's
+// accent colour or neutral grey. The sleeves wait for the covers, at most 3 s.
 const covers = sleeves.map(() => null);
-const coversReady = Promise.all(sleeves.map((s, i) => createCover(renderer, s.entry, i, { size: 1024, backSize: 0 })
-  .then(c => { covers[i] = c; setCover(s, c.front, null); wake(); })
-  .catch(e => console.warn(`cover ${s.entry.name}:`, e))));
+const build = (s, i, opts) => Promise.resolve().then(() => createCover(renderer, s.entry, i, opts));
+const coversReady = Promise.all(sleeves.map((s, i) => build(s, i, { size: 1024 })
+  .then(c => { covers[i] = c; setCover(s, c.front, c.back); wake(); })
+  .catch(e => console.warn(`cover ${s.entry.name}: plain sleeve (${e?.message || e})`))));
 let coversAt = null;
 Promise.race([coversReady, new Promise(r => setTimeout(r, 3000))]).then(() => {
   coversAt = performance.now();
   if (introStart !== null) sleevesStart = Math.max(introStart, coversAt - INTRO.appear.at);
   wake();
 });
+// Details magnifies the back, so a sleeve entering Details gets its back at 1024, from a second cover
+// built with a minimal front (the contract has no back-only call). Built once per sleeve.
+const detailCovers = sleeves.map(() => null);
 function backFor(i) {
-  covers[i]?.detailBack(1024).then(tex => { if (tex) { setCover(sleeves[i], null, tex); wake(); } });
+  if (!detailCovers[i]) detailCovers[i] = build(sleeves[i], i, { size: 16, backSize: 1024 })
+    .then(c => { setCover(sleeves[i], null, c.back); wake(); return c; })
+    .catch(e => console.warn(`cover ${sleeves[i].entry.name}: no 1024 back (${e?.message || e})`));
 }
 
 // The cover under the pointer (or in Details) animates; at most one at a time. A released cover keeps

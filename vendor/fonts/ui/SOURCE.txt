@@ -1,5 +1,5 @@
-UI face for the Editions page (header, buttons, bottom index, Details text) and the covers' text face
-(NJ Text). SIL Open Font License 1.1 (https://openfontlicense.org).
+UI face for the Editions page (header, buttons, bottom index, Details text, record labels, the
+sticker). SIL Open Font License 1.1 (https://openfontlicense.org).
 
 inter-variable-ui.woff2
   Inter (Rasmus Andersson), gstatic v20, variable weight axis wght 100-900 (opsz at its default, 14)

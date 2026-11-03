@@ -25,7 +25,9 @@
    "light": "#2C7AC2",
    "dark": "#9EC7EA"
   },
-  "logo": "logos/mirra.png"
+  "logo": {
+   "png": "/editions/data/logos/mirra.png"
+  }
  },
  {
   "name": "stet",
@@ -53,7 +55,9 @@
    "light": "#0E6B74",
    "dark": "#6FBAC4"
   },
-  "logo": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\" width=\"100\" height=\"100\"><rect width=\"100\" height=\"100\" rx=\"22\" fill=\"#0e6b74\"/><g transform=\"translate(50 50) scale(0.68) translate(-50 -50)\"><path fill=\"#ffffff\" d=\"M82 14 L40 14 A22 22 0 0 0 40 58 L40 86 L54 86 L54 28 L68 28 L68 86 L82 86 Z\"/></g></svg>"
+  "logo": {
+   "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\" width=\"100\" height=\"100\"><rect width=\"100\" height=\"100\" rx=\"22\" fill=\"#0e6b74\"/><g transform=\"translate(50 50) scale(0.68) translate(-50 -50)\"><path fill=\"#ffffff\" d=\"M82 14 L40 14 A22 22 0 0 0 40 58 L40 86 L54 86 L54 28 L68 28 L68 86 L82 86 Z\"/></g></svg>"
+  }
  },
  {
   "name": "Social Hook",
@@ -81,7 +85,9 @@
    "light": "#2563EB",
    "dark": "#5B8DEF"
   },
-  "logo": "<svg viewBox=\"0 0 28 28\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><rect x=\"1\" y=\"1\" width=\"26\" height=\"26\" rx=\"0\" stroke=\"#2563EB\" stroke-width=\"1.5\" fill=\"#fff\"/><circle cx=\"8\" cy=\"14\" r=\"3\" fill=\"#2563EB\"/><line x1=\"11\" y1=\"14\" x2=\"17\" y2=\"14\" stroke=\"#2563EB\" stroke-width=\"1.5\"/><circle cx=\"20\" cy=\"14\" r=\"3\" stroke=\"#2563EB\" stroke-width=\"1.5\" fill=\"#EFF6FF\"/></svg>"
+  "logo": {
+   "svg": "<svg viewBox=\"0 0 28 28\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><rect x=\"1\" y=\"1\" width=\"26\" height=\"26\" rx=\"0\" stroke=\"#2563EB\" stroke-width=\"1.5\" fill=\"#fff\"/><circle cx=\"8\" cy=\"14\" r=\"3\" fill=\"#2563EB\"/><line x1=\"11\" y1=\"14\" x2=\"17\" y2=\"14\" stroke=\"#2563EB\" stroke-width=\"1.5\"/><circle cx=\"20\" cy=\"14\" r=\"3\" stroke=\"#2563EB\" stroke-width=\"1.5\" fill=\"#EFF6FF\"/></svg>"
+  }
  },
  {
   "name": "Clauded",
@@ -109,7 +115,9 @@
    "light": "#0E8A90",
    "dark": "#46D4D8"
   },
-  "logo": "logos/clauded.png"
+  "logo": {
+   "png": "/editions/data/logos/clauded.png"
+  }
  },
  {
   "name": "LikeWiki",
@@ -137,7 +145,9 @@
    "light": "#2f5d50",
    "dark": "#7fbfa9"
   },
-  "logo": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 32 32\"><circle cx=\"16\" cy=\"16\" r=\"12.6\" fill=\"none\" stroke=\"#2f5d50\" stroke-width=\"1.8\" opacity=\".55\"/><circle cx=\"24.9\" cy=\"7.1\" r=\"2.6\" fill=\"#2f5d50\"/><path d=\"M12 20.5C12 20.5 3 14.5 3 8.8 3 6 5.1 4 7.6 4 9.5 4 11.1 5.1 12 6.6 12.9 5.1 14.5 4 16.4 4 18.9 4 21 6 21 8.8 21 14.5 12 20.5 12 20.5Z\" transform=\"translate(16 16.6) scale(.66) translate(-12 -12.25)\" fill=\"#2f5d50\"/></svg>"
+  "logo": {
+   "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 32 32\"><circle cx=\"16\" cy=\"16\" r=\"12.6\" fill=\"none\" stroke=\"#2f5d50\" stroke-width=\"1.8\" opacity=\".55\"/><circle cx=\"24.9\" cy=\"7.1\" r=\"2.6\" fill=\"#2f5d50\"/><path d=\"M12 20.5C12 20.5 3 14.5 3 8.8 3 6 5.1 4 7.6 4 9.5 4 11.1 5.1 12 6.6 12.9 5.1 14.5 4 16.4 4 18.9 4 21 6 21 8.8 21 14.5 12 20.5 12 20.5Z\" transform=\"translate(16 16.6) scale(.66) translate(-12 -12.25)\" fill=\"#2f5d50\"/></svg>"
+  }
  },
  {
   "name": "Topshine",
@@ -165,7 +175,9 @@
    "light": "#6c44f0",
    "dark": "#9384fa"
   },
-  "logo": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><path d=\"M10 .6c.6 5 2.9 7.7 8.9 9.4-6 1.7-8.3 4.4-8.9 9.4-.6-5-2.9-7.7-8.9-9.4C7.1 8.3 9.4 5.6 10 .6z\" fill=\"#7e5ff9\"/><circle cx=\"16.2\" cy=\"3.8\" r=\"1.55\" fill=\"#7e5ff9\"/><circle cx=\"4.2\" cy=\"16.1\" r=\"1.45\" fill=\"#7e5ff9\"/></svg>"
+  "logo": {
+   "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><path d=\"M10 .6c.6 5 2.9 7.7 8.9 9.4-6 1.7-8.3 4.4-8.9 9.4-.6-5-2.9-7.7-8.9-9.4C7.1 8.3 9.4 5.6 10 .6z\" fill=\"#7e5ff9\"/><circle cx=\"16.2\" cy=\"3.8\" r=\"1.55\" fill=\"#7e5ff9\"/><circle cx=\"4.2\" cy=\"16.1\" r=\"1.45\" fill=\"#7e5ff9\"/></svg>"
+  }
  },
  {
   "name": "Scorecard",
