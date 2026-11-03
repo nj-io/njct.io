@@ -42,9 +42,12 @@ varying vec3 vPos;
 varying vec3 vNormal;
 void main() {
   vec3 n = normalize(vNormal);
-  float e = uLightPower[0] * boxLight(0, vPos, n) + uLightPower[1] * boxLight(1, vPos, n);
+  // The rounded front edges are shaded as the front face: lit at their own normals they face the soft boxes
+  // more squarely than either face and read as bright lines, which the reference does not show.
+  vec3 nl = n.z > 0.02 && abs(n.y) > 0.02 && abs(n.y) < 0.98 ? vec3(0.0, 0.0, 1.0) : n;
+  float e = uLightPower[0] * boxLight(0, vPos, nl) + uLightPower[1] * boxLight(1, vPos, nl);
   // Ambient from the room: full on the front, less on the top, least underneath.
-  e += uShelfAmbient * (0.75 + 0.25 * n.z - 0.35 * max(-n.y, 0.0));
+  e += uShelfAmbient * (0.75 + 0.25 * nl.z - 0.35 * max(-nl.y, 0.0));
   if (n.y > 0.5) {
     // Contact shadow in front of each sleeve standing on this shelf.
     float shade = 0.0;
