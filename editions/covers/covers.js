@@ -756,7 +756,7 @@ vec3 goldInk(vec2 p) {
 #define INK0(p, t) goldInk(p)`;
 
 // Chairtax: the name itself is the artwork, Bearly (art/, drawn unaltered) leaning on "Chair" with his chin
-// on his paw, the type lit from within, and his navy office chair rolled out to the corner.
+// on his paw, the letters casting a soft shadow, and his navy office chair rolled out to the corner.
 MOTIFS.chairtax = /* glsl */`
 float lift(float t) { return 0.004 * (0.5 - 0.5 * cos(t * 2.0)); }
 #define ART_DY(t) lift(t)
@@ -805,10 +805,11 @@ vec3 tick(vec3 col, vec2 p, vec2 a, vec2 b, float r0, float k) {
 }
 vec3 motif(vec2 p, float t) {
   vec3 col = mix(uPal[1], uPal[0], smoothstep(0.1, 0.8, length((p - vec2(0.48, 0.5)) * vec2(0.9, 1.0))));
-  // the type, lit from within: a soft glow from the mask's coarse levels
-  vec2 o = vec2(0.006, 0.0);
-  vec4 g = 0.25 * (texture2D(uText, p + o.xy, 3.5) + texture2D(uText, p - o.xy, 3.5) + texture2D(uText, p + o.yx, 3.5) + texture2D(uText, p - o.yx, 3.5));
-  col += (mix(uPal[3], uPal[2], 0.55) * 0.16 * g.r + uPal[2] * 0.24 * g.g) * (1.0 - uMode);
+  // the letters' drop shadow, measured on the concept: offset 0.032 right and 0.033 down, about 3.5 px soft
+  // on a 1024 (the mask's coarse levels), 14% dark; the letters' own edges stay analytic
+  vec2 so = p + vec2(-0.032, 0.033), o = vec2(0.002, 0.0);
+  vec4 g = 0.25 * (texture2D(uText, so + o.xy, 3.5) + texture2D(uText, so - o.xy, 3.5) + texture2D(uText, so + o.yx, 3.5) + texture2D(uText, so - o.yx, 3.5));
+  col *= 1.0 - 0.14 * sat(g.r + g.g + g.b) * (1.0 - uMode);
   float k = 1.0 + 0.12 * sin(t * 2.6);
   // thick end first, measured on the concept
   col = tick(col, p, ic(0.738, 0.083), ic(0.689, 0.152), 0.0115, k);
@@ -915,7 +916,7 @@ vec3 motif(vec2 p, float t) {
 // art: brand artwork drawn unaltered over the motif and under the type, at its own pixel size on a 1024
 //   front: { src (beside this module), x, top, fade }; fade (px) softens a crop edge at its foot that the
 //   type covers. A motif may lift it with ART_DY(t) (cover units).
-// typeGlow: the type mask carries mips, so the motif can read it blurred (a glow around the type).
+// typeGlow: the type mask carries mips, so the motif can read it blurred (a glow or a shadow around the type).
 // shaderMips: the shader draws the front's mip levels itself, each filtered at its own sampling rate.
 // form: the logo (or, fromType, the front's own type) inflated into the motif's hero form: box [x, top, size], R bevel radius,
 //   soft blur (both cover units), key 'alpha' | 'tile' (tile: drop pixels near the tile colour).
@@ -976,6 +977,9 @@ const STET_KEYS = [
 ];
 const STET_KEY_STARTS = [0, 56, 92, 148, 184];
 const STET_KEY_SIGMA = [0.0496, 0.0533, 0.0492, 0.0536];
+// Chairtax's two letter inks, cream and amber: 'brand' (the brand's) or 'concept' (sampled from the concept)
+const CHAIRTAX_INKS = { brand: ['#F8F2E7', '#FFB020'], concept: ['#FCEECE', '#F9B224'] };
+const CHAIRTAX_INK = 'concept';
 
 function designFor(entry) {
   switch (entry.name) {
@@ -1078,7 +1082,7 @@ function designFor(entry) {
         ['i', 769.85, 438.99, 370.54, -1, 0], ['r', 890.92, 464.87, 392.26, -2.5, 0],
         ['t', 253.23, 758.76, 439.58, 2.5, 1], ['a', 465.79, 760.61, 457.55, -2, 1], ['x', 696.84, 727.33, 463.13, -5, 1],
       ] }],
-      inks: ['#F8F2E7', '#FFB020'],
+      inks: CHAIRTAX_INKS[CHAIRTAX_INK],
       mark: [8, 6, 164],
       // his forearms' underside rests on the top of the "a" in "Chair"
       art: { src: 'art/bearly-lean.webp', x: 300, top: 18 },
