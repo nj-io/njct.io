@@ -82,6 +82,32 @@ export function createRecord(entry) {
   };
 }
 
+// WCAG contrast. A bare mark or the name that falls below 4.5:1 on its ground is drawn in white or near
+// black, whichever reads better; the ground keeps the project's accent. A mark that fills its box (an app
+// icon on its own tile) carries its own ground and is drawn as it is.
+const MIN_CONTRAST = 4.5, TILE = 0.6;   // TILE: share of the box a mark must cover to count as a tile
+const lin = c => { c /= 255; return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
+const lum = ([r, g, b]) => 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+const contrast = (a, b) => (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+const rgbOf = hex => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
+const inkOn = gl => (contrast(1, gl) >= contrast(lum([17, 17, 17]), gl) ? '#fff' : '#111');
+// The mark at w px, recoloured to the ink if it is bare and too faint on the ground.
+function markCanvas(im, w, ground) {
+  const c = document.createElement('canvas');
+  c.width = c.height = Math.round(w);
+  const g = c.getContext('2d');
+  g.drawImage(im, 0, 0, c.width, c.height);
+  const px = g.getImageData(0, 0, c.width, c.height).data, gl = lum(ground), cs = [];
+  for (let k = 0; k < px.length; k += 4) if (px[k + 3] > 200) cs.push(contrast(lum([px[k], px[k + 1], px[k + 2]]), gl));
+  if (cs.length / (c.width * c.height) >= TILE) return c;
+  cs.sort((a, b) => a - b);
+  if ((cs[cs.length >> 1] || 0) >= MIN_CONTRAST) return c;
+  g.globalCompositeOperation = 'source-in';
+  g.fillStyle = inkOn(gl);
+  g.fillRect(0, 0, c.width, c.height);
+  return c;
+}
+
 function loadImage(src) {
   return new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = src; });
 }
@@ -89,7 +115,8 @@ async function drawLabel(entry) {
   const S = 512, c = document.createElement('canvas');
   c.width = c.height = S;
   const g = c.getContext('2d');
-  g.fillStyle = entry.accent?.light || '#d9d6d0';
+  const groundHex = entry.accent?.light || '#d9d6d0', ground = rgbOf(groundHex);
+  g.fillStyle = groundHex;
   g.fillRect(0, 0, S, S);
   // A fine ring near the label's edge, as printed labels have.
   g.strokeStyle = 'rgba(255,255,255,0.35)';
@@ -102,12 +129,13 @@ async function drawLabel(entry) {
     try {
       const im = await loadImage(src);
       const w = S * 0.46;
-      g.drawImage(im, (S - w) / 2, (S - w) / 2, w, w);
+      g.drawImage(markCanvas(im, w, ground), (S - w) / 2, (S - w) / 2, w, w);
     } finally {
       if (src.startsWith('blob:')) URL.revokeObjectURL(src);
     }
   } else {
-    g.fillStyle = 'rgba(255,255,255,0.92)';
+    const gl = lum(ground);
+    g.fillStyle = contrast(1, gl) >= MIN_CONTRAST ? 'rgba(255,255,255,0.92)' : inkOn(gl);
     g.font = `600 ${S * 0.075}px 'NJ Text', system-ui, sans-serif`;
     g.textAlign = 'center';
     g.textBaseline = 'middle';
