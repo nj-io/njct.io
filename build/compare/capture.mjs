@@ -363,7 +363,7 @@ fs.mkdirSync(roundDir, { recursive: true });
 const t0 = Date.now();
 const browser = await puppeteer.launch({
   executablePath: CHROME, headless: true, protocolTimeout: 120000,
-  args: ['--enable-gpu', '--use-angle=metal', '--ignore-gpu-blocklist', '--hide-scrollbars', '--mute-audio'],
+  args: ['--enable-gpu', '--use-angle=metal', '--ignore-gpu-blocklist', '--hide-scrollbars', '--mute-audio', '--use-mock-keychain', '--password-store=basic'],
 });
 try {
   // Sequential on purpose: two WebGL pages at once would disturb each other's timing.

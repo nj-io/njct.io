@@ -12,7 +12,7 @@ const qs = new URLSearchParams({ ref: '/' + ref.replace(/^\/+/, ''), iters });
 if (start) qs.set('start', start);
 const browser = await puppeteer.launch({
   executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true, protocolTimeout: 1800000,
-  args: ['--enable-gpu', '--use-angle=metal', '--ignore-gpu-blocklist', '--hide-scrollbars'],
+  args: ['--enable-gpu', '--use-angle=metal', '--ignore-gpu-blocklist', '--hide-scrollbars', '--use-mock-keychain', '--password-store=basic'],
 });
 const page = await browser.newPage();
 await page.setViewport({ width: 1440, height: 900 });
