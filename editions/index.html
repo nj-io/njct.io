@@ -7,6 +7,8 @@
 <link rel="icon" href="data:,">
 <link rel="preload" href="/vendor/fonts/ui/inter-variable-ui.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/editions/data/projects.json" as="fetch" crossorigin>
+<!-- The import map comes before every module preload: a preloaded module that imports "three" resolves it then. -->
+<script type="importmap">{ "imports": { "three": "/vendor/three-0.181.0/three.module.min.js" } }</script>
 <link rel="modulepreload" href="/vendor/three-0.181.0/three.module.min.js">
 <link rel="modulepreload" href="/vendor/three-0.181.0/three.core.min.js">
 <link rel="modulepreload" href="/editions/main.js">
@@ -149,7 +151,6 @@
   .fb-figs b { color: var(--ink); font-weight: 500; }
   .fb-open { align-self: flex-start; margin-top: auto; height: 44px; padding: 0 18px; border-radius: 22px; background: #000; color: #fff; line-height: 44px; text-decoration: none; }
 </style>
-<script type="importmap">{ "imports": { "three": "/vendor/three-0.181.0/three.module.min.js" } }</script>
 </head>
 <body>
 <canvas id="c" aria-hidden="true"></canvas>
