@@ -3,9 +3,11 @@
 // createCover(renderer, entry, index, { size }) renders one entry's front and
 // back into mipmapped sRGB render targets. Each cover is a single full-target
 // fragment shader: a per-entry motif evaluated with 4-sample rotated-grid
-// supersampling and analytic edge coverage, then the type composited 1:1 from a
-// canvas mask, the brand mark composited 1:1 from a colour overlay, then print
-// grain and an 8-bit dither. Maths runs in linear light; the target stores sRGB.
+// supersampling and analytic edge coverage, then any brand artwork (a mascot) and
+// the type composited 1:1 from a canvas mask, the brand mark composited 1:1 from a
+// colour overlay, then print grain and an 8-bit dither. Maths runs in linear light;
+// the target stores sRGB. A cover with fine regular structure draws its own mip
+// levels, each filtered at that level's sampling rate.
 //
 // A cover whose art is the brand mark itself (Mirra, Clauded, Topshine) shades
 // the real mark: the logo is rasterised, turned into a signed distance field by
@@ -26,7 +28,9 @@ const FACES = [
   ['NJ Soft Serif', 'fraunces-144pt-black-soft-cover.woff2', '900'],
   ['NJ Serif', 'fraunces-144pt-bold-cover.woff2', '700'],
   ['NJ Hanken', 'hanken-grotesk-650-cover.woff2', '650'],
-  ['NJ Condensed', 'archivo-condensed-extrabold-cover.woff2', '800'],
+  ['NJ Narrow', 'archivo-narrow-700-cover.woff2', '700'],
+  ['NJ Rounded', 'nunito-900-cover.woff2', '900'],
+  ['NJ Bricolage', 'bricolage-grotesque-96pt-extrabold-title-cover.woff2', '800'],
 ];
 // Faces only the backs use load with the first back.
 const BACK_FACES = [
@@ -64,8 +68,10 @@ uniform vec2 uRes, uGrain;
 uniform float uTime, uSS, uMode, uBandY, uBandH, uStrip;
 uniform sampler2D uText, uOver, uForm, uFormCol, uFront;
 uniform vec3 uFormRect;
-uniform sampler2D uRest;
-uniform float uRestMix;
+uniform sampler2D uRest, uArt, uKeys;
+uniform float uRestMix, uMip;
+uniform vec4 uArtRect;
+uniform float uArtFade;
 uniform vec3 uInk0, uInk1, uInk2, uPaper;
 uniform vec3 uPal[8];
 uniform vec4 uAux[8];
@@ -147,6 +153,9 @@ const MAIN = /* glsl */`
 #ifndef INK2
 #define INK2(p, t) uInk2
 #endif
+#ifndef ART_DY
+#define ART_DY(t) 0.0
+#endif
 vec3 shade(vec2 p, float t) {
   if (uMode < 0.5) return motif(p, t);
   // back: a band of the cover's art across the top, paper below. The band is a crop of the finished
@@ -175,9 +184,18 @@ void main() {
   vec4 m = texture2D(uText, uv);
   vec3 s = toSrgb(clamp(c, 0.0, 1.0));
   if (uMode < 0.5) {
-    s = mix(s, INK0(uv, uTime), m.r);
-    s = mix(s, INK1(uv, uTime), m.g);
-    s = mix(s, INK2(uv, uTime), m.b);
+    // the mascot, premultiplied, drawn unaltered; its lift moves in whole pixels so it never resamples
+    if (uArtRect.z > 0.0) {
+      vec2 au = (uv - uArtRect.xy - vec2(0.0, floor(ART_DY(uTime) * uRes.y + 0.5) / uRes.y)) / uArtRect.zw;
+      vec4 a = texture2D(uArt, clamp(au, 0.0, 1.0));
+      a *= step(0.0, au.x) * step(0.0, au.y) * step(au.x, 1.0) * step(au.y, 1.0);
+      if (uArtFade > 0.0) a *= smoothstep(0.0, uArtFade, au.y);   // a crop edge the type hides fades out
+      s = s * (1.0 - a.a) + a.rgb;
+    }
+    // each ink is evaluated only where its channel covers (a motif's fill can be costly)
+    if (m.r > 0.0) s = mix(s, INK0(uv, uTime), m.r);
+    if (m.g > 0.0) s = mix(s, INK1(uv, uTime), m.g);
+    if (m.b > 0.0) s = mix(s, INK2(uv, uTime), m.b);
     // the brand mark, premultiplied, drawn unaltered
     vec4 o = texture2D(uOver, uv);
     s = s * (1.0 - o.a) + o.rgb;
@@ -186,8 +204,9 @@ void main() {
     s = mix(s, uInk1, m.g);
     s = mix(s, uInk2, m.b);
   }
-  // print finish: static fibre grain and a faint density drift, then dither to 8 bits
-  float grain = h12(fc * 1.37 + 17.0) - 0.5;
+  // print finish: static fibre grain and a faint density drift, then dither to 8 bits. A mip level drawn by
+  // the shader takes the grain at the strength a box-filtered level would have.
+  float grain = (h12(fc * 1.37 + 17.0) - 0.5) * exp2(-uMip);
   float dens = vnoise(fc / uRes * 7.0 + 11.0) - 0.5;
   s *= 1.0 + grain * uGrain.x + dens * uGrain.y;
   s += (ign(fc) - 0.5) / 255.0;
@@ -253,29 +272,48 @@ vec3 motif(vec2 p, float t) {
   return col;
 }`;
 
-// stet: the word itself is the artwork, its letters filled with a grained teal,
-// cream and gold gradient that drifts when the cover is alive.
+// stet: the word itself is the artwork, each letter shaded like a folded ribbon: a colour field per letter
+// (sRGB keys on a grid over the letter, fitted to the concept, blended smoothly and stippled where they
+// meet), and the last t's ascender folded crisply along its medial axis, where the slope of the type's
+// distance field (formAt) turns over. The t's fill type channel 0, the s and e channel 1, so the s and e
+// lie over the t's where the tight letters overlap.
 MOTIFS.stet = /* glsl */`
+// the letters' keys come from uKeys: row 0 (x, y, sigma), row 1 (r, g, b), letter L at K0[L] .. K0[L + 1]
+const int K0[5] = int[5](0, 56, 92, 148, 184);
+// each letter's fold: the side of the medial axis facing away from xy takes the shade z (the concept folds
+// only the last t's ascender)
+const vec3 FOLD[4] = vec3[4](vec3(0.0, 1.0, 0.0), vec3(0.0, 1.0, 0.0), vec3(0.0, 1.0, 0.0), vec3(-1.0, 0.1, 0.13));
 vec3 motif(vec2 p, float t) {
-  float v = length((p - vec2(0.5, 0.52)) * vec2(1.0, 1.1));
+  float v = length((p - vec2(0.5, 0.55)) * vec2(1.0, 1.1));
   return mix(uPal[0], uPal[1], smoothstep(0.25, 0.85, v));
 }
-vec3 stetFill(vec2 p, float t) {
-  vec2 w = vec2(fbm(p * 2.1 + vec2(3.0, 7.0) + t * 0.025), fbm(p * 2.1 + vec2(9.0, 1.0) - t * 0.02));
-  float ph = p.x * 1.15 - p.y * 0.95 + (w.x - 0.5) * 0.9 + t * 0.018;
-  ph += (h12(FC * 0.71 + 3.0) - 0.5) * 0.16;            // stipple the transitions
-  float k = fract(ph);
-  vec3 a = uPal[2], b = uPal[3], c = uPal[4], d = uPal[5];
-  vec3 col = k < 0.25 ? mix(a, b, smoothstep(0.0, 0.25, k))
-           : k < 0.5 ? mix(b, c, smoothstep(0.25, 0.5, k))
-           : k < 0.75 ? mix(c, d, smoothstep(0.5, 0.75, k))
-           : mix(d, a, smoothstep(0.75, 1.0, k));
-  // a soft fold of shade through the strokes
-  col *= 0.86 + 0.14 * smoothstep(0.2, 0.8, w.y);
-  col *= 1.0 + (h12(FC * 1.91 + 5.0) - 0.5) * 0.10;
-  return toSrgb(col);
+vec3 stetFill(vec2 p, float t, int L) {
+  // the keys drift a little when alive; the stipple jitters where the blend is read
+  vec2 q = p + 0.010 * vec2(sin(t * 0.37), cos(t * 0.29) - 1.0) + (h22(FC * 0.731 + 3.0) - 0.5) * 0.016;
+  vec3 c = vec3(0.0); float ws = 0.0;
+  for (int i = K0[L]; i < K0[L + 1]; i++) {
+    vec4 k = texelFetch(uKeys, ivec2(i, 0), 0);
+    vec2 d = q - k.xy;
+    float w = exp(-dot(d, d) / (k.z * k.z));
+    c += texelFetch(uKeys, ivec2(i, 1), 0).rgb * w; ws += w;
+  }
+  c /= max(ws, 1e-6);
+  // the fold: across the medial axis the field's slope turns over, and one side of every stroke is shaded
+  vec4 f = formAt(p);
+  vec2 dir = f.gb / max(length(f.gb), 1e-5);
+  float lit = smoothstep(-0.12, 0.12, dot(dir, normalize(FOLD[L].xy)));
+  c *= 1.0 - FOLD[L].z * (1.0 - lit) * smoothstep(0.7, 0.95, abs(dir.x)) * smoothstep(0.70, 0.74, p.y);
+  c *= 1.0 + (h12(FC * 1.91 + 5.0) - 0.5) * 0.08;
+  return clamp(c, 0.0, 1.0);
 }
-#define INK0(p, t) stetFill(p, t)`;
+// the band across the back: the four letters' fields side by side, blended across their borders
+vec3 stripFill(vec2 p, float t) {
+  vec3 c = mix(stetFill(p, t, 0), stetFill(p, t, 1), smoothstep(0.25, 0.32, p.x));
+  c = mix(c, stetFill(p, t, 2), smoothstep(0.46, 0.53, p.x));
+  return mix(c, stetFill(p, t, 3), smoothstep(0.80, 0.87, p.x));
+}
+#define INK0(p, t) (uMode > 0.5 ? stripFill(p, t) : stetFill(p, t, p.x < 0.64 ? 1 : 3))
+#define INK1(p, t) stetFill(p, t, p.x < 0.41 ? 0 : 2)`;
 
 // Social Hook: a field of large geometric arcs and planes in the brand's blues.
 MOTIFS.hook = /* glsl */`
@@ -507,6 +545,8 @@ vec3 spectrum(float s) {
   vec3 c = s < 1.0 ? mix(c0, c1, s) : s < 2.0 ? mix(c1, c2, s - 1.0) : s < 3.0 ? mix(c2, c3, s - 2.0) : s < 4.0 ? mix(c3, c4, s - 3.0) : mix(c4, c5, s - 4.0);
   return toLin(c);
 }
+// coverage of the band |d| < w under a one-pixel box filter
+float ovl(float d, float w) { d = abs(d); return max(0.0, min(d + 0.5 * AAW, w) - max(d - 0.5 * AAW, -w)) / AAW; }
 vec3 motif(vec2 p, float t) {
   vec3 col = mix(uPal[0], uPal[1], smoothstep(0.0, 1.0, 1.0 - p.y) * 0.6);
   const float N = 30.0;
@@ -533,10 +573,26 @@ vec3 motif(vec2 p, float t) {
   float r = min((0.0016 + 0.0024 * h11(k * 4.1 + 0.7)) * (0.8 + 0.4 * h12(vec2(k, n) * 0.37 + 1.3)), 0.32 * spacing + 0.0006);
   float dotA = cover(length(vec2(da, perp)) - r) * (0.85 + 0.3 * h12(vec2(n, k) + 7.1));
   float lineA = ring(perp, 0.0005) * 0.55;
-  float resolve = smoothstep(1.4 * PX, 4.0 * PX, spacing);
-  float lit = mix(0.55, max(dotA, lineA), resolve);
+  // lines closer than a few pixels fade to their mean; a mip level (sampled up to half a level sharper on the
+  // shelf) fades them sooner, so they cannot beat against its grid
+  float PXF = PX * 1.7, PX0 = PX * exp2(-uMip);
+  float resolve0 = smoothstep(1.4 * PX0, 4.0 * PX0, spacing);
   float core = exp(-psi * psi * 5.0);
-  col += lc * lit * env * (1.35 + 0.6 * core);
+  vec3 G = lc * env * (1.35 + 0.6 * core);
+  if (uMip < 0.5) col += G * mix(0.55, max(dotA, lineA), resolve0);
+  else {
+    // A mip level fades to what the full-size front averages to here: where the pattern resolves, its mean,
+    // with each hot dot clipped as the full-size front clips it. Its dots and lines are thinner than its
+    // pixels, so they take box-filtered coverage, which keeps their area (the edge ramp would draw each at
+    // least a pixel wide).
+    float h = r * 0.8862;                                                      // the dot as a square of its area
+    dotA = ovl(da, h) * ovl(perp, h) * (0.85 + 0.3 * h12(vec2(n, k) + 7.1));
+    lineA = ovl(perp, 0.0005) * 0.55;
+    float dotMean = sat(3.14159 * r * r / (sp * alongScale * spacing));
+    float lineMean = min(1.0, 0.001 / spacing) * (1.0 - dotMean);
+    vec3 mean = dotMean * (min(col + G, 1.0) - col) + lineMean * (min(col + 0.55 * G, 1.0) - col);
+    col += mix(mix(0.55 * G, mean, resolve0), G * max(dotA, lineA), smoothstep(1.4 * PXF, 4.0 * PXF, spacing));
+  }
   // the glow of the neck, where the lines crowd together
   col += mix(lc, vec3(1.0), 0.35) * 0.28 * env * core * smoothstep(0.012, 0.003, spacing);
   col += spectrum(hue) * 0.10 * exp(-psi * psi * 3.0) * smoothstep(0.15, 0.5, p.x) * smoothstep(1.0, 0.6, p.x);
@@ -699,20 +755,231 @@ vec3 goldInk(vec2 p) {
 }
 #define INK0(p, t) goldInk(p)`;
 
+// Chairtax: the name itself is the artwork, Bearly (art/, drawn unaltered) leaning on "Chair" with his chin
+// on his paw, the letters casting a soft shadow, and his navy office chair rolled out to the corner.
+MOTIFS.chairtax = /* glsl */`
+float lift(float t) { return 0.004 * (0.5 - 0.5 * cos(t * 2.0)); }
+#define ART_DY(t) lift(t)
+// a stroke tapering from radius r0 at a to r1 at b
+float sdTaper(vec2 p, vec2 a, vec2 b, float r0, float r1) {
+  vec2 pa = p - a, ba = b - a; float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
+  return length(pa - ba * h) - mix(r0, r1, h);
+}
+float sdBox(vec2 p, vec2 c, vec2 hs, float r) { vec2 q = abs(p - c) - hs + r; return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r; }
+// a chair part: flat fill, a thin lit rim just inside its edge, and a dark outline
+vec3 part(vec3 col, float d, vec3 fill) {
+  col = mix(col, uPal[6], cover(d - 0.004));
+  vec3 c = fill + (uPal[7] - fill) * 0.85 * ring(d + 0.0045, 0.0014);
+  return mix(col, c, cover(d + 0.001));
+}
+float dBack(vec2 q) { return sdBox(rot(-0.10) * (q - vec2(0.985, 0.29)), vec2(0.0), vec2(0.068, 0.112), 0.028); }
+float dSeat(vec2 q) { return sdBox(rot(0.14) * (q - vec2(0.925, 0.13)), vec2(0.0), vec2(0.11, 0.036), 0.034); }
+float dPad(vec2 q) { return sdSeg(q, vec2(0.811, 0.262), vec2(0.876, 0.253)) - 0.017; }
+float dPost(vec2 q) { return sdBox(q, vec2(0.84, 0.21), vec2(0.015, 0.032), 0.004); }
+float dLegs(vec2 q) {
+  vec2 hub = vec2(0.898, 0.07);
+  return min(sdSeg(q, hub, vec2(0.80, 0.045)), sdSeg(q, hub, vec2(0.915, 0.012))) - 0.011;
+}
+float dLift(vec2 q) { return sdBox(q, vec2(0.898, 0.085), vec2(0.016, 0.022), 0.004); }
+float dWheels(vec2 q) { return min(length(q - vec2(0.80, 0.043)), length(q - vec2(0.915, 0.012))) - 0.021; }
+vec3 chair(vec3 col, vec2 p, float t) {
+  // rolled out to the corner; alive, it rolls a few pixels and settles
+  float roll = 0.008 * sin(t * 0.9) * (0.6 + 0.4 * cos(t * 0.45));
+  vec2 q = p - vec2(roll, 0.0);
+  vec2 sq = (q - vec2(0.9, 0.025)) / vec2(0.16, 0.022);
+  col *= 1.0 - 0.5 * exp(-dot(sq, sq) * 1.5);                       // its shadow on the floor
+  col = part(col, dBack(q), uPal[4]);
+  col = part(col, dLegs(q), uPal[5]);
+  col = part(col, dLift(q), uPal[5]);
+  col = part(col, dWheels(q), uPal[5]);
+  col = part(col, dSeat(q), uPal[4]);
+  col = part(col, dPost(q), uPal[5]);
+  return part(col, dPad(q), uPal[5]);
+}
+// the amber motion ticks; alive, they pulse
+vec3 tick(vec3 col, vec2 p, vec2 a, vec2 b, float r0, float k) {
+  vec2 m = 0.5 * (a + b);
+  float d = sdTaper(p, m + (a - m) * k, m + (b - m) * k, r0 * k, r0 * 0.45 * k);
+  col += uPal[2] * 0.10 * falloff(d, 0.02);
+  return mix(col, uPal[2], cover(d));
+}
+vec3 motif(vec2 p, float t) {
+  vec3 col = mix(uPal[1], uPal[0], smoothstep(0.1, 0.8, length((p - vec2(0.48, 0.5)) * vec2(0.9, 1.0))));
+  // the letters' drop shadow, measured on the concept: offset 0.032 right and 0.033 down, about 3.5 px soft
+  // on a 1024 (the mask's coarse levels), 14% dark; the letters' own edges stay analytic
+  vec2 so = p + vec2(-0.032, 0.033), o = vec2(0.002, 0.0);
+  vec4 g = 0.25 * (texture2D(uText, so + o.xy, 3.5) + texture2D(uText, so - o.xy, 3.5) + texture2D(uText, so + o.yx, 3.5) + texture2D(uText, so - o.yx, 3.5));
+  col *= 1.0 - 0.14 * sat(g.r + g.g + g.b) * (1.0 - uMode);
+  float k = 1.0 + 0.12 * sin(t * 2.6);
+  // thick end first, measured on the concept
+  col = tick(col, p, ic(0.738, 0.083), ic(0.689, 0.152), 0.0115, k);
+  col = tick(col, p, ic(0.801, 0.172), ic(0.726, 0.199), 0.0115, k);
+  col = tick(col, p, ic(0.216, 0.196), ic(0.276, 0.225), 0.0100, k);
+  col = tick(col, p, ic(0.204, 0.273), ic(0.265, 0.272), 0.0100, k);
+  col = tick(col, p, ic(0.712, 0.870), ic(0.775, 0.893), 0.0092, k);
+  col = tick(col, p, ic(0.664, 0.931), ic(0.758, 0.919), 0.0095, k);
+  return chair(col, p, t);
+}`;
+
+// Stats: three rising bars of frosted glass, blue, green and amber, inside a thin glass orbit, on a cool white ground.
+MOTIFS.stats = /* glsl */`
+const float YF = 0.11, HW = 0.082, RB = 0.036;
+// bar i: centre x and top (y up); every bar stands on the floor
+vec2 bar(int i) { return i == 0 ? vec2(0.294, 0.426) : i == 1 ? vec2(0.508, 0.568) : vec2(0.727, 0.743); }
+const vec2 SIDE = vec2(0.026, 0.004);   // the slab's back face, seen past its right side and top
+float sdRB(vec2 o, vec2 b, float r) { vec2 q = abs(o) - b + r; return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r; }
+vec3 ground(vec2 p) {
+  // cool white, brightest behind the bars, falling to blue-grey at the corners and toward the floor
+  vec3 col = mix(uPal[0], uPal[1], smoothstep(0.1, 0.95, length((p - vec2(0.58, 0.55)) * vec2(0.85, 1.0))));
+  col = mix(col, uPal[1] * 0.93, 0.5 * smoothstep(0.45, 0.0, p.y));
+  float fl = smoothstep(YF + 0.01, YF - 0.03, p.y);
+  return mix(col, mix(uPal[6], uPal[1], smoothstep(0.0, 0.11, YF - p.y)), 0.7 * fl);
+}
+// one bar's front face: frosted glass lit from inside, paler at its rims, a bright rim just inside the edge
+vec3 face(vec2 p, vec2 c, vec2 hs, vec3 tint, float t, float d) {
+  vec2 o = p - c; float e = 0.0015;
+  vec2 gr = vec2(sdRB(o + vec2(e, 0.0), hs, RB) - sdRB(o - vec2(e, 0.0), hs, RB),
+                 sdRB(o + vec2(0.0, e), hs, RB) - sdRB(o - vec2(0.0, e), hs, RB)) / (2.0 * e);
+  float di = max(-d, 0.0), uu = sat(di / 0.022);
+  float sl = (1.0 - uu) / max(sqrt(1.0 - (1.0 - uu) * (1.0 - uu)), 0.2);
+  vec3 n = normalize(vec3(gr * sl * 0.8, 1.0));
+  // the colour is deepest in the middle of the face and paler toward every rim, most toward the floor
+  float up = p.y - YF, dn = c.y + hs.y - p.y;
+  float a = smoothstep(0.0, 0.05, di) * smoothstep(0.0, 0.2, up) * smoothstep(0.0, 0.06, dn);
+  a *= (0.8 + 0.2 * exp(-pow(o.x / hs.x, 2.0))) * (0.6 + 0.4 * smoothstep(0.05, 0.55, (p.y - YF) / (2.0 * hs.y)));
+  vec3 lite = min(tint * 1.9 + 0.1, 1.0);                               // the same hue, lit through thinner glass
+  vec3 body = mix(lite, tint, a);
+  body = mix(body, vec3(1.0), 0.42 * smoothstep(0.012, 0.0, di));      // frosted rim, lit through
+  body = mix(body, uPal[5], sat(pow(1.0 - n.z, 2.0) * 0.85));           // the room on the bevels
+  body += vec3(1.0) * 0.4 * ring(d + 0.0055, 0.0014);
+  vec3 L = normalize(vec3(-0.5, 0.6, 0.62));
+  body += vec3(1.0) * 0.45 * spec(n, L, 40.0);
+  // caustics: bright threads drifting through the glass when alive
+  float cz = sin(dot(p, vec2(21.0, 8.0)) + 2.2 * sin(dot(p, vec2(-6.0, 13.0)) + t * 0.6) + 4.0 * n.x - t * 0.9);
+  body += mix(tint, vec3(1.0), 0.75) * 0.05 * pow(1.0 - abs(cz), 3.0) * smoothstep(0.0, 0.04, di) * (0.4 + 0.6 * a);
+  return body;
+}
+vec3 slab(vec3 col, vec2 p, int i, float t) {
+  vec2 b = bar(i);
+  vec2 hs = vec2(HW, 0.5 * (b.y - YF)), c = vec2(b.x, 0.5 * (b.y + YF));
+  vec3 tint = uPal[2 + i];
+  float d = sdRB(p - c, hs, RB), ds = sdRB(p - c - SIDE, hs, RB);
+  col += tint * 0.12 * falloff(min(d, ds), 0.07) + vec3(1.0) * 0.35 * falloff(min(d, ds), 0.014);
+  // the side: paler, clearer glass with its own lit edge
+  if (ds < AAW) {
+    vec3 side = mix(mix(tint, uPal[5], 0.7), vec3(1.0), 0.25 * smoothstep(-0.012, 0.0, ds)) + vec3(1.0) * 0.35 * ring(ds + 0.003, 0.0012);
+    col = mix(col, side, cover(ds));
+  }
+  return d < AAW ? mix(col, face(p, c, hs, tint, t, d), cover(d)) : col;
+}
+vec3 orbit(vec3 col, vec2 p, float t, bool front) {
+  vec2 o = rot(-0.384) * (p - vec2(0.511, 0.428));
+  vec2 ab = vec2(0.50, 0.152);
+  float d = sdEllipse(o, ab);
+  float k = smoothstep(-0.008, 0.008, front ? -o.y : o.y);
+  float w = 0.0064, x = sat(abs(d) / w);
+  float ang = atan(o.y / ab.y, o.x / ab.x);
+  float sweep = pow(0.5 + 0.5 * sin(ang - t * 0.7 + 2.2), 3.0);
+  vec3 tube = mix(col, uPal[5], 0.3) + 0.02;
+  tube += vec3(1.0) * 0.36 * pow(x, 4.0);
+  tube += vec3(1.0) * 0.40 * exp(-pow((d + w * 0.3) / (w * 0.22), 2.0)) * (0.25 + 0.75 * sweep);
+  col = mix(col, tube, ring(d, w) * k);
+  return col + uPal[5] * 0.06 * exp(-abs(d) / 0.01) * k;
+}
+vec3 motif(vec2 p, float t) {
+  vec3 col = ground(p);
+  if (p.y < YF) {
+    // the bars mirrored in the floor, and the coloured light they pool on it
+    float dz = YF - p.y;
+    vec2 pm = vec2(p.x, 2.0 * YF - p.y);
+    for (int i = 0; i < 3; i++) {
+      vec2 b = bar(i);
+      vec2 hs = vec2(HW, 0.5 * (b.y - YF)), c = vec2(b.x, 0.5 * (b.y + YF));
+      float dm = sdRB(pm - c, hs, RB), bl = 0.002 + dz * 0.15;
+      col = mix(col, mix(uPal[2 + i], uPal[5], 0.4), smoothstep(bl, -bl, dm) * exp(-dz / 0.05) * 0.7);
+      col += mix(uPal[2 + i], vec3(1.0), 0.3) * 0.14 * exp(-pow((p.x - b.x) / 0.1, 2.0)) * exp(-dz / 0.05);
+    }
+  }
+  col = orbit(col, p, t, false);
+  for (int i = 0; i < 3; i++) col = slab(col, p, i, t);
+  return orbit(col, p, t, true);
+}`;
+
 // ---------- designs ----------
 // Layout is in 1024-unit space with y down (canvas space).
 // pal: up to eight sRGB colours the motif indexes as uPal[i].
 // type: title blocks; each line goes to channel ch of the type mask (R, G, B -> INK0..2).
 //   size by cap (cap height), fit (widest line's ink width) or px; x/base place the first line.
+//   runs: [[text, ch], ...] sets a one-line block in several inks.
 // inks: sRGB colour per type channel, used when the motif does not fill it itself.
 // mark: where the logo is drawn unaltered, [x, top, size].
-// form: the logo inflated into the motif's hero form: box [x, top, size], R bevel radius,
+// art: brand artwork drawn unaltered over the motif and under the type, at its own pixel size on a 1024
+//   front: { src (beside this module), x, top, fade }; fade (px) softens a crop edge at its foot that the
+//   type covers. A motif may lift it with ART_DY(t) (cover units).
+// typeGlow: the type mask carries mips, so the motif can read it blurred (a glow or a shadow around the type).
+// shaderMips: the shader draws the front's mip levels itself, each filtered at its own sampling rate.
+// form: the logo (or, fromType, the front's own type) inflated into the motif's hero form: box [x, top, size], R bevel radius,
 //   soft blur (both cover units), key 'alpha' | 'tile' (tile: drop pixels near the tile colour).
 // back: paper, ink (name, values), soft (labels, stack), accent (rules, link).
-// bandY: centre of the band of art shown across the top of the back; strip: where that band comes from,
+// bandY: centre of the band of art shown across the top of the back (bandH tall, 0.3 by default); strip: where that band comes from,
 //   'front' (a crop of the finished front, for bands with no type in them), 'art' (the motif without its
 //   type) or 'fill' (the title's own fill across the band). No band may cut through type.
 // t0: the moment the still cover shows; alive time runs on from it.
+
+// each letter's colour keys: [x, y (cover units, y up), r, g, b (sRGB)], fitted to the concept by least squares
+const STET_KEYS = [
+  [0.0413, 0.7016, 0.836, 0.854, 0.795], [0.0874, 0.7016, 0.660, 0.797, 0.776], [0.1334, 0.7016, 0.875, 0.904, 0.873], [0.1795, 0.7016, 0.938, 0.934, 0.878],
+  [0.2255, 0.7016, 0.921, 0.923, 0.876], [0.2716, 0.7016, 0.975, 0.954, 0.905], [0.3176, 0.7016, 0.826, 0.845, 0.771], [0.0413, 0.6432, 0.349, 0.706, 0.706],
+  [0.0874, 0.6432, 1.000, 1.000, 1.000], [0.1334, 0.6432, 0.688, 0.827, 0.807], [0.1795, 0.6432, 1.000, 1.000, 0.964], [0.2255, 0.6432, 0.952, 0.929, 0.868],
+  [0.2716, 0.6432, 1.000, 0.979, 0.956], [0.3176, 0.6432, 0.986, 0.960, 0.907], [0.0413, 0.5848, 0.061, 0.559, 0.581], [0.0874, 0.5848, 0.514, 0.726, 0.704],
+  [0.1334, 0.5848, 0.358, 0.639, 0.638], [0.1795, 0.5848, 0.488, 0.700, 0.673], [0.2255, 0.5848, 0.810, 0.854, 0.797], [0.2716, 0.5848, 0.981, 0.951, 0.886],
+  [0.3176, 0.5848, 0.830, 0.846, 0.772], [0.0413, 0.5264, 0.484, 0.722, 0.701], [0.0874, 0.5264, 0.000, 0.564, 0.619], [0.1334, 0.5264, 0.244, 0.637, 0.641],
+  [0.1795, 0.5264, 0.349, 0.672, 0.673], [0.2255, 0.5264, 0.781, 0.852, 0.839], [0.2716, 0.5264, 0.978, 0.955, 0.922], [0.3176, 0.5264, 0.856, 0.863, 0.791],
+  [0.0413, 0.4681, 0.471, 0.462, 0.371], [0.0874, 0.4681, 0.505, 0.566, 0.527], [0.1334, 0.4681, 0.600, 0.855, 0.861], [0.1795, 0.4681, 0.900, 0.926, 0.925],
+  [0.2255, 0.4681, 0.994, 0.948, 0.878], [0.2716, 0.4681, 0.911, 0.927, 0.883], [0.3176, 0.4681, 0.994, 0.960, 0.913], [0.0413, 0.4097, 0.673, 0.448, 0.190],
+  [0.0874, 0.4097, 0.820, 0.288, 0.000], [0.1334, 0.4097, 0.912, 0.723, 0.434], [0.1795, 0.4097, 0.804, 0.822, 0.747], [0.2255, 0.4097, 0.904, 0.918, 0.881],
+  [0.2716, 0.4097, 1.000, 0.953, 0.890], [0.3176, 0.4097, 0.941, 0.935, 0.889], [0.0413, 0.3513, 0.977, 0.633, 0.187], [0.0874, 0.3513, 1.000, 0.749, 0.392],
+  [0.1334, 0.3513, 0.974, 0.762, 0.524], [0.1795, 0.3513, 1.000, 0.971, 0.911], [0.2255, 0.3513, 1.000, 0.980, 0.924], [0.2716, 0.3513, 0.914, 0.912, 0.865],
+  [0.3176, 0.3513, 0.640, 0.750, 0.751], [0.0413, 0.2929, 0.818, 0.763, 0.612], [0.0874, 0.2929, 0.934, 0.755, 0.561], [0.1334, 0.2929, 0.989, 0.963, 0.905],
+  [0.1795, 0.2929, 0.870, 0.869, 0.802], [0.2255, 0.2929, 0.783, 0.823, 0.813], [0.2716, 0.2929, 0.426, 0.624, 0.632], [0.3176, 0.2929, 0.645, 0.734, 0.682],
+  [0.3661, 0.7983, 0.802, 0.860, 0.821], [0.4059, 0.7983, 1.000, 0.986, 0.938], [0.4457, 0.7983, 0.994, 0.955, 0.892], [0.4856, 0.7983, 0.718, 0.821, 0.790],
+  [0.3661, 0.7357, 0.959, 0.945, 0.886], [0.4059, 0.7357, 0.961, 0.934, 0.904], [0.4457, 0.7357, 1.000, 0.970, 0.901], [0.4856, 0.7357, 0.844, 0.893, 0.850],
+  [0.3661, 0.6730, 0.961, 0.941, 0.888], [0.4059, 0.6730, 0.943, 0.928, 0.889], [0.4457, 0.6730, 0.968, 0.933, 0.887], [0.4856, 0.6730, 1.000, 0.979, 0.928],
+  [0.3661, 0.6103, 0.895, 0.909, 0.863], [0.4059, 0.6103, 0.989, 0.955, 0.898], [0.4457, 0.6103, 0.992, 0.953, 0.902], [0.4856, 0.6103, 0.764, 0.845, 0.804],
+  [0.3661, 0.5476, 0.621, 0.763, 0.767], [0.4059, 0.5476, 1.000, 0.983, 0.923], [0.4457, 0.5476, 1.000, 0.988, 0.934], [0.4856, 0.5476, 0.717, 0.823, 0.793],
+  [0.3661, 0.4849, 0.163, 0.591, 0.601], [0.4059, 0.4849, 0.964, 0.948, 0.914], [0.4457, 0.4849, 1.000, 0.969, 0.924], [0.4856, 0.4849, 0.717, 0.824, 0.796],
+  [0.3661, 0.4223, 0.000, 0.139, 0.169], [0.4059, 0.4223, 0.555, 1.000, 1.000], [0.4457, 0.4223, 0.958, 0.812, 0.785], [0.4856, 0.4223, 0.738, 0.818, 0.791],
+  [0.3661, 0.3596, 0.024, 0.282, 0.305], [0.4059, 0.3596, 0.000, 0.477, 0.506], [0.4457, 0.3596, 0.607, 0.856, 0.843], [0.4856, 0.3596, 1.000, 0.987, 0.933],
+  [0.3661, 0.2969, 0.387, 0.600, 0.599], [0.4059, 0.2969, 0.000, 0.320, 0.351], [0.4457, 0.2969, 0.024, 0.532, 0.556], [0.4856, 0.2969, 0.390, 0.705, 0.693],
+  [0.5196, 0.7000, 0.961, 1.000, 1.000], [0.5662, 0.7000, 0.826, 0.433, 0.185], [0.6128, 0.7000, 0.882, 0.424, 0.138], [0.6593, 0.7000, 0.935, 0.485, 0.068],
+  [0.7059, 0.7000, 0.965, 0.845, 0.707], [0.7525, 0.7000, 0.989, 1.000, 0.976], [0.7991, 0.7000, 0.848, 0.835, 0.732], [0.5196, 0.6421, 0.948, 0.798, 0.642],
+  [0.5662, 0.6421, 0.809, 0.117, 0.000], [0.6128, 0.6421, 0.976, 0.682, 0.357], [0.6593, 0.6421, 1.000, 0.832, 0.663], [0.7059, 0.6421, 0.982, 1.000, 1.000],
+  [0.7525, 0.6421, 0.952, 0.872, 0.792], [0.7991, 0.6421, 0.994, 0.988, 0.953], [0.5196, 0.5841, 0.920, 0.600, 0.305], [0.5662, 0.5841, 0.938, 0.725, 0.461],
+  [0.6128, 0.5841, 1.000, 1.000, 0.879], [0.6593, 0.5841, 0.795, 0.784, 0.670], [0.7059, 0.5841, 0.840, 0.826, 0.730], [0.7525, 0.5841, 1.000, 1.000, 0.980],
+  [0.7991, 0.5841, 0.893, 0.904, 0.845], [0.5196, 0.5262, 0.659, 0.736, 0.664], [0.5662, 0.5262, 1.000, 1.000, 1.000], [0.6128, 0.5262, 0.000, 0.180, 0.302],
+  [0.6593, 0.5262, 0.347, 0.763, 0.772], [0.7059, 0.5262, 1.000, 0.980, 0.953], [0.7525, 0.5262, 0.973, 0.951, 0.861], [0.7991, 0.5262, 0.794, 0.833, 0.811],
+  [0.5196, 0.4683, 0.753, 0.828, 0.784], [0.5662, 0.4683, 1.000, 1.000, 1.000], [0.6128, 0.4683, 0.029, 0.418, 0.413], [0.6593, 0.4683, 0.450, 0.730, 0.726],
+  [0.7059, 0.4683, 1.000, 1.000, 0.987], [0.7525, 0.4683, 0.893, 0.960, 0.961], [0.7991, 0.4683, 0.599, 0.794, 0.808], [0.5196, 0.4104, 0.973, 0.956, 0.923],
+  [0.5662, 0.4104, 0.615, 0.780, 0.768], [0.6128, 0.4104, 0.629, 0.862, 0.847], [0.6593, 0.4104, 0.763, 0.774, 0.659], [0.7059, 0.4104, 0.818, 0.740, 0.529],
+  [0.7525, 0.4104, 0.652, 0.422, 0.026], [0.7991, 0.4104, 0.267, 0.250, 0.158], [0.5196, 0.3524, 0.750, 0.862, 0.840], [0.5662, 0.3524, 0.429, 0.745, 0.727],
+  [0.6128, 0.3524, 0.000, 0.527, 0.585], [0.6593, 0.3524, 0.818, 0.892, 0.819], [0.7059, 0.3524, 1.000, 0.725, 0.275], [0.7525, 0.3524, 0.913, 0.740, 0.400],
+  [0.7991, 0.3524, 0.908, 0.681, 0.280], [0.5196, 0.2945, 0.481, 0.721, 0.688], [0.5662, 0.2945, 0.335, 0.666, 0.664], [0.6128, 0.2945, 0.350, 0.748, 0.749],
+  [0.6593, 0.2945, 0.805, 0.820, 0.745], [0.7059, 0.2945, 0.880, 0.775, 0.509], [0.7525, 0.2945, 0.953, 0.725, 0.341], [0.7991, 0.2945, 0.805, 0.752, 0.591],
+  [0.8526, 0.8073, 0.540, 0.514, 0.409], [0.8947, 0.8073, 0.969, 0.742, 0.295], [0.9368, 0.8073, 0.978, 0.764, 0.423], [0.9789, 0.8073, 0.888, 0.756, 0.593],
+  [0.8526, 0.7442, 0.337, 0.301, 0.057], [0.8947, 0.7442, 1.000, 1.000, 0.715], [0.9368, 0.7442, 0.891, 0.857, 0.755], [0.9789, 0.7442, 0.893, 0.862, 0.799],
+  [0.8526, 0.6811, 0.951, 0.818, 0.564], [0.8947, 0.6811, 0.948, 0.886, 0.803], [0.9368, 0.6811, 0.937, 0.936, 0.882], [0.9789, 0.6811, 1.000, 1.000, 0.985],
+  [0.8526, 0.6180, 0.935, 0.907, 0.856], [0.8947, 0.6180, 1.000, 0.973, 0.856], [0.9368, 0.6180, 0.918, 0.913, 0.880], [0.9789, 0.6180, 0.932, 0.836, 0.716],
+  [0.8526, 0.5549, 0.375, 0.470, 0.436], [0.8947, 0.5549, 1.000, 1.000, 1.000], [0.9368, 0.5549, 0.545, 0.639, 0.652], [0.9789, 0.5549, 0.882, 0.759, 0.607],
+  [0.8526, 0.4919, 0.117, 0.333, 0.349], [0.8947, 0.4919, 1.000, 1.000, 1.000], [0.9368, 0.4919, 0.535, 0.719, 0.772], [0.9789, 0.4919, 0.878, 0.759, 0.610],
+  [0.8526, 0.4288, 0.177, 0.146, 0.043], [0.8947, 0.4288, 1.000, 1.000, 0.920], [0.9368, 0.4288, 0.684, 0.842, 0.908], [0.9789, 0.4288, 0.880, 0.764, 0.618],
+  [0.8526, 0.3657, 0.417, 0.269, 0.177], [0.8947, 0.3657, 1.000, 0.489, 0.027], [0.9368, 0.3657, 0.986, 0.765, 0.484], [0.9789, 0.3657, 0.981, 0.547, 0.212],
+  [0.8526, 0.3026, 0.811, 0.626, 0.464], [0.8947, 0.3026, 0.736, 0.291, 0.036], [0.9368, 0.3026, 0.893, 0.483, 0.174], [0.9789, 0.3026, 0.827, 0.422, 0.149],
+];
+const STET_KEY_STARTS = [0, 56, 92, 148, 184];
+const STET_KEY_SIGMA = [0.0496, 0.0533, 0.0492, 0.0536];
+// Chairtax's two letter inks, cream and amber: 'brand' (the brand's) or 'concept' (sampled from the concept)
+const CHAIRTAX_INKS = { brand: ['#F8F2E7', '#FFB020'], concept: ['#FCEECE', '#F9B224'] };
+const CHAIRTAX_INK = 'concept';
 
 function designFor(entry) {
   switch (entry.name) {
@@ -727,12 +994,16 @@ function designFor(entry) {
       back: { paper: '#EEF6FD', ink: '#123E78', soft: '#4F6E92', accent: '#2C7AC2' },
     };
     case 'stet': return {
-      motif: 'stet', t0: 2,
-      pal: ['#0B2628', '#06171A', '#3E9EA0', '#F1E8D6', '#E8873C', '#E9B85E'],
-      type: [{ lines: ['stet'], font: 'NJ Condensed', weight: 800, track: -0.03, fit: 1040, x: 12, base: 752, ch: 0 }],
-      inks: ['#F1E8D6'],
+      motif: 'stet', t0: 0,
+      pal: ['#072529', '#051D21'],
+      // each letter placed on its concept letter (fillText x, 1024 units); the t's under the s and e
+      type: [{ font: 'NJ Narrow', weight: 700, px: 862.7, base: 741.7,
+        glyphs: [['t', 303.6, 0], ['t', 798.6, 0, 1.02], ['s', -11.6, 1], ['e', 483.3, 1]] }],
+      inks: ['#F1E8D6', '#F1E8D6'],
       mark: [30, 26, 142],
-      bandY: 0.48, strip: 'fill', grain: [0.05, 0.02],
+      form: { fromType: true, box: [0, 0, 1024], R: 0.06, soft: 0.002, key: 'alpha', res: 512 },
+      keys: { list: STET_KEYS, starts: STET_KEY_STARTS, sigma: STET_KEY_SIGMA },
+      bandY: 0.48, strip: 'fill', grain: [0.03, 0.012],
       back: { paper: '#0D2A2C', ink: '#F3EBDB', soft: '#9BBDBB', accent: '#E9B85E' },
     };
     case 'Social Hook': return {
@@ -791,7 +1062,7 @@ function designFor(entry) {
       pal: ['#060A22', '#0B1234'],
       type: [{ lines: ['Xactions'], font: 'NJ Text', weight: 900, track: -0.035, fit: 940, x: 36, base: 198, ch: 0 }],
       inks: ['#FFFFFF'],
-      bandY: 0.5, grain: [0.012, 0.010],
+      bandY: 0.5, grain: [0.012, 0.010], shaderMips: true,
       back: { paper: '#080C26', ink: '#FFFFFF', soft: '#A6ADD6', accent: '#FF8A2A' },
     };
     case 'Stellar Explorer': return {
@@ -801,6 +1072,33 @@ function designFor(entry) {
       inks: ['#FFF8EE'],
       bandY: 0.42, grain: [0.012, 0.010],
       back: { paper: '#0B0E1C', ink: '#FFF8EE', soft: '#A3A9CC', accent: '#DBA95C' },
+    };
+    case 'Chairtax': return {
+      motif: 'chairtax', t0: 0,
+      pal: ['#110E0A', '#1E1811', '#FFB020', '#F8F2E7', '#2E3D66', '#55669A', '#0E1018', '#6F8BD6'],
+      // each letter set on its concept letter (ink centre, size and tilt fitted to the concept, 1024 units)
+      type: [{ font: 'NJ Rounded', weight: 900, set: [
+        ['C', 173.75, 494.44, 413.95, 1, 0], ['h', 422.35, 478.73, 394.98, -2, 0], ['a', 626.6, 496.29, 386.38, -2.5, 0],
+        ['i', 769.85, 438.99, 370.54, -1, 0], ['r', 890.92, 464.87, 392.26, -2.5, 0],
+        ['t', 253.23, 758.76, 439.58, 2.5, 1], ['a', 465.79, 760.61, 457.55, -2, 1], ['x', 696.84, 727.33, 463.13, -5, 1],
+      ] }],
+      inks: CHAIRTAX_INKS[CHAIRTAX_INK],
+      mark: [8, 6, 164],
+      // his forearms' underside rests on the top of the "a" in "Chair"
+      art: { src: 'art/bearly-lean.webp', x: 300, top: 18 },
+      typeGlow: true,
+      // the band stops above the dot of the i
+      bandY: 0.86, bandH: 0.28, grain: [0.012, 0.010],
+      back: { paper: '#14110D', ink: '#F8F2E7', soft: '#B4A893', accent: '#FFB020' },
+    };
+    case 'Stats': return {
+      motif: 'stats', t0: 0,
+      pal: ['#EEF2F7', '#C9D3E1', '#3A6BD6', '#17845A', '#D9822B', '#D6E9FF', '#EEF2F7', '#17202B'],
+      type: [{ lines: ['Stats'], font: 'NJ Bricolage', weight: 800, track: -0.01, fit: 552, x: 52, base: 367, ch: 0 }],
+      inks: ['#17202B'],
+      mark: [49, 36, 125],
+      bandY: 0.40, grain: [0.010, 0.008],
+      back: { paper: '#EEF1F4', ink: '#17202B', soft: '#5B6776', accent: '#3A6BD6' },
     };
     case 'About Neil': return {
       motif: 'about', t0: 0,
@@ -877,19 +1175,45 @@ function wrap(ctx, text, width) {
 }
 
 // One title block, set to its cap height or fitted to its width, aligned by ink.
-function drawType(ctx, b, S) {
+function drawType(ctx, b, S, fill) {
+  if (b.glyphs) {
+    // glyphs placed one by one: [text, x, ch, scale] on the block's baseline
+    for (const [g, x, ch, k = 1] of b.glyphs) {
+      setFont(ctx, b.weight, b.px * k * S, b.font, 0);
+      ctx.fillStyle = fill || CH[ch];
+      ctx.fillText(g, x * S, b.base * S);
+    }
+    return;
+  }
+  if (b.set) {
+    // glyphs set one by one by their ink centre: [text, cx, cy, px, degrees clockwise, ch]
+    for (const [g, cx, cy, px, deg, ch] of b.set) {
+      setFont(ctx, b.weight, px * S, b.font, 0);
+      const m = ctx.measureText(g);
+      ctx.save();
+      ctx.translate(cx * S, cy * S);
+      ctx.rotate(deg * Math.PI / 180);
+      ctx.fillStyle = fill || CH[ch];
+      ctx.fillText(g, -(m.actualBoundingBoxRight - m.actualBoundingBoxLeft) / 2, -(m.actualBoundingBoxDescent - m.actualBoundingBoxAscent) / 2);
+      ctx.restore();
+    }
+    return;
+  }
   setFont(ctx, b.weight, 100, b.font, b.track);
   let px;
   if (b.px) px = b.px;
   else if (b.cap) px = 100 * b.cap / ctx.measureText('H').actualBoundingBoxAscent;
   else px = 100 * b.fit / Math.max(...b.lines.map(l => inkBox(ctx, l).width));
   setFont(ctx, b.weight, px * S, b.font, b.track);
-  ctx.fillStyle = CH[b.ch];
+  ctx.fillStyle = fill || CH[b.ch];
   b.lines.forEach((line, i) => {
     const box = inkBox(ctx, line);
     const y = (b.base + i * (b.lead || 0)) * S;
     const x = b.align === 'center' ? b.x * S - box.width / 2 + box.left : b.x * S + box.left;
-    ctx.fillText(line, x, y);
+    if (!b.runs) { ctx.fillText(line, x, y); return; }
+    // a line set in runs of different inks: each run starts at the advance of the runs before it
+    let rx = x;
+    for (const [run, ch] of b.runs) { ctx.fillStyle = fill || CH[ch]; ctx.fillText(run, rx, y); rx += ctx.measureText(run).width; }
   });
 }
 function drawFront(ctx, d) {
@@ -935,8 +1259,13 @@ function drawBack(ctx, entry) {
       ctx.fillText(value, M + inkBox(ctx, value).left, ry + rowH / 2 + 10.5 * S);
       ctx.fillStyle = CH[1];
       setFont(ctx, 400, 14.5 * S, 'NJ Text', 0);
-      const lines = wrap(ctx, label, W - M - split).slice(0, 2);
-      const lh = 19 * S;
+      let lines = wrap(ctx, label, W - M - split), lh = 19 * S;
+      if (lines.length > 2) {
+        // a long label takes three tighter lines rather than losing its end
+        setFont(ctx, 400, 13 * S, 'NJ Text', 0);
+        lines = wrap(ctx, label, W - M - split).slice(0, 3);
+        lh = 16.5 * S;
+      }
       lines.forEach((l, j) => ctx.fillText(l, split, ry + rowH / 2 + 5 * S + (j - (lines.length - 1) / 2) * lh));
     });
     rule(y0 + entry.figs.length * rowH);
@@ -982,7 +1311,38 @@ function logoImage(logo, px) {
   }
   return p;
 }
+// brand artwork (art/), premultiplied and mipmapped, one texture per file for every cover that draws it
+const artTextures = new Map();
+function artTexture(src) {
+  let p = artTextures.get(src);
+  if (!p) {
+    const img = new Image();
+    img.decoding = 'async';
+    img.src = new URL(src, import.meta.url).href;
+    p = img.decode().then(() => {
+      const tex = new THREE.Texture(img);
+      tex.colorSpace = THREE.NoColorSpace;   // composited in sRGB, like the brand mark
+      tex.premultiplyAlpha = true;
+      tex.minFilter = THREE.LinearMipmapLinearFilter;
+      tex.magFilter = THREE.LinearFilter;
+      tex.needsUpdate = true;
+      return tex;
+    });
+    artTextures.set(src, p);
+  }
+  return p;
+}
 const validLogo = logo => logo && (typeof logo.svg === 'string' || typeof logo.png === 'string') ? logo : null;
+// the front's type alone, white on clear, at the size the form field rasterises it (a cover whose form is its type)
+function typeImage(d) {
+  const n = Math.round((d.form.res || 512) / (1 + 2 * MARGIN));
+  const c = document.createElement('canvas');
+  c.width = c.height = n;
+  const ctx = c.getContext('2d');
+  ctx.textBaseline = 'alphabetic';
+  for (const b of d.type) drawType(ctx, b, n / 1024, '#fff');
+  return c;
+}
 // draw the image centred in a square box, keeping its aspect
 function drawContained(ctx, img, x, y, s) {
   const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
@@ -1162,7 +1522,9 @@ async function buildForm(src) {
 // ---------- scheduling ----------
 // Renders are queued and run one job (a front, a back, or a form field) per frame.
 
-export const coverProfiler = { wrap: null };   // optional (label, fn) => fn() wrapper for timing
+// optional (label, fn) => fn() wrapper for timing; nonce (a number) makes every program's source unique, so
+// a measurement sees shader compiles that no driver cache has seen
+export const coverProfiler = { wrap: null, nonce: 0 };
 const jobs = [];
 let pumping = false;
 const nextFrame = f => (document.hidden ? setTimeout(f, 16) : requestAnimationFrame(f));
@@ -1216,7 +1578,7 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
     uMode: { value: 0 },
     uBandY: { value: d.bandY },
     uStrip: { value: { front: 0, art: 1, fill: 2 }[d.strip || 'front'] },
-    uBandH: { value: 0.3 },
+    uBandH: { value: d.bandH || 0.3 },
     uText: { value: null },
     uOver: { value: BLANK },
     uForm: { value: BLANK_FORM },
@@ -1225,6 +1587,11 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
     uFormRect: { value: new THREE.Vector3(0, 0, 0) },
     uRest: { value: BLANK },
     uRestMix: { value: 0 },
+    uArt: { value: BLANK },
+    uArtRect: { value: new THREE.Vector4(0, 0, 0, 0) },
+    uArtFade: { value: 0 },
+    uKeys: { value: BLANK },
+    uMip: { value: 0 },
     uInk0: { value: inks[0] },
     uInk1: { value: inks[1] },
     uInk2: { value: inks[2] },
@@ -1232,6 +1599,20 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
     uPal: { value: pal },
     uAux: { value: Array.from({ length: 8 }, () => new THREE.Vector4()) },
   };
+  // a motif's colour keys (stet), as a two-row float texture the shader reads with texelFetch
+  let keysTex = null;
+  if (d.keys) {
+    const { list, starts, sigma } = d.keys, n = list.length, data = new Float32Array(n * 8);
+    list.forEach(([x, y, r, g, b], i) => {
+      const L = starts.findIndex(s => s > i) - 1;
+      data.set([x, y, sigma[L], 0], i * 4);
+      data.set([r, g, b, 1], (n + i) * 4);
+    });
+    keysTex = new THREE.DataTexture(data, n, 2, THREE.RGBAFormat, THREE.FloatType);
+    keysTex.minFilter = keysTex.magFilter = THREE.NearestFilter;
+    keysTex.needsUpdate = true;
+    uniforms.uKeys.value = keysTex;
+  }
   // marked regions of the form, from the mark's own viewBox to cover space
   (d.orbs || []).forEach(([cx, cy, r], i) => {
     const [bx, by, bs] = d.form.box;
@@ -1240,7 +1621,8 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
   const material = new THREE.ShaderMaterial({
     name: `cover:${entry.name}`,
     vertexShader: VERT,
-    fragmentShader: PRELUDE + MOTIFS[d.motif] + MAIN,
+    fragmentShader: (PRELUDE + MOTIFS[d.motif] + MAIN).replace('gl_FragColor = vec4(o, 1.0);', coverProfiler.nonce
+      ? `gl_FragColor = vec4(o, 1.0 + uRestMix * ${coverProfiler.nonce.toFixed(1)}e-30);` : 'gl_FragColor = vec4(o, 1.0);'),
     uniforms, depthTest: false, depthWrite: false,
   });
   const scene = new THREE.Scene();
@@ -1265,18 +1647,28 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
   renderer.setRenderTarget(prevRT);
   // the mark at a front's drawn size, and at the size the form field rasterises it
   const markAt = sz => logo && d.mark ? logoImage(logo, Math.round(d.mark[2] * sz / 1024)) : Promise.resolve(null);
-  const [markImg, formImg] = await Promise.all([
+  const [markImg, formImg, art] = await Promise.all([
     markAt(size),
-    logo && d.form ? logoImage(logo, Math.round((d.form.res || 512) / (1 + 2 * MARGIN))) : null,
+    d.form?.fromType ? typeImage(d) : logo && d.form ? logoImage(logo, Math.round((d.form.res || 512) / (1 + 2 * MARGIN))) : null,
+    d.art ? artTexture(d.art.src) : null,
     compiled,
   ]);
+  if (art) {
+    const { width: w, height: h } = art.image;
+    renderer.initTexture(art);
+    uniforms.uArt.value = art;
+    uniforms.uArtRect.value.set(d.art.x / 1024, 1 - (d.art.top + h) / 1024, w / 1024, h / 1024);
+    uniforms.uArtFade.value = (d.art.fade || 0) / h;
+  }
 
-  const upload = (canvas, premultiply) => {
+  // layers of a front whose shader draws its own mip levels carry mips too, so each level reads its type
+  const upload = (canvas, premultiply, mips = false) => {
     const tex = new THREE.Texture(canvas);
     tex.colorSpace = THREE.NoColorSpace;
     tex.premultiplyAlpha = premultiply;
-    tex.generateMipmaps = false;
-    tex.minFilter = tex.magFilter = THREE.LinearFilter;
+    tex.generateMipmaps = mips;
+    tex.minFilter = mips ? THREE.LinearMipmapLinearFilter : THREE.LinearFilter;
+    tex.magFilter = THREE.LinearFilter;
     tex.needsUpdate = true;
     renderer.initTexture(tex);   // upload now: the canvas is shared and is redrawn for the next cover
     return tex;
@@ -1285,20 +1677,23 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
   const layersAt = (sz, img) => {
     const ctx = textCtx(sz), k = sz / 1024;
     drawFront(ctx, d);
-    const text = upload(ctx.canvas, false);
+    const mips = !!(d.shaderMips || d.typeGlow);
+    const text = upload(ctx.canvas, false, mips);
     let over = BLANK;
     if (img) {
       const octx = artCtx(sz);
       drawContained(octx, img, d.mark[0] * k, d.mark[1] * k, d.mark[2] * k);
-      over = upload(octx.canvas, true);
+      over = upload(octx.canvas, true, mips);
     }
     return { text, over, dispose() { text.dispose(); if (over !== BLANK) over.dispose(); } };
   };
   const frontLayers = () => layersAt(size, markImg);
-  const draw = (rt, mode, layers, ss) => {
+  const draw = (rt, mode, layers, ss, level = 0) => {
     const prev = renderer.getRenderTarget();
+    const s = rt.width >> level;
     uniforms.uMode.value = mode;
-    uniforms.uRes.value.set(rt.width, rt.height);
+    uniforms.uMip.value = level;
+    uniforms.uRes.value.set(s, s);
     uniforms.uText.value = layers.text;
     uniforms.uOver.value = layers.over || BLANK;
     uniforms.uFront.value = mode ? (layers.strip || frontRT).texture : BLANK;
@@ -1306,9 +1701,19 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
     uniforms.uInk0.value = mode ? srgb(d.back.ink) : inks[0];
     uniforms.uInk1.value = mode ? srgb(d.back.soft) : inks[1];
     uniforms.uInk2.value = mode ? srgb(d.back.accent) : inks[2];
-    renderer.setRenderTarget(rt);
+    // a mip level: the target's viewport is the level's size while it is bound (three skips the box
+    // mipmap pass for a render to any level but 0, so the level keeps what the shader drew)
+    if (level) rt.viewport.set(0, 0, s, s);
+    renderer.setRenderTarget(rt, 0, level);
     renderer.render(scene, CAM);
+    if (level) rt.viewport.set(0, 0, rt.width, rt.height);
     renderer.setRenderTarget(prev);
+  };
+  // The front, then (shaderMips) its levels down to 32², each drawn with the level's own pixel size, so
+  // the motif's fine structure fades to its mean before it can beat against the level's grid.
+  const renderFront = (layers, ss) => {
+    draw(frontRT, 0, layers, ss);
+    if (d.shaderMips) for (let k = 1; (frontRT.width >> k) >= 32; k++) draw(frontRT, 0, layers, ss, k);
   };
   const ease = u => u * u * (3 - 2 * u);
   // The back's strip is a crop of the finished front. A front smaller than the back (the scene's
@@ -1352,7 +1757,7 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
   await Promise.all([
     enqueue(`${entry.name} front`, () => {
       const layers = frontLayers();
-      draw(frontRT, 0, layers, samples);
+      renderFront(layers, samples);
       layers.dispose();
     }),
     backRT && enqueue(`${entry.name} back`, () => renderBack(backRT, backImg)),
@@ -1417,7 +1822,7 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
         uniforms.uTime.value = d.t0;
         uniforms.uRestMix.value = 0;
         uniforms.uRest.value = BLANK;
-        draw(frontRT, 0, alive, samples);
+        renderFront(alive, samples);
         stop();
         return;
       }
@@ -1425,7 +1830,7 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
       uniforms.uTime.value = time;
       uniforms.uRestMix.value = ease(restMix);
       uniforms.uRest.value = restMix > 0 ? restRT.texture : BLANK;
-      draw(frontRT, 0, alive, aliveSamples);
+      renderFront(alive, aliveSamples);
     },
     dispose() {
       disposed = true;
@@ -1433,12 +1838,14 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
       frontRT.dispose(); if (backRT) backRT.dispose(); material.dispose();
       if (detail) detail.evict();
       if (form) { form.tex.dispose(); if (form.col) form.col.dispose(); }
+      if (keysTex) keysTex.dispose();
     },
     // resident GPU bytes (preview diagnostics): mipmapped RGBA8 targets, half-float form fields
     gpuBytes() {
       const rt = (t, mips) => t ? t.width * t.height * 4 * (mips ? 4 / 3 : 1) : 0;
       let n = rt(frontRT, true) + rt(backRT, true) + rt(detail?.rt, true) + rt(restRT, false);
       if (form) n += form.tex.image.width ** 2 * 8 + (form.col ? form.col.image.width ** 2 * 4 : 0);
+      if (art) n += art.image.width * art.image.height * 4 * 4 / 3;
       return n;
     },
     _stop: stop,

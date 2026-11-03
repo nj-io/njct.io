@@ -1,0 +1,18 @@
+Brand artwork the covers draw unaltered (designFor(...).art in covers.js). Each file is a downsized copy
+of the brand's own art: never redrawn, only cropped and resized.
+
+bearly-lean.webp — Bearly, the Chairtax mascot, leaning on his forearms with his chin on his paw (the
+Chairtax cover, where his forearms rest on the top of "Chair")
+  Source: ~/dev/chairtax/socials/brand/bearly/2d/lean-chin-on-paw.png (1254 x 1254 RGBA), chairtax/socials
+  commit cf50e77 (2026-11-03), sha256 925a739b92bfb9de30e930b7c16eabc883807f16c458f39a464216efb5da0a53.
+  The pose the operator approved for this cover.
+  Made 2026-11-03: alpha below 8/255 (stray, invisible specks around the figure) set to 0; cropped to
+  source columns 206-1105 and rows 182-1135 (the alpha bounds plus 4 px); resized by 0.43 to 387 x 410
+  with Lanczos in premultiplied alpha (Pillow RGBa), so the outline carries no colour fringe; then
+  cwebp -q 75 -m 6 -alpha_filter best -f 30 -sns 30 (lossy colour, lossless alpha).
+  387 x 410, 23 760 bytes, sha256 9df35003a5523dbc20e805be288ebcaf4350a8205ecabb20d5f7fdc0c20e8592.
+  It is drawn 1:1 on a 1024 front; the underside of his forearms (row 405) sits at cover row 423.
+
+The chair on the Chairtax cover is drawn in the shader (no chair-only brand art exists in the folder above
+or on chairtax.app/assets/img/), in the concept's navy (fill #2E3D66, lit parts #55669A, rim #6F8BD6,
+outline #0E1018, sampled from the concept tile chairtax-e3).

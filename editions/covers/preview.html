@@ -35,8 +35,8 @@ import { createCover, coverProfiler, loadCoverFonts } from './covers.js';
 
 const CONCEPTS = {
   'Mirra': 'mirra-b4', 'stet': 'stet-a3', 'Social Hook': 'social-hook-a1', 'Clauded': 'clauded-b4',
-  'LikeWiki': 'likewiki-a3', 'Topshine': 'topshine-a2', 'Scorecard': 'scorecard-a1', 'Xactions': 'xactions-b2',
-  'Stellar Explorer': 'stellar-a4', 'About Neil': 'about-b4',
+  'LikeWiki': 'likewiki-a3', 'Topshine': 'topshine-a2', 'Scorecard': 'scorecard-a1',
+  'Stellar Explorer': 'stellar-a4', 'About Neil': 'about-b4', 'Chairtax': 'chairtax-e3', 'Stats': 'stats-a2',
 };
 const q = new URLSearchParams(location.search);
 const view = q.has('view') ? +q.get('view') : -1;
@@ -109,6 +109,7 @@ function addHtml(r, entry) {
 const timer = gl.getExtension('EXT_disjoint_timer_query_webgl2');
 const timings = [], pending = [];
 const sync = () => { const px = new Uint8Array(4); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); };
+if (q.has("nonce")) coverProfiler.nonce = +q.get("nonce");
 if (measure) {
   coverProfiler.wrap = (label, fn) => {
     let qy = null;
@@ -212,7 +213,7 @@ async function bench() {
 window.__covers = {
   bench: q.has('bench') && timer ? bench() : null,
   ready: new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))),
-  covers, loadWall, fontWall, gpuMB: gpuBytes / 1048576, timings, frameCost, timerQuery: !!timer,
+  covers, loadWall, fontWall, readyAt: t0 + loadWall, gpuMB: gpuBytes / 1048576, timings, frameCost, timerQuery: !!timer,
   renderer: renderer.info, programs: renderer.info.programs.length, page: pageSize(indices.length),
 };
 </script>
