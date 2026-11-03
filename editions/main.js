@@ -354,7 +354,7 @@ function placeSlot(s) {
   corner.set(SLEEVE.size / 2, 0, SLEEVE.thick).applyMatrix4(s.mesh.matrixWorld);
   const br = project(corner.x, corner.y, corner.z);
   const w = br.x - bl.x;
-  slots[s.i].style.transform = `translate3d(${snap(bl.x + w * 0.1175)}px, ${snap(bl.y - w * 0.025 - 32)}px, 0)`;
+  slots[s.i].style.transform = `translate3d(${snap(bl.x + w * 0.1175)}px, ${snap(bl.y - w * 0.025 - 35)}px, 0)`;
 }
 
 // Details: where the sleeve flies (on the shelves its centre DETAILS.size px wide, 14.5 px above the view
