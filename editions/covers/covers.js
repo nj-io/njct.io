@@ -740,9 +740,13 @@ vec3 motif(vec2 p, float t) {
 
 // About Neil: one gold sphere resting on cream paper, a soft contact shadow, the light moving across it when alive.
 MOTIFS.about = /* glsl */`
+#define SPH_GF 310.0
+#define SPH_GA 0.15
+#define INK_GF 520.0
+#define INK_GA 0.16
 float blob(vec2 s, vec2 o, vec2 w) { vec2 d = (s - o) / w; return exp(-dot(d, d)); }
 vec3 motif(vec2 p, float t) {
-  vec2 C = ic(0.481, 0.555); float R = 0.246;
+  vec2 C = ic(0.4789, 0.5634); float R = 0.2499;
   float v = length((p - vec2(0.48, 0.5)) * vec2(1.0, 0.9));
   vec3 col = mix(uPal[0], uPal[1], smoothstep(0.1, 0.85, v));
   // contact shadow, cast to the left (light from the upper right), in sphere radii from its foot, y down: a
@@ -764,13 +768,16 @@ vec3 motif(vec2 p, float t) {
     // alive, the key and its sheen swing a little about the vertical
     float sw = 0.3 * sin(t * 0.4);
     vec3 m = vec3(n.x * cos(sw) - n.z * sin(sw), n.y, n.x * sin(sw) + n.z * cos(sw));
-    float key = pow(sat((dot(m, vec3(0.4435, 0.5528, 0.7055)) + 0.2894) / 1.2894), 2.9111);
-    float bounce = pow(sat(dot(n, vec3(-0.3915, -0.8281, 0.4012))), 1.3768);
-    float sheen = pow(sat(dot(m, vec3(0.4936, 0.6834, 0.5378))), 10.5262);
-    vec3 g = vec3(-0.1923, -0.0957, 0.0088) + vec3(1.0754, 0.4021, 0.0076) * key + vec3(0.4761, 0.1464, -0.0006) * bounce
-      + vec3(0.6248, 0.2100, -0.0016) * (1.0 - n.z) + vec3(-0.1733, 0.3691, 0.2959) * sheen;
-    g *= 1.0 - 1.0000 * exp(-(1.0 + n.y) / 0.1551);
-    g = max(g, 0.0) * (1.0 + (h12(floor(p * 900.0)) - 0.5) * 0.05);
+    float key = pow(sat((dot(m, vec3(0.4419, 0.5516, 0.7074)) + 0.2885) / 1.2885), 2.9185);
+    float bounce = pow(sat(dot(n, vec3(-0.3752, -0.8371, 0.3982))), 1.3779);
+    float sheen = pow(sat(dot(m, vec3(0.4984, 0.6846, 0.5319))), 10.4132);
+    vec3 g = vec3(-0.1931, -0.0919, 0.0022) + vec3(1.0784, 0.4034, 0.0205) * key + vec3(0.4774, 0.1352, 0.0035) * bounce
+      + vec3(0.6279, 0.2096, 0.0007) * (1.0 - n.z) + vec3(-0.1709, 0.3627, 0.2973) * sheen
+      + vec3(0.0007, -0.0098, -0.0049) * n.x + vec3(-0.0034, 0.0000, -0.0027) * n.y + vec3(-0.0032, 0.0228, -0.0068) * n.x * n.y
+      // the paper's light caught on the lower-left limb
+      + vec3(1.387, 0.510, 0.054) * pow(1.0 - n.z, 6.0) * sat(dot(n.xy, vec2(-0.4226, -0.9063)) / max(length(n.xy), 1e-4));
+    g *= 1.0 - 1.0000 * exp(-(1.0 + n.y) / 0.1612);
+    g = max(g, 0.0) * (1.0 + (vnoise(p * SPH_GF) - 0.5) * SPH_GA);
     col = mix(col, g, cover((sqrt(rr) - 1.0) * R));
   }
   return col;
@@ -778,7 +785,7 @@ vec3 motif(vec2 p, float t) {
 vec3 goldInk(vec2 p) {
   float k = smoothstep(0.98, 0.72, p.y) + 0.25 * (fbm(p * 18.0) - 0.5);
   vec3 c = mix(uInk0, uInk1, sat(k));
-  c *= 1.0 + (h12(FC * 1.3 + 2.0) - 0.5) * 0.16;
+  c *= 1.0 + (vnoise(p * INK_GF + 3.0) - 0.5) * INK_GA;
   return c;
 }
 #define INK0(p, t) goldInk(p)`;
