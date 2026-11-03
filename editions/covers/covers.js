@@ -752,9 +752,9 @@ vec3 motif(vec2 p, float t) {
   vec2 q = (p - C) / R;
   float rr = dot(q, q);
   if (rr > 0.95 && s.y > -1.2) {
-    col *= 1.0 - vec3(0.8478, 0.9624, 0.9624) * blob(s, vec2(-0.1188, 0.0348), vec2(0.4657, 0.0807));
-    col *= 1.0 - vec3(0.1929, 0.5562, 0.9643) * blob(s, vec2(-0.2807, 0.0546), vec2(1.0000, 0.1536));
-    col *= 1.0 - vec3(0.0896, 0.2299, 0.4482) * blob(s, vec2(-0.1869, 0.2519), vec2(1.0000, 0.4000));
+    col *= 1.0 - vec3(0.9409, 0.9700, 0.9700) * blob(s, vec2(-0.0758, 0.0246), vec2(0.4078, 0.0757));
+    col *= 1.0 - vec3(0.1923, 0.5800, 0.9617) * blob(s, vec2(-0.2017, 0.0214), vec2(0.9996, 0.1052));
+    col *= 1.0 - vec3(0.1619, 0.4738, 0.8093) * blob(s, vec2(-0.1879, 0.1421), vec2(1.0000, 0.2123));
   }
   // the sphere, matte satin: a wrapped key from the upper right with a soft terminator, a dark core on the
   // left, light bounced up from the paper at the lower left, a lifted limb, a broad low sheen, and the
