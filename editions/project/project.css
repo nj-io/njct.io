@@ -13,10 +13,17 @@ html.in-project body { background: var(--pj-ground); }
 html.in-project .masthead, html.in-project #slots, html.in-project .index,
 html.in-project .details, html.in-project #d-open { display: none; }
 
+/* The page is one band in the project's colour (project.js colours()): --acc the band, --pj-ink its ink,
+   --pj-soft the ink for copy and labels, --pj-card the cards' ground, --pj-btn the buttons' tone. */
 .pj {
-  --pj-ground: #ececea; --pj-ink: #000; --pj-soft: rgba(0, 0, 0, 0.58); --pj-rule: rgba(0, 0, 0, 0.12);
+  --pj-ground: var(--acc); --pj-rule: rgb(var(--fg) / 0.1);
   --pj-head: 50px; --pj-panel: clamp(340px, 30.3vw, 520px); --pj-frame: 10px;
   --mono: 'NJ Page Mono', ui-monospace, Menlo, monospace;
+  /* the reference's grid: 16 columns, 16 px gutters and edges, at most 1680 px wide; the page's text
+     runs over columns 3-14 */
+  --pj-vw: min(100vw, 1680px); --pj-colw: calc((var(--pj-vw) - 272px) / 16);
+  --pj-edge: calc((100vw - var(--pj-vw)) / 2 + 16px);
+  --pj-left: calc(var(--pj-edge) + 2 * var(--pj-colw) + 32px); --pj-span: calc(12 * var(--pj-colw) + 176px);
   position: relative; color: var(--pj-ink); padding-top: var(--pj-head);
 }
 :root { --pj-ground: #ececea; }
@@ -54,7 +61,7 @@ html.in-project .details, html.in-project #d-open { display: none; }
 }
 .pj-sub {
   position: absolute; right: 12px; top: calc(var(--pj-frame) + 10px); margin: 0; font: 500 12px/1 var(--mono);
-  writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; color: rgb(var(--fg) / 0.85);
+  writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; color: var(--pj-soft);
 }
 .pj-col { padding: calc(var(--pj-frame) + 10px) 10px var(--pj-frame) 11px; display: flex; flex-direction: column; gap: 11px; overflow: hidden; }
 .pj-box { border: 1px solid rgb(var(--fg) / 0.24); padding: 8px 8px 10px; font: 500 13px/1.38 var(--mono); }
@@ -62,58 +69,82 @@ html.in-project .details, html.in-project #d-open { display: none; }
 .pj-index button {
   all: unset; box-sizing: border-box; display: flex; justify-content: space-between; gap: 12px; width: 100%; cursor: pointer; color: rgb(var(--fg));
 }
-.pj-index button span:last-child { color: rgb(var(--fg) / 0.62); }
+.pj-index button span:last-child { color: var(--pj-soft); }
 .pj-index button:hover span:first-child { text-decoration: underline; text-underline-offset: 3px; }
-.pj-fig .k { display: block; color: rgb(var(--fg) / 0.62); font-size: 11.5px; margin-bottom: 6px; }
+.pj-fig .k { display: block; color: var(--pj-soft); font-size: 11.5px; margin-bottom: 6px; }
 .pj-fig .v { display: block; font-size: 14px; }
 
-/* ---- the page ---- */
+/* ---- the page: the band, full bleed, as the reference's sections ---- */
 .pj-body {
-  position: relative; z-index: 3; background: var(--pj-ground); display: grid;
-  grid-template-columns: 194px minmax(0, 1fr); padding: 0 var(--gutter) 0 0;
+  position: relative; z-index: 3; background: var(--acc); display: grid;
+  grid-template-columns: var(--pj-left) minmax(0, var(--pj-span)) minmax(0, 1fr);
 }
-.pj-rail { position: sticky; top: calc(var(--pj-head) + 40vh); align-self: start; padding-left: var(--gutter); }
-.pj-rail ol { list-style: none; margin: 0; padding: 0; font: 500 13px/24px var(--mono); }
-.pj-rail button { all: unset; cursor: pointer; display: flex; justify-content: space-between; width: 150px; color: var(--pj-soft); }
-.pj-rail button::after { content: '\25CB'; font-size: 9px; }
+.pj-rail { position: sticky; top: calc(50vh + var(--pj-head) / 2 - 36px); top: calc(50svh + var(--pj-head) / 2 - 36px); align-self: start; padding-left: var(--pj-edge); }
+.pj-rail ol { list-style: none; margin: 0; padding: 0; font: 500 12px/24px var(--mono); }
+.pj-rail button { all: unset; cursor: pointer; display: flex; justify-content: space-between; width: 112px; color: var(--pj-soft); }
+.pj-rail button::after { content: '\25CB'; font-size: 8px; }
 .pj-rail button[aria-current="true"] { color: var(--pj-ink); }
 .pj-rail button[aria-current="true"]::after { content: '\25CF'; }
-.pj-main { min-width: 0; padding-bottom: 120px; }
+.pj-main { min-width: 0; }
 /* A section off screen skips layout and paint until it nears the view, so the cut lays out only the hero
    and the first section; its height is remembered once drawn. */
-.pj-sec { padding-top: 140px; content-visibility: auto; contain-intrinsic-size: auto 2400px; }
+.pj-sec { padding-bottom: clamp(64px, 47.0986px + 4.50704vw, 112px); content-visibility: auto; contain-intrinsic-size: auto 2400px; }
 .pj-cold .pj-body { content-visibility: hidden; }
-.pj-sec .pj-num { font: 500 13px/1 var(--mono); color: var(--acc-ink); margin: 0 0 18px; }
-.pj-sec h2 { margin: 0 0 56px; font-size: 120px; line-height: 0.95; font-weight: 500; letter-spacing: -0.035em; }
-.pj-h3 { margin: 112px 0 40px; font-size: 64px; line-height: 1; font-weight: 500; letter-spacing: -0.03em; }
-.pj-part { scroll-margin-top: calc(var(--pj-head) + 24px); }
-.pj-lead { max-width: 30ch; margin: 0 0 48px; font-size: 32px; line-height: 1.22; letter-spacing: -0.01em; }
-.pj-text { max-width: 68ch; font-size: 17px; line-height: 1.6; }
+/* The section's head, as the reference's: at least 53% of the screen tall, the title on the grid's
+   middle row (two parts of the free space above it, one below). */
+.pj-sh {
+  box-sizing: border-box; min-height: 53vh; min-height: 53svh; display: grid; grid-template-rows: 2fr auto 1fr;
+  padding: clamp(48px, 36.7324px + 3.0047vw, 80px) 0 clamp(24px, 18.3662px + 1.50235vw, 40px);
+}
+.pj-num { align-self: end; margin: 0 0 18px; font: 500 12px/16px var(--mono); color: var(--pj-soft); }
+.pj-sec h2 { grid-row: 2; margin: 0; font-size: clamp(64px, 11.2vw - 41.28px, 120px); line-height: 1; font-weight: 500; letter-spacing: -0.035em; }
+.pj-h3 { margin: 0; padding: clamp(48px, 36.7324px + 3.0047vw, 80px) 0 40px; font-size: clamp(24px, 8.96px + 1.6vw, 32px); line-height: 1.25; font-weight: 500; letter-spacing: 0.01em; }
+.pj-part { scroll-margin-top: var(--pj-head); }
+.pj-lead { max-width: 30ch; margin: 0 0 48px; font-size: clamp(24px, 8.96px + 1.6vw, 32px); line-height: 1.25; letter-spacing: 0.01em; }
+.pj-text { max-width: 68ch; font-size: 18px; line-height: 1.5; letter-spacing: 0.01em; color: var(--pj-soft); }
 .pj-text p, .pj-text ul, .pj-text ol, .pj-text table { margin: 0 0 1.1em; }
 .pj-text ul, .pj-text ol { padding-left: 1.2em; }
 .pj-text li { margin-bottom: 0.55em; }
-.pj-text li::marker { color: var(--acc-ink); }
+.pj-text li::marker, .pj-text strong { color: var(--pj-ink); }
 .pj-text strong { font-weight: 600; }
-.pj-text table { border-collapse: collapse; width: 100%; font-size: 15px; line-height: 1.45; display: block; overflow-x: auto; }
+.pj-text table { border-collapse: collapse; width: 100%; font-size: 14px; line-height: 18px; display: block; overflow-x: auto; }
 .pj-text th, .pj-text td { text-align: left; vertical-align: top; padding: 9px 18px 9px 0; border-bottom: 1px solid var(--pj-rule); }
-.pj-text th { font: 500 12px/1.4 var(--mono); color: var(--pj-soft); }
-.pj-glance { max-width: 68ch; border-collapse: collapse; width: 100%; margin: 0 0 56px; }
-.pj-glance th, .pj-glance td { text-align: left; vertical-align: top; padding: 13px 0; border-top: 1px solid var(--pj-rule); }
-.pj-glance tr:last-child th, .pj-glance tr:last-child td { border-bottom: 1px solid var(--pj-rule); }
-.pj-glance th { width: 9.5em; padding-right: 20px; font: 500 13px/1.6 var(--mono); color: var(--pj-soft); }
-.pj-glance td { font-size: 17px; line-height: 1.5; }
-.pj-figure { margin: 0 0 48px; max-width: 1052px; }
-.pj-diagram { overflow-x: auto; overscroll-behavior-x: contain; background: #fff; border: 1px solid var(--pj-rule); padding: 28px; box-sizing: border-box; }
+.pj-text th { font: 500 12px/16px var(--mono); }
+.pj-main a { color: inherit; text-decoration: underline; text-decoration-thickness: 0.05em; text-underline-offset: 0.08em; }
+/* The figures: the reference's rows of short items, four to a row (each three columns wide), a rule
+   over each row, a small square before each item. */
+.pj-items { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 48px 16px; margin: 0 0 96px; }
+.pj-items > div { position: relative; padding: 48px 0 0 12px; }
+.pj-items > div:nth-child(4n + 1)::before { content: ''; position: absolute; top: 0; left: 0; width: calc(400% + 48px); border-top: 1px solid var(--pj-rule); }
+.pj-items > div::after { content: ''; position: absolute; left: 0; top: 54px; width: 2px; height: 2px; border: 1px solid var(--pj-ink); }
+.pj-items dt { font: 500 12px/16px var(--mono); color: var(--pj-soft); margin: 0 0 4px; }
+.pj-items dd { margin: 0; font-size: 14px; line-height: 18px; letter-spacing: 0.01em; }
+/* The diagram on a card, as the reference's figures: the ink at 8% over the band, a 1 px rule. */
+.pj-figure { margin: 0 0 48px; }
+.pj-diagram { overflow-x: auto; overscroll-behavior-x: contain; background: var(--pj-card); border: 1px solid var(--pj-rule); padding: 24px 24px 16px; box-sizing: border-box; }
 .pj-diagram svg { display: block; margin: 0 auto; height: auto; }
-.pj-figure figcaption { margin-top: 10px; font: 500 12px/1.5 var(--mono); color: var(--pj-soft); }
+.pj-diagram [stroke="#000000"], .pj-diagram [stroke="black"] { stroke: var(--dg-ink); }
+.pj-diagram [fill="#000000"] { fill: var(--dg-ink); }
+/* the theme's colours that mermaid writes as attributes (notes, sequence boxes, gradients) */
+.pj-diagram [fill="#f7f5f0"], .pj-diagram [fill="#eaeaea"] { fill: var(--dg-node); }
+.pj-diagram [fill="#efece6"], .pj-diagram [fill="#EDF2AE" i] { fill: var(--dg-label); }
+.pj-diagram [fill="#e7e4dd"] { fill: var(--dg-cluster); }
+.pj-diagram [stroke="#c9c5bc"], .pj-diagram [stroke="#666"], .pj-diagram [stroke="#999"] { stroke: var(--dg-rule); }
+.pj-diagram [stroke="#6d6b63"] { stroke: var(--dg-line); }
+.pj-diagram [stop-color="#c9c5bc"], .pj-diagram [stop-color^="hsl(40"] { stop-color: var(--dg-rule); }
+/* edge labels sit on an opaque patch of the card, so a line never runs through their type */
+.pj-diagram .edgeLabel rect { opacity: 1 !important; }
+.pj-figure figcaption { padding: 4px 4px 7px; font: 500 12px/16px var(--mono); color: var(--pj-soft); }
 .pj-list { list-style: none; margin: 0; padding: 0; max-width: 68ch; }
-.pj-list a { display: grid; grid-template-columns: 12em 1fr; gap: 20px; padding: 13px 0; border-top: 1px solid var(--pj-rule); color: inherit; text-decoration: none; font-size: 17px; }
-.pj-list a:hover .n { text-decoration: underline; text-underline-offset: 3px; }
+.pj-main .pj-list a { display: grid; grid-template-columns: 12em 1fr; gap: 20px; padding: 13px 0; border-top: 1px solid var(--pj-rule); text-decoration: none; font-size: 18px; line-height: 1.5; }
+.pj-list a:hover .n { text-decoration: underline; text-underline-offset: 0.08em; }
 .pj-list .t { color: var(--pj-soft); }
-.pj-foot { margin-top: 140px; padding-top: 22px; border-top: 1px solid var(--pj-rule); display: flex; flex-wrap: wrap; gap: 12px 28px; align-items: center; }
-.pj-foot a { color: inherit; font-size: 17px; text-underline-offset: 3px; }
-.pj-foot button { height: 40px; padding: 0 16px; border: 0; border-radius: 20px; background: #000; color: #ececec; cursor: pointer; }
-.pj-fail { padding: 160px 0; font-size: 17px; }
+/* The foot, as the reference's: a rule over one row of mono type. */
+.pj-foot { display: flex; flex-wrap: wrap; gap: 8px 40px; align-items: center; min-height: 56px; padding: 0 0 40px; border-top: 1px solid var(--pj-rule); font: 500 12px/16px var(--mono); }
+.pj-main .pj-foot a { color: var(--pj-soft); }
+.pj-head .pj-name { color: var(--pj-soft); }   /* the header sits on the band: its name at the band's soft ink */
+.pj-foot button { height: 24px; padding: 0 12px; border: 0; border-radius: 8px; background: var(--pj-btn); color: var(--pj-btn-ink); font: inherit; cursor: pointer; }
+.pj-fail { padding: 160px 0; font-size: 18px; }
 
 /* ---- phone and narrow windows: the title across the top, the world in a framed box below ---- */
 @media (max-width: 899px) {
@@ -132,14 +163,17 @@ html.in-project .details, html.in-project #d-open { display: none; }
   .pj-window { position: relative; left: auto; top: auto; bottom: auto; height: 62svh; margin: 0; }
   .pj-body { display: block; padding: 0 16px; }
   .pj-rail { display: none; }
-  .pj-sec { padding-top: 88px; }
-  .pj-sec h2 { font-size: clamp(44px, 14vw, 64px); margin-bottom: 32px; }
-  .pj-h3 { font-size: clamp(32px, 10vw, 44px); margin: 72px 0 24px; }
-  .pj-lead { font-size: 24px; }
-  .pj-text, .pj-glance td, .pj-list a { font-size: 16px; }
-  .pj-glance th { width: 7.5em; font-size: 12px; }
+  /* the reference's phone head: 360 px tall, the title halfway down its free space */
+  .pj-sh { min-height: 360px; grid-template-rows: 1fr auto 1fr; }
+  .pj-sec h2 { font-size: clamp(39px, 13.8889vw - 5.44444px, 64px); }
+  .pj-text { font-size: 14px; }
+  .pj-main .pj-list a { font-size: 14px; }
+  /* one item to a row, a rule over each, no square (as the reference's phone rows) */
+  .pj-items { grid-template-columns: minmax(0, 1fr); gap: 24px; margin-bottom: 64px; }
+  .pj-items > div { padding: 24px 25px 0; border-top: 1px solid var(--pj-rule); }
+  .pj-items > div::before, .pj-items > div::after { display: none; }
   .pj-diagram { padding: 16px; margin: 0 -16px; border-left: 0; border-right: 0; }
-  .pj-list a { grid-template-columns: 1fr; gap: 2px; }
+  .pj-main .pj-list a { grid-template-columns: 1fr; gap: 2px; }
 }
 
 /* No WebGL: the world's window holds the accent's light instead. */

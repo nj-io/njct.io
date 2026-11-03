@@ -5,6 +5,7 @@
 import { createWorld, warmWorld } from './world.js';
 import { OPEN } from '../scene/config.js';
 import { bezier, clamp01, dur, delay, reduced } from '../scene/motion.js';
+import { coverGround } from '../covers/covers.js';
 
 const CSS = new URL('./project.css', import.meta.url).href;
 let cssP = null;
@@ -23,21 +24,50 @@ export function loadDossier(slug) {
   return dossiers.get(slug);
 }
 
-// Colours: the panel takes the accent, the culture the accent's hue (in the home page's dark-theme pigment).
-// Entries without an accent, and About Neil, take colours from their cover's palette (covers.js designFor):
-// panel, the culture's tint and the page's ink. Panel text is white unless white reads under 4.5:1 on the
-// panel; the page's ink is darkened until it reads at 4.5:1 on the page ground.
-const COVER_COLOURS = {
-  'Scorecard': { panel: '#1F5DD8', tint: '#F6C21C' },
-  'Stellar Explorer': { panel: '#1E2C8C', tint: '#DBA95C' },
-  'About Neil': { panel: '#9A6418', tint: '#E4A23C' },
-};
-const GROUND = '#ECECEA';
+// Colours, as on the reference's project page: each section there is one flat colour, full bleed, with
+// cards in white at 8% over it and buttons in a deep tone of it; titles are white, copy white at 70%.
+// A project's page is one band in the project's colour: its accent's light value, or its cover's
+// ground (Stellar Explorer, Scorecard, About Neil). The ink is white or near black, whichever needs the
+// band moved less; the band moves in OKLCH lightness only (hue and chroma kept), and only as far as
+// the ink needs to read at 4.5:1 on the diagram's boxes (ink at 16% over the band), so it reads on
+// every lighter ground too. Secondary text is the ink at 70%, or as much stronger as 4.5:1 on a card
+// needs; lines are the ink at 70%, or what 3:1 on a card needs. The world's culture takes the
+// accent's hue; covers without an accent give it their own tint.
+const TINTS = { 'Scorecard': '#F6C21C', 'Stellar Explorer': '#DBA95C', 'About Neil': '#E4A23C' };
+const WHITE = '#ffffff', DARK = '#17120b';
 const rgbOf = hex => { const n = parseInt(hex.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
-const lum = hex => { const [r, g, b] = rgbOf(hex).map(v => { v /= 255; return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+const hexOf = rgb => '#' + rgb.map(v => Math.round(Math.min(255, Math.max(0, v))).toString(16).padStart(2, '0')).join('');
+const toLin = v => ((v /= 255) <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+const toGam = v => 255 * (v <= 0.0031308 ? 12.92 * v : 1.055 * v ** (1 / 2.4) - 0.055);
+const lum = hex => { const [r, g, b] = rgbOf(hex).map(toLin); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
 const contrast = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m); return (x + 0.05) / (y + 0.05); };
-const darken = (hex, k) => '#' + rgbOf(hex).map(v => Math.round(v * k).toString(16).padStart(2, '0')).join('');
-function readable(hex, on) { let c = hex; for (let k = 1; contrast(c, on) < 4.5 && k > 0.2; k -= 0.04) c = darken(hex, k); return c; }
+const mix = (fg, bg, a) => { const g = rgbOf(bg); return hexOf(rgbOf(fg).map((v, k) => v * a + g[k] * (1 - a))); };   // fg at alpha a over bg
+function oklch(hex) {
+  const [r, g, b] = rgbOf(hex).map(toLin);
+  const [l, m, s] = [0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b, 0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b,
+    0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b].map(Math.cbrt);
+  const L = 0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s, A = 1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s,
+    B = 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s;
+  return [L, Math.hypot(A, B), Math.atan2(B, A)];
+}
+function fromOklch(L, C, h) {   // chroma drops until the colour is inside sRGB
+  for (;; C *= 0.98) {
+    const A = C * Math.cos(h), B = C * Math.sin(h);
+    const [l, m, s] = [L + 0.3963377774 * A + 0.2158037573 * B, L - 0.1055613458 * A - 0.0638541728 * B, L - 0.0894841775 * A - 1.2914855480 * B].map(v => v ** 3);
+    const rgb = [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s, -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+      -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s];
+    if (rgb.every(v => v >= -1e-4 && v <= 1 + 1e-4) || C < 1e-4) return hexOf(rgb.map(v => toGam(Math.min(1, Math.max(0, v)))));
+  }
+}
+function bandFor(base, ink) {   // [band, steps of 0.005 in OKLCH lightness away from the ink]
+  const [L, C, h] = oklch(base), dir = ink === WHITE ? -1 : 1;
+  for (let n = 0; n <= 200; n++) {
+    const band = n ? fromOklch(Math.min(1, Math.max(0, L + dir * n * 0.005)), C, h) : base;
+    if (contrast(ink, mix(ink, band, 0.16)) >= 4.5) return [band, n];
+  }
+  return [ink === WHITE ? '#000000' : WHITE, Infinity];
+}
+const alphaFor = (ink, ground, target) => { let a = 0.7; while (a < 1 && contrast(mix(ink, ground, a), ground) < target) a += 0.01; return Math.min(1, +a.toFixed(2)); };
 const hueOf = hex => {
   const [r, g, b] = rgbOf(hex).map(v => v / 255);
   const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
@@ -45,14 +75,29 @@ const hueOf = hex => {
   const h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
   return (h * 60 + 360) % 360;
 };
-// An entry with neither takes the colours of the cover module's fallback design (flow lines on navy).
-const FALLBACK = { panel: '#0B1234', tint: '#FF8A2A' };
 export function colours(entry) {
-  const c = entry.accent ? { panel: entry.accent.light, tint: entry.accent.light } : COVER_COLOURS[entry.name] || FALLBACK;
-  const dark = contrast('#FFFFFF', c.panel) < 4.5;
-  return { panel: c.panel, hue: hueOf(c.tint), ink: readable(c.panel, GROUND),
-    fg: dark ? '23 18 11' : '255 255 255', fgInv: dark ? '255 255 255' : '0 0 0' };
+  const base = entry.accent?.light || coverGround(entry);
+  const [w, nw] = bandFor(base, WHITE), [d, nd] = bandFor(base, DARK);
+  const [ink, band] = nw <= nd ? [WHITE, w] : [DARK, d];
+  const card = mix(ink, band, 0.08), [L, C, h] = oklch(band);
+  // The button's tone: deep in the band's hue (the reference's L 0.21-0.29 at half the chroma), or a
+  // light grey on a band that is nearly black already (the reference's slate section).
+  const button = L > 0.3 ? fromOklch(Math.min(0.26, L - 0.15), C * 0.52, h) : fromOklch(0.85, 0, 0);
+  return {
+    base, panel: band, ink, card, hue: hueOf(entry.accent?.light || TINTS[entry.name] || '#FF8A2A'),
+    soft: alphaFor(ink, card, 4.5), line: alphaFor(ink, card, 3),
+    node: mix(ink, band, 0.16), cluster: mix(ink, band, 0.11), rule: mix(ink, band, 0.45),
+    button, buttonInk: contrast(WHITE, button) >= contrast('#000000', button) ? WHITE : '#000000',
+    fg: ink === WHITE ? '255 255 255' : '23 18 11', fgInv: ink === WHITE ? '0 0 0' : '255 255 255',
+  };
 }
+// The architecture diagrams are drawn in the dossiers' light theme; on the band they take the band's
+// variant of it: the theme's colours in the SVG's own style rules and style attributes become the
+// page's diagram colours. Colours a diagram sets for its own nodes (stet's, Clauded's) stay.
+const DG = [[/#131311|#181b22/gi, 'var(--dg-ink)'], [/#6d6b63|#92949c/gi, 'var(--dg-line)'], [/#f7f5f0/gi, 'var(--dg-node)'],
+  [/#efece6|rgba\(239, ?236, ?230, ?0\.5\)/gi, 'var(--dg-label)'], [/#e7e4dd/gi, 'var(--dg-cluster)'],
+  [/#c9c5bc|hsl\(4[02], [\d.]+%, [\d.]+%\)/gi, 'var(--dg-rule)']];
+const onBand = svg => svg.replace(/<style>[\s\S]*?<\/style>|style="[^"]*"/g, css => DG.reduce((t, [re, v]) => t.replace(re, v), css));
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 const host = url => url.replace(/^https?:\/\//, '').replace(/\/$/, '');
@@ -61,7 +106,7 @@ const SECTIONS = [['overview', 'Overview'], ['under-the-hood', 'Under the hood']
 function pageHTML(entry, data, slugOf, entries) {
   const about = entry.kind === 'about';
   const sec = (id, n, title, body) => `<section class="pj-sec" aria-labelledby="pj-h-${id}">
-    <div class="pj-part" id="pj-${id}" data-sec="${id}"><p class="pj-num">${n}</p><h2 id="pj-h-${id}">${title}</h2>${body}</div></section>`;
+    <div class="pj-part" id="pj-${id}" data-sec="${id}"><header class="pj-sh"><p class="pj-num">${n}</p><h2 id="pj-h-${id}">${title}</h2></header>${body}</div></section>`;
   if (about) {
     const a = entry.about;
     const list = entries.filter(e => e.kind !== 'about').map(e =>
@@ -70,10 +115,11 @@ function pageHTML(entry, data, slugOf, entries) {
       `<p class="pj-lead">${esc(a[1])}</p><div class="pj-text"><p>${esc(a[2])}</p><p>${esc(a[3])}</p></div><ul class="pj-list">${list}</ul>`);
   }
   if (!data) return '<p class="pj-fail">This page did not load.</p>';
+  // The figures as the reference's rows of short items: four to a row on desktop, a rule over each row.
   const glance = data.glance?.length
-    ? `<table class="pj-glance"><tbody>${data.glance.map(([k, v]) => `<tr><th scope="row">${k}</th><td>${v}</td></tr>`).join('')}</tbody></table>` : '';
+    ? `<dl class="pj-items">${data.glance.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>` : '';
   const diagram = data.diagram
-    ? `<figure class="pj-figure"><div class="pj-diagram" tabindex="0" role="region" aria-label="${esc(data.loCap || 'Architecture diagram')}">${data.diagram}</div>${data.loCap ? `<figcaption>${data.loCap}</figcaption>` : ''}</figure>` : '';
+    ? `<figure class="pj-figure"><div class="pj-diagram" tabindex="0" role="region" aria-label="${esc(data.loCap || 'Architecture diagram')}">${onBand(data.diagram)}</div>${data.loCap ? `<figcaption>${data.loCap}</figcaption>` : ''}</figure>` : '';
   // As on the live site: Overview is the lead, the figures and the narration; Under the hood is the
   // diagram and the spec sheet, with Build process as its second part (never under Overview).
   return [
@@ -139,10 +185,14 @@ export function createProjectView({ renderer, entries, slugOf, onBack, onCta }) 
     root.className = 'pj pj-cold';
     root.hidden = true;
     root.setAttribute('aria-label', entry.name);
-    root.style.setProperty('--acc', col.panel);
-    root.style.setProperty('--acc-ink', col.ink);
-    root.style.setProperty('--fg', col.fg);
-    root.style.setProperty('--fg-inv', col.fgInv);
+    const vars = {
+      '--acc': col.panel, '--fg': col.fg, '--fg-inv': col.fgInv, '--pj-ink': col.ink, '--pj-card': col.card,
+      '--pj-soft': `rgb(${col.fg} / ${col.soft})`, '--pj-line': `rgb(${col.fg} / ${col.line})`,
+      '--pj-btn': col.button, '--pj-btn-ink': col.buttonInk,
+      '--dg-ink': col.ink, '--dg-line': mix(col.ink, col.card, col.line), '--dg-node': col.node, '--dg-label': col.card,
+      '--dg-cluster': col.cluster, '--dg-rule': col.rule,
+    };
+    for (const k in vars) root.style.setProperty(k, vars[k]);
     const sub = entry.kind === 'about' ? entry.about[2] : entry.tag;
     const proposal = data?.proposal ? '<p class="pj-num" style="margin-top:-36px">Draft for review</p>' : '';
     root.innerHTML = `
@@ -174,6 +224,7 @@ export function createProjectView({ renderer, entries, slugOf, onBack, onCta }) 
     if (wait > 0) await new Promise(r => setTimeout(r, wait));
     if (my !== token) { root.remove(); return; }
     root.hidden = false;
+    document.documentElement.style.setProperty('--pj-ground', col.panel);   // the band runs under overscroll too
     document.documentElement.classList.add('in-project');
     history.scrollRestoration = 'manual';
     window.scrollTo(0, 0);
@@ -275,6 +326,7 @@ export function createProjectView({ renderer, entries, slugOf, onBack, onCta }) 
     s.world.dispose();
     s.root.remove();
     document.documentElement.classList.remove('in-project');
+    document.documentElement.style.removeProperty('--pj-ground');
     window.scrollTo(0, 0);
   }
 
