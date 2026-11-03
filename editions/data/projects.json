@@ -242,6 +242,7 @@
   "name": "Stats",
   "kind": "project",
   "year": "2026",
+  "newest": true,
   "tag": "Visitors, sources and sales in one place",
   "blurb": "A private dashboard for this portfolio's product sites: who visited, where they came from and what they bought, with a summary in Telegram every morning.",
   "url": "https://stats.njct.io/live",

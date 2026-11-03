@@ -52,8 +52,11 @@ for (const s of sleeves) {
 }
 // Details: the sleeve in focus draws on its own layer, over the blurred shelf.
 const FOCUS = 1;
+// The newest sleeve wears the Now playing sticker, on the shelf, in the crate and in Details, as the
+// reference's newest edition does (its sticker is part of the cover): it leans, lifts and flips with it.
+const NOW = sleeves.find(s => s.entry.newest) || null;
+let stickerOff = false;
 const sticker = createSticker('Now playing');
-sticker.mesh.layers.set(FOCUS);
 scene.add(sticker.mesh);
 const post = createPost(renderer);
 
@@ -422,7 +425,6 @@ function stepDetails(s, now) {
     p = flight(s, det.from, detailsPose(s), e);
     p.yaw = yawAt();
     det.blur = crateMode ? 0 : smooth(clamp01((t - delay(DETAILS.blur.at)) / dur(DETAILS.blur.dur)));   // the crate stays sharp, as on the reference
-    det.sticker = clamp01((t - delay(DETAILS.title.at)) / dur(DETAILS.title.dur));
     const end = Math.max(...[F, DETAILS.blur, DETAILS.title].map(k => delay(k.at) + dur(k.dur)));
     moving = t < end || now - det.flip.t0 < delay(P.at) + dur(P.dur);
   } else {
@@ -432,7 +434,6 @@ function stepDetails(s, now) {
     p = flight(s, x.from, { ...(crateMode ? crate.pose(s) : hoverPose()), yaw: x.yawTo }, e);
     p.yaw = x.from.yaw + (x.yawTo - x.from.yaw) * bezier(X.turn.ease, clamp01((t - delay(X.turn.at)) / dur(X.turn.dur)));
     det.blur = x.blur * (1 - smooth(clamp01((t - delay(X.blurOut.at)) / dur(X.blurOut.dur))));
-    det.sticker = x.sticker * (1 - clamp01((t - delay(X.at)) / dur(X.textOut)));
     moving = t < delay(X.at) + dur(X.dur) || det.blur > 0;
     if (!moving) { endDetails(s, now); return true; }
   }
@@ -510,18 +511,16 @@ function frame(now) {
   if (bakeDirty) { writeOccluders(sleeves, uniforms, crateMode); wall.bake(); bakeDirty = false; bgDirty = true; }
   // The crate's shadow comes in with its sleeves.
   if (crateMode) crateShadow.setOpacity(ti < 0 || appearAt[0] === null ? 0 : clamp01((ti - appearAt[0]) / dur(600)));
-  // In the crate the front sleeve wears the Now playing sticker, fading while the crate moves.
-  if (crateMode && !det) {
-    const c = Math.round(crate.p), k = settled[c] ? clamp01(1 - Math.abs(crate.p - c) * 3) : 0;
-    sticker.mesh.layers.enable(0);
-    sticker.place(sleeves[c] || sleeves[0], k);
-  } else sticker.mesh.layers.disable(0);
+  // The sticker follows the newest sleeve, on the focus layer while that sleeve is in Details.
+  if (NOW) {
+    sticker.mesh.layers.set(det && det.i === NOW.i ? FOCUS : 0);
+    sticker.place(NOW, stickerOff ? 0 : NOW.pose.opacity);
+  }
   const alive = aliveIdx >= 0 || now < aliveUntil;
-  if (alive) for (const c of covers) c?.update(dt);
+  if (alive && !window.__editionsTest?.stillCovers) for (const c of covers) c?.update(dt);   // a test can hold the covers still
 
   if (det) {
     const s = sleeves[det.i];
-    sticker.place(s, crateMode ? 0 : det.sticker);   // the crate's Details sleeve wears none, as on the reference
     const sigma = DETAILS.blur.sigma * det.blur;
     if (bgDirty || sigma !== lastSigma) {
       camera.layers.set(0);
@@ -711,7 +710,7 @@ function openDetails(i) {
   s.fall = null;
   if (crateMode) crate.go(i);
   const ret = slotOf(document.activeElement) === i ? document.activeElement : null;   // focus comes back here
-  det = { i, t0: now, from: { ...s.pose }, flip: { from: 0, to: 0, t0: -1e9 }, exit: null, blur: 0, sticker: 0, ret };
+  det = { i, t0: now, from: { ...s.pose }, flip: { from: 0, to: 0, t0: -1e9 }, exit: null, blur: 0, ret };
   s.mesh.layers.set(FOCUS);
   bgDirty = true;
   backFor(i);
@@ -745,7 +744,7 @@ function flip() {
 function closeDetails() {
   if (!det || det.exit) return;
   const s = sleeves[det.i], now = performance.now(), X = DETAILS.exit;
-  det.exit = { t0: now, from: { ...s.pose }, yawTo: Math.ceil(s.pose.yaw / TURN - 1e-6) * TURN, blur: det.blur, sticker: det.sticker };
+  det.exit = { t0: now, from: { ...s.pose }, yawTo: Math.ceil(s.pose.yaw / TURN - 1e-6) * TURN, blur: det.blur };
   for (const el of [dTitle, dTag, dOpen]) fade(el, 0, X.at, X.textOut);
   fade(tagline, 1, X.headerIn.at, X.headerIn.dur);
   detailsEl.inert = true; dOpen.inert = true;
@@ -762,7 +761,6 @@ function endDetails(s, now, opening = false) {
   s.pose = crateMode ? crate.pose(s) : hoverPose();
   applyPose(s);
   s.mesh.layers.set(0);
-  sticker.mesh.visible = false;
   bgDirty = bakeDirty = true;
   slotsEl.inert = false;
   document.body.classList.remove('in-details');
@@ -925,12 +923,18 @@ const hooks = {
   ready: firstFrame.ready,
   covers: coversReady,
   sleeveRect,
+  // The front face's corners on screen, [bottom left, bottom right, top right, top left].
+  frontCorners(i) {
+    const m = sleeves[i].mesh.matrixWorld, L = SLEEVE.size;
+    return [[-L / 2, 0], [L / 2, 0], [L / 2, L], [-L / 2, L]].map(([x, y]) => { corner.set(x, y, SLEEVE.thick).applyMatrix4(m); return project(corner.x, corner.y, corner.z); });
+  },
   setCover(i, front, back) { setCover(sleeves[i], front, back); wake(); },
   get project() { return inProject >= 0 ? slugOf(entries[inProject]) : null; },
   get sleevesAt() { return sleevesStart; },
   coverReadyAt,
   appearAt,
   get crate() { return crateMode ? { p: crate.p, current: crate.current, dragging: crate.dragging } : null; },
+  set stickerOff(on) { stickerOff = !!on; wake(); },   // a test hides the sticker to find it on screen by difference
   get details() {
     return det ? { index: det.i, flipped: Math.round(det.flip.to / Math.PI) % 2 === 1, closing: !!det.exit, blur: det.blur, yaw: sleeves[det.i].pose.yaw } : null;
   },
