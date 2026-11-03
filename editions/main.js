@@ -693,6 +693,7 @@ const endPress = cancel => e => {
 };
 canvas.addEventListener('pointerup', endPress(false));
 canvas.addEventListener('pointercancel', endPress(true));
+canvas.addEventListener('lostpointercapture', endPress(true));   // a pointerup that never came (a system gesture, a tab switch)
 let wheelAt = 0;
 window.addEventListener('wheel', e => {
   if (!crateMode || det || inProject >= 0) return;
