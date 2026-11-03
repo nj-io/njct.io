@@ -797,6 +797,9 @@ vec3 chair(vec3 col, vec2 p, float t) {
 }
 // the amber motion ticks; alive, they pulse
 vec3 tick(vec3 col, vec2 p, vec2 a, vec2 b, float r0, float k) {
+  // a and b are the tick's visible ends on the concept: the stroke's centre line stops a radius short of each
+  vec2 u = normalize(b - a);
+  a += u * r0; b -= u * 0.45 * r0;
   vec2 m = 0.5 * (a + b);
   float d = sdTaper(p, m + (a - m) * k, m + (b - m) * k, r0 * k, r0 * 0.45 * k);
   col += uPal[2] * 0.10 * falloff(d, 0.02);
@@ -835,12 +838,12 @@ vec3 motif(vec2 p, float t) {
   col *= 1.0 - (0.8 * exp(-0.5 * (ct.x * ct.x * ct.x * ct.x + ct.y * ct.y * ct.y * ct.y)) + 0.4 * exp(-0.5 * dot(ca, ca))) * type;
   float k = 1.0 + 0.12 * sin(t * 2.6);
   // thick end first, measured on the concept
-  col = tick(col, p, ic(0.738, 0.083), ic(0.689, 0.152), 0.0115, k);
-  col = tick(col, p, ic(0.801, 0.172), ic(0.726, 0.199), 0.0115, k);
-  col = tick(col, p, ic(0.216, 0.196), ic(0.276, 0.225), 0.0100, k);
-  col = tick(col, p, ic(0.204, 0.273), ic(0.265, 0.272), 0.0100, k);
-  col = tick(col, p, ic(0.712, 0.870), ic(0.775, 0.893), 0.0092, k);
-  col = tick(col, p, ic(0.664, 0.931), ic(0.758, 0.919), 0.0095, k);
+  col = tick(col, p, ic(0.738, 0.083), ic(0.689, 0.152), 0.0127, k);
+  col = tick(col, p, ic(0.801, 0.172), ic(0.726, 0.199), 0.0127, k);
+  col = tick(col, p, ic(0.216, 0.196), ic(0.276, 0.225), 0.0110, k);
+  col = tick(col, p, ic(0.204, 0.273), ic(0.265, 0.272), 0.0110, k);
+  col = tick(col, p, ic(0.712, 0.870), ic(0.775, 0.893), 0.0101, k);
+  col = tick(col, p, ic(0.664, 0.931), ic(0.758, 0.919), 0.0105, k);
   return chair(col, p, t);
 }`;
 

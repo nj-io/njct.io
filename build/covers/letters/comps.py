@@ -1,0 +1,33 @@
+# python3 comps.py <tile.jpg>  ->  comps.json
+# The concept's letters as connected parts of its cream ("Chair") and amber ("tax") colour masks, each with its
+# box and pixels at the tile's 554 px: chair = C, h, a, i dot, i, r; tax = t, a, x, then the bottom tick.
+import sys, json, colorsys
+from PIL import Image, ImageFilter
+im = Image.open(sys.argv[1]).convert('RGB'); W = im.width
+p = im.load(); c = Image.new('L', (W, W)); a = Image.new('L', (W, W)); cp, ap = c.load(), a.load()
+for y in range(W):
+    for x in range(W):
+        h, s, v = colorsys.rgb_to_hsv(*(q / 255 for q in p[x, y]))
+        if v > 0.75 and s < 0.32: cp[x, y] = 255
+        if v > 0.6 and s > 0.55 and 0.08 < h < 0.16: ap[x, y] = 255
+c = c.filter(ImageFilter.MedianFilter(3)); a = a.filter(ImageFilter.MedianFilter(3))
+def comps(m, y0, y1, minpx=200):
+    q = m.load(); seen = bytearray(W * W); out = []
+    for y in range(y0, y1):
+        for x in range(W):
+            if q[x, y] > 127 and not seen[y * W + x]:
+                st = [(x, y)]; seen[y * W + x] = 1; pts = []
+                while st:
+                    u, v = st.pop(); pts.append((u, v))
+                    for du, dv in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                        a_, b_ = u + du, v + dv
+                        if 0 <= a_ < W and y0 <= b_ < y1 and not seen[b_ * W + a_] and q[a_, b_] > 127: seen[b_ * W + a_] = 1; st.append((a_, b_))
+                if len(pts) >= minpx: out.append(sorted(pts))
+    # left to right; the i's dot before its stem
+    return sorted(out, key=lambda pts: (min(u for u, _ in pts), min(v for _, v in pts)))
+def entry(pts):
+    xs = [u for u, _ in pts]; ys = [v for _, v in pts]
+    return {'box': [min(xs), min(ys), max(xs), max(ys)], 'pts': pts}
+res = {'chair': [entry(q) for q in comps(c, 150, 352)], 'tax': [entry(q) for q in comps(a, 320, 500)]}
+json.dump(res, open('comps.json', 'w'))
+print({k: [e['box'] for e in v] for k, v in res.items()})

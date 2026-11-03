@@ -1,0 +1,27 @@
+<!doctype html><meta charset="utf-8"><title>Chairtax Nunito glyphs</title><body>
+<script>
+// Each Nunito 900 glyph alone, white on black, at 4x the 554 px concept tile (2216 px), placed where it was
+// fitted to the concept's letters: [glyph, ink centre x, y, px, degrees clockwise] in 1024 units (the set
+// the cover drew before its letters were traced). glyphs.mjs calls render() with the font's bytes.
+const SET = [
+  ['C', 173.75, 494.44, 413.95, 1], ['h', 422.35, 478.73, 394.98, -2], ['a', 626.6, 496.29, 386.38, -2.5],
+  ['i', 769.85, 438.99, 370.54, -1], ['r', 890.92, 464.87, 392.26, -2.5],
+  ['t', 253.23, 758.76, 439.58, 2.5], ['a', 465.79, 760.61, 457.55, -2], ['x', 696.84, 727.33, 463.13, -5],
+];
+window.render = async (fontB64) => {
+  const bytes = Uint8Array.from(atob(fontB64), c => c.charCodeAt(0));
+  document.fonts.add(await new FontFace('Glyphs', bytes, { weight: '900' }).load());
+  const N = 2216, S = N / 1024, out = [];
+  for (const [g, cx, cy, px, deg] of SET) {
+    const c = document.createElement('canvas'); c.width = c.height = N;
+    const ctx = c.getContext('2d', { alpha: false });
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, N, N); ctx.textBaseline = 'alphabetic';
+    ctx.font = `900 ${px * S}px "Glyphs"`;
+    const m = ctx.measureText(g);
+    ctx.translate(cx * S, cy * S); ctx.rotate(deg * Math.PI / 180); ctx.fillStyle = '#fff';
+    ctx.fillText(g, -(m.actualBoundingBoxRight - m.actualBoundingBoxLeft) / 2, -(m.actualBoundingBoxDescent - m.actualBoundingBoxAscent) / 2);
+    out.push(c.toDataURL('image/png'));
+  }
+  return out;
+};
+</script>
