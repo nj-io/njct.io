@@ -1,11 +1,13 @@
-# python3 trace.py [out.json]  ->  chairtax.json   (needs fields.json, field-*.png)
+# python3 trace.py [out.json] [--cover social-hook]  ->  chairtax.json   (needs fields.json, field-*.png)
 # Traces each letter field at its 0.5 level into closed loops (marching squares), removes the generation wobble
 # by smoothing along the outline between corners, keeps the corners sharp, and writes SVG path data in 1024
 # cover units: quadratic B-splines through the simplified points, clamped so each run ends on its corners.
 import json, math, sys
 from PIL import Image
 U=4*554/1024          # field px per cover unit
-OUT=sys.argv[1] if len(sys.argv)>1 else 'chairtax.json'
+COVER=sys.argv[sys.argv.index('--cover')+1] if '--cover' in sys.argv else 'chairtax'
+ARGS=[a for i,a in enumerate(sys.argv[1:],1) if a!='--cover' and sys.argv[i-1]!='--cover']
+OUT=ARGS[0] if ARGS else COVER+'.json'
 SM=6.0       # smoothing sigma, field px along the outline (about 2.8 px on a 1024 cover)
 CORNER=50    # turning in degrees over +-K samples (1 field px apart) that marks a corner
 K=12
@@ -158,6 +160,11 @@ ABOUT=("Chairtax cover letters traced from the concept tile chairtax-e3 (554 px)
   "(cream, amber, ground), its hidden parts under the concept's bear completed from the fitted Nunito 900 glyph (the h's "
   "ascender top rebuilt on the concept's stem edges), traced at 4x, smoothed along the outline between corners. SVG path "
   "data in 1024 cover units, filled even-odd; ch is the type-mask channel.")
+if COVER=='social-hook':
+    ABOUT=("Social Hook cover letters traced from the concept tile social-hook-a1 (cut to the cover, 554 px): each part's coverage "
+      "as its distance from the local ground towards white, the ground filled in from the pixels around the letters; letters "
+      "that touch in the concept stay one outline. Traced at 4x, smoothed along the outline between corners. SVG path data "
+      "in 1024 cover units, filled even-odd; ch is the type-mask channel.")
 s=json.dumps({'about':ABOUT,'letters':[{'name':n,'ch':c,'d':d} for n,c,d in result]},separators=(',',':'))
 open(OUT,'w').write(s+'\n')
 print(stats, 'total chars', sum(v[2] for v in stats.values()))

@@ -1,4 +1,8 @@
-# Chairtax cover letters
+# Cover letters
+
+The covers whose concept letters are drawn rather than set carry them as traced SVG paths in `editions/covers/letters/<slug>.json`. The scripts take `--cover <slug>`; without it they run Chairtax.
+
+## Chairtax
 
 `editions/covers/letters/chairtax.json` holds the Chairtax cover's letters as SVG paths, traced from the concept tile. To regenerate it from the tile, run these commands in an empty work directory, with `REPO` set to the checkout:
 
@@ -29,3 +33,22 @@ The Python steps need Pillow. `glyphs.mjs` needs headless Chrome and the board-t
 - Licence OFL-1.1 (https://github.com/googlefonts/nunito).
 
 It was chosen by fitting 35 OFL candidates (Fredoka, Baloo 2, Rubik, Lilita One, Gabarito, Inter and others) letter by letter to the concept. Gabarito and Inter 900 fit a little closer (IoU 0.87 against 0.85), but their terminals are square and the concept's lettering is rounded. The glyph placements in `glyphs.html` put every letter box within 1.4% of the concept's.
+
+## Social Hook
+
+`editions/covers/letters/social-hook.json` holds the Social Hook cover's white letters, traced from its concept tile. Letters that touch in the concept (S with H, o with c, the two o's of Hook) stay one outline. To regenerate it, run in an empty work directory:
+
+```sh
+TILE=$REPO/.captures/concepts/tiles/social-hook-a1.jpg   # 577 x 571 with a grey margin; comps.py cuts the cover out and scales it to 554 px
+L=$REPO/build/covers/letters
+python3 $L/comps.py $TILE --cover social-hook
+python3 $L/fields.py $TILE --cover social-hook
+python3 $L/trace.py $REPO/editions/covers/letters/social-hook.json --cover social-hook
+```
+
+- `comps.py` cuts the tile to the cover (`TILE_BOX`), saves `tile554.png` and finds the white letter parts.
+- `fields.py` fills the ground in under the letters from the pixels around them and takes each pixel's coverage as its distance from that ground towards white, at 4×.
+- `trace.py` traces it as for Chairtax.
+
+A font fit came first: 66 OFL faces fitted letter by letter, Geologica 900 best at IoU 0.937. Set that way, the letter-edge band measured 14.6 ΔE, above the gate's 12. Traced, it measures 4.0.
+

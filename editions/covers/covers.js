@@ -24,7 +24,6 @@ const FONT_DIR = new URL('../../vendor/fonts/', import.meta.url);
 // set and how to regenerate it when a title or back-cover string changes).
 const FACES = [
   ['NJ Text', 'ui/inter-variable-ui.woff2', '100 900'],
-  ['NJ Poppins', 'poppins-extrabold-cover.woff2', '800'],
   ['NJ Soft Serif', 'fraunces-144pt-black-soft-cover.woff2', '900'],
   ['NJ Serif', 'fraunces-144pt-bold-cover.woff2', '700'],
   ['NJ Hanken', 'hanken-grotesk-650-cover.woff2', '650'],
@@ -317,41 +316,64 @@ vec3 stripFill(vec2 p, float t) {
 #define INK0(p, t) (uMode > 0.5 ? stripFill(p, t) : stetFill(p, t, p.x < 0.64 ? 1 : 3))
 #define INK1(p, t) stetFill(p, t, p.x < 0.41 ? 0 : 2)`;
 
-// Social Hook: a field of large geometric arcs and planes in the brand's blues.
+// Social Hook: a deep royal-blue field; a dark disc under "Hook"; a pale disc rising from the lower left;
+// a diagonal through a crossing low in the middle, with light along it and a wedge of light beyond it;
+// a deep triangle below the crossing; a disc split light | deep at the lower right. Each area's colour is a
+// low-order polynomial in position, plus the light band near the diagonal, fitted to the concept (linear light).
 MOTIFS.hook = /* glsl */`
+const vec3 K_G[6] = vec3[](vec3(0.0075, 0.0762, 0.7430), vec3(-0.0027, -0.0021, 0.0051), vec3(-0.0039, -0.0265, -0.0823), vec3(0.0030, -0.0084, -0.0784), vec3(-0.0188, -0.1046, -0.2042), vec3(-0.0008, 0.0136, -0.0380));
+const vec3 K_M[8] = vec3[](vec3(0.0385, 0.2648, 0.9415), vec3(0.1086, 0.3989, 0.2675), vec3(-0.1188, -0.1566, -0.0453), vec3(0.0396, -0.0429, -0.1501), vec3(0.0362, 0.0695, 0.0279), vec3(-0.0481, -0.0669, -0.0155), vec3(-0.1354, -0.2552, -0.0803), vec3(0.3584, 0.5801, 0.0858));
+const vec3 K_TR[6] = vec3[](vec3(0.0253, 0.1837, 0.7247), vec3(0.0339, 0.0882, 0.2033), vec3(0.0025, -0.0641, -0.2530), vec3(0.0272, 0.0442, 0.0331), vec3(-0.0072, -0.0293, -0.0624), vec3(-0.0037, 0.0233, 0.0758));
+const vec3 K_C3[8] = vec3[](vec3(0.2116, 0.6087, 0.9650), vec3(0.4545, 0.8640, 0.1052), vec3(-0.0914, -0.1739, 0.0481), vec3(0.1969, 0.1686, -0.0898), vec3(-0.0621, -0.0211, 0.0198), vec3(-0.1660, -0.3634, -0.0703), vec3(-0.0406, -0.0632, 0.0022), vec3(0.0415, 0.0562, -0.0063));
+const vec3 K_LF[8] = vec3[](vec3(-0.1237, 0.0986, 0.9117), vec3(0.4344, 0.5751, 0.0352), vec3(-0.2414, -0.2480, 0.0576), vec3(0.4534, 0.4431, 0.0470), vec3(-0.5178, -0.2971, -0.0980), vec3(0.9593, 0.8222, 0.0100), vec3(-0.2806, -0.4881, -0.1954), vec3(0.4048, 0.5181, 0.1247));
+const vec3 K_TRI[6] = vec3[](vec3(0.0066, 0.0821, 0.7425), vec3(0.0044, 0.0099, -0.0047), vec3(0.0091, 0.0380, 0.1169), vec3(-0.0004, -0.0015, -0.0258), vec3(0.0015, 0.0038, 0.0046), vec3(0.0064, 0.0158, -0.0390));
+const vec3 K_C4L[8] = vec3[](vec3(0.1257, 0.4322, 0.9127), vec3(0.1872, 0.2645, 0.1032), vec3(-0.2957, -0.4320, 0.1403), vec3(0.0552, 0.0855, 0.0219), vec3(-0.0095, -0.0556, -0.0241), vec3(-0.0401, -0.1754, -0.0266), vec3(-0.0407, -0.0951, -0.0565), vec3(0.1816, 0.2320, 0.0491));
+const vec3 K_C4R[6] = vec3[](vec3(0.0064, 0.0713, 0.7340), vec3(0.0059, 0.0316, 0.1104), vec3(-0.0006, 0.0052, 0.0279), vec3(0.0064, 0.0199, -0.0237), vec3(0.0043, 0.0106, -0.0475), vec3(0.0015, 0.0028, -0.0192));
+#define POLY(K, w) (K[0] + K[1] * w.x + K[2] * w.y + K[3] * w.x * w.x + K[4] * w.x * w.y + K[5] * w.y * w.y)
+#define BAND(K, e) (K[6] * e.x + K[7] * e.y)
+// distance to the line through o with slope k (y down), positive on its left
+float sdLeft(vec2 q, vec2 o, float k) { return -((q.x - o.x) * -k + (q.y - o.y)) / sqrt(k * k + 1.0); }
 vec3 motif(vec2 p, float t) {
-  float dr = 0.012 * sin(t * 0.35);
-  vec3 col = mix(uPal[0], uPal[1], 0.25 * smoothstep(0.2, 1.0, p.y));
-  // a large lighter disc entering from the top right
-  vec2 c1 = ic(0.88 + dr, 0.33);
-  float d1 = length(p - c1) - 0.47;
-  col = mix(col, mix(uPal[2], uPal[3], smoothstep(0.1, 0.5, length(p - c1 - vec2(0.15, 0.2)))), cover(d1));
-  // a deeper disc under the second line
-  vec2 c2 = ic(0.61 - dr * 0.6, 0.48);
-  col = mix(col, mix(uPal[4], uPal[0], smoothstep(0.0, 0.2, length(p - c2 - vec2(-0.08, 0.06)))), cover(length(p - c2) - 0.17));
-  // the lower left: a wide luminous arc
-  vec2 c3 = ic(0.08 - dr, 1.06);
-  float d3 = length(p - c3) - 0.53;
-  vec3 g3 = mix(uPal[3], uPal[2], smoothstep(0.0, 0.5, length(p - ic(0.42, 0.62))));
-  col = mix(col, g3, cover(d3));
-  // a bow-tie of planes crossing low in the middle
-  vec2 X = ic(0.47, 0.80);
-  float la = sdLine(p, X, ic(0.27, 0.56));
-  float lb = sdLine(p, X, ic(0.70, 0.58));
-  float top = max(-la, lb);
-  vec3 gt = mix(uPal[5], uPal[2], smoothstep(0.0, 0.25, X.y - p.y + 0.25));
-  col = mix(col, mix(col, gt, 0.75), cover(max(top, -(p.y - X.y))));
-  float bot = max(la, -lb);
-  col = mix(col, mix(uPal[4], uPal[0], smoothstep(0.0, 0.2, X.y - p.y)), cover(max(bot, p.y - X.y)));
-  // a split disc at the lower right
-  vec2 c4 = ic(0.79 + dr * 0.5, 0.74);
-  float d4 = length(p - c4) - 0.265;
-  vec3 left = mix(uPal[5], uPal[2], smoothstep(-0.25, 0.1, p.x - c4.x));
-  col = mix(col, left, cover(max(d4, p.x - c4.x)));
-  col = mix(col, mix(uPal[4], uPal[0], smoothstep(-0.2, 0.25, c4.y - p.y)), cover(max(d4, c4.x - p.x)));
-  // light falling across the planes
-  col *= 1.0 + 0.08 * smoothstep(0.6, 0.0, length(p - ic(0.55, 0.5)));
-  return col;
+  vec2 q = vec2(p.x, 1.0 - p.y), w = q - 0.5;   // concept coordinates, y down
+  // alive, the discs drift a few pixels and the band of light breathes
+  float dr = 0.006 * sin(t * 0.35), br = 1.0 + 0.25 * sin(t * 0.5);
+  vec2 X = vec2(0.47464, 0.77985);
+  float dL = sdLeft(q, X, -0.98376), dA = sdLeft(q, X, -1.01631);
+  float dB = -sdLeft(q, X, 1.02854);   // positive below the triangle's right edge
+  float dl = abs(q.y < X.y ? dL : dA);
+  vec2 e = br * vec2(exp(-dl / 0.01523), exp(-dl / 0.05448));
+  // each area's field is evaluated only where the area shows
+  vec3 G = POLY(K_G, w), col = G;
+  float a = sat((q.y - 0.54851) / 0.19746 + 0.5);
+  if (a > 0.0) col = mix(col, POLY(K_M, w) + BAND(K_M, e), a);
+  // the pale corner beyond the dark disc at the top right
+  vec2 c1 = vec2(0.65801, 0.3355);
+  if (q.x > c1.x && q.y < c1.y) col = mix(col, POLY(K_TR, w), cover(0.35368 - length(q - c1)));
+  // the dark disc under "Hook": the top field's own blue
+  col = mix(col, G, cover(length(q - vec2(0.59386 + dr, 0.43736)) - 0.16601));
+  // the pale disc from the lower left
+  a = cover(length(q - vec2(0.02423 - dr, 1.04633)) - 0.51204);
+  if (a > 0.0) col = mix(col, POLY(K_C3, w) + BAND(K_C3, e), a);
+  // beyond the diagonal: the light field above the triangle's right edge, the deep triangle below it
+  float right = cover(max(dL, dA));
+  if (right > 0.0) {
+    a = right * cover(dB);
+    if (a > 0.0) col = mix(col, POLY(K_LF, w) + BAND(K_LF, e), a);
+    a = right * cover(-dB);
+    if (a > 0.0) col = mix(col, POLY(K_TRI, w), a);
+  }
+  // the split disc: two half-ellipses on one centre, light on the left of the split, deep on the right
+  vec2 o4 = q - vec2(0.80638 - dr * 0.8, 0.75089);
+  float d4 = sdEllipse(o4, vec2(o4.x < 0.0 ? 0.2648 : 0.20203, 0.217));
+  float xs = 0.7797 - dr * 0.8;
+  float a4 = cover(d4);
+  if (a4 > 0.0) {
+    a = a4 * cover(q.x - xs);
+    if (a > 0.0) col = mix(col, POLY(K_C4L, w) + BAND(K_C4L, e), a);
+    a = a4 * cover(xs - q.x);
+    if (a > 0.0) col = mix(col, POLY(K_C4R, w), a);
+  }
+  return max(col, 0.0);
 }`;
 
 // Clauded: the whale mark as one large glossy glass form, its facets lit one by one.
@@ -1040,11 +1062,12 @@ function designFor(entry) {
     };
     case 'Social Hook': return {
       motif: 'hook', t0: 0,
-      pal: ['#2A63E6', '#2E6AE9', '#4482F1', '#6AA2F6', '#1C50D7', '#5C96F3'],
-      ground: '#538DF3',   // the discs it reads as
-      type: [{ lines: ['Social', 'Hook'], font: 'NJ Poppins', weight: 800, track: -0.02, fit: 806, x: 92, base: 278, lead: 224, ch: 0 }],
+      pal: [],   // its fields' colours live in the motif
+      ground: '#427FED',   // its field's mean blue, without the letters and the mark
+      // the concept's own letters, traced (letters/social-hook.json)
+      type: [{ paths: 'letters/social-hook.json' }],
       inks: ['#FFFFFF'],
-      mark: [62, 865, 108],
+      mark: [50, 868, 121],
       bandY: 0.32, grain: [0.012, 0.010],
       back: { paper: '#2563EB', ink: '#FFFFFF', soft: '#CFE0FF', accent: '#FFFFFF' },
     };

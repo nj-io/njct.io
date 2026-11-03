@@ -1,10 +1,55 @@
-# python3 fields.py <tile.jpg>  ->  field-<letter>.png, fields.json   (needs comps.json, bear.png, nunito-*.png)
+# python3 fields.py <tile.jpg> [--cover social-hook]  ->  field-<letter>.png, fields.json   (Chairtax: needs comps.json, bear.png, nunito-*.png)
 # Per-letter coverage fields at 4x the concept tile (2216 px): the concept's own letter by colour unmixing
 # (cream / amber / ground), completed from the fitted Nunito glyph only where the concept's bear covers it.
 # Each field-<letter>.png (L, 0..255 = coverage) is cropped to the letter's box; fields.json keeps the offsets.
 import json, sys
 from PIL import Image, ImageFilter, ImageChops
 W=554; U=4; WU=W*U
+COVER=sys.argv[sys.argv.index('--cover')+1] if '--cover' in sys.argv else 'chairtax'
+if COVER=='social-hook':
+    # python3 fields.py <tile.jpg> --cover social-hook  (needs comps.json, tile554.png from comps.py)
+    # White letters on a ground that changes under them (deep blue, the light wedge by the k and the l): each pixel's
+    # coverage is its distance from the local ground towards white, the ground filled in under the letters from the
+    # pixels around them. One field per connected part (touching letters stay one outline).
+    con=Image.open('tile554.png').convert('RGB')
+    cc=json.load(open('comps.json'))['title']
+    NAMES=['SH','oc','oo','idot','i','k','a','l']   # the parts, by left edge (comps.py's order)
+    allm=Image.new('L',(W,W)); ap_=allm.load()
+    for c in cc:
+        for x,y in c['pts']: ap_[x,y]=255
+    out=ImageChops.invert(allm.filter(ImageFilter.MaxFilter(9)))            # ground only: 4 px clear of every letter
+    def blur(im,r): return im.filter(ImageFilter.GaussianBlur(r))
+    num=[ImageChops.multiply(b,out) for b in con.split()]
+    den=blur(out,10); gnd=[]
+    for b in num:
+        bb=blur(b,10); gp=bb.load(); dp_=den.load(); g=Image.new('F',(W,W)); q=g.load()
+        for y in range(W):
+            for x in range(W): q[x,y]=gp[x,y]/max(dp_[x,y],1)*255.0 if dp_[x,y]>0 else 0.0
+        gnd.append(g)
+    cp=con.load(); gl=[g.load() for g in gnd]
+    alpha=Image.new('L',(W,W)); al=alpha.load()
+    for y in range(W):
+        for x in range(W):
+            g=[gl[k][x,y] for k in range(3)]; d=[cp[x,y][k]-g[k] for k in range(3)]; u=[255-g[k] for k in range(3)]
+            uu=sum(v*v for v in u) or 1.0
+            al[x,y]=max(0,min(255,round(255*sum(a*b for a,b in zip(d,u))/uu)))
+    meta={}
+    for k,(name,c) in enumerate(zip(NAMES,cc)):
+        m=Image.new('L',(W,W)); mp=m.load()
+        for x,y in c['pts']: mp[x,y]=255
+        win=m.filter(ImageFilter.MaxFilter(5))
+        for j,o in enumerate(cc):
+            if j==k: continue
+            om=Image.new('L',(W,W)); op=om.load()
+            for x,y in o['pts']: op[x,y]=255
+            win=ImageChops.subtract(win,om)
+        A=ImageChops.multiply(alpha,win).resize((WU,WU),Image.BICUBIC).filter(ImageFilter.GaussianBlur(2.0))
+        bb=A.point(lambda v: 255 if v>=128 else 0).getbbox()
+        pad=8; bb=(max(0,bb[0]-pad),max(0,bb[1]-pad),min(WU,bb[2]+pad),min(WU,bb[3]+pad))
+        A.crop(bb).save(f'field-{name}.png'); meta[name]={'box':bb,'ch':0,'hidden':False}
+        print(name, bb)
+    json.dump(meta,open('fields.json','w'))
+    sys.exit()
 CRE=(252,238,206); AMB=(249,178,36); GND=(20,15,11)
 def unmix(im, ink_idx):
     # least squares c - G = a (CRE - G) + b (AMB - G); returns the chosen ink's coverage as an L image
