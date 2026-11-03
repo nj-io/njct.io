@@ -157,20 +157,7 @@
   "blurb": "Make a whole ad campaign, music video or film on open video models: every variant in one run, with a price before every run.",
   "url": null,
   "stack": "Python · FastAPI · Postgres · rented RTX 5090s",
-  "figs": [
-   [
-    "$2.29",
-    "16-shot film plan"
-   ],
-   [
-    "$0.24",
-    "4 clips on two models"
-   ],
-   [
-    "$0.07",
-    "8-second clip"
-   ]
-  ],
+  "figs": [],
   "accent": {
    "light": "#6c44f0",
    "dark": "#9384fa"
@@ -243,14 +230,6 @@
   "url": null,
   "stack": "Python · D3 · DataForSEO",
   "figs": [
-   [
-    "10",
-    "sites compared side by side"
-   ],
-   [
-    "4",
-    "views: sources, links, social, apps"
-   ],
    [
     "Free first",
     "paid data only where free routes fail"

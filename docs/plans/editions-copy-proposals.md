@@ -13,11 +13,11 @@ Every string here waits for operator approval before it ships. Approved copy alr
 | 7 | Topshine entry: name | Topshine (the product's own site writes it lowercase: "topshine") | Wave 2, from the lineup ruling |
 | 8 | Topshine entry: tag | A video studio on open video models | Wave 2, drafted from the Topshine waitlist page |
 | 9 | Topshine entry: blurb | Make a whole ad campaign, music video or film on open video models: every variant in one run, with a price before every run. | Wave 2, drafted from the Topshine waitlist page ("Make your whole ad campaign. Every variant, one run."; "A price before every run.") |
-| 10 | Topshine entry: figures | $2.29 · 16-shot film plan; $0.24 · 4 clips on two models; $0.07 · 8-second clip | Wave 2, the three example plans on the Topshine waitlist page |
+| 10 | Topshine entry: figures | none until row 53 is approved (ruling 5: the back carries facts without numbers) | Ruling 5 |
 | 11 | Topshine entry: stack, year, url | Python · FastAPI · Postgres · rented RTX 5090s; 2026; no url (the waitlist is not public yet) | Wave 2, from `~/dev/topshine/docs/topshine-production-plan-2026-10-28.md` § 2 |
 | 12 | Scorecard entry: tag | How websites win their traffic | Wave 2, drafted from the operator's description |
 | 13 | Scorecard entry: blurb | A dashboard comparing how websites win traffic: their sources, links, social footprint and apps, every number with its source and date. | Wave 2, the operator's description plus `~/dev/site-scorecard/COVERAGE.md` ("Every number carries its source and date") |
-| 14 | Scorecard entry: figures | 10 · sites compared side by side; 4 · views: sources, links, social, apps; Free first · paid data only where free routes fail | Wave 2, from the dashboard's compare limit and `~/dev/site-scorecard/RECIPE.md` |
+| 14 | Scorecard entry: figures | Free first · paid data only where free routes fail (row 56 proposes the other two; ruling 4) | Wave 2, `~/dev/site-scorecard/RECIPE.md`; ruling 4 |
 | 15 | Scorecard entry: stack, year, url | Python · D3 · DataForSEO; 2026; no url (its only home is a private artifact) | Wave 2, from `~/dev/site-scorecard/` |
 | 16 | Details: sticker on the sleeve's front, top right | Now playing (set in capitals on the sticker: NOW PLAYING) | Wave 2, the reference's Details sticker |
 | 17 | Details: button under the sleeve | Open | Wave 2, the reference's Details button |
@@ -51,9 +51,9 @@ Every string here waits for operator approval before it ships. Approved copy alr
 | 45 | The lineup | Xactions is off the shelf (operator ruling, Wave 4): its entry, its dossier and its page are removed. Shelf order: Mirra, stet, Social Hook, Clauded, LikeWiki, Topshine / Stellar Explorer, Chairtax, Scorecard, Stats, About Neil | Wave 4 |
 | 46 | Stats entry: name, tag, blurb | Stats; Visitors, sources and sales in one place; A private dashboard for this portfolio's product sites: who visited, where they came from and what they bought, with a summary in Telegram every morning. | Wave 4, drafted from the live login page (https://stats.njct.io, read 2026-11-03: "Stats", "Visitors and sales for Chairtax and Stet.") and `~/dev/new-site-analytics` |
 | 47 | Stats entry: figures | Every sale · traced to the post, email or ad that brought the buyer; Daily · Telegram summary at 09:00, with the week compared every Monday; One command · sets up tracking on a new site | Wave 4, `~/dev/new-site-analytics` (sources under row 49) |
-| 48 | Stats entry: stack, year, url | Node.js · PostHog · HogQL · Cloudflare Tunnel · Telegram; 2026; no url. **Question for the operator:** the dashboard is password-gated; should the page show its host (stats.njct.io) as the project link? | Wave 4 |
+| 48 | Stats entry: stack, year, url | Node.js · PostHog · HogQL · Cloudflare Tunnel · Telegram; 2026; https://stats.njct.io/live, shown as stats.njct.io (ruling 7) | Wave 4; ruling 7 |
 | 49 | Stats dossier | All of it: below | Wave 4, drafted from `~/dev/new-site-analytics` (README, AGENTS.md, docs/reference.md, analytics/stats-page/) |
-| 50 | Stats cover: title and back-cover strings (for the cover builder's glyph subsets) | Front title: Stats. Back: Stats; 2026; the figures of row 47; the stack line of row 48; no link | Wave 4; the cover module's fallback design shows these until the operator's cover pick lands |
+| 50 | Stats cover: title and back-cover strings (for the cover builder's glyph subsets) | Front title: Stats. Back: Stats; 2026; the figures of row 47; the stack line of row 48; stats.njct.io | Wave 4; the cover module's fallback design shows these until the operator's cover pick lands |
 | 51 | Chairtax page: Bearly | Bearly (the brand's own art, bearly-pointing.webp from chairtax.app, unaltered) stands on the world window's bottom edge beside the panel, pointing into the world; decorative (empty alt), loaded only on the Chairtax page | Wave 4, operator's request for the branding and mascot on the page |
 | 52 | Topshine entry: tag, blurb (finished vision; replaces rows 8 and 9) | Tag: The video studio your agent can run (alternative: row 8, "A video studio on open video models"). Blurb: Make a whole ad campaign, music video or film on open video models: every variant in one run, a price before it starts, and an agent in Claude Code, Codex or Cursor to run it for you. | Ruling 6; the agent from `~/dev/topshine-design-waitlist/docs/plan-byot-2026-10-29.md` § What each side can do; the rest as rows 8 and 9 |
 | 53 | Topshine back: three facts without numbers (replaces row 10; ruling 5) | Slot 1: ["Quoted", "a price and a cap before every run"] or ["Capped", "never billed above the quote"]. Slot 2: ["Made clips only", "failed clips cost nothing"] or ["Open models", "open-weights video on rented GPUs"]. Slot 3: ["MCP", "your agent plans and runs the shoot"] or ["Every variant", "a whole campaign in one run"] | Slot 1: `docs/copy.md` § Public pages (pricing.lead). Slot 2: `docs/copy.md` (terms.credits); `AGENTS.md` line 3. Slot 3: `docs/plan-byot-2026-10-29.md` § 2.1; the waitlist headline "Every variant, one run." (all paths under `~/dev/topshine-design-waitlist/`) |
@@ -196,7 +196,6 @@ Works out how a website gets its traffic, from rank, visits and channel mix to a
 | Covers | Traffic, ads, organic search, links, mentions and apps for each site |
 | Compare | Up to ten sites side by side, sorted by rank, growth, visits or ad spend |
 | Read-out | How each site gets its traffic, with a confidence level and the evidence |
-| Cost | About $0.35 of paid data for a full analysis of one site |
 
 **archHi**
 
@@ -262,7 +261,6 @@ Works out how a website gets its traffic, from rank, visits and channel mix to a
 - glance Covers: /Users/neil/dev/site-scorecard/dashboard/index.html (site sections: Traffic, Paid, Organic search, Similar sites, Links, Social and mentions, Apps, About the site)
 - glance Compare: /Users/neil/.claude/projects/-Users-neil/memory/project_site_scorecard.md ('compare ticks (up to 10 sites)'); /Users/neil/dev/site-scorecard/dashboard/index.html (Sort: best rank, fastest growing, most visits, highest ad spend)
 - glance Read-out: /Users/neil/dev/site-scorecard/RECIPE.md § 1 step 8, § 5; /Users/neil/dev/site-scorecard/dashboard/index.html ('How it gets traffic — Confidence'); /Users/neil/dev/site-scorecard/dashboard/data/readout.json
-- glance Cost: /Users/neil/dev/site-scorecard/COVERAGE.md § Cost of one full analysis (Total ~$0.35)
 - archHi list: /Users/neil/dev/site-scorecard/RECIPE.md § 1 (Order of work); /Users/neil/dev/site-scorecard/collect/README.md § Parts and costs per site (company, site_scan, keyword_gap); /Users/neil/dev/site-scorecard/dashboard/index.html (section headings)
 - archHi closer: /Users/neil/dev/site-scorecard/RECIPE.md intro ('The findings feed our own products'); /Users/neil/.claude/projects/-Users-neil/memory/project_site_scorecard.md (Purpose)
 - arch intro: /Users/neil/dev/site-scorecard/RECIPE.md intro ('free first'); /Users/neil/dev/site-scorecard/collect/README.md intro and § Run; /Users/neil/dev/site-scorecard/dashboard/build.js, d3.min.js
@@ -287,7 +285,6 @@ Works out how a website gets its traffic, from rank, visits and channel mix to a
 
 **Claims to check before approval** (the drafting agent's list)
 
-- **The cost figure is wrong.** The glance row "Cost: About $0.35 of paid data for a full analysis of one site" is an estimate. The measured spend is about $0.13–0.14 of DataForSEO fees plus credits per site (site-scorecard/COVERAGE.md; collect/out/spend.json). Quoted numbers must be real: replace the figure with the measured one, or drop the row.
 - **Monthly auto-update.** It only records a request; the scheduled job is planned (RECIPE.md § 7).
 - **The closing line paraphrases RECIPE.md's intro.** That line is "feed the marketing of the other products in this portfolio".
 - **Left out:** the tracked sites' names and count, the event timeline, every COVERAGE row marked planned, and any public-product, pricing or user claims.
@@ -549,8 +546,6 @@ Shows how many people visited each of this portfolio's product sites, where they
 - **The proxy drops cookies and authorization headers.** reference.md says this only in the `--host nextjs` row; the draft applies it to every host.
 - **Left out:** private details (the hostname, ports, the tunnel id, PostHog project ids, vault item names, the password setup, and the real visitor figures); built but unused (the ads module, sending conversions to Google and Meta, the forget command, spend logging); planned (Mirra adoption, the attribution article, Social Hook link-scheme integration); and the claim "every product", since only Chairtax and stet are tracked today.
 
-**The link.** The entry's url is null because the dashboard is password-gated. **Question for the operator:** should the page show its host (stats.njct.io) as the project link?
-
 **Question for the operator.** As for rows 33, 34 and 38: the draft describes only what is built. Should planned features be written in, under the marketing convention?
 
 ## Row 54: Topshine dossier, finished vision (proposal)
@@ -697,7 +692,7 @@ Works out how a website gets its traffic, from rank, visits and channel mix to a
 **Claims to check before approval**
 
 - **Monthly re-runs for every site** reverse the standing cost rule that analyses run once and re-run only on Update now or a site's monthly switch (memory note project_site_scorecard.md, Running costs). The text could say "re-collected each month on request" instead.
-- **Dropped numbers.** The glance row "Cost: About $0.35" is gone (the figure was an estimate, and ruling 4 dropped it from the back), and "up to ten sites" is gone from the glance Compare row, to match ruling 4's drop of "10 · sites compared".
+- **Dropped numbers.** The glance Cost row is gone (ruling 4), and "up to ten sites" is gone from the glance Compare row, to match ruling 4's drop of "10 · sites compared".
 - **Left out as speculative or weak:** the revenue estimate (COVERAGE § 11 marks it "planned (weak)"), Social Blade back-history (pricing unclear), the EU-only Pinterest, Snapchat and X repositories, and any public or paid Scorecard product (the memory note frames it as "could become", with no plan).
 
 ## Row 59: Chairtax dossier, finished vision (proposal)
