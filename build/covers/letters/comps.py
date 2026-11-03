@@ -1,8 +1,40 @@
 # python3 comps.py <tile.jpg>  ->  comps.json
 # The concept's letters as connected parts of its cream ("Chair") and amber ("tax") colour masks, each with its
 # box and pixels at the tile's 554 px: chair = C, h, a, i dot, i, r; tax = t, a, x, then the bottom tick.
+#   python3 comps.py --config <slug>.json <tile.jpg>  ->  comps.json for another cover: each word's letters are the
+#   connected parts of its rule's mask inside its rows (config words, rules), at the tile's own size (W, H kept).
 import sys, json, colorsys
 from PIL import Image, ImageFilter
+if sys.argv[1] == '--config':
+    cfg = json.load(open(sys.argv[2])); im = Image.open(sys.argv[3]).convert('RGB'); W, H = im.size; p = im.load()
+    def comps_of(rule, y0, y1, x0, x1, minpx):
+        m = Image.new('L', (W, H)); q = m.load()
+        for y in range(y0, y1):
+            for x in range(x0, x1):
+                r, g, b = p[x, y]; L = (r + g + b) / 3; s = max(r, g, b) - min(r, g, b)
+                if eval(rule, {}, {'r': r, 'g': g, 'b': b, 'L': L, 's': s, 'x': x, 'y': y}): q[x, y] = 255
+        q = m.filter(ImageFilter.MedianFilter(3)).load(); seen = bytearray(W * H); out = []
+        for y in range(y0, y1):
+            for x in range(x0, x1):
+                if q[x, y] > 127 and not seen[y * W + x]:
+                    st = [(x, y)]; seen[y * W + x] = 1; pts = []
+                    while st:
+                        u, v = st.pop(); pts.append((u, v))
+                        for du, dv in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                            a_, b_ = u + du, v + dv
+                            if x0 <= a_ < x1 and y0 <= b_ < y1 and not seen[b_ * W + a_] and q[a_, b_] > 127: seen[b_ * W + a_] = 1; st.append((a_, b_))
+                    if len(pts) >= minpx: out.append(sorted(pts))
+        return sorted(out, key=lambda pts: (min(u for u, _ in pts), min(v for _, v in pts)))
+    def entry(pts):
+        xs = [u for u, _ in pts]; ys = [v for _, v in pts]
+        return {'box': [min(xs), min(ys), max(xs), max(ys)], 'pts': pts}
+    res = {'W': W, 'H': H}
+    for w in cfg['words']:
+        x0, x1 = w.get('x', [0, W])
+        res[w['name']] = [entry(q) for q in comps_of(cfg['rules'][w['rule']], w['y'][0], w['y'][1], x0, x1, w.get('minpx', 200))]
+    json.dump(res, open('comps.json', 'w'))
+    print({k: [e['box'] for e in v] for k, v in res.items() if k not in ('W', 'H')})
+    sys.exit()
 im = Image.open(sys.argv[1]).convert('RGB'); W = im.width
 p = im.load(); c = Image.new('L', (W, W)); a = Image.new('L', (W, W)); cp, ap = c.load(), a.load()
 for y in range(W):

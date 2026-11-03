@@ -1,0 +1,8 @@
+{
+  "tile": "clauded-b4",
+  "about": "Clauded cover letters traced from the concept tile clauded-b4 (567 x 564 px): each letter's coverage by colour unmixing (its cyan against the teal ground), traced at 4x, smoothed along the outline between corners. SVG path data in 1024 cover units, filled even-odd; ch is the type-mask channel.",
+  "rules": { "cyan": "g > 150 and b > 150 and r < 160" },
+  "words": [
+    { "name": "clauded", "rule": "cyan", "y": [0, 150], "minpx": 200, "ink": [80, 229, 232], "ground": [9, 62, 70], "ch": 0 }
+  ]
+}

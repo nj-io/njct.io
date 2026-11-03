@@ -1,4 +1,4 @@
-# Chairtax cover letters
+# Cover letters
 
 `editions/covers/letters/chairtax.json` holds the Chairtax cover's letters as SVG paths, traced from the concept tile. To regenerate it from the tile, run these commands in an empty work directory, with `REPO` set to the checkout:
 
@@ -16,6 +16,22 @@ The steps:
 - `glyphs.mjs` (with `glyphs.html`) renders the fitted Nunito glyphs that fill the parts the bear hides.
 - `fields.py` builds each letter's coverage at 4×.
 - `trace.py` traces it.
+
+## Other covers
+
+LikeWiki and Clauded have their letters traced from their concept tiles the same way, without the hidden-part steps. The best fonts of a per-letter sweep (Inter 800 for LikeWiki, IoU 0.93; Newsreader 800 for Clauded, IoU 0.88) left the band 5 px either side of the concept's letter edges at a mean ΔE76 of 14.0 and 12.7, so the concept's own letters are traced. Each cover has a config beside these scripts (`likewiki.json`, `clauded.json`). The config names the tile, each word's colour rule, rows, ink and ground, the trace settings, and any repairs. A repair fills a part of a concept letter that a field or shadow bites into, or cuts a stray flare, with a polygon in tile pixels. To regenerate a cover's letters, run these commands in an empty work directory:
+
+```sh
+SLUG=likewiki   # or clauded
+TILE=$REPO/.captures/concepts/tiles/$(python3 -c "import json;print(json.load(open('$L/$SLUG.json'))['tile'])").jpg
+python3 $L/comps.py --config $L/$SLUG.json $TILE
+python3 $L/fields.py --config $L/$SLUG.json $TILE
+python3 $L/trace.py $REPO/editions/covers/letters/$SLUG.json
+```
+
+- `comps.py --config` finds each word's letters by its colour rule.
+- `fields.py --config` unmixes each letter's ink from the ground it stands on, at 4x the tile, and applies the repairs.
+- `trace.py` traces the fields as for Chairtax. A tile that is not square maps to the cover with its own scale on each axis.
 
 The Python steps need Pillow. `glyphs.mjs` needs headless Chrome and the board-tools puppeteer-core.
 

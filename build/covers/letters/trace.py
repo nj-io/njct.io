@@ -11,6 +11,12 @@ CORNER=50    # turning in degrees over +-K samples (1 field px apart) that marks
 K=12
 TOL=0.6      # simplification tolerance, field px
 meta=json.load(open('fields.json'))
+# fields from fields.py --config carry their tile's size and the file's about line; a tile that is not square
+# maps to the 1024 cover with its own scale on each axis
+TILE=meta.pop('_tile',None)
+UX,UY=(4*TILE['W']/1024,4*TILE['H']/1024) if TILE else (U,U)
+# a cover's config may set its own smoothing and corner angle (config 'trace': {SM, CORNER, K, TOL})
+if TILE: globals().update(TILE.get('trace',{}))
 def loops_of(img):
     w,h=img.size; P=list(img.getdata()); f=lambda x,y: P[y*w+x]/255.0
     T=0.5; pos={}; adj={}
@@ -106,7 +112,7 @@ def path_of(runs, ox, oy):
     d=[]
     for kind,pts in runs:
         if kind=='closed':
-            P=[((x+ox)/U,(y+oy)/U) for x,y in pts]
+            P=[((x+ox)/UX,(y+oy)/UY) for x,y in pts]
             # a smooth loop: on-curve points are midpoints between controls
             n=len(P); mid=lambda i: ((P[i][0]+P[(i+1)%n][0])/2,(P[i][1]+P[(i+1)%n][1])/2)
             s=mid(n-1); d.append(('M',s)); cur=s
@@ -117,7 +123,7 @@ def path_of(runs, ox, oy):
             # loop of corner-to-corner runs: each run is a clamped quadratic B-spline (ends on the corners)
             first=True
             for seg in pts:
-                Q=[((x+ox)/U,(y+oy)/U) for x,y in seg]
+                Q=[((x+ox)/UX,(y+oy)/UY) for x,y in seg]
                 if first: d.append(('M',Q[0])); first=False
                 if len(Q)==2: d.append(('L',Q[1])); continue
                 ctrl=Q[1:-1]
@@ -158,6 +164,7 @@ ABOUT=("Chairtax cover letters traced from the concept tile chairtax-e3 (554 px)
   "(cream, amber, ground), its hidden parts under the concept's bear completed from the fitted Nunito 900 glyph (the h's "
   "ascender top rebuilt on the concept's stem edges), traced at 4x, smoothed along the outline between corners. SVG path "
   "data in 1024 cover units, filled even-odd; ch is the type-mask channel.")
+if TILE: ABOUT=TILE['about']
 s=json.dumps({'about':ABOUT,'letters':[{'name':n,'ch':c,'d':d} for n,c,d in result]},separators=(',',':'))
 open(OUT,'w').write(s+'\n')
 print(stats, 'total chars', sum(v[2] for v in stats.values()))

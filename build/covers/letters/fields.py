@@ -2,8 +2,44 @@
 # Per-letter coverage fields at 4x the concept tile (2216 px): the concept's own letter by colour unmixing
 # (cream / amber / ground), completed from the fitted Nunito glyph only where the concept's bear covers it.
 # Each field-<letter>.png (L, 0..255 = coverage) is cropped to the letter's box; fields.json keeps the offsets.
+#   python3 fields.py --config <slug>.json <tile.jpg>  ->  the same for another cover (needs comps.json from comps.py
+#   --config): each letter is its word's ink unmixed against the ground it stands on, nothing hidden, at 4x the tile's own size.
 import json, sys
 from PIL import Image, ImageFilter, ImageChops
+if sys.argv[1] == '--config':
+    cfg = json.load(open(sys.argv[2])); con = Image.open(sys.argv[3]).convert('RGB'); W, H = con.size; U = 4
+    cc = json.load(open('comps.json'))
+    def unmix2(im, ink, gnd):
+        u = [c - g for c, g in zip(ink, gnd)]; uu = sum(x * x for x in u)
+        o = Image.new('L', im.size); o.putdata([max(0, min(255, round(255 * sum((c[i] - gnd[i]) * u[i] for i in range(3)) / uu))) for c in im.getdata()]); return o
+    def mask_of(pts):
+        m = Image.new('L', (W, H)); p = m.load()
+        for x, y in pts: p[x, y] = 255
+        return m
+    every = [(w['name'], k) for w in cfg['words'] for k in range(len(cc[w['name']]))]
+    meta = {'_tile': {'W': W, 'H': H, 'about': cfg['about'], 'trace': cfg.get('trace', {})}}
+    for w in cfg['words']:
+        alpha = unmix2(con, w['ink'], w['ground'])
+        for k, comp in enumerate(cc[w['name']]):
+            win = mask_of(comp['pts']).filter(ImageFilter.MaxFilter(5))
+            for other in every:
+                if other != (w['name'], k): win = ImageChops.subtract(win, mask_of(cc[other[0]][other[1]]['pts']))
+            A = ImageChops.multiply(alpha, win).resize((W * U, H * U), Image.BICUBIC).filter(ImageFilter.GaussianBlur(2.0))
+            # repairs (config words[].repair: {letter, fill | cut: polygon in tile px}): a part of the concept's letter
+            # that a field or shadow bites into is filled, a stray flare is cut, each polygon softened like the letter
+            for r in w.get('repair', []):
+                if r['letter'] != k: continue
+                from PIL import ImageDraw
+                pm = Image.new('L', (W * U, H * U)); ImageDraw.Draw(pm).polygon([(x * U, y * U) for x, y in r.get('fill') or r['cut']], fill=255)
+                pm = pm.filter(ImageFilter.GaussianBlur(2.0))
+                A = ImageChops.lighter(A, pm) if 'fill' in r else ImageChops.multiply(A, ImageChops.invert(pm))
+            bb = A.point(lambda v: 255 if v >= 128 else 0).getbbox()
+            pad = 8; bb = (max(0, bb[0] - pad), max(0, bb[1] - pad), min(W * U, bb[2] + pad), min(H * U, bb[3] + pad))
+            name = f"{w['name']}{k}"
+            A.crop(bb).save(f'field-{name}.png'); meta[name] = {'box': bb, 'ch': w['ch'], 'hidden': False}
+            print(name, bb)
+    json.dump(meta, open('fields.json', 'w'))
+    sys.exit()
 W=554; U=4; WU=W*U
 CRE=(252,238,206); AMB=(249,178,36); GND=(20,15,11)
 def unmix(im, ink_idx):
