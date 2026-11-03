@@ -419,7 +419,7 @@ function stepDetails(s, now) {
     } else {
       p.recX = det.from.recX; p.recY = det.from.recY; p.rec = det.from.rec * (1 - e);
     }
-    det.blur = smooth(clamp01((t - delay(DETAILS.blur.at)) / dur(DETAILS.blur.dur)));
+    det.blur = crateMode ? 0 : smooth(clamp01((t - delay(DETAILS.blur.at)) / dur(DETAILS.blur.dur)));   // the crate stays sharp, as on the reference
     det.sticker = clamp01((t - delay(DETAILS.title.at)) / dur(DETAILS.title.dur));
     const end = Math.max(...[F, R, DETAILS.blur, DETAILS.title].map(k => delay(k.at) + dur(k.dur)));
     moving = t < end || now - det.flip.t0 < delay(P.at) + dur(P.dur);
