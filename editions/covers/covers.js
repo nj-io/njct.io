@@ -30,7 +30,6 @@ const FACES = [
   ['NJ Hanken', 'hanken-grotesk-600-cover.woff2', '600'],
   ['NJ Narrow', 'archivo-narrow-700-cover.woff2', '700'],
   ['NJ Bricolage', 'bricolage-grotesque-96pt-extrabold-title-cover.woff2', '800'],
-  ['NJ Roboto', 'roboto-black-cover.woff2', '900'],
 ];
 // Faces only the backs use load with the first back.
 const BACK_FACES = [
@@ -588,37 +587,54 @@ vec3 motif(vec2 p, float t) {
 })();
 
 
-// Scorecard: a Swiss composition, a quartered disc over diagonal fields; alive, the quarters turn a step.
+// Scorecard: a Swiss composition, a quartered disc over diagonal fields; alive, the quarters turn a step. Fitted to its
+// concept cut to its cover box (566 px, y down): the two splits, three field diagonals, the disc (a slight ellipse, as the
+// photographed sleeve shows it) and its wedge line, each region's colour a cubic field in linear light, a faint dark seam
+// where regions meet, and the paper's grain.
 MOTIFS.scorecard = /* glsl */`
+#define SC_GRAIN (uMip < 0.5 ? 1.0 : 0.0)
+#define SC_GF 0.66
+#define SC_GA 0.0425
+const vec3 SCK[130] = vec3[130](vec3(-0.01832, -0.03547, -0.1207), vec3(-0.1109, -0.1387, -0.4071), vec3(-0.1706, -0.1267, -0.2811), vec3(-0.0808, -0.03463, -0.02889), vec3(-0.06202, -0.0861, -0.2568), vec3(-0.0871, -0.1914, -0.6345), vec3(-0.06095, -0.1232, -0.3946), vec3(-0.09078, -0.03721, -0.0182), vec3(-0.02045, -0.02416, -0.05725), vec3(-0.04845, -0.009638, 0.029), vec3(-0.3315, -0.1363, 2.855), vec3(-0.1904, -0.1247, -2.022), vec3(0.1298, -0.7464, -4.573), vec3(-0.0755, -0.8886, 4.174), vec3(-1.308, -0.7268, 10.67), vec3(-0.4403, 0.1394, -2.887), vec3(0.1692, -0.1918, -7.097), vec3(-1.697, -0.8544, 16.1), vec3(-0.2585, 0.1412, -0.4396), vec3(-0.7261, -0.3316, 7.688), vec3(-0.01209, -0.0174, 0.118), vec3(-0.05786, -0.251, -1.183), vec3(-0.08712, -0.2239, -0.9656), vec3(-0.04505, -0.07567, -0.2634), vec3(0.02093, 0.1714, 0.9942), vec3(0.04695, 0.3404, 1.589), vec3(0.02323, 0.116, 0.3582), vec3(-0.01459, -0.01116, 0.04293), vec3(-0.01287, -0.1627, -0.9695), vec3(0.005015, -0.0837, -0.7028), vec3(-0.007608, -0.04457, -0.1956), vec3(-0.04401, 0.3347, 0.3317), vec3(-0.05042, -0.5798, -0.257), vec3(0.01807, 0.9647, 0.2275), vec3(-0.1782, -1.072, -1.438), vec3(-0.1251, 0.6436, 0.9009), vec3(-0.03243, 0.7871, -0.06002), vec3(-0.4075, -0.8013, -1.333), vec3(-0.07382, 0.8737, 0.5946), vec3(-0.2444, 0.03181, -0.2898), vec3(-0.09036, -0.08349, -0.1548), vec3(0.2555, 0.872, 0.8974), vec3(-0.2226, -0.8237, -0.7185), vec3(0.05859, 0.2831, 0.1427), vec3(-0.1752, -0.01951, -0.108), vec3(0.3818, -0.1682, 0.06108), vec3(-0.2003, 0.2506, -0.06241), vec3(-0.04244, -0.4868, -0.4164), vec3(0.0568, 0.3804, 0.004279), vec3(0.00559, -0.06442, -0.248), vec3(1.087, 0.7314, -0.1198), vec3(-0.5219, -0.8788, 0.3954), vec3(0.8385, 1.333, -0.389), vec3(-0.4304, -0.6723, 0.1192), vec3(-0.8749, -1.013, 0.3996), vec3(1.862, 1.885, -0.9159), vec3(-1.062, -0.9504, 0.5021), vec3(1.537, 1.92, -0.3435), vec3(-1.414, -1.481, 0.4392), vec3(-0.7686, -1.022, 0.08717), vec3(-0.1545, -0.04417, -0.4906), vec3(0.276, 0.004005, 0.611), vec3(-0.31, -0.036, -0.05141), vec3(0.1562, 0.05457, -0.08807), vec3(0.3844, 0.2316, 1.218), vec3(-0.1692, 0.01521, -1.201), vec3(-0.02935, -0.08847, 0.2226), vec3(-0.4175, -0.3108, -0.8344), vec3(0.1332, 0.07566, 0.4874), vec3(0.137, 0.1098, 0.1538), vec3(0.9341, 0.09037, -0.01661), vec3(-0.2764, 0.2189, -0.1118), vec3(-0.9024, 0.1286, -0.486), vec3(-0.6804, -1.926, -0.6164), vec3(-0.117, 0.2089, -0.1725), vec3(-0.4016, 0.4516, -0.1955), vec3(-1.134, 1.643, -0.2445), vec3(0.5528, 0.9354, -0.556), vec3(0.2786, -0.6541, -0.3229), vec3(1.572, 1.042, -0.611), vec3(-0.007328, 0.1267, 0.9434), vec3(0.006373, -0.07725, 0.1565), vec3(-0.00825, -0.7836, 0.5993), vec3(-0.07819, -1.734, 0.8053), vec3(0.2671, -0.4096, 1.342), vec3(0.0331, -2.129, 1.202), vec3(-0.3558, -3.339, 2.68), vec3(-1.856, 1.725, -7.777), vec3(-1.362, -1.716, 1.405), vec3(2.732, -2.251, 15.05), vec3(0.01399, 0.3435, 1.061), vec3(0.05042, 0.5903, -0.4045), vec3(0.7494, 3.866, 5.579), vec3(0.3057, 2.699, 1.104), vec3(-0.1562, -0.4255, -1.345), vec3(0.2124, -1.387, 5.736), vec3(0.8718, -1.204, -10.58), vec3(0.8181, 3.031, 5.761), vec3(0.2807, 2.653, -9.677), vec3(-0.7129, -3.79, -7.183), vec3(0.000638, 0.01082, 0.2614), vec3(-0.06684, 0.07331, -0.07186), vec3(0.1082, -0.2157, 2.563), vec3(0.04965, 0.5735, -3.192), vec3(-0.01356, 0.06956, 0.4143), vec3(0.9797, 0.5416, 2.607), vec3(-1.412, -0.8631, -5.07), vec3(-0.07997, -0.3649, -0.8592), vec3(-1.476, -0.26, -1.574), vec3(0.2226, 0.7067, 1.232), vec3(0.9142, 0.7986, 0.7125), vec3(-0.0109, 0.6955, 0.2473), vec3(10.64, 5.773, -0.1123), vec3(-4.663, -0.6165, 0.6743), vec3(0.06862, -0.3126, -0.5267), vec3(12.88, 12.45, 4.86), vec3(11.88, 5.137, -5.606), vec3(2.225, 0.516, -1.136), vec3(21.26, 18.13, 4.963), vec3(3.737, 1.198, -1.405), vec3(1.105, 0.7351, 0.2442), vec3(-3.5, -1.152, -1.737), vec3(15.21, 3.978, 3.673), vec3(-19.19, -4.029, -2.281), vec3(-3.213, -1.306, 0.09462), vec3(9.399, 6.506, -1.36), vec3(-14.71, -11.25, 1.774), vec3(-8.64, -0.7452, -0.4627), vec3(-4.528, -4.857, -2.532), vec3(-17.02, -6.682, -6.179));
+float scCov(float d, float w) { return clamp(0.5 + d / w, 0.0, 1.0); }
+float scLine(vec2 X, vec3 l) { return dot(X, l.xy) - l.z; }
 vec3 motif(vec2 p, float t) {
-  // C: where the fields and the disc's quarters meet; the disc's circle is centred a little above it, as in the concept
-  vec2 C = vec2(0.487, 0.49), CD = ic(0.4906, 0.4914); float R = 0.2629;
-  // quadrant fields
-  float vx = p.x - C.x, hy = p.y - C.y;
-  vec3 tl = uPal[0];
-  tl = mix(tl, uPal[1], cover(sdTri(p, ic(0.0, 0.27), ic(0.27, 0.51), ic(0.0, 0.51))));
-  vec3 tr = mix(uPal[1], uPal[2], 0.35 * smoothstep(0.4, 1.0, p.y));
-  vec3 bl = mix(uPal[3], uPal[3] * 1.05, smoothstep(0.0, 0.5, p.y));
-  bl = mix(bl, uPal[4], cover(sdTri(p, ic(0.0, 0.64), ic(0.46, 1.0), ic(0.0, 1.0))));
-  vec3 br = mix(uPal[5], uPal[5] * 0.93, smoothstep(0.5, 0.0, p.y));
-  br = mix(br, uPal[0], cover(sdTri(p, ic(1.0, 0.66), ic(0.62, 1.0), ic(1.0, 1.0))));
-  vec3 top = mix(tl, tr, cover(-vx));
-  vec3 bottom = mix(bl, br, cover(-vx));
-  vec3 col = mix(bottom, top, cover(-hy));
-  // the quartered disc
+  vec2 X = vec2(p.x, 1.0 - p.y) * 566.0;
+  float bw = max(1.7, AAW * 566.0);   // the concept's edge, never under a pixel
+  // the disc's quarters turn about their own split point when alive
+  vec2 S2 = vec2(275.746, 290.235);
   float T = t * 0.25;
   float a = -0.5 * PI * (floor(T) + ease(sat((fract(T) - 0.62) / 0.38)));
-  vec2 q = rot(a) * (p - C);
-  vec3 qtl = mix(uPal[6], uPal[7], smoothstep(-0.05, 0.2, q.y));
-  vec3 qtr = mix(uPal[2], toLin(vec3(0.36, 0.68, 0.95)), cover(q.y - q.x));
-  vec3 qbr = toLin(vec3(0.10, 0.28, 0.74));
-  vec3 qbl = mix(toLin(vec3(0.95, 0.93, 0.90)), uPal[5], cover(-(-q.y + q.x)));
-  vec3 qt = mix(qtl, qtr, cover(-q.x));
-  vec3 qb = mix(qbl, qbr, cover(-q.x));
-  vec3 disc = mix(qb, qt, cover(-q.y));
-  disc *= 1.0 - 0.06 * smoothstep(0.0, R, length(p - CD - vec2(-0.08, 0.08)));
-  col = mix(col, disc, cover(length(p - CD) - R));
-  return col;
+  vec2 Xq = S2 + rot(-a) * (X - S2);
+  float L = scCov(275.367 - X.x, bw), Tp = scCov(289.395 - X.y, bw);
+  float L2 = scCov(S2.x - Xq.x, bw), T2 = scCov(S2.y - Xq.y, bw);
+  float tri = scCov(-scLine(X, vec3(0.728472, -0.685076, -104.283)), bw);
+  float dg = scCov(scLine(X, vec3(0.702087, 0.712092, 403.23)), bw);
+  float nb = scCov(scLine(X, vec3(0.694955, 0.719053, 651.874)), bw);
+  float A = scCov(scLine(Xq, vec3(-0.687235, -0.726436, -406.399)), bw), B = scCov(scLine(Xq, vec3(-0.687367, -0.72631, -407.788)), bw);
+  vec2 e = rot(-2.65023) * (X - vec2(277.487, 281.652));
+  float rr = length(e / vec2(151.778, 148.914)), gg = length(e / vec2(23036.7, 22175.4)) + 1e-9;
+  float D = scCov(-(rr - 1.0) * rr / gg, bw), O = 1.0 - D;
+  float w[13] = float[13](Tp * L * (1.0 - tri) * O, Tp * L * tri * O, Tp * (1.0 - L) * O,
+    (1.0 - Tp) * L * (1.0 - dg) * O, (1.0 - Tp) * L * dg * O, (1.0 - Tp) * (1.0 - L) * (1.0 - nb) * O, (1.0 - Tp) * (1.0 - L) * nb * O,
+    T2 * L2 * D, T2 * (1.0 - L2) * D * A, T2 * (1.0 - L2) * D * (1.0 - A), (1.0 - T2) * (1.0 - L2) * D,
+    (1.0 - T2) * L2 * D * B, (1.0 - T2) * L2 * D * (1.0 - B));
+  vec2 u = (X - 283.0) / 283.0, v = (Xq - 283.0) / 283.0;
+  float mf[10] = float[10](1.0, u.y, u.y * u.y, u.y * u.y * u.y, u.x, u.x * u.y, u.x * u.y * u.y, u.x * u.x, u.x * u.x * u.y, u.x * u.x * u.x);
+  float md[10] = float[10](1.0, v.y, v.y * v.y, v.y * v.y * v.y, v.x, v.x * v.y, v.x * v.y * v.y, v.x * v.x, v.x * v.x * v.y, v.x * v.x * v.x);
+  vec3 col = vec3(0.0); float s2 = 0.0;
+  for (int r = 0; r < 13; r++) {
+    s2 += w[r] * w[r];
+    if (w[r] <= 0.0) continue;
+    vec3 c = vec3(0.0);
+    for (int k = 0; k < 10; k++) c += SCK[r * 10 + k] * (r < 7 ? mf[k] : md[k]);
+    col += w[r] * c;
+  }
+  col *= 1.0 - 0.278519 * 2.0 * (1.0 - s2);
+  // the paper's grain, static and level in sRGB (as the concept's is); the two levels under full size, which the
+  // shader draws itself (shaderMips: 2), leave it out so at shelf size it settles to its mean
+  vec3 s = toSrgb(max(col, 0.0)) + (vnoise(X * SC_GF) - 0.5) * SC_GA * SC_GRAIN;
+  return toLin(clamp(s, 0.0, 1.0));
 }`;
 
 // Xactions: a dense ribbon of flow lines and particles sweeping across in an S, every colour of the spectrum.
@@ -1033,7 +1049,8 @@ vec3 motif(vec2 p, float t) {
 //   front: { src (beside this module), x, top, fade }; fade (px) softens a crop edge at its foot that the
 //   type covers. A motif may lift it with ART_DY(t) (cover units).
 // typeGlow: the type mask carries mips, so the motif can read it blurred (a glow or a shadow around the type).
-// shaderMips: the shader draws the front's mip levels itself, each filtered at its own sampling rate.
+// shaderMips: the shader draws the front's mip levels itself, each filtered at its own sampling rate; a number n
+//   draws levels 1..n only, and the levels below keep the box filter's.
 // form: the logo (or, fromType, the front's own type; or svg, a shape drawn for the cover) inflated into the motif's
 //   hero form: box [x, top, size], R bevel radius, soft blur (both cover units), key 'alpha' | 'tile' (tile: drop
 //   pixels near the tile colour).
@@ -1236,11 +1253,10 @@ function designFor(entry) {
       pal: ['#0F1B3D', '#1F5DD8', '#2A6BE3', '#14916F', '#0E7458', '#F6C21C', '#F24A1D', '#F7872E'],
       ground: '#0F1B3D',   // its navy field
       // each letter placed on its concept letter by its ink centre: [glyph, cx, cy, px, degrees, ink]
-      type: [{ font: 'NJ Roboto', weight: 900, set: [['S', 126.9, 127.8, 230.4, 0, 0], ['c', 251.1, 150.3, 220.1, 0, 0], ['o', 366.2, 150.3, 221.2, 0, 0],
-        ['r', 462.5, 150.3, 201.2, 0, 0], ['e', 544.4, 149.4, 210.3, 0, 0], ['c', 651.5, 149.4, 214.6, 0, 0], ['a', 749.6, 150.3, 207.1, 0, 0],
-        ['r', 835.9, 149.4, 204.4, 0, 0], ['d', 916, 127.8, 207.4, 0, 0]] }],
-      inks: ['#FFFFFF'],
-      bandY: 0.5, grain: [0.02, 0.012],
+      // the concept's own letters, traced (letters/scorecard.json); those that touch in the concept stay one outline
+      type: [{ paths: 'letters/scorecard.json' }],
+      inks: ['#FCFAF6'],
+      bandY: 0.5, grain: [0.02, 0.012], shaderMips: 2,
       back: { paper: '#0F1B3D', ink: '#FFFFFF', soft: '#A9B8DA', accent: '#F6C21C' },
     };
     case 'Xactions': return {
@@ -1924,7 +1940,7 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
   // the motif's fine structure fades to its mean before it can beat against the level's grid.
   const renderFront = (layers, ss) => {
     draw(frontRT, 0, layers, ss);
-    if (d.shaderMips) for (let k = 1; (frontRT.width >> k) >= 32; k++) draw(frontRT, 0, layers, ss, k);
+    if (d.shaderMips) for (let k = 1; (frontRT.width >> k) >= 32 && (d.shaderMips === true || k <= d.shaderMips); k++) draw(frontRT, 0, layers, ss, k);
   };
   const ease = u => u * u * (3 - 2 * u);
   // The back's strip is a crop of the finished front. A front smaller than the back (the scene's
