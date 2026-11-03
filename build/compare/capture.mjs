@@ -470,7 +470,9 @@ async function runSite(browser, siteKey) {
   await shoot(mc, 'phone-rest', pOrigin, 10000, 'phone');
   await m.touchscreen.tap(195, 422).catch(() => {});
   await shoot(mc, 'phone-tap', Date.now(), 1800, 'phone', { note: 'tap at (195,422)' });
-  // The project page by its own address (ours: the hash route), top and middle.
+  // The project page by its own address (ours: the hash route), top and middle. A blank page first makes it a
+  // fresh load: a hash-only goto stays in the same document and keeps the old time origin.
+  await m.goto('about:blank').catch(() => {});
   await m.goto(site.openUrl, { waitUntil: 'domcontentloaded', timeout: 60000 }).catch(e => { pageErrors.push('phone open goto: ' + e.message.slice(0, 120)); });
   const poOrigin = await m.evaluate(() => performance.timeOrigin).catch(() => Date.now());
   await shoot(mc, 'phone-page-world', poOrigin, 6000, 'phone', { note: site.openUrl });
