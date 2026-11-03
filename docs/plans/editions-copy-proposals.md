@@ -55,6 +55,16 @@ Every string here waits for operator approval before it ships. Approved copy alr
 | 49 | Stats dossier | All of it: below | Wave 4, drafted from `~/dev/new-site-analytics` (README, AGENTS.md, docs/reference.md, analytics/stats-page/) |
 | 50 | Stats cover: title and back-cover strings (for the cover builder's glyph subsets) | Front title: Stats. Back: Stats; 2026; the figures of row 47; the stack line of row 48; no link | Wave 4; the cover module's fallback design shows these until the operator's cover pick lands |
 | 51 | Chairtax page: Bearly | Bearly (the brand's own art, bearly-pointing.webp from chairtax.app, unaltered) stands on the world window's bottom edge beside the panel, pointing into the world; decorative (empty alt), loaded only on the Chairtax page | Wave 4, operator's request for the branding and mascot on the page |
+| 52 | Topshine entry: tag, blurb (finished vision; replaces rows 8 and 9) | Tag: The video studio your agent can run (alternative: row 8, "A video studio on open video models"). Blurb: Make a whole ad campaign, music video or film on open video models: every variant in one run, a price before it starts, and an agent in Claude Code, Codex or Cursor to run it for you. | Ruling 6; the agent from `~/dev/topshine-design-waitlist/docs/plan-byot-2026-10-29.md` § What each side can do; the rest as rows 8 and 9 |
+| 53 | Topshine back: three facts without numbers (replaces row 10; ruling 5) | Slot 1: ["Quoted", "a price and a cap before every run"] or ["Capped", "never billed above the quote"]. Slot 2: ["Made clips only", "failed clips cost nothing"] or ["Open models", "open-weights video on rented GPUs"]. Slot 3: ["MCP", "your agent plans and runs the shoot"] or ["Every variant", "a whole campaign in one run"] | Slot 1: `docs/copy.md` § Public pages (pricing.lead). Slot 2: `docs/copy.md` (terms.credits); `AGENTS.md` line 3. Slot 3: `docs/plan-byot-2026-10-29.md` § 2.1; the waitlist headline "Every variant, one run." (all paths under `~/dev/topshine-design-waitlist/`) |
+| 54 | Topshine dossier (finished vision; replaces row 33's what, glance and archHi, and adds to its arch and proc) | Below | Ruling 6 |
+| 55 | Scorecard entry: tag, blurb (finished vision; replaces rows 12 and 13) | Tag: How websites win their traffic (row 12; alternative: "See how any site wins its traffic"). Blurb: Find out how any website wins its traffic, from the ads it runs and the searches it ranks for to the creators it pays and the AI assistants that cite it, with a source and date on every figure. | Ruling 6; `~/dev/site-scorecard/COVERAGE.md` §§ 5, 9, 10 (planned rows) |
+| 56 | Scorecard back: two facts beside ["Free first", "paid data only where free routes fail"] (replaces row 14; ruling 4) | Slot 2: ["Sourced", "every figure carries its source and date"] or ["Side by side", "rival sites on one screen"]. Slot 3: ["Every channel", "search, ads, links, social and AI assistants"] or ["Read-out", "how each site wins its traffic, with the evidence"] | Slot 2: `~/dev/site-scorecard/COVERAGE.md` intro; the dashboard's Side by side view. Slot 3: COVERAGE.md §§ 3–10; RECIPE.md § 1 step 8 |
+| 57 | Scorecard dossier (finished vision; replaces row 34's what, glance and archHi, and adds to its arch) | Below | Ruling 6 |
+| 58 | Chairtax entry: blurb (finished vision; replaces row 35's blurb; name and tag stay) | When a break is due, Chairtax takes over your Mac's screen. Do a few squats, or one of five other movements, right at your desk, and the screen is yours again. | Ruling 6; close-range counting for every movement, `~/dev/chairtax/mvp/CHANGELOG.md` § Unreleased/Added (`Candidates.shipped` gains closeChairStand, closeReach, closeKnees, closeJacks) |
+| 59 | Chairtax dossier (finished vision; changes to row 38's what, glance, archHi and arch) | Below | Ruling 6 |
+| 60 | Stats entry: tag, blurb (finished vision; replaces row 46's tag and blurb) | Tag: See which post made the sale (alternative: row 46, "Visitors, sources and sales in one place"). Blurb: Find out which post, email or ad made each sale. One dashboard for every product site shows visitors, sources and sales, a Telegram summary arrives every morning, and ads that stop selling pause themselves. | Ruling 6; `~/dev/new-site-analytics/README.md` § What it does (Traces each sale to its source; Pauses ads that don't sell); `~/.claude/CLAUDE.md` § Product analytics (every site ships with it) |
+| 61 | Stats dossier (finished vision; replaces row 49's what, glance and archHi, and adds to its arch and proc) | Below | Ruling 6 |
 
 ## Row 33: Topshine dossier (proposal)
 
@@ -542,3 +552,257 @@ Shows how many people visited each of this portfolio's product sites, where they
 **The link.** The entry's url is null because the dashboard is password-gated. **Question for the operator:** should the page show its host (stats.njct.io) as the project link?
 
 **Question for the operator.** As for rows 33, 34 and 38: the draft describes only what is built. Should planned features be written in, under the marketing convention?
+
+## Row 54: Topshine dossier, finished vision (proposal)
+
+Replaces row 33's **what**, **glance** and **archHi**. **arch** and **proc** keep row 33's text and gain the bullets below. Planned features are written as live (ruling 6); each one's source is under Sources.
+
+**what**
+
+Plan a whole ad campaign, music video or film on open video models, or hand it to your agent. See an expected price and a cap before it runs, and pay only for the clips that are made.
+
+**glance**
+
+| Label | Value |
+|---|---|
+| Models | LTX-2.5, H3 and FastH3, run on rented RTX 5090s |
+| Price | An expected price and a cap before every session, charged only for the clips that are made |
+| Agents | Claude Code, Codex or Cursor plan, quote and run sessions over MCP, with Pause on every page |
+| API | Plans, scenes, comparisons and sessions over a REST API, with a webhook when a session ends |
+
+**archHi**
+
+```html
+<p>Topshine is a hosted video studio on open-weights video models. It rents an RTX 5090 for each session of work and charges for the machine time the clips take.</p>
+<ol>
+<li><strong>Plan.</strong> A scene is a plan of shots, each with its prompt, length, frames and takes. A comparison runs the same prompts across models. Several plans can go into one session, built on the planning page, posted to the API or written by your agent.</li>
+<li><strong>Quote.</strong> The session gets an expected price and a cap. Confirming holds the cap from prepaid credits, and the quote stays valid for 30 minutes.</li>
+<li><strong>Run.</strong> The service takes the cheapest machine that fits the cap, watches its speed and makes the clips. The progress screen shows each clip as it lands and what has been spent so far. Clips can be added while the paid time still covers them.</li>
+<li><strong>Review.</strong> Pick a take for each shot, trim, lay in music, a voiceover and captions, and stitch the cut into a film. Download each clip and film on its own, or the whole session as one zip.</li>
+</ol>
+<p>Every step is open to an agent. Paste one setup line into Claude Code, Codex or Cursor, and the agent plans, quotes, starts and adds to sessions while the open pages follow each change within seconds. An agent bar on every page shows what it is doing, Pause stops every key at once, and only you can buy credits or raise the daily limit.</p>
+<p>When the session ends, you pay what the made clips cost, up to the cap. Failed clips cost nothing, a machine that fails its checks is replaced at the service's expense, and the rest of the hold returns to the balance.</p>
+```
+
+**arch: bullets added after row 33's "Accounts are sealed off."**
+
+```html
+<li><strong>Agents work through scoped keys.</strong> A key made on Settings › API keys opens the same actions to an agent over MCP and to any client over <code>/v1</code>. An agent can do everything the customer can except delete the account or buy credits, and every hold it places stays inside the daily limit and the credits the account holds.</li>
+<li><strong>Every change saves at once.</strong> The planner, picks, trim and comparison pages save each change as it is made, the customer's and the agent's alike. A change from elsewhere appears on the open page within about two seconds, keeping the scroll position, the open editor and playback. When both change the same field at the same moment, the page shows the newer version with Undo.</li>
+<li><strong>Saves name what they change.</strong> A save names each plan by its file and its hash, never by a position in a list, so a plan created or renamed elsewhere can never take another plan's edit; a stale save is refused and the page reloads the current version.</li>
+<li><strong>The API covers the whole studio.</strong> Scenes and comparisons post as plan files, clips can be added to a running session, sessions list by account, and a session's end is posted to the customer's callback URL.</li>
+```
+
+**proc: bullets added after row 33's "Reconciliation as a scheduled job."**
+
+```html
+<li><strong>An MCP server beside the REST API.</strong> The MCP endpoint runs inside the same FastAPI process over streamable HTTP, authenticated by the same API keys, so an agent and a REST client reach the same actions under the same checks.</li>
+<li><strong>Optimistic concurrency over a change feed.</strong> Every object carries a version token. A save at an old token is refused as stale, and open pages poll a per-account change feed and apply each change in place.</li>
+```
+
+**Sources** (field or bullet lead → file; row 33's sources hold for every unchanged line)
+
+- what (hand it to your agent): /Users/neil/dev/topshine-design-waitlist/docs/plan-byot-2026-10-29.md § What each side can do
+- glance Agents: /Users/neil/dev/topshine-design-waitlist/docs/plan-byot-2026-10-29.md § What each side can do (setup line into Claude Code, Codex or Cursor; agent bar; Pause), § 2.1 (MCP transport)
+- glance API: /Users/neil/dev/topshine-design-waitlist/docs/topshine-production-plan-2026-10-28.md § 10 (Scenes and comparisons through the API, `POST /v1/plans`; Webhook callbacks for API customers, `callback_url`; `GET /v1/sessions` list; additions through the API)
+- archHi Plan (written by your agent), the agent paragraph: /Users/neil/dev/topshine-design-waitlist/docs/plan-byot-2026-10-29.md § What each side can do; /Users/neil/dev/topshine-design-waitlist/design/data/copy.js lines 201–209 (agent bar, Pause, "Pause stops every key from changing anything.")
+- archHi Review (one zip): /Users/neil/dev/topshine-design-waitlist/docs/topshine-production-plan-2026-10-28.md § 10 ("Download all" zip)
+- Agents work through scoped keys: /Users/neil/dev/topshine-design-waitlist/docs/plan-byot-2026-10-29.md § What each side can do (the agent's two exceptions; cost within the daily limit), § 2.2 (scopes)
+- Every change saves at once: /Users/neil/dev/topshine-design-waitlist/docs/plan-byot-2026-10-29.md § What each side can do, § 4.4, § 5.1
+- Saves name what they change: /Users/neil/dev/topshine-design-waitlist/docs/plan-byot-2026-10-29.md § 1.2 row L3 (file and sha256; 409 `stale`)
+- The API covers the whole studio: /Users/neil/dev/topshine-design-waitlist/docs/topshine-production-plan-2026-10-28.md § 10 (four rows)
+- An MCP server beside the REST API: /Users/neil/dev/topshine-design-waitlist/docs/plan-byot-2026-10-29.md § 2.1 (Transport: `/mcp` Route, key auth, streamable HTTP)
+- Optimistic concurrency over a change feed: /Users/neil/dev/topshine-design-waitlist/docs/plan-byot-2026-10-29.md § 4.1–4.2 (polling a change feed), § 5.1 (save at the current token)
+
+**Claims to check before approval**
+
+- **The agent feature is planned only.** Branch `byot-2026-10-29` holds the plan document and no code (8b1a927).
+- **The webhook, the sessions list, scenes through the API and the zip** each have one row in the production plan's § 10 "Cut from the launch (built later)", with no design beyond that row.
+- **"Optimistic concurrency" and "change feed" as pattern names** are the drafter's labels; the plan describes the mechanism without those names, except "change feed" (§ 4.2).
+- **Left out as speculative:** teams and shared projects, paid year-long retention, budget mode, and live progress by server-sent events. The plan lists them with no after-launch design. Also left out: an average-price quote, which needs a ruling (backend-report § 3.2 Gaps).
+
+## Row 57: Scorecard dossier, finished vision (proposal)
+
+Replaces row 34's **what**, **glance** and **archHi**. **arch** keeps row 34's text, gains the rows and bullets below, and its last bullet ("Re-runs are requests.") is replaced. **proc** keeps row 34's text.
+
+**what**
+
+Works out how a website gets its traffic, from rank, visits and channel mix to ads, search, links, social accounts, creator deals and the AI assistants that cite it, with a source and date on every figure and rival sites compared side by side.
+
+**glance**
+
+| Label | Value |
+|---|---|
+| Covers | Traffic, ads, search, links, social accounts, creator deals, mentions, AI citations and apps |
+| Compare | Sites side by side, sorted by rank, growth, visits or ad spend, against the leaders of their category |
+| Read-out | How each site gets its traffic, with a confidence level and the evidence |
+| Updates | Every site re-collected each month, with its history kept |
+
+**archHi**
+
+```html
+<p>Scorecard is a research dashboard that works out how a website gets its traffic. Every site goes through the same analysis, in the same order:</p>
+<ol>
+<li><strong>Profile.</strong> Category, pricing model, launch date with the evidence for it, the company, its technology, its checkout provider, its apps, and the sister sites that share its tracking IDs.</li>
+<li><strong>Size and trend.</strong> Daily traffic rank, monthly visits, countries, the phone and desktop split, and how visitors behave once they arrive.</li>
+<li><strong>Traffic mix.</strong> The share of visits from direct, search, paid, social, referrals and email, with the affiliate and referral programmes and the email provider behind them. The mix decides where the rest of the analysis looks hardest.</li>
+<li><strong>Paid.</strong> Ads found in the public ad libraries, how long each has run and how many variants it has, the keywords and brands it bids on, and an estimate of monthly ad spend.</li>
+<li><strong>Search and links.</strong> The keywords it ranks for, its branded search demand over time, the searches similar sites win that it does not, and the domains linking to it.</li>
+<li><strong>AI assistants.</strong> Whether ChatGPT, Claude, Gemini and Perplexity mention or cite the site for its category, and which of its pages they cite.</li>
+<li><strong>Social and mentions.</strong> Its own accounts' followers, growth and top posts, the creators it pays, and the posts, videos, listings and reviews that name it.</li>
+<li><strong>Read-out.</strong> A few lines on how the site gets its traffic, with a confidence level and the evidence behind each.</li>
+</ol>
+<p>Sites sit in one sortable table and open side by side, benchmarked against the leaders of their category. Every figure names its source and date, every site is re-collected each month, and the findings feed the marketing of the other products in this portfolio.</p>
+```
+
+**arch: rows added to row 34's sources table**
+
+```html
+<tr><td>Technology, checkout provider, ad pixels</td><td>A headless load of the site with the open Wappalyzer fingerprints and its pixel requests</td></tr>
+<tr><td>Sister sites</td><td>Analytics, Tag Manager and pixel IDs from the headless load, searched in PublicWWW</td></tr>
+<tr><td>AI assistant citations</td><td>DataForSEO LLM Mentions, and a fixed prompt set through LLM Responses on ChatGPT, Claude, Gemini and Perplexity</td></tr>
+<tr><td>Own social accounts</td><td>TikTok through the Mac mini reader, the YouTube API and profile pulls, one stored per update</td></tr>
+<tr><td>Creator deals</td><td>Instagram's paid-partnership flag, TikTok's branded-content fields and YouTube's paid-placement flag</td></tr>
+<tr><td>Launch records</td><td>The Product Hunt API and Hacker News search</td></tr>
+<tr><td>Headline and pricing history</td><td>Monthly Wayback snapshots of the home and pricing pages</td></tr>
+```
+
+**arch: bullets added after row 34's "Ad spend is an estimate with its working."; the last bullet is replaced**
+
+```html
+<li><strong>Creator deals come from fields already pulled.</strong> The Instagram, TikTok and YouTube posts the mentions part collects already carry each platform's sponsorship flag, so a paid creator partnership is found with no extra call.</li>
+<li><strong>AI visibility is a fixed prompt set.</strong> The same category questions go to each assistant on every run, so a change in who gets cited is a change in the answers.</li>
+<li><strong>Category leaders set the benchmark.</strong> Each site's traffic mix is read beside successful sites in the same category, chosen by Tranco rank.</li>
+<li><strong>Every site re-runs monthly.</strong> A scheduled routine re-collects traffic, sources and search for every tracked site each month and updates the dashboard files; Update now runs one site at once. Sites that appear as a similar site or a targeted brand for two or more tracked sites are listed as suggestions.</li>
+```
+
+**Sources** (field or bullet lead → file; row 34's sources hold for every unchanged line)
+
+- what, glance Covers: /Users/neil/dev/site-scorecard/COVERAGE.md §§ 8 (own social accounts), 9 (paid creator partnerships), 10 (AI assistant visibility), all planned rows
+- glance Compare (category leaders): /Users/neil/dev/site-scorecard/RECIPE.md § 7 (comparable successful sites by Tranco rank); /Users/neil/dev/site-scorecard/COVERAGE.md § 12 (Category leaders to benchmark, planned)
+- glance Updates, Every site re-runs monthly: /Users/neil/dev/site-scorecard/RECIPE.md § 7 (Monthly refresh: a scheduled routine that re-runs sections 2–4)
+- archHi Profile: /Users/neil/dev/site-scorecard/COVERAGE.md § 1 (Tech stack; Checkout and billing provider; Sister sites run by the same operator, planned)
+- archHi Size and trend (device split): /Users/neil/dev/site-scorecard/COVERAGE.md § 2 (Desktop vs mobile split)
+- archHi Traffic mix: /Users/neil/dev/site-scorecard/COVERAGE.md § 3 (Affiliate program; User referral program; Email channel, planned)
+- archHi Paid: /Users/neil/dev/site-scorecard/COVERAGE.md § 7 (Ad longevity and variant count, planned); /Users/neil/dev/site-scorecard/coverage-review-2026-11-02.md § 5 rank 3
+- archHi Search and links: /Users/neil/dev/site-scorecard/COVERAGE.md § 4 (Branded search demand over time, planned)
+- archHi AI assistants, AI visibility bullet, AI citations row: /Users/neil/dev/site-scorecard/COVERAGE.md § 10 (rows 165–168); /Users/neil/dev/site-scorecard/coverage-review-2026-11-02.md § 5 rank 10
+- archHi Social and mentions, Own social accounts row: /Users/neil/dev/site-scorecard/COVERAGE.md § 8 (rows 139–142)
+- Creator deals row and bullet: /Users/neil/dev/site-scorecard/COVERAGE.md § 9 (Paid creator partnerships: fields already on disk); /Users/neil/dev/site-scorecard/coverage-review-2026-11-02.md § 5 rank 4
+- Technology row, Sister sites row: /Users/neil/dev/site-scorecard/COVERAGE.md § 1, § 7 (Retargeting pixels in use)
+- Launch records row: /Users/neil/dev/site-scorecard/COVERAGE.md § 9 (Product Hunt launch; Hacker News posts)
+- Headline and pricing history row: /Users/neil/dev/site-scorecard/COVERAGE.md § 11 (Pricing page history), § 13 (Homepage headline and offer changes over time)
+- Category leaders set the benchmark: /Users/neil/dev/site-scorecard/RECIPE.md § 7; /Users/neil/dev/site-scorecard/coverage-review-2026-11-02.md § 5 rank 16
+
+**Claims to check before approval**
+
+- **Monthly re-runs for every site** reverse the standing cost rule that analyses run once and re-run only on Update now or a site's monthly switch (memory note project_site_scorecard.md, Running costs). The text could say "re-collected each month on request" instead.
+- **Dropped numbers.** The glance row "Cost: About $0.35" is gone (the figure was an estimate, and ruling 4 dropped it from the back), and "up to ten sites" is gone from the glance Compare row, to match ruling 4's drop of "10 · sites compared".
+- **Left out as speculative or weak:** the revenue estimate (COVERAGE § 11 marks it "planned (weak)"), Social Blade back-history (pricing unclear), the EU-only Pinterest, Snapchat and X repositories, and any public or paid Scorecard product (the memory note frames it as "could become", with no plan).
+
+## Row 59: Chairtax dossier, finished vision (proposal)
+
+Chairtax is on sale today, so the drafter wrote in only work that is built on `mvp` and waits for release (CHANGELOG § Unreleased). Anything planned beyond that would be a feature a buyer pays for now and might never receive. Changes to row 38 only; every other line of row 38 stays.
+
+**what**
+
+At the interval you set, Chairtax covers your Mac's screen and gives it back once the camera has counted your reps: squats, or one of five other movements, done right at your desk.
+
+**glance: the Movements row**
+
+| Label | Value |
+|---|---|
+| Movements | Squats, chair stands, jumping jacks, high knees, overhead reach and side bends, each counted with you right at the desk |
+
+**archHi: the Get moving step**
+
+```html
+<li><strong>Get moving.</strong> The screen is covered on every display. You stand where the camera can see you and do the reps, right at your desk, while a stick figure on the break screen follows your movement and the count climbs. A line under the count says what to fix: step back a little, tilt the screen up, go a little lower or slow down.</li>
+```
+
+**arch: row 38's "Each movement is a definition." bullet becomes**
+
+```html
+<li><strong>Each movement is a definition.</strong> One table gives each movement its signal (the shoulder line, depth, lean, arms or knees), its thresholds, its rule for a held framing and its status-line behaviour. Every movement counts at close range: squat depth and chair stands are read from the shoulders, the neck or the face, the overhead reach from the faint wrists and elbows, and high knees from the hips and knees the second pose pass finds on the shrunk frame, so a user at the desk counts where the shoulders drop out of the frame.</li>
+```
+
+**arch: bullet added after "A frame budget protects the frame rate."**
+
+```html
+<li><strong>A slow Mac counts the same reps.</strong> Every recording is replayed as if on a Mac twice as slow, dropping the frames that arrive while one is being read, and the release is held to no false rep and no frame read more than half a second late. High knees run their second pose pass on every frame that needs it, so the knee count reads the same joints on any supported Mac.</li>
+```
+
+**Sources**
+
+- what, glance Movements, Each movement is a definition: /Users/neil/dev/chairtax/mvp/CHANGELOG.md § Unreleased/Added ('The release build counts the chair stand, the overhead reach and high knees at close range'; 'The release build counts jumping jacks at close range (`Candidates.shipped` gains `closeJacks`)'; 'The release build counts squats at close range')
+- archHi Get moving (the line under the count): /Users/neil/dev/chairtax/mvp/CHANGELOG.md § Unreleased/Added ('The release build shows the status pill and the line under the count'; 'Squats and jumping jacks say "Tilt the screen up" once')
+- A slow Mac counts the same reps: /Users/neil/dev/chairtax/mvp/CHANGELOG.md § Unreleased/Added (`--perturb load`, checks L1 and L2; `FrameBudget.runsShrunk(on:always:)`, `PoseSource.readsLegs`)
+
+**Claims to check before approval**
+
+- **Every line above is built but unreleased.** It is on `mvp` under CHANGELOG § Unreleased and in no shipped build; 1.1.0 (7) is live. The page should go up with the release that carries it, or these lines wait.
+- **"Tilt the screen up"** is part 4 of `~/dev/chairtax/angle-plan/docs/plans/camera-angle-2026-10-29.md`, labelled there "design, operator decides (copy)", though the mvp CHANGELOG lists it as added.
+- **The slow-Mac check** in the CHANGELOG ends "Operator check before release: the frame rate on the slowest supported Mac". "Any supported Mac" assumes that check passes.
+- **Left out on purpose:** the App Store paywall (free to download, then a yearly plan or a lifetime unlock; `~/dev/chairtax/store-paywall-plan/docs/plans/app-store-paywall-2026-10-30.md`, copy pending). It changes how a buyer pays, and today's App Store build is paid upfront. Also left out: high knees with the camera tilted up (camera-angle plan part 5: "no mechanism found"), desk push-ups and Setapp (research notes only), and the operator's undescribed 1.0.2 feature.
+
+## Row 61: Stats dossier, finished vision (proposal)
+
+Replaces row 49's **what**, **glance** and **archHi**. **arch** and **proc** keep row 49's text and gain the bullets below.
+
+**what**
+
+Shows who visited each product site, where they came from and which post, email or ad led to each signup and sale, and pauses the ads that spend without selling.
+
+**glance**
+
+| Label | Value |
+|---|---|
+| Shows | Visitors, sources, funnel, top pages, countries and tagged links, for every product site or one at a time |
+| Sales | Each one traced to the post, email or ad the buyer arrived from, and split by product where a site sells several |
+| Ads | Google and Meta campaigns built switched off, started on approval and paused when they stop selling |
+| Reports | A Telegram summary every morning and a week-on-week summary every Monday |
+
+**archHi**
+
+```html
+<p>Stats is a private dashboard for every product site in this portfolio. It shows how many people visited each site, where they came from and what they did next, from App Store clicks to signups and sales. Its figures come from a tracking setup that each site gets with one command.</p>
+<ol>
+<li><strong>Tag.</strong> Every post, email or ad carries a tagged link made by the tool, so a visit can be traced to what brought it.</li>
+<li><strong>Record.</strong> Each site sends its visits and clicks to PostHog through a proxy on its own domain, with a cookie banner where the law needs one.</li>
+<li><strong>Join.</strong> A sale arrives from the payment provider's webhook carrying the visitor's checkout data, so it lands on the same visitor, and under the same source, as the visit. A site that sells several products shows each one's sales apart.</li>
+<li><strong>Act.</strong> Ads are built switched off and start only once their spend is approved. Each morning the tool pauses any ad that spends without selling, and tells Google and Meta about each sale so their bidding learns from it.</li>
+<li><strong>Read.</strong> The dashboard shows every site together or one at a time, for yesterday, the last 7 days or the last 30. A Telegram message sums up each morning, with ad spend on days an ad ran, and the whole week each Monday.</li>
+</ol>
+<p>The page and the messages take every figure from the same function, so they always agree, and each sale can be followed back to the post that brought the buyer.</p>
+```
+
+**arch: bullets added after row 49's "Scheduled messages."**
+
+```html
+<li><strong>Ads run under limits.</strong> A campaign starts only with an end date and a cap, and its approval shows the planned spend beside the platform's worst case. The morning pause rule counts sales from both PostHog and the platform and takes the higher, it only ever pauses, and every ad action is written to an append-only log.</li>
+<li><strong>Products within a site.</strong> A site with several products, add-ons or plans tags each sale with its product, and the report and the dashboard split sales by it.</li>
+<li><strong>Visitors can be forgotten.</strong> One command deletes a single visitor's data on request, and the privacy paragraph is printed from the operator's approved wording.</li>
+```
+
+**proc: bullet added after row 49's "Money events come from the server."**
+
+```html
+<li><strong>Sales reported back to ad platforms.</strong> Switched on per site, each sale is sent to Google and Meta from the server, so a platform's bidding learns from real purchases and never from a browser event.</li>
+```
+
+**Sources** (field or bullet lead → file; row 49's sources hold for every unchanged line)
+
+- what (pauses ads), glance Ads, archHi Act, Ads run under limits: /Users/neil/dev/new-site-analytics/README.md § What it does (Runs ads; Pauses ads that don't sell: 'It only ever pauses'; Tells ad platforms about sales); /Users/neil/.claude/projects/-Users-neil/memory/project_analytics_attribution.md (gate rulings 2026-10-26: planned total with the platform worst case, no activation without end date or cap, max(PostHog, platform) counts, append-only write log of ad actions)
+- glance Shows, archHi intro (every product site): /Users/neil/.claude/CLAUDE.md § Product analytics ('Every website and web app the operator ships has PostHog analytics through new-site-analytics')
+- glance Sales (split by product), archHi Join, Products within a site: /Users/neil/.claude/projects/-Users-neil/memory/project_analytics_attribution.md (Ads module ruling 2026-10-26: 'Mirra = one site, several Stripe products/add-ons → one project, product property, add a by-product split to report/dashboard at Mirra adoption')
+- archHi Read (ad spend on days an ad ran): /Users/neil/dev/new-site-analytics/README.md § The messages (Daily, 09:00)
+- Visitors can be forgotten: /Users/neil/dev/new-site-analytics/README.md § What it does (Handles privacy: `privacy`, `forget`)
+- Sales reported back to ad platforms: /Users/neil/dev/new-site-analytics/README.md § What it does (Tells ad platforms about sales: `enable google`, `enable meta`); /Users/neil/.claude/projects/-Users-neil/memory/project_analytics_attribution.md (Q8: both Google routes, server Data Manager upload as a per-product switch)
+
+**Claims to check before approval**
+
+- **Built but switched off.** The ads module, auto-pause, sending sales to Google and Meta, and `forget` are built (README) and in use on no site yet. No campaign has run.
+- **"Every product site"** is a standing rule; today only Chairtax and stet are tracked.
+- **The by-product split** is planned for Mirra's adoption and has no plan document; the only source is the memory note's ruling.
+- **"Their bidding learns from it"** paraphrases the purpose of conversion uploads; the README says only "Tells ad platforms about sales".
+- **Left out as speculative:** links made in Social Hook sharing the same tags (the memory note calls it "an open question for later"), the engine published as a public tool, and the attribution article.
