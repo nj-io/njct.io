@@ -1,0 +1,137 @@
+/* A project's page: the world (hero) then its dossier. Loaded with the project module, never in the
+   first view. The page scrolls the document; the shelf's fixed layers are hidden while it is open. */
+@font-face {
+  font-family: 'NJ Page Mono';
+  src: url('/vendor/fonts/jetbrains-mono-medium-latin.woff2') format('woff2');
+  font-weight: 500; font-style: normal; font-display: swap;
+}
+/* overflow-x: clip keeps sideways scrolling off without making html or body a scroll container,
+   which would stop the hero and the rail from sticking. */
+html.in-project, html.in-project body { height: auto; overflow: visible; }
+html.in-project { overflow-x: clip; }
+html.in-project body { background: var(--pj-ground); }
+html.in-project .masthead, html.in-project #slots, html.in-project .index,
+html.in-project .details, html.in-project #d-open { display: none; }
+
+.pj {
+  --pj-ground: #ececea; --pj-ink: #000; --pj-soft: rgba(0, 0, 0, 0.58); --pj-rule: rgba(0, 0, 0, 0.12);
+  --pj-head: 50px; --pj-panel: clamp(340px, 30.3vw, 520px); --pj-frame: 10px;
+  --mono: 'NJ Page Mono', ui-monospace, Menlo, monospace;
+  position: relative; color: var(--pj-ink); padding-top: var(--pj-head);
+}
+:root { --pj-ground: #ececea; }
+
+/* ---- header: the project's own bar, in its accent ---- */
+.pj-head {
+  position: fixed; top: 0; left: 0; right: 0; height: var(--pj-head); z-index: 5; box-sizing: border-box;
+  display: flex; align-items: center; gap: 12px; padding: 0 var(--gutter);
+  background: var(--acc); color: #fff; border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+}
+.pj-head .pj-mark { color: #fff; font-weight: 500; text-decoration: none; }
+.pj-head .pj-name { color: rgba(255, 255, 255, 0.62); }
+.pj-head .pj-sp { flex: 1; }
+.pj-head .pj-back { height: 34px; padding: 0 14px; border: 0; border-radius: 17px; background: transparent; color: #fff; cursor: pointer; }
+.pj-head .pj-back:hover { background: rgba(255, 255, 255, 0.14); }
+.pj-head .pj-cta { height: 34px; padding: 0 14px; border: 0; border-radius: 17px; background: #fff; color: #000; cursor: pointer; }
+.pj :focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.pj-title:focus { outline: none; }
+
+/* ---- hero: the world, the panel with the giant title ---- */
+.pj-hero { position: sticky; top: var(--pj-head); height: calc(100vh - var(--pj-head)); height: calc(100svh - var(--pj-head)); z-index: 0; overflow: hidden; }
+.pj-hero::before, .pj-hero::after { content: ''; position: absolute; left: 0; right: 0; height: var(--pj-frame); background: var(--acc); z-index: 1; }
+.pj-hero::before { top: 0; }
+.pj-hero::after { bottom: 0; }
+.pj-window { position: absolute; top: var(--pj-frame); bottom: var(--pj-frame); left: var(--pj-panel); right: 0; }
+.pj-panel {
+  position: absolute; top: 0; bottom: 0; left: 0; width: var(--pj-panel); z-index: 2; box-sizing: border-box;
+  background: var(--acc); color: #fff; display: grid; grid-template-columns: 39.5% 1fr; transform: translateX(-100%);
+  will-change: transform;
+}
+.pj-titlecol { position: relative; border-right: 1px solid rgba(255, 255, 255, 0.16); overflow: hidden; }
+.pj-title {
+  position: absolute; left: 10px; bottom: var(--pj-frame); margin: 0; font-weight: 500; line-height: 0.8; letter-spacing: -0.02em;
+  writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; color: #fff;
+}
+.pj-sub {
+  position: absolute; right: 12px; top: calc(var(--pj-frame) + 10px); margin: 0; font: 500 12px/1 var(--mono);
+  writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; color: rgba(255, 255, 255, 0.85);
+}
+.pj-col { padding: calc(var(--pj-frame) + 10px) 10px var(--pj-frame) 11px; display: flex; flex-direction: column; gap: 11px; overflow: hidden; }
+.pj-box { border: 1px solid rgba(255, 255, 255, 0.24); padding: 8px 8px 10px; font: 500 13px/1.38 var(--mono); }
+.pj-index ol { list-style: none; margin: 0; padding: 0; }
+.pj-index button {
+  all: unset; box-sizing: border-box; display: flex; justify-content: space-between; gap: 12px; width: 100%; cursor: pointer; color: #fff;
+}
+.pj-index button span:last-child { color: rgba(255, 255, 255, 0.62); }
+.pj-index button:hover span:first-child { text-decoration: underline; text-underline-offset: 3px; }
+.pj-fig .k { display: block; color: rgba(255, 255, 255, 0.62); font-size: 11.5px; margin-bottom: 6px; }
+.pj-fig .v { display: block; font-size: 14px; }
+
+/* ---- the page ---- */
+.pj-body {
+  position: relative; z-index: 3; background: var(--pj-ground); display: grid;
+  grid-template-columns: 194px minmax(0, 1fr); padding: 0 var(--gutter) 0 0;
+}
+.pj-rail { position: sticky; top: calc(var(--pj-head) + 40vh); align-self: start; padding-left: var(--gutter); }
+.pj-rail ol { list-style: none; margin: 0; padding: 0; font: 500 13px/24px var(--mono); }
+.pj-rail button { all: unset; cursor: pointer; display: flex; justify-content: space-between; width: 150px; color: var(--pj-soft); }
+.pj-rail button::after { content: '\25CB'; font-size: 9px; }
+.pj-rail button[aria-current="true"] { color: var(--pj-ink); }
+.pj-rail button[aria-current="true"]::after { content: '\25CF'; }
+.pj-main { min-width: 0; padding-bottom: 120px; }
+.pj-sec { padding-top: 140px; }
+.pj-sec .pj-num { font: 500 13px/1 var(--mono); color: var(--acc-ink); margin: 0 0 18px; }
+.pj-sec h2 { margin: 0 0 56px; font-size: 120px; line-height: 0.95; font-weight: 500; letter-spacing: -0.035em; }
+.pj-lead { max-width: 30ch; margin: 0 0 48px; font-size: 32px; line-height: 1.22; letter-spacing: -0.01em; }
+.pj-text { max-width: 68ch; font-size: 17px; line-height: 1.6; }
+.pj-text p, .pj-text ul, .pj-text ol, .pj-text table { margin: 0 0 1.1em; }
+.pj-text ul, .pj-text ol { padding-left: 1.2em; }
+.pj-text li { margin-bottom: 0.55em; }
+.pj-text li::marker { color: var(--acc-ink); }
+.pj-text strong { font-weight: 600; }
+.pj-text table { border-collapse: collapse; width: 100%; font-size: 15px; line-height: 1.45; display: block; overflow-x: auto; }
+.pj-text th, .pj-text td { text-align: left; vertical-align: top; padding: 9px 18px 9px 0; border-bottom: 1px solid var(--pj-rule); }
+.pj-text th { font: 500 12px/1.4 var(--mono); color: var(--pj-soft); }
+.pj-glance { max-width: 68ch; border-collapse: collapse; width: 100%; margin: 0 0 56px; }
+.pj-glance th, .pj-glance td { text-align: left; vertical-align: top; padding: 13px 0; border-top: 1px solid var(--pj-rule); }
+.pj-glance tr:last-child th, .pj-glance tr:last-child td { border-bottom: 1px solid var(--pj-rule); }
+.pj-glance th { width: 9.5em; padding-right: 20px; font: 500 13px/1.6 var(--mono); color: var(--pj-soft); }
+.pj-glance td { font-size: 17px; line-height: 1.5; }
+.pj-figure { margin: 0 0 48px; max-width: 1052px; }
+.pj-diagram { overflow-x: auto; overscroll-behavior-x: contain; background: #fff; border: 1px solid var(--pj-rule); padding: 28px; box-sizing: border-box; }
+.pj-diagram svg { display: block; margin: 0 auto; height: auto; }
+.pj-figure figcaption { margin-top: 10px; font: 500 12px/1.5 var(--mono); color: var(--pj-soft); }
+.pj-list { list-style: none; margin: 0; padding: 0; max-width: 68ch; }
+.pj-list a { display: grid; grid-template-columns: 12em 1fr; gap: 20px; padding: 13px 0; border-top: 1px solid var(--pj-rule); color: inherit; text-decoration: none; font-size: 17px; }
+.pj-list a:hover .n { text-decoration: underline; text-underline-offset: 3px; }
+.pj-list .t { color: var(--pj-soft); }
+.pj-foot { margin-top: 140px; padding-top: 22px; border-top: 1px solid var(--pj-rule); display: flex; flex-wrap: wrap; gap: 12px 28px; align-items: center; }
+.pj-foot a { color: inherit; font-size: 17px; text-underline-offset: 3px; }
+.pj-foot button { height: 40px; padding: 0 16px; border: 0; border-radius: 20px; background: #000; color: #ececec; cursor: pointer; }
+.pj-fail { padding: 160px 0; font-size: 17px; }
+
+/* ---- phone and narrow windows: the title across the top, the world in a framed box below ---- */
+@media (max-width: 899px) {
+  .pj { --pj-head: 56px; --pj-frame: 16px; }
+  .pj-head { padding: 0 16px; }
+  .pj-head .pj-cta { display: none; }
+  /* The hero's pieces each carry the accent so the world's box stays a hole onto the canvas. */
+  .pj-hero { position: relative; top: 0; height: auto; overflow: visible; display: flex; flex-direction: column; color: #fff; }
+  .pj-hero::before, .pj-hero::after { display: none; }
+  .pj-panel { display: contents; }
+  .pj-titlecol { order: 1; border: 0; overflow: visible; background: var(--acc); padding: 8px 16px 0; }
+  .pj-window { order: 2; box-shadow: inset 0 0 0 16px var(--acc); }
+  .pj-col { order: 3; background: var(--acc); padding: 0 16px 16px; }
+  .pj-title { position: static; writing-mode: horizontal-tb; transform: none; line-height: 0.9; }
+  .pj-sub { position: static; writing-mode: horizontal-tb; transform: none; text-align: right; margin: 8px 0 0; padding-bottom: 14px; white-space: normal; }
+  .pj-window { position: relative; left: auto; top: auto; bottom: auto; height: 62svh; margin: 0; }
+  .pj-body { display: block; padding: 0 16px; }
+  .pj-rail { display: none; }
+  .pj-sec { padding-top: 88px; }
+  .pj-sec h2 { font-size: clamp(44px, 14vw, 64px); margin-bottom: 32px; }
+  .pj-lead { font-size: 24px; }
+  .pj-text, .pj-glance td, .pj-list a { font-size: 16px; }
+  .pj-glance th { width: 7.5em; font-size: 12px; }
+  .pj-diagram { padding: 16px; margin: 0 -16px; border-left: 0; border-right: 0; }
+  .pj-list a { grid-template-columns: 1fr; gap: 2px; }
+}

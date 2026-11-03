@@ -3,7 +3,7 @@
 // flips it to its back cover, Escape puts it back); keyboard; sound. Renders only while something moves.
 import * as THREE from 'three';
 import { RoomEnvironment } from '/vendor/three-0.181.0/addons/environments/RoomEnvironment.js';
-import { CAMERA_Z, REF_H, SHELF, SLEEVE, INTRO, DETAILS, viewScale } from './scene/config.js';
+import { CAMERA_Z, REF_H, SHELF, SLEEVE, INTRO, DETAILS, OPEN, viewScale } from './scene/config.js';
 import { createLightUniforms, applyLights } from './scene/lighting.js';
 import { createWall } from './scene/wall.js';
 import { createShelves } from './scene/shelves.js';
@@ -317,6 +317,7 @@ function stepDetails(s, now) {
 
 function frame(now) {
   raf = 0;
+  if (inProject >= 0) { last = 0; return; }   // a page is open: the shelf holds still and draws nothing
   const dt = last ? Math.min(0.05, (now - last) / 1000) : 0;
   last = now;
   let active = false;
@@ -525,10 +526,68 @@ function endDetails(s, now) {
   syncHot();
 }
 
+// ---- Open: a project's page, by hash route (#mirra, #social-hook, #about) -------------------------
+// Open sets the hash; the route opens the page, so deep links and the browser's Back work the same way.
+// The page module loads on demand; the shelf stops drawing while a page is open and the page's world
+// draws on the same canvas.
+const slugOf = e => (e.kind === 'about' ? 'about' : e.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''));
+let view = null, viewP = null, inProject = -1, openedFromShelf = false, cutAfter = 0;
+const loadView = () => viewP || (viewP = import('./project/project.js').then(m => (view = m.createProjectView({
+  renderer, entries, slugOf, onBack: backToShelf,
+}))));
+
 function openProject(i) {
-  // Wave 3 builds the record-player view; for now Open only reports itself.
-  console.info(`[editions] open ${entries[i].name}`);
   play('open', { pan: det ? 0 : panOf(i) });
+  loadView();   // start loading now; the route waits for it
+  if (entries[i].kind !== 'about') import('./project/project.js').then(m => m.loadDossier(slugOf(entries[i])));
+  openedFromShelf = true;
+  cutAfter = OPEN.cut;
+  location.hash = slugOf(entries[i]);
+}
+
+async function route() {
+  const slug = decodeURIComponent(location.hash.slice(1));
+  const i = entries.findIndex(e => slugOf(e) === slug);
+  if (i >= 0) {
+    if (i === inProject) return;
+    const v = await loadView();
+    if (det) dropDetails();
+    setHovered(-1);
+    inProject = i;
+    for (const a of canvas.getAnimations()) a.finish();   // a deep link skips the canvas fade
+    audio?.setRoomTone(false);
+    if (!cutAfter) play('open');   // a link or the browser's Forward (Open has played it already)
+    await v.open(i, { cutAfter });
+    cutAfter = 0;
+  } else if (inProject >= 0) {
+    const i0 = inProject;
+    inProject = -1;
+    view?.close();
+    audio?.setRoomTone(true);
+    play('close', { pan: panOf(i0) });
+    // Back on the shelf with the same sleeve focused (and lifted, as focus does).
+    layout();
+    bakeDirty = bgDirty = true;
+    slots[i0].querySelector('[data-action="open"]').focus({ preventScroll: true });
+    wake();
+  }
+}
+// Back, Escape and the wordmark: the browser's Back when the page was opened from the shelf, else the
+// shelf's own address (a deep link has no shelf behind it).
+function backToShelf() {
+  if (openedFromShelf) { openedFromShelf = false; history.back(); }
+  else { history.pushState(null, '', location.pathname + location.search); route(); }
+}
+window.addEventListener('hashchange', () => { if (!location.hash) openedFromShelf = false; route(); });
+
+// Details ends at once when a page opens from it.
+function dropDetails() {
+  const s = sleeves[det.i];
+  for (const el of [dTitle, dTag, dOpen, tagline]) for (const a of el.getAnimations()) a.cancel();
+  detailsEl.inert = true; dOpen.inert = true;
+  endDetails(s, performance.now());
+  s.fall = null;
+  lifted = -1;
 }
 
 document.addEventListener('click', e => {
@@ -554,7 +613,7 @@ slotsEl.addEventListener('focusout', e => {
   if (!det) setHovered(pointerHit);
 });
 window.addEventListener('keydown', e => {
-  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.metaKey || e.ctrlKey || e.altKey || inProject >= 0) return;
   if (det) {
     if (e.key === 'Escape') { e.preventDefault(); closeDetails(); }
     else if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); if (!e.repeat) flip(); }
@@ -586,6 +645,7 @@ const hooks = {
   covers: coversReady,
   sleeveRect,
   setCover(i, front, back) { setCover(sleeves[i], front, back); wake(); },
+  get project() { return inProject >= 0 ? slugOf(entries[inProject]) : null; },
   get details() {
     return det ? { index: det.i, flipped: Math.round(det.flip.to / Math.PI) % 2 === 1, closing: !!det.exit, blur: det.blur, yaw: sleeves[det.i].pose.yaw } : null;
   },
@@ -611,3 +671,6 @@ for (const transparent of [true, false]) {
 for (const s of sleeves) applyPose(s);
 sticker.mesh.visible = false;
 bgDirty = true;
+
+// A deep link (#mirra) opens straight into its page once the shelf has drawn its first frame.
+firstFrame.ready.then(() => { if (location.hash) route(); });

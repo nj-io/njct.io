@@ -64,3 +64,14 @@ export const INTRO = {
   header: { at: 0, stagger: 50, rise: 30, tau: 235 },
   late: { at: 1830, tau: 110 },                  // tagline, sound toggle, index fade in last
 };
+
+// Open (ms). The reference cuts from the shelf to the edition's world when its page arrives (1.27 s after
+// the click, network bound); ours cuts once the project's data is in, at least OPEN.cut after the click.
+// After the cut, as measured on the reference: the world starts growing, the accent panel slides in from
+// the left, and the giant title types itself in while the panel lands.
+export const OPEN = {
+  cut: 300,
+  seed: 700,
+  panel: { at: 1453, dur: 1050, ease: [0.8, 0, 0.15, 1] },
+  title: { at: 1983, dur: 170 },
+};
