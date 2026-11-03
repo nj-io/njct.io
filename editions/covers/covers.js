@@ -24,7 +24,6 @@ const FONT_DIR = new URL('../../vendor/fonts/', import.meta.url);
 // set and how to regenerate it when a title or back-cover string changes).
 const FACES = [
   ['NJ Text', 'ui/inter-variable-ui.woff2', '100 900'],
-  ['NJ Poppins', 'poppins-extrabold-cover.woff2', '800'],
   ['NJ Soft Serif', 'fraunces-144pt-black-soft-cover.woff2', '900'],
   ['NJ Serif', 'fraunces-144pt-bold-cover.woff2', '700'],
   ['NJ Hanken', 'hanken-grotesk-650-cover.woff2', '650'],
@@ -397,41 +396,59 @@ vec3 etFill(vec2 p, float t) {
 #define INK0(p, t) (uMode > 0.5 ? stripFill(p, t) : stetFill(p, t, 1))
 #define INK1(p, t) (p.x < 0.41 ? stetFill(p, t, 0) : etFill(p, t))`;
 
-// Social Hook: a field of large geometric arcs and planes in the brand's blues.
+// Social Hook: a deep royal-blue field; a dark disc under "Hook"; a pale disc rising from the lower left;
+// a diagonal through a crossing low in the middle, with light along it and a wedge of light beyond it;
+// a deep triangle below the crossing; a disc split light | deep at the lower right, its foot behind the triangle. Each area's colour is a
+// low-order polynomial in position, plus the light band near the diagonal, fitted to the concept (linear light).
 MOTIFS.hook = /* glsl */`
+const vec3 K_G[6] = vec3[](vec3(0.0083, 0.0778, 0.7428), vec3(-0.0020, -0.0003, 0.0050), vec3(0.0033, -0.0133, -0.0825), vec3(0.0036, -0.0075, -0.0780), vec3(-0.0167, -0.0998, -0.2046), vec3(0.0107, 0.0343, -0.0377));
+const vec3 K_M[8] = vec3[](vec3(0.0457, 0.2707, 0.9415), vec3(0.1397, 0.4311, 0.2704), vec3(-0.1988, -0.2366, -0.0457), vec3(0.0646, -0.0152, -0.1472), vec3(0.0411, 0.0751, 0.0290), vec3(-0.0797, -0.0962, -0.0118), vec3(-0.1213, -0.2404, -0.0880), vec3(0.3882, 0.6104, 0.0892));
+const vec3 K_TR[6] = vec3[](vec3(0.0253, 0.1836, 0.7247), vec3(0.0339, 0.0881, 0.2032), vec3(0.0024, -0.0643, -0.2532), vec3(0.0272, 0.0441, 0.0331), vec3(-0.0072, -0.0294, -0.0625), vec3(-0.0036, 0.0234, 0.0759));
+const vec3 K_C3[8] = vec3[](vec3(0.2113, 0.6081, 0.9647), vec3(0.4538, 0.8624, 0.1045), vec3(-0.0925, -0.1751, 0.0481), vec3(0.1979, 0.1699, -0.0895), vec3(-0.0632, -0.0218, 0.0205), vec3(-0.1676, -0.3654, -0.0703), vec3(-0.0409, -0.0632, 0.0016), vec3(0.0435, 0.0589, -0.0056));
+const vec3 K_LF[8] = vec3[](vec3(-0.1830, 0.0553, 0.8927), vec3(0.5099, 0.6389, 0.0551), vec3(-0.2173, -0.2208, 0.0700), vec3(0.5060, 0.4484, 0.0665), vec3(-0.4052, -0.2290, -0.0719), vec3(0.8689, 0.7798, -0.0097), vec3(-0.2980, -0.4885, -0.2012), vec3(0.4712, 0.5704, 0.1513));
+const vec3 K_C4L[8] = vec3[](vec3(0.1141, 0.4222, 0.9458), vec3(0.2277, 0.3209, 0.0688), vec3(-0.2934, -0.4534, 0.0794), vec3(0.0560, 0.0831, 0.0069), vec3(-0.0268, -0.0636, -0.0407), vec3(0.0197, -0.1109, -0.1080), vec3(-0.0153, -0.0662, -0.0304), vec3(0.1748, 0.2307, 0.0213));
+const vec3 K_C4R[6] = vec3[](vec3(0.0061, 0.0706, 0.7333), vec3(0.0061, 0.0325, 0.1113), vec3(0.0001, 0.0070, 0.0293), vec3(0.0064, 0.0201, -0.0231), vec3(0.0041, 0.0104, -0.0473), vec3(0.0013, 0.0012, -0.0208));
+const vec3 K_TRI[6] = vec3[](vec3(0.0071, 0.0850, 0.7454), vec3(0.0040, 0.0086, -0.0060), vec3(0.0082, 0.0330, 0.1119), vec3(-0.0009, -0.0032, -0.0276), vec3(0.0012, 0.0023, 0.0029), vec3(0.0057, 0.0120, -0.0429));
+#define POLY(K, w) (K[0] + K[1] * w.x + K[2] * w.y + K[3] * w.x * w.x + K[4] * w.x * w.y + K[5] * w.y * w.y)
+#define BAND(K, e) (K[6] * e.x + K[7] * e.y)
+// distance to the line through o with slope k (y down), positive on its left
+float sdLeft(vec2 q, vec2 o, float k) { return -((q.x - o.x) * -k + (q.y - o.y)) / sqrt(k * k + 1.0); }
 vec3 motif(vec2 p, float t) {
-  float dr = 0.012 * sin(t * 0.35);
-  vec3 col = mix(uPal[0], uPal[1], 0.25 * smoothstep(0.2, 1.0, p.y));
-  // a large lighter disc entering from the top right
-  vec2 c1 = ic(0.88 + dr, 0.33);
-  float d1 = length(p - c1) - 0.47;
-  col = mix(col, mix(uPal[2], uPal[3], smoothstep(0.1, 0.5, length(p - c1 - vec2(0.15, 0.2)))), cover(d1));
-  // a deeper disc under the second line
-  vec2 c2 = ic(0.61 - dr * 0.6, 0.48);
-  col = mix(col, mix(uPal[4], uPal[0], smoothstep(0.0, 0.2, length(p - c2 - vec2(-0.08, 0.06)))), cover(length(p - c2) - 0.17));
-  // the lower left: a wide luminous arc
-  vec2 c3 = ic(0.08 - dr, 1.06);
-  float d3 = length(p - c3) - 0.53;
-  vec3 g3 = mix(uPal[3], uPal[2], smoothstep(0.0, 0.5, length(p - ic(0.42, 0.62))));
-  col = mix(col, g3, cover(d3));
-  // a bow-tie of planes crossing low in the middle
-  vec2 X = ic(0.47, 0.80);
-  float la = sdLine(p, X, ic(0.27, 0.56));
-  float lb = sdLine(p, X, ic(0.70, 0.58));
-  float top = max(-la, lb);
-  vec3 gt = mix(uPal[5], uPal[2], smoothstep(0.0, 0.25, X.y - p.y + 0.25));
-  col = mix(col, mix(col, gt, 0.75), cover(max(top, -(p.y - X.y))));
-  float bot = max(la, -lb);
-  col = mix(col, mix(uPal[4], uPal[0], smoothstep(0.0, 0.2, X.y - p.y)), cover(max(bot, p.y - X.y)));
-  // a split disc at the lower right
-  vec2 c4 = ic(0.79 + dr * 0.5, 0.74);
-  float d4 = length(p - c4) - 0.265;
-  vec3 left = mix(uPal[5], uPal[2], smoothstep(-0.25, 0.1, p.x - c4.x));
-  col = mix(col, left, cover(max(d4, p.x - c4.x)));
-  col = mix(col, mix(uPal[4], uPal[0], smoothstep(-0.2, 0.25, c4.y - p.y)), cover(max(d4, c4.x - p.x)));
-  // light falling across the planes
-  col *= 1.0 + 0.08 * smoothstep(0.6, 0.0, length(p - ic(0.55, 0.5)));
-  return col;
+  vec2 q = vec2(p.x, 1.0 - p.y), w = q - 0.5;   // concept coordinates, y down
+  // alive, the discs drift a few pixels and the band of light breathes
+  float dr = 0.006 * sin(t * 0.35), br = 1.0 + 0.25 * sin(t * 0.5);
+  vec2 X = vec2(0.47626, 0.77821);
+  float dL = sdLeft(q, X, -0.98364), dA = sdLeft(q, X, -1.01603);
+  float dB = -sdLeft(q, X, 1.05718);   // positive below the triangle's right edge
+  float dl = abs(q.y < X.y ? dL : dA);
+  vec2 e = br * vec2(exp(-dl / 0.01614), exp(-dl / 0.0561));
+  // each area's field is evaluated only where the area shows
+  vec3 G = POLY(K_G, w), col = G;
+  float m = sat((q.y - 0.54851) / 0.19798 + 0.5);
+  if (m > 0.0) col = mix(col, POLY(K_M, w) + BAND(K_M, e), m);
+  // the pale corner beyond the dark disc at the top right
+  vec2 c1 = vec2(0.65799, 0.33545);
+  if (q.x > c1.x && q.y < c1.y) col = mix(col, POLY(K_TR, w), cover(0.35365 - length(q - c1)));
+  // the dark disc under "Hook": the top field's own blue
+  col = mix(col, G, cover(length(q - vec2(0.59558 + dr, 0.43873)) - 0.16549));
+  // the pale disc from the lower left, under the line of the triangle's right edge
+  float a = cover(length(q - vec2(0.02461 - dr, 1.04655)) - 0.51214) * cover(-dB);
+  if (a > 0.0) col = mix(col, POLY(K_C3, w) + BAND(K_C3, e), a);
+  // beyond the diagonal: the light field above the triangle's right edge
+  float right = cover(max(dL, dA));
+  float b = right * cover(dB);
+  if (b > 0.0) col = mix(col, POLY(K_LF, w) + BAND(K_LF, e), b);
+  // the split disc, light on the left of the split (its own circle), deep on the right (half-ellipses)
+  float xs = 0.77971 - dr * 0.8;
+  b = cover(length(q - vec2(0.7876 - dr * 0.8, 0.78558)) - 0.24415) * cover(q.x - xs);
+  if (b > 0.0) col = mix(col, POLY(K_C4L, w) + BAND(K_C4L, e), b);
+  vec2 o4 = q - vec2(0.80816 - dr * 0.8, 0.75084);
+  b = cover(sdEllipse(o4, vec2(o4.x < 0.0 ? 0.26661 : 0.20003, 0.21656))) * cover(xs - q.x);
+  if (b > 0.0) col = mix(col, POLY(K_C4R, w), b);
+  // the deep triangle below the crossing, over the disc's foot
+  b = right * cover(-dB);
+  if (b > 0.0) col = mix(col, POLY(K_TRI, w), b);
+  return max(col, 0.0);
 }`;
 
 // Clauded: the whale mark as one large glossy glass form, its facets lit one by one.
@@ -803,28 +820,49 @@ vec3 motif(vec2 p, float t) {
 
 // About Neil: one gold sphere resting on cream paper, a soft contact shadow, the light moving across it when alive.
 MOTIFS.about = /* glsl */`
+// gold-leaf grain, static, its strength and size matched to the concept's on flat patches (on the sphere it grows with
+// the key light). It sits near the full-size grid's limit, so the two levels below full size, which the shader draws
+// itself (shaderMips: 2), leave it out: at shelf size it settles to its mean instead of twinkling as the shelf moves.
+#define GRAIN_ON (uMip < 0.5 ? 1.0 : 0.0)
+#define SPH_GF 310.0
+#define SPH_GA 0.125
+#define SPH_GK 1.0
+#define INK_GF 520.0
+#define INK_GA 0.16
+float blob(vec2 s, vec2 o, vec2 w) { vec2 d = (s - o) / w; return exp(-dot(d, d)); }
 vec3 motif(vec2 p, float t) {
-  vec2 C = ic(0.481, 0.555); float R = 0.246;
+  vec2 C = ic(0.4789, 0.5634); float R = 0.2499;
   float v = length((p - vec2(0.48, 0.5)) * vec2(1.0, 0.9));
   vec3 col = mix(uPal[0], uPal[1], smoothstep(0.1, 0.85, v));
-  // contact shadow, cast a little to the left
-  vec2 sq = (p - vec2(C.x - 0.035, C.y - R + 0.004)) / vec2(0.27, 0.04);
-  col *= 1.0 - 0.34 * exp(-dot(sq, sq) * 1.4);
-  vec2 sc = (p - vec2(C.x - 0.005, C.y - R + 0.002)) / vec2(0.1, 0.012);
-  col *= 1.0 - 0.45 * exp(-dot(sc, sc));
-  // the sphere
+  // contact shadow, cast to the left (light from the upper right), in sphere radii from its foot, y down: a
+  // near-black core just under it, a warm penumbra reaching left (the gold's light on the paper), a faint wide falloff
+  // (skipped where the sphere hides it and well above its foot, where every term is under 1e-5)
+  vec2 s = vec2(p.x - C.x, C.y - R - p.y) / R;
   vec2 q = (p - C) / R;
   float rr = dot(q, q);
+  if (rr > 0.95 && s.y > -1.2) {
+    col *= 1.0 - vec3(0.9409, 0.9700, 0.9700) * blob(s, vec2(-0.0758, 0.0246), vec2(0.4078, 0.0757));
+    col *= 1.0 - vec3(0.1923, 0.5800, 0.9617) * blob(s, vec2(-0.2017, 0.0214), vec2(0.9996, 0.1052));
+    col *= 1.0 - vec3(0.1619, 0.4738, 0.8093) * blob(s, vec2(-0.1879, 0.1421), vec2(1.0000, 0.2123));
+  }
+  // the sphere, matte satin: a wrapped key from the upper right with a soft terminator, a dark core on the
+  // left, light bounced up from the paper at the lower left, a lifted limb, a broad low sheen, and the
+  // occlusion darkening it towards its foot (terms and colours fitted to the concept's sphere, in Lab)
   if (rr < 1.08) {
     vec3 n = vec3(q, sqrt(sat(1.0 - rr)));
-    float la = 0.55 + 0.35 * sin(t * 0.4);
-    vec3 L = normalize(vec3(-cos(la) * 0.45, 0.7, 0.6 + 0.1 * sin(la)));
-    float dif = sat(dot(n, L));
-    vec3 g = mix(uPal[3], uPal[2], pow(dif, 0.9));
-    g += uPal[4] * 0.32 * pow(sat(dot(reflect(-L, n), vec3(0.0, 0.0, 1.0))), 5.0);
-    // bounce from the paper on the underside
-    g += uPal[1] * 0.12 * sat(-n.y) * (1.0 - n.z);
-    g *= 1.0 + (h12(floor(p * 900.0)) - 0.5) * 0.05;
+    // alive, the key and its sheen swing a little about the vertical
+    float sw = 0.3 * sin(t * 0.4);
+    vec3 m = vec3(n.x * cos(sw) - n.z * sin(sw), n.y, n.x * sin(sw) + n.z * cos(sw));
+    float key = pow(sat((dot(m, vec3(0.4419, 0.5516, 0.7074)) + 0.2885) / 1.2885), 2.9185);
+    float bounce = pow(sat(dot(n, vec3(-0.3752, -0.8371, 0.3982))), 1.3779);
+    float sheen = pow(sat(dot(m, vec3(0.4984, 0.6846, 0.5319))), 10.4132);
+    vec3 g = vec3(-0.1931, -0.0919, 0.0022) + vec3(1.0784, 0.4034, 0.0205) * key + vec3(0.4774, 0.1352, 0.0035) * bounce
+      + vec3(0.6279, 0.2096, 0.0007) * (1.0 - n.z) + vec3(-0.1709, 0.3627, 0.2973) * sheen
+      + vec3(0.0007, -0.0098, -0.0049) * n.x + vec3(-0.0034, 0.0000, -0.0027) * n.y + vec3(-0.0032, 0.0228, -0.0068) * n.x * n.y
+      // the paper's light caught on the lower-left limb
+      + vec3(1.387, 0.510, 0.054) * pow(1.0 - n.z, 6.0) * sat(dot(n.xy, vec2(-0.4226, -0.9063)) / max(length(n.xy), 1e-4));
+    g *= 1.0 - 1.0000 * exp(-(1.0 + n.y) / 0.1612);
+    g = max(g, 0.0) * (1.0 + (vnoise(p * SPH_GF) - 0.5) * SPH_GA * (SPH_GK + key) * GRAIN_ON);
     col = mix(col, g, cover((sqrt(rr) - 1.0) * R));
   }
   return col;
@@ -832,7 +870,7 @@ vec3 motif(vec2 p, float t) {
 vec3 goldInk(vec2 p) {
   float k = smoothstep(0.98, 0.72, p.y) + 0.25 * (fbm(p * 18.0) - 0.5);
   vec3 c = mix(uInk0, uInk1, sat(k));
-  c *= 1.0 + (h12(FC * 1.3 + 2.0) - 0.5) * 0.16;
+  c *= 1.0 + (vnoise(p * INK_GF + 3.0) - 0.5) * INK_GA * GRAIN_ON;
   return c;
 }
 #define INK0(p, t) goldInk(p)`;
@@ -1027,7 +1065,8 @@ vec3 motif(vec2 p, float t) {
 //   front: { src (beside this module), x, top, fade }; fade (px) softens a crop edge at its foot that the
 //   type covers. A motif may lift it with ART_DY(t) (cover units).
 // typeGlow: the type mask carries mips, so the motif can read it blurred (a glow or a shadow around the type).
-// shaderMips: the shader draws the front's mip levels itself, each filtered at its own sampling rate.
+// shaderMips: the shader draws the front's mip levels itself, each filtered at its own sampling rate; a number n
+//   draws levels 1..n only, and the levels below keep the box filter's.
 // form: the logo (or, fromType, the front's own type) inflated into the motif's hero form: box [x, top, size], R bevel radius,
 //   soft blur (both cover units), key 'alpha' | 'tile' (tile: drop pixels near the tile colour).
 // ground: the colour the resting cover reads as; a flat stand-in for a late cover (sRGB). For most covers it is the
@@ -1147,11 +1186,12 @@ function designFor(entry) {
     };
     case 'Social Hook': return {
       motif: 'hook', t0: 0,
-      pal: ['#2A63E6', '#2E6AE9', '#4482F1', '#6AA2F6', '#1C50D7', '#5C96F3'],
-      ground: '#538DF3',   // the discs it reads as
-      type: [{ lines: ['Social', 'Hook'], font: 'NJ Poppins', weight: 800, track: -0.02, fit: 806, x: 92, base: 278, lead: 224, ch: 0 }],
+      pal: [],   // its fields' colours live in the motif
+      ground: '#427FED',   // its field's mean blue, without the letters and the mark
+      // the concept's own letters, traced (letters/social-hook.json)
+      type: [{ paths: 'letters/social-hook.json' }],
       inks: ['#FFFFFF'],
-      mark: [62, 865, 108],
+      mark: [50, 868, 121],
       bandY: 0.32, grain: [0.012, 0.010],
       back: { paper: '#2563EB', ink: '#FFFFFF', soft: '#CFE0FF', accent: '#FFFFFF' },
     };
@@ -1247,11 +1287,12 @@ function designFor(entry) {
     };
     case 'About Neil': return {
       motif: 'about', t0: 0,
-      pal: ['#F2E7D3', '#E8D8BC', '#E4A23C', '#8E5214', '#FFE7A8'],
+      pal: ['#F2E7D3', '#E8D8BC'],
       ground: '#EFE2CC',
-      type: [{ lines: ['Neil'], font: 'NJ Text', weight: 900, track: -0.04, fit: 506, x: 60, base: 254, ch: 0 }],
+      // the concept's own letters, traced (letters/about.json)
+      type: [{ paths: 'letters/about.json' }],
       inks: ['#D2A64E', '#A8771F'],
-      bandY: 0.45, grain: [0.03, 0.014],
+      bandY: 0.45, grain: [0.03, 0.014], shaderMips: 2,
       back: { paper: '#F4EADA', ink: '#4A3212', soft: '#86704E', accent: '#B8862C' },
     };
   }
@@ -1883,7 +1924,7 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
   // the motif's fine structure fades to its mean before it can beat against the level's grid.
   const renderFront = (layers, ss) => {
     draw(frontRT, 0, layers, ss);
-    if (d.shaderMips) for (let k = 1; (frontRT.width >> k) >= 32; k++) draw(frontRT, 0, layers, ss, k);
+    if (d.shaderMips) for (let k = 1; (frontRT.width >> k) >= 32 && (d.shaderMips === true || k <= d.shaderMips); k++) draw(frontRT, 0, layers, ss, k);
   };
   const ease = u => u * u * (3 - 2 * u);
   // The back's strip is a crop of the finished front. A front smaller than the back (the scene's

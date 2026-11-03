@@ -1,9 +1,11 @@
-# python3 fields.py <tile.jpg> [--cover chairtax|stet]  ->  field-<letter>.png, fields.json
+# python3 fields.py <tile.jpg> [--cover chairtax|stet|social-hook|about]  ->  field-<letter>.png, fields.json
 # Per-letter coverage fields at 4x the concept tile, cropped to each letter's box (fields.json keeps the offsets).
 #   chairtax (the default; needs comps.json, bear.png, nunito-*.png): the concept's own letter by colour unmixing
 #     (cream / amber / ground), completed from the fitted Nunito glyph only where the concept's bear covers it.
 #   stet: each letter's coverage from the tile's luma, between the ground and the letter's own interior near the
 #     pixel (its letters are shaded in many colours); the e and the last t, which touch, are one field.
+#   social-hook, about (need comps.json and tile554.png from comps.py): each pixel's coverage as its distance from the
+#     local ground towards the local ink (white, or About Neil's gold filled out from the letter's interior).
 # Each field-<letter>.png is L, 0..255 = coverage.
 import json, sys
 from PIL import Image, ImageFilter, ImageChops, ImageMath
@@ -171,5 +173,69 @@ def stet(tile):
         print(name,meta[name]['box'])
     json.dump(meta,open('fields.json','w'))
 
+def ink_over_ground(tile, COVER):
+    W=554; U=4; WU=W*U
+    # python3 fields.py <tile.jpg> --cover social-hook|about  (needs comps.json, tile554.png from comps.py)
+    # Letters on a ground that changes under them (Social Hook: deep blue and the light wedge by the k and the l;
+    # About Neil: the cream paper's vignette): each pixel's coverage is its distance from the local ground towards
+    # the local ink, the ground filled in under the letters from the pixels around them. The ink is white (Social
+    # Hook), or the gold of the letter's own interior filled out to its edges (About Neil, whose gold shades and
+    # carries grain). One field per connected part (touching letters stay one outline).
+    con=Image.open('tile554.png').convert('RGB')
+    cc=json.load(open('comps.json'))['title']
+    NAMES={'social-hook':['SH','oc','oo','idot','i','k','a','l'],'about':['N','e','idot','i','l']}[COVER]   # the parts, by left edge (comps.py's order)
+    allm=Image.new('L',(W,W)); ap_=allm.load()
+    for c in cc:
+        for x,y in c['pts']: ap_[x,y]=255
+    out=ImageChops.invert(allm.filter(ImageFilter.MaxFilter(9)))            # ground only: 4 px clear of every letter
+    def blur(im,r): return im.filter(ImageFilter.GaussianBlur(r))
+    num=[ImageChops.multiply(b,out) for b in con.split()]
+    # About Neil: the ground's blur widens where too little ground is near (in the narrow gaps inside the word):
+    # radius 10, then 25, 60. Social Hook's letters were traced with radius 10 alone.
+    RADII=(10,25,60) if COVER=='about' else (10,); dens=[blur(out,r).load() for r in RADII]; nums=[[blur(b,r).load() for r in RADII] for b in num]; gnd=[]
+    for k in range(3):
+        g=Image.new('F',(W,W)); q=g.load()
+        for y in range(W):
+            for x in range(W):
+                for j in range(len(RADII)):
+                    if dens[j][x,y]>=8 or j==len(RADII)-1: break
+                dv=dens[j][x,y]; q[x,y]=nums[k][j][x,y]/max(dv,1)*255.0 if dv>0 else 0.0
+        gnd.append(g)
+    cp=con.load(); gl=[g.load() for g in gnd]
+    if COVER=='about':
+        core=allm.filter(ImageFilter.MinFilter(7))                          # letter interiors, 3 px in from the edge
+        cden=blur(core,6); ink=[]
+        for b in [ImageChops.multiply(b,core) for b in con.split()]:
+            bb=blur(b,6); bp=bb.load(); dq=cden.load(); g=Image.new('F',(W,W)); q=g.load()
+            for y in range(W):
+                for x in range(W): q[x,y]=bp[x,y]/max(dq[x,y],1)*255.0 if dq[x,y]>0 else 255.0
+            ink.append(g)
+        il=[g.load() for g in ink]
+    alpha=Image.new('L',(W,W)); al=alpha.load()
+    for y in range(W):
+        for x in range(W):
+            g=[gl[k][x,y] for k in range(3)]; d=[cp[x,y][k]-g[k] for k in range(3)]
+            u=[(il[k][x,y] if COVER=='about' else 255)-g[k] for k in range(3)]
+            uu=sum(v*v for v in u) or 1.0
+            al[x,y]=max(0,min(255,round(255*sum(a*b for a,b in zip(d,u))/uu)))
+    meta={}
+    for k,(name,c) in enumerate(zip(NAMES,cc)):
+        m=Image.new('L',(W,W)); mp=m.load()
+        for x,y in c['pts']: mp[x,y]=255
+        win=m.filter(ImageFilter.MaxFilter(5))
+        for j,o in enumerate(cc):
+            if j==k: continue
+            om=Image.new('L',(W,W)); op=om.load()
+            for x,y in o['pts']: op[x,y]=255
+            win=ImageChops.subtract(win,om)
+        A=ImageChops.multiply(alpha,win).resize((WU,WU),Image.BICUBIC).filter(ImageFilter.GaussianBlur(2.0))
+        bb=A.point(lambda v: 255 if v>=128 else 0).getbbox()
+        pad=8; bb=(max(0,bb[0]-pad),max(0,bb[1]-pad),min(WU,bb[2]+pad),min(WU,bb[3]+pad))
+        A.crop(bb).save(f'field-{name}.png'); meta[name]={'box':bb,'ch':0,'hidden':False}
+        print(name, bb)
+    json.dump(meta,open('fields.json','w'))
+
+
 cover = sys.argv[sys.argv.index('--cover') + 1] if '--cover' in sys.argv else 'chairtax'
-{'chairtax': chairtax, 'stet': stet}[cover](sys.argv[1])
+if cover in ('social-hook', 'about'): ink_over_ground(sys.argv[1], cover)
+else: {'chairtax': chairtax, 'stet': stet}[cover](sys.argv[1])
