@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>njct.io Editions</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: rgb(205,205,205); }
+  canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  #slots { position: fixed; inset: 0; pointer-events: none; font: 500 14px/1 system-ui, sans-serif; }
+  .slot { position: absolute; }
+  .slot button { position: absolute; left: 16px; bottom: 4px; height: 35px; padding: 0 16px; border: 0; border-radius: 18px;
+    background: #fff; color: #111; font: inherit; opacity: 0; pointer-events: none; transition: opacity .15s; cursor: pointer; }
+  .slot button[data-action="details"] { left: 86px; }
+  .slot.hot button { opacity: 1; pointer-events: auto; }
+</style>
+<script type="importmap">{ "imports": { "three": "/vendor/three-0.181.0/three.module.min.js" } }</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="slots"></div>
+<script type="module" src="./main.js"></script>
+</body>
+</html>
