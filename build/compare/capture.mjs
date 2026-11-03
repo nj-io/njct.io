@@ -12,6 +12,7 @@ import puppeteer from '/Users/neil/.cache/board-tools/node_modules/puppeteer-cor
 import fs from 'fs';
 import path from 'path';
 import { spawnSync } from 'child_process';
+import zlib from 'zlib';
 import { fileURLToPath } from 'url';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -170,7 +171,7 @@ async function runSite(browser, siteKey) {
   const cdp = await page.createCDPSession();
   await cdp.send('Network.enable');
   const reqs = new Map();
-  cdp.on('Network.requestWillBeSent', e => { if (!e.request.url.startsWith('data:') && !reqs.has(e.requestId)) reqs.set(e.requestId, { type: e.type || 'Other', bytes: 0, done: false }); });
+  cdp.on('Network.requestWillBeSent', e => { if (!e.request.url.startsWith('data:') && !reqs.has(e.requestId)) reqs.set(e.requestId, { url: e.request.url, type: e.type || 'Other', bytes: 0, done: false }); });
   cdp.on('Network.responseReceived', e => { const r = reqs.get(e.requestId); if (r && e.type) r.type = e.type; });
   cdp.on('Network.dataReceived', e => { const r = reqs.get(e.requestId); if (r && !r.done) r.bytes += e.encodedDataLength || 0; });
   cdp.on('Network.loadingFinished', e => { const r = reqs.get(e.requestId); if (r) { r.bytes = Math.max(r.bytes, e.encodedDataLength || 0); r.done = true; } });
@@ -182,6 +183,21 @@ async function runSite(browser, siteKey) {
       t.requests++; t.bytes += r.bytes; requests++; bytes += r.bytes;
     }
     return { requests, bytes, byType };
+  };
+  // Ours is served uncompressed; the first-view weight as it would travel gzipped (level 9), per file.
+  const gzipView = () => {
+    if (siteKey !== 'ours') return null;
+    const files = [];
+    for (const r of reqs.values()) {
+      const u = new URL(r.url);
+      if (u.origin !== new URL(site.url).origin) continue;
+      let f = path.join(ROOT, decodeURIComponent(u.pathname));
+      if (f.endsWith('/')) f = path.join(f, 'index.html');
+      if (!f.startsWith(ROOT) || !fs.existsSync(f)) continue;
+      files.push({ path: path.relative(ROOT, f), raw: fs.statSync(f).size, gzip: zlib.gzipSync(fs.readFileSync(f), { level: 9 }).length });
+    }
+    files.sort((a, b) => b.gzip - a.gzip);
+    return { gzipBytes: files.reduce((n, f) => n + f.gzip, 0), files };
   };
 
   const pageErrors = [];
@@ -218,6 +234,7 @@ async function runSite(browser, siteKey) {
 
   // Metrics at first view (10 s), before any interaction adds requests.
   const net = snapshotNet();
+  metrics.firstViewGzip = gzipView();
   const nt = await page.evaluate(() => {
     const n = performance.getEntriesByType('navigation')[0];
     return n ? { dcl: Math.round(n.domContentLoadedEventEnd), load: Math.round(n.loadEventEnd) } : {};
@@ -258,7 +275,17 @@ async function runSite(browser, siteKey) {
   if (hoverRec) { await sleep(500); metrics.hoverFrames = await hoverRec.save('hover0', h0); }
   const h0Page = h0 - timeOrigin;
   metrics.hoverCadence = await cadence(h0Page, h0Page + 1000);
-  await shoot(caster, 'hover2-1000', c2 ? await mouseTo(c2) : Date.now(), 1000, 'hover', c2 ? {} : na('sleeve 2'));
+  // With --frames, every frame of a burst is kept under frames/<sub>/ (ms after the burst's origin).
+  const recorded = async (sub, origin, span, run) => {
+    const rec = keepFrames ? caster.record(origin - 50, origin + span) : null;
+    await run();
+    if (rec) { await sleep(Math.max(0, origin + span - Date.now()) + 300); metrics[`${sub}Frames`] = await rec.save(sub, origin); }
+  };
+  // Sleeve to sleeve (0 -> 2), then off the sleeves.
+  const h2 = c2 ? await mouseTo(c2) : Date.now();
+  await recorded('hover2', h2, 1200, () => burst(caster, 'hover2-', h2, [0, 120, 250, 500, 1000], 'hover', c2 ? {} : na('sleeve 2')));
+  const hu = await mouseTo(NEUTRAL);
+  await recorded('unhover', hu, 1200, () => burst(caster, 'unhover-', hu, [0, 120, 250, 500, 1000], 'hover'));
 
   // Details on sleeve 0.
   await mouseTo(NEUTRAL); await sleep(1200);
@@ -266,15 +293,18 @@ async function runSite(browser, siteKey) {
   const detailsFound = await clickControl(page, 'details', 0);
   const detailsT = Date.now();
   const detOpts = detailsFound ? {} : na('Details control');
-  await burst(caster, 'details-', detailsT, [0, 200, 400, 600, 800, 1000, 1200, 1400, { name: 'details-held', at: 2500 }], 'details', detOpts);
+  await recorded('details', detailsT, 2600, () => burst(caster, 'details-', detailsT, [0, 200, 400, 600, 800, 1000, 1200, 1400, { name: 'details-held', at: 2500 }], 'details', detOpts));
 
   // Flip.
   await page.keyboard.press('Space');
-  await burst(caster, 'flip-', Date.now(), [0, 300, 600, 1000], 'flip', detailsFound ? {} : { status: 'n/a', note: 'Details never opened' });
+  const flipT = Date.now();
+  await recorded('flip', flipT, 1200, () => burst(caster, 'flip-', flipT, [0, 300, 600, 1000], 'flip', detailsFound ? {} : { status: 'n/a', note: 'Details never opened' }));
 
   // Escape, then a click on empty ground in case the view is still open.
   await page.keyboard.press('Escape');
-  await shoot(caster, 'escape', Date.now(), 1200, 'escape', { note: `followed by a click at (${EMPTY_CLICK.x},${EMPTY_CLICK.y})` });
+  const escT = Date.now();
+  await recorded('escape', escT, 1300, () => burst(caster, 'escape-', escT, [200, 400, 600, 800], 'escape')
+    .then(() => shoot(caster, 'escape', escT, 1200, 'escape', { note: `followed by a click at (${EMPTY_CLICK.x},${EMPTY_CLICK.y})` })));
   await page.mouse.click(EMPTY_CLICK.x, EMPTY_CLICK.y).catch(() => {});
   await sleep(1500);
 
@@ -314,6 +344,11 @@ async function runSite(browser, siteKey) {
       : await d2.evaluate(() => { const r = window.__editions?.sleeveRect(0); return r ? { x: r.x + r.width / 2, y: r.y + r.height / 2 } : null; }).catch(() => null);
     if (dc0) await d2.mouse.move(dc0.x, dc0.y);
     await snap('dpr2/hover0-1000', Date.now(), 1000, dc0 ? {} : na('sleeve 0'));
+    const dDet = await clickControl(d2, 'details', 0);
+    await snap('dpr2/details-held', Date.now(), 2500, dDet ? {} : na('Details control'));
+    await d2.keyboard.press('Space');
+    await snap('dpr2/flip-held', Date.now(), 1500, dDet ? {} : na('Details control'));
+    await d2.keyboard.press('Escape');
     await d2.close();
   }
 
