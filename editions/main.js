@@ -841,10 +841,12 @@ function backToShelf() {
 }
 window.addEventListener('hashchange', () => { if (!location.hash) openedFromShelf = false; route(); });
 
-// Details ends at once when a page opens from it.
+// Details ends at once when a page opens from it, the view changes between shelf and crate, or the
+// context is lost. The tagline comes straight back (its intro fade, cancelled by Details, held it).
 function dropDetails() {
   const s = sleeves[det.i];
-  for (const el of [dTitle, dTag, dOpen, tagline]) for (const a of el.getAnimations()) a.cancel();
+  for (const el of [dTitle, dTag, dOpen]) for (const a of el.getAnimations()) a.cancel();
+  fade(tagline, 1, 0, 1);
   detailsEl.inert = true; dOpen.inert = true;
   endDetails(s, performance.now());
   s.fall = null;
