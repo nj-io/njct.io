@@ -738,8 +738,8 @@ vec3 motif(vec2 p, float t) {
   if (w11 > 0.0) col += w11 * (vec3(0.9142, 0.7986, 0.7125) * md[0] + vec3(-0.0109, 0.6955, 0.2473) * md[1] + vec3(10.64, 5.773, -0.1123) * md[2] + vec3(-4.663, -0.6165, 0.6743) * md[3] + vec3(0.06862, -0.3126, -0.5267) * md[4] + vec3(12.88, 12.45, 4.86) * md[5] + vec3(11.88, 5.137, -5.606) * md[6] + vec3(2.225, 0.516, -1.136) * md[7] + vec3(21.26, 18.13, 4.963) * md[8] + vec3(3.737, 1.198, -1.405) * md[9]);
   if (w12 > 0.0) col += w12 * (vec3(1.105, 0.7351, 0.2442) * md[0] + vec3(-3.5, -1.152, -1.737) * md[1] + vec3(15.21, 3.978, 3.673) * md[2] + vec3(-19.19, -4.029, -2.281) * md[3] + vec3(-3.213, -1.306, 0.09462) * md[4] + vec3(9.399, 6.506, -1.36) * md[5] + vec3(-14.71, -11.25, 1.774) * md[6] + vec3(-8.64, -0.7452, -0.4627) * md[7] + vec3(-4.528, -4.857, -2.532) * md[8] + vec3(-17.02, -6.682, -6.179) * md[9]);
   col *= 1.0 - 0.278519 * 2.0 * (1.0 - s2);
-  // the paper's grain, static and level in sRGB (as the concept's is); the two levels under full size, which the
-  // shader draws itself (shaderMips: 2), leave it out so at shelf size it settles to its mean
+  // the paper's grain, static and level in sRGB (as the concept's is); the level under full size, which the shader
+  // draws itself (shaderMips: 1), leaves it out so at shelf size it settles to its mean
   // (in linear light: d lin / d srgb taken as 2 sqrt(lin), gamma 2)
   col = max(col, 0.0);
   return col + (vnoise(X * SC_GF) - 0.5) * (SC_GA * 2.0 * SC_GRAIN) * sqrt(col);
@@ -933,8 +933,8 @@ vec3 motif(vec2 p, float t) {
 // About Neil: one gold sphere resting on cream paper, a soft contact shadow, the light moving across it when alive.
 MOTIFS.about = /* glsl */`
 // gold-leaf grain, static, its strength and size matched to the concept's on flat patches (on the sphere it grows with
-// the key light). It sits near the full-size grid's limit, so the two levels below full size, which the shader draws
-// itself (shaderMips: 2), leave it out: at shelf size it settles to its mean instead of twinkling as the shelf moves.
+// the key light). It sits near the full-size grid's limit, so the level below full size, which the shader draws
+// itself (shaderMips: 1), leaves it out: at shelf size it settles to its mean instead of twinkling as the shelf moves.
 #define GRAIN_ON (uMip < 0.5 ? 1.0 : 0.0)
 #define SPH_GF 310.0
 #define SPH_GA 0.125
@@ -1413,7 +1413,7 @@ function designFor(entry) {
       // the concept's own letters, traced (letters/scorecard.json); those that touch in the concept stay one outline
       type: [{ paths: 'letters/scorecard.json' }],
       inks: ['#FCFAF6'],
-      bandY: 0.5, grain: [0.02, 0.012], shaderMips: 2,
+      bandY: 0.5, grain: [0.02, 0.012], shaderMips: 1,
       back: { paper: '#0F1B3D', ink: '#FFFFFF', soft: '#A9B8DA', accent: '#F6C21C' },
     };
     case 'Xactions': return {
@@ -1467,7 +1467,7 @@ function designFor(entry) {
       // the concept's own letters, traced (letters/about.json)
       type: [{ paths: 'letters/about.json' }],
       inks: ['#D2A64E', '#A8771F'],
-      bandY: 0.45, grain: [0.03, 0.014], shaderMips: 2,
+      bandY: 0.45, grain: [0.03, 0.014], shaderMips: 1,
       back: { paper: '#F4EADA', ink: '#4A3212', soft: '#86704E', accent: '#B8862C' },
     };
   }

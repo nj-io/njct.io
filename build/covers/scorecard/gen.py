@@ -61,8 +61,8 @@ vec3 motif(vec2 p, float t) {{
   float s2 = w0 * w0 + w1 * w1 + w2 * w2 + w3 * w3 + w4 * w4 + w5 * w5 + w6 * w6 + w7 * w7 + w8 * w8 + w9 * w9 + w10 * w10 + w11 * w11 + w12 * w12;
 {regions}
   col *= 1.0 - {fl(sa)} * 2.0 * (1.0 - s2);
-  // the paper's grain, static and level in sRGB (as the concept's is); the two levels under full size, which the
-  // shader draws itself (shaderMips: 2), leave it out so at shelf size it settles to its mean
+  // the paper's grain, static and level in sRGB (as the concept's is); the level under full size, which the shader
+  // draws itself (shaderMips: 1), leaves it out so at shelf size it settles to its mean
   // (in linear light: d lin / d srgb taken as 2 sqrt(lin), gamma 2)
   col = max(col, 0.0);
   return col + (vnoise(X * SC_GF) - 0.5) * (SC_GA * 2.0 * SC_GRAIN) * sqrt(col);
