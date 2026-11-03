@@ -18,18 +18,20 @@ import * as THREE from 'three';
 
 const FONT_DIR = new URL('../../vendor/fonts/', import.meta.url);
 // NJ Text is the page's own UI face (one variable file, already loaded for the header).
+// The other faces are subset to exactly the glyphs the covers draw (vendor/fonts/SOURCE.txt lists each
+// set and how to regenerate it when a title or back-cover string changes).
 const FACES = [
   ['NJ Text', 'ui/inter-variable-ui.woff2', '100 900'],
-  ['NJ Poppins', 'poppins-extrabold-latin.woff2', '800'],
-  ['NJ Soft Serif', 'fraunces-144pt-black-soft-latin.woff2', '900'],
-  ['NJ Serif', 'fraunces-144pt-bold-latin.woff2', '700'],
-  ['NJ Hanken', 'hanken-grotesk-variable-latin.woff2', '100 900'],
-  ['NJ Condensed', 'archivo-condensed-extrabold-latin.woff2', '800'],
+  ['NJ Poppins', 'poppins-extrabold-cover.woff2', '800'],
+  ['NJ Soft Serif', 'fraunces-144pt-black-soft-cover.woff2', '900'],
+  ['NJ Serif', 'fraunces-144pt-bold-cover.woff2', '700'],
+  ['NJ Hanken', 'hanken-grotesk-650-cover.woff2', '650'],
+  ['NJ Condensed', 'archivo-condensed-extrabold-cover.woff2', '800'],
 ];
 // Faces only the backs use load with the first back.
 const BACK_FACES = [
-  ['NJ Display', 'bricolage-grotesque-96pt-extrabold-latin.woff2', '800'],
-  ['NJ Mono', 'jetbrains-mono-medium-latin.woff2', '500'],
+  ['NJ Display', 'bricolage-grotesque-96pt-extrabold-cover.woff2', '800'],
+  ['NJ Mono', 'jetbrains-mono-medium-cover.woff2', '500'],
 ];
 const loadFaces = list => Promise.all(list.map(([family, file, weight]) => {
   const face = new FontFace(family, `url("${new URL(file, FONT_DIR).href}") format("woff2")`, { weight, style: 'normal' });

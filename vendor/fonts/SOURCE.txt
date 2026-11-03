@@ -1,77 +1,64 @@
 Self-hosted web fonts for the Editions covers. All are SIL Open Font License 1.1
-(https://openfontlicense.org). Each file is the Google Fonts "latin" unicode-range
-subset of a single static instance, downloaded 2026-11-03 from fonts.gstatic.com
-via the css2 API request shown.
+(https://openfontlicense.org). The page's UI face, which the covers also use as NJ Text (fronts at
+800/900, back labels at 400/600), is documented in ui/SOURCE.txt.
 
-bricolage-grotesque-96pt-extrabold-latin.woff2
-  Bricolage Grotesque (Mathieu Triay), gstatic v9, opsz 96 · wdth 100 · wght 800
-  css2?family=Bricolage+Grotesque:opsz,wdth,wght@96,100,800
-  https://fonts.gstatic.com/s/bricolagegrotesque/v9/3y9U6as8bTXq_nANBjzKo3IeZx8z6up5BeSl5jBNz_19PpZJMnuECpwUxJBOm_OJWiaaD30YfKfjZZoLvZvl-Molss4MHt0GOQ.woff2
-  Licence: OFL-1.1 (https://github.com/ateliertriay/bricolage)
+Each file below is a Google Fonts text= subset of one static instance: it holds exactly the glyphs the
+covers draw in that face, no more. All were downloaded 2026-11-03 from fonts.gstatic.com through the
+css2 request shown (text= value URL-encoded).
 
-fraunces-144pt-semibold-soft-wonk-latin.woff2
-  Fraunces (Undercase Type), gstatic v38, opsz 144 · wght 600 · SOFT 100 · WONK 1
-  css2?family=Fraunces:opsz,wght,SOFT,WONK@144,600,100,1
-  https://fonts.gstatic.com/s/fraunces/v38/6NUh8FyLNQOQZAnv9bYEvDiIdE9Ea92usiIk_WBq8U_9v0c2WS017iN7hzFUPJH58njr1a03gg7S2nfgRYIcaRyTCf7Tp05GNyXk.woff2
-  Licence: OFL-1.1 (https://github.com/undercasetype/Fraunces)
+Regenerating: when a title, a back-cover name or figure, a stack line or the About headline changes,
+recompute the face's glyph set from editions/data/projects.json (sorted unique characters of the
+strings listed for it), request css2?family=<axes as shown>&text=<set>, take the single url(...) in the
+response, and replace the file. A character outside its face's set renders in a fallback font.
 
-inter-regular-latin.woff2, inter-semibold-latin.woff2
-  Inter (Rasmus Andersson), gstatic v20, wght 400 and 600
-  css2?family=Inter:wght@400 / css2?family=Inter:wght@600
-  https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfAZ9hiJ-Ek-_EeA.woff2
-  https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuGKYAZ9hiJ-Ek-_EeA.woff2
-  Licence: OFL-1.1 (https://github.com/rsms/inter)
-
-jetbrains-mono-medium-latin.woff2
-  JetBrains Mono (JetBrains), gstatic v24, wght 500
-  css2?family=JetBrains+Mono:wght@500
-  https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8-qxTOlOVk6OThhvA.woff2
-  Licence: OFL-1.1 (https://github.com/JetBrains/JetBrainsMono)
-
-The latin subset covers U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6,
-U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191,
-U+2193, U+2212, U+2215, U+FEFF, U+FFFD. It has no U+2192 (→).
-
-Cover display faces (fronts). Each file is the Google Fonts "latin" unicode-range subset of a
-single static instance, downloaded 2026-11-03 from fonts.gstatic.com via the css2 API request
-shown, except Hanken Grotesk (copied from the Topshine repo, see below).
-
-poppins-extrabold-latin.woff2 (Social Hook)
+poppins-extrabold-cover.woff2 — NJ Poppins, the Social Hook title
   Poppins (Indian Type Foundry), gstatic v24, wght 800
-  css2?family=Poppins:wght@800
-  https://fonts.gstatic.com/s/poppins/v24/pxiByp8kv8JHgFVrLDD4Z1xlFd2JQEk.woff2
-  7 816 bytes, sha256 4ef5511d8e7b39ae3f98ffed14d6071d7914e0c145fee5a79bb43aa962ff0fc4
+  glyphs: " HSaciklo" (from "Social Hook")
+  css2?family=Poppins:wght@800&text=%20HSaciklo
+  1 052 bytes, sha256 d48f4294e9c981650833ca23eea50f61b72bd5917fe4ca2acbd94b97be49a432
   Licence: OFL-1.1 (https://github.com/itfoundry/Poppins)
 
-fraunces-144pt-black-soft-latin.woff2 (Clauded)
+fraunces-144pt-black-soft-cover.woff2 — NJ Soft Serif, the Clauded title
   Fraunces (Undercase Type), gstatic v38, opsz 144 · wght 900 · SOFT 100 · WONK 0
-  css2?family=Fraunces:opsz,wght,SOFT,WONK@144,900,100,0
-  https://fonts.gstatic.com/s/fraunces/v38/6NUh8FyLNQOQZAnv9bYEvDiIdE9Ea92usiIk_WBq8U_9v0c2Wa0K7iN7hzFUPJH58njr1a03gg7S2nfgRYIcHhyTCf7Tp05GNyXk.woff2
-  17 632 bytes, sha256 ff54e76031c1f0a40a908f38adf8b93738b23050a52e3d5c79ccb23ea21090e9
+  glyphs: "Cadelu" (from "Clauded")
+  css2?family=Fraunces:opsz,wght,SOFT,WONK@144,900,100,0&text=Cadelu
+  1 584 bytes, sha256 17368ffdd2925d2d87fc70c992dc7ea39571b1bee9f07c8a07bc0f5f8c4e5423
   Licence: OFL-1.1 (https://github.com/undercasetype/Fraunces)
 
-fraunces-144pt-bold-latin.woff2 (Stellar Explorer; the About back's headline)
+fraunces-144pt-bold-cover.woff2 — NJ Serif, the Stellar Explorer title and the About back's headline
   Fraunces (Undercase Type), gstatic v38, opsz 144 · wght 700 · SOFT 0 · WONK 0
-  css2?family=Fraunces:opsz,wght,SOFT,WONK@144,700,0,0
-  https://fonts.gstatic.com/s/fraunces/v38/6NUh8FyLNQOQZAnv9bYEvDiIdE9Ea92uemAk_WBq8U_9v0c2Wa0K7iN7hzFUPJH58njr1a03gg7S2nfgRYIcUByTCf7Tp05GNyXk.woff2
-  17 268 bytes, sha256 9cd5a3d1cc95e1501a95636f479f3b98bb4c0591f3d168448ce36ad3453cfb64
+  glyphs: " ,.EHINSaeilmoprtx’" (from "Stellar Explorer" and about[0], "Hi, I’m Neil.")
+  css2?family=Fraunces:opsz,wght,SOFT,WONK@144,700,0,0&text=%20%2C.EHINSaeilmoprtx%E2%80%99
+  3 032 bytes, sha256 5fb7f377b44dc7bc16204cce8ec513f0958473a35ade6e14459f093f98db6a54
   Licence: OFL-1.1 (https://github.com/undercasetype/Fraunces)
 
-archivo-condensed-extrabold-latin.woff2 (stet)
+archivo-condensed-extrabold-cover.woff2 — NJ Condensed, the stet title
   Archivo (Omnibus-Type), gstatic v25, wdth 75 · wght 800
-  css2?family=Archivo:wdth,wght@75,800
-  https://fonts.gstatic.com/s/archivo/v25/k3k6o8UDI-1M0wlSV9XAw6lQkqWY8Q9osJaRE-NWIDdgffTTtDRZ9xdpBU7iVNRQ.woff2
-  14 544 bytes, sha256 6a7f90ef8f7603b14198cc039824709ec3dfc5ae90bbc65868ce35ab31879b53
+  glyphs: "est" (from "stet")
+  css2?family=Archivo:wdth,wght@75,800&text=est
+  1 084 bytes, sha256 8c5b15b55920150728147c9c7261355ddabf243b5f9c31ff8d90fa1d98bbff97
   Licence: OFL-1.1 (https://github.com/Omnibus-Type/Archivo)
 
-hanken-grotesk-variable-latin.woff2 (Topshine wordmark, set at 650)
-  Hanken Grotesk (Alfredo Marco Pradil, The Hanken Grotesk Project Authors), variable wght, Latin subset
-  Copied unchanged from ~/dev/topshine-design-waitlist/engine/assets/fonts/hanken-grotesk-latin-wght-normal.woff2
-  (Topshine's vendored OFL copy, beside its hanken-grotesk-OFL.txt), 2026-11-03
-  34 704 bytes, sha256 e9201eddf1d41d0b62253295d869ce3cf65768f7102b797f02c7f8c876b4a9d5
-  Licence: OFL-1.1 (https://github.com/marcologous/hanken-grotesk)
+hanken-grotesk-650-cover.woff2 — NJ Hanken, the Topshine wordmark (650, set at −0.055em)
+  Hanken Grotesk (The Hanken Grotesk Project Authors), gstatic v12, wght 650
+  glyphs: "ehinopst" (from "topshine")
+  css2?family=Hanken%20Grotesk:wght@650&text=ehinopst
+  2 856 bytes, sha256 729739eaa5b3935fb85f5e05b6c1c3da21f329bd9c8f1ebfbbdb18794247bc89
+  Licence: OFL-1.1 (https://github.com/marcologous/hanken-grotesk); the same family Topshine vendors
+  in ~/dev/topshine-design-waitlist/engine/assets/fonts/
 
-The other cover fronts (Mirra, LikeWiki, Scorecard, Xactions, About Neil) use the page's UI face,
-ui/inter-variable-ui.woff2, at weights 800 and 900. Backs use Bricolage Grotesque, Inter and
-JetBrains Mono above. fraunces-144pt-semibold-soft-wonk-latin.woff2 and inter-{regular,semibold}-latin.woff2
-are no longer loaded by the covers.
+bricolage-grotesque-96pt-extrabold-cover.woff2 — NJ Display, back covers: names and figure values
+  Bricolage Grotesque (Mathieu Triay), gstatic v9, opsz 96 · wdth 100 · wght 800
+  glyphs: " $%+,-./01245679ACEFHILMPSTWXabcdefghiklnoprstuvxy~" (every project name and figs value)
+  css2?family=Bricolage%20Grotesque:opsz,wdth,wght@96,100,800&text=%20%24%25%2B%2C-./01245679ACEFHILMPSTWXabcdefghiklnoprstuvxy~
+  7 848 bytes, sha256 56d56e6b03fecf5c4ef81cbfaac4e2c376ab3310377295ad765521924fb031d9
+  Licence: OFL-1.1 (https://github.com/ateliertriay/bricolage)
+
+jetbrains-mono-medium-cover.woff2 — NJ Mono, back covers: the stack line
+  JetBrains Mono (JetBrains), gstatic v24, wght 500
+  glyphs: " .02359ABCDEFGHILMNOPQRSTWXabcdefghijklnoprstuxy·" (every stack value)
+  css2?family=JetBrains%20Mono:wght@500&text=%20.02359ABCDEFGHILMNOPQRSTWXabcdefghijklnoprstuxy%C2%B7
+  3 476 bytes, sha256 04cb39ca04349ffa4a9975d34d3f558b49cb3def4ae0ff58d0a2ef43baf35ebd
+  Licence: OFL-1.1 (https://github.com/JetBrains/JetBrainsMono)
+
+The fronts load the first five with the UI face; the last two load with the first back.
