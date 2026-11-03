@@ -165,6 +165,11 @@ if COVER=='social-hook':
       "as its distance from the local ground towards white, the ground filled in from the pixels around the letters; letters "
       "that touch in the concept stay one outline. Traced at 4x, smoothed along the outline between corners. SVG path data "
       "in 1024 cover units, filled even-odd; ch is the type-mask channel.")
+if COVER=='about':
+    ABOUT=("About Neil cover letters traced from the concept tile about-b4 (cut to the cover, 554 px): each part's coverage as "
+      "its distance from the local paper towards the letter's own gold, the paper filled in from the pixels around the "
+      "letters. Traced at 4x, smoothed along the outline between corners. SVG path data in 1024 cover units, filled even-odd; "
+      "ch is the type-mask channel.")
 s=json.dumps({'about':ABOUT,'letters':[{'name':n,'ch':c,'d':d} for n,c,d in result]},separators=(',',':'))
 open(OUT,'w').write(s+'\n')
 print(stats, 'total chars', sum(v[2] for v in stats.values()))

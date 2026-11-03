@@ -52,3 +52,17 @@ python3 $L/trace.py $REPO/editions/covers/letters/social-hook.json --cover socia
 
 A font fit came first: 66 OFL faces fitted letter by letter, Geologica 900 best at IoU 0.937. Set that way, the letter-edge band measured 14.6 ΔE, above the gate's 12. Traced, it measures 4.0.
 
+## About Neil
+
+`editions/covers/letters/about.json` holds the About Neil cover's gold "Neil", traced from its concept tile. To regenerate it, run in an empty work directory:
+
+```sh
+TILE=$REPO/.captures/concepts/tiles/about-b4.jpg   # 581 x 580 with a grey margin; comps.py cuts the cover out and scales it to 554 px
+L=$REPO/build/covers/letters
+python3 $L/comps.py $TILE --cover about
+python3 $L/fields.py $TILE --cover about
+python3 $L/trace.py $REPO/editions/covers/letters/about.json --cover about
+```
+
+`fields.py` takes each pixel's coverage as its distance from the local paper towards the letter's own gold. The gold is filled out from the letter's interior, because it shades top to bottom and carries grain. The paper fill widens its blur where the gaps inside the word leave too little paper near.
+

@@ -6,31 +6,48 @@ import json, sys
 from PIL import Image, ImageFilter, ImageChops
 W=554; U=4; WU=W*U
 COVER=sys.argv[sys.argv.index('--cover')+1] if '--cover' in sys.argv else 'chairtax'
-if COVER=='social-hook':
-    # python3 fields.py <tile.jpg> --cover social-hook  (needs comps.json, tile554.png from comps.py)
-    # White letters on a ground that changes under them (deep blue, the light wedge by the k and the l): each pixel's
-    # coverage is its distance from the local ground towards white, the ground filled in under the letters from the
-    # pixels around them. One field per connected part (touching letters stay one outline).
+if COVER in ('social-hook','about'):
+    # python3 fields.py <tile.jpg> --cover social-hook|about  (needs comps.json, tile554.png from comps.py)
+    # Letters on a ground that changes under them (Social Hook: deep blue and the light wedge by the k and the l;
+    # About Neil: the cream paper's vignette): each pixel's coverage is its distance from the local ground towards
+    # the local ink, the ground filled in under the letters from the pixels around them. The ink is white (Social
+    # Hook), or the gold of the letter's own interior filled out to its edges (About Neil, whose gold shades and
+    # carries grain). One field per connected part (touching letters stay one outline).
     con=Image.open('tile554.png').convert('RGB')
     cc=json.load(open('comps.json'))['title']
-    NAMES=['SH','oc','oo','idot','i','k','a','l']   # the parts, by left edge (comps.py's order)
+    NAMES={'social-hook':['SH','oc','oo','idot','i','k','a','l'],'about':['N','e','idot','i','l']}[COVER]   # the parts, by left edge (comps.py's order)
     allm=Image.new('L',(W,W)); ap_=allm.load()
     for c in cc:
         for x,y in c['pts']: ap_[x,y]=255
     out=ImageChops.invert(allm.filter(ImageFilter.MaxFilter(9)))            # ground only: 4 px clear of every letter
     def blur(im,r): return im.filter(ImageFilter.GaussianBlur(r))
     num=[ImageChops.multiply(b,out) for b in con.split()]
-    den=blur(out,10); gnd=[]
-    for b in num:
-        bb=blur(b,10); gp=bb.load(); dp_=den.load(); g=Image.new('F',(W,W)); q=g.load()
+    # About Neil: the ground's blur widens where too little ground is near (in the narrow gaps inside the word):
+    # radius 10, then 25, 60. Social Hook's letters were traced with radius 10 alone.
+    RADII=(10,25,60) if COVER=='about' else (10,); dens=[blur(out,r).load() for r in RADII]; nums=[[blur(b,r).load() for r in RADII] for b in num]; gnd=[]
+    for k in range(3):
+        g=Image.new('F',(W,W)); q=g.load()
         for y in range(W):
-            for x in range(W): q[x,y]=gp[x,y]/max(dp_[x,y],1)*255.0 if dp_[x,y]>0 else 0.0
+            for x in range(W):
+                for j in range(len(RADII)):
+                    if dens[j][x,y]>=8 or j==len(RADII)-1: break
+                dv=dens[j][x,y]; q[x,y]=nums[k][j][x,y]/max(dv,1)*255.0 if dv>0 else 0.0
         gnd.append(g)
     cp=con.load(); gl=[g.load() for g in gnd]
+    if COVER=='about':
+        core=allm.filter(ImageFilter.MinFilter(7))                          # letter interiors, 3 px in from the edge
+        cden=blur(core,6); ink=[]
+        for b in [ImageChops.multiply(b,core) for b in con.split()]:
+            bb=blur(b,6); bp=bb.load(); dq=cden.load(); g=Image.new('F',(W,W)); q=g.load()
+            for y in range(W):
+                for x in range(W): q[x,y]=bp[x,y]/max(dq[x,y],1)*255.0 if dq[x,y]>0 else 255.0
+            ink.append(g)
+        il=[g.load() for g in ink]
     alpha=Image.new('L',(W,W)); al=alpha.load()
     for y in range(W):
         for x in range(W):
-            g=[gl[k][x,y] for k in range(3)]; d=[cp[x,y][k]-g[k] for k in range(3)]; u=[255-g[k] for k in range(3)]
+            g=[gl[k][x,y] for k in range(3)]; d=[cp[x,y][k]-g[k] for k in range(3)]
+            u=[(il[k][x,y] if COVER=='about' else 255)-g[k] for k in range(3)]
             uu=sum(v*v for v in u) or 1.0
             al[x,y]=max(0,min(255,round(255*sum(a*b for a,b in zip(d,u))/uu)))
     meta={}

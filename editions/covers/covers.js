@@ -1169,7 +1169,8 @@ function designFor(entry) {
       motif: 'about', t0: 0,
       pal: ['#F2E7D3', '#E8D8BC'],
       ground: '#EFE2CC',
-      type: [{ lines: ['Neil'], font: 'NJ Text', weight: 900, track: -0.04, fit: 506, x: 60, base: 254, ch: 0 }],
+      // the concept's own letters, traced (letters/about.json)
+      type: [{ paths: 'letters/about.json' }],
       inks: ['#D2A64E', '#A8771F'],
       bandY: 0.45, grain: [0.03, 0.014],
       back: { paper: '#F4EADA', ink: '#4A3212', soft: '#86704E', accent: '#B8862C' },
