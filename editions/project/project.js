@@ -3,7 +3,7 @@
 // Overview, Under the hood, Build process. About Neil gets the same structure with its own text.
 // Loaded on demand with its stylesheet and the project's dossier file; disposed on Back.
 import { createWorld, warmWorld } from './world.js';
-import { OPEN } from '../scene/config.js';
+import { OPEN, CONTACT } from '../scene/config.js';
 import { bezier, clamp01, dur, delay, reduced } from '../scene/motion.js';
 import { coverGround } from '../covers/covers.js';
 
@@ -214,7 +214,7 @@ function scrambleHTML(text, u) {   // u 0..1: letters settle in reading order, e
   return out;
 }
 
-export function createProjectView({ renderer, entries, slugOf, onBack, onCta }) {
+export function createProjectView({ renderer, entries, slugOf, onBack }) {
   let st = null, token = 0;
 
   async function open(i, { cutAfter = 0 } = {}) {
@@ -246,7 +246,7 @@ export function createProjectView({ renderer, entries, slugOf, onBack, onCta }) 
         <a class="pj-mark" href="./" data-back>njct.io</a><span class="pj-name">${esc(entry.name)}</span>
         <span class="pj-sp"></span>
         <button class="pj-back" type="button" data-back>Back</button>
-        <button class="pj-cta" type="button">Get in touch</button>
+        <a class="pj-cta" href="${CONTACT}">Get in touch</a>
       </header>
       <section class="pj-hero" aria-label="${esc(entry.name)}">
         <div class="pj-panel">
@@ -261,7 +261,7 @@ export function createProjectView({ renderer, entries, slugOf, onBack, onCta }) 
           ${pageHTML(entry, data, slugOf, entries).replace('<p class="pj-lead">', `${proposal}<p class="pj-lead">`)}
           <footer class="pj-foot">
             <button type="button" data-back>Back to the shelf</button>
-            ${entry.url ? `<a href="${esc(entry.url)}" rel="noopener">${esc(host(entry.url))}</a>` : ''}
+            ${entry.url ? `<a href="${esc(entry.url)}" rel="noopener">${esc(entry.urlText || host(entry.url))}</a>` : ''}
           </footer>
         </div>
       </div>`;
@@ -293,12 +293,11 @@ export function createProjectView({ renderer, entries, slugOf, onBack, onCta }) 
     }
 
     root.addEventListener('click', e => {
-      const b = e.target.closest('[data-back], [data-sec], [data-go], .pj-cta');
+      const b = e.target.closest('[data-back], [data-sec], [data-go]');
       if (!b) return;
       if (b.matches('[data-back]')) { e.preventDefault(); onBack(); }
       else if (b.dataset.sec) root.querySelector(`#pj-${b.dataset.sec}`)?.scrollIntoView({ behavior: reduced() ? 'auto' : 'smooth' });
-      else if (b.dataset.go) location.hash = b.dataset.go;
-      else onCta?.();
+      else location.hash = b.dataset.go;
     });
     const rail = [...root.querySelectorAll('.pj-rail button')];
     const io = new IntersectionObserver(es => {

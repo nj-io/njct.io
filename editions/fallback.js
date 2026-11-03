@@ -1,8 +1,9 @@
 // The shelf without WebGL: when WebGL 2 is missing, or the context is lost, the sleeves become a styled
 // list of cards (cover colour and title, name, tag, figures, Open) and the project pages open as usual,
 // with the accent's light in the world's window. Hash routes, Back and Escape work as on the shelf.
+import { slugOf } from './scene/config.js';
+
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
-const slugOf = e => (e.kind === 'about' ? 'about' : e.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''));
 
 let started = false;
 export async function start(entries) {

@@ -1,12 +1,12 @@
-// The "Now playing" sticker on the sleeve in Details: a scalloped foil disc on the shrink-wrap at the
-// front's top right, drawn once into a canvas. It turns with the sleeve.
+// The "Now playing" sticker on the newest sleeve: a scalloped foil disc on the shrink-wrap at the front's
+// top right, drawn once into a canvas. It leans, lifts and turns with the sleeve.
 import * as THREE from 'three';
 import { SLEEVE } from './config.js';
-import { neutral } from './sleeves.js';
+import { neutral, COVER_BIAS } from './sleeves.js';
 
 const L = SLEEVE.size;
-const D = 0.252 * L;                                  // diameter, as on the reference
-const AT = { x: 0.327 * L, y: 0.827 * L, z: SLEEVE.thick + 0.25 };   // centre in sleeve space
+const D = 0.255 * L;                                  // diameter, as on the reference
+const AT = { x: 0.3245 * L, y: 0.8255 * L, z: SLEEVE.thick + 0.25 };   // centre in sleeve space, as on the reference
 
 function draw(lines) {
   const S = 512, c = document.createElement('canvas');
@@ -43,10 +43,10 @@ function draw(lines) {
   g.restore();
   g.translate(cx, cx);
   g.rotate(12 * Math.PI / 180);
-  g.fillStyle = '#111';
+  g.fillStyle = '#000';
   g.textAlign = 'center';
   g.textBaseline = 'alphabetic';
-  g.font = `700 ${S * 0.15}px 'NJ Text', system-ui, sans-serif`;
+  g.font = `800 ${S * 0.15}px 'NJ Text', system-ui, sans-serif`;
   const lh = S * 0.15;
   lines.forEach((l, k) => g.fillText(l, 0, (k - (lines.length - 1) / 2) * lh + S * 0.055));
   const tex = new THREE.CanvasTexture(c);
@@ -55,15 +55,22 @@ function draw(lines) {
   return tex;
 }
 
+// A faint lift toward pink and violet: the foil's mean colour across the shelf, hover and Details on the
+// reference (CIE Lab about 90, +6, -6).
+const TINT = new THREE.Color().setRGB(1, 0.96, 1);
+
 export function createSticker(text) {
   const map = draw(text.toUpperCase().split(' '));
-  // Foil reads bright under any light: part of its colour is emitted, the rest catches the room.
+  // Printed on the shrink-wrap, it takes the cover's light (the cover's roughness, so the room's glare
+  // never greys its type on a leaning sleeve); part of its colour is emitted, so the foil reads bright.
+  // Its map takes the covers' mip bias, which keeps the type crisp at shelf size.
   const mat = neutral(new THREE.MeshStandardMaterial({
-    map, emissiveMap: map, emissive: 0xffffff, emissiveIntensity: 0.5, transparent: true, roughness: 0.3, metalness: 0, depthWrite: false,
-  }));
+    map, emissiveMap: map, color: TINT, emissive: TINT, emissiveIntensity: 0.5, transparent: true, roughness: 0.8, metalness: 0, depthWrite: false,
+  }), COVER_BIAS);
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(D, D), mat);
   mesh.matrixAutoUpdate = false;
   mesh.visible = false;
+  mesh.renderOrder = 1;   // over its sleeve's front, also while the sleeve fades in
   const local = new THREE.Matrix4().makeTranslation(AT.x, AT.y, AT.z);
   return {
     mesh,

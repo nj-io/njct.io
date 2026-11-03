@@ -247,7 +247,7 @@ function kit(ctx, out, when, rate, rng) {
 // Each definition: dur (base seconds), level (mastering gain), send (reverb), maxVoices, minGap
 // (seconds between starts), build(k, v) wires the sound into k.out. `level` is set from the analysis
 // (node editions/audio/capture.mjs) so the worst-case peak over seeds, hard pans and rates sits at:
-// hover -25, tick -21, lift -16, flip -15, close -14, slide -13, details -12, open -10 dBFS.
+// hover -25, tick -21, lift -16, flip -15, close -14, details -12, open -10 dBFS.
 export const SOUNDS = {
   // A tiny soft brush as the cursor meets a sleeve.
   hover: {
@@ -274,25 +274,6 @@ export const SOUNDS = {
       k.chain(n, bp, lp, g, k.env(perc(0.028, 0.07, 0.21, k.rate), 0, 0.21, 0.55), k.out);
       const o = k.osc('sine', 190, 0, 0.08);
       k.chain(o, k.env(perc(0.005, 0.018, 0.08, k.rate), 0, 0.08, 0.03), k.out);
-    },
-  },
-
-  // The record sliding partly out of its sleeve: longer friction with a slight upward pitch glide.
-  slide: {
-    dur: 0.78, level: 0.58, send: 0.25, maxVoices: 2, minGap: 0.12,
-    build(k) {
-      const n = k.noise(0, 0.78);
-      const bp = k.filter('bandpass', 700, 1.1);
-      k.sweep(bp.frequency, [[0, 650], [0.78, 1450]]);
-      const lp = k.filter('lowpass', 3600);
-      const g = k.gain(); k.grain(g, 0, 0.78, 45, 0.3);
-      const fn = swell(0.3, 0.78, 1.4);
-      k.chain(n, bp, lp, g, k.env(fn, 0, 0.78, 0.5), k.out);
-      // Pitched layer: a narrow resonance gliding upward gives the vinyl-edge tone.
-      const n2 = k.noise(0, 0.78);
-      const res = k.filter('bandpass', 380, 9);
-      k.sweep(res.frequency, [[0, 360], [0.78, 520]]);
-      k.chain(n2, res, k.env(fn, 0, 0.78, 0.9), k.out);
     },
   },
 

@@ -17,6 +17,12 @@ export const CAMERA_Z = 2556;
 // pitch; a longer shelf scales both by sqrt(5 / per shelf) and the shelf grows to hold them, so the sleeves
 // shrink and the shelf widens by about the same share (six a shelf: 177 px sleeves on a 1228 px shelf).
 export const LINEUP = await fetch(new URL('../data/projects.json', import.meta.url)).then(r => r.json());
+// A project's address on the hash route: #mirra, #social-hook; About Neil is #about.
+export const slugOf = e => (e.kind === 'about' ? 'about' : e.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''));
+// Get in touch, on the shelf header (index.html carries the same address, so it works without script)
+// and on every project page.
+export const CONTACT = 'mailto:neil@njct.io';
+
 const PER_SHELF = Math.max(5, Math.ceil(LINEUP.length / 2));
 const K = Math.sqrt(5 / PER_SHELF);
 
@@ -29,7 +35,6 @@ export const SLEEVE = {
   hoverLift: 21.2 * K,  // bottom edge above the shelf when hovered
   hoverZ: 77 * K,       // bottom edge distance from the wall when hovered
   hoverTau: 0.19,       // seconds: hover pose approaches its target exponentially
-  hoverRecord: 0.1,     // the record peeks out of the top of a hovered sleeve (share of its diameter)
 };
 
 export const SHELF = {
@@ -54,7 +59,6 @@ export const DETAILS = {
   headerOut: { at: 100, dur: 300 },               // the header tagline fades out
   title: { at: 300, dur: 600 },
   open: { at: 750, dur: 500 },
-  record: { at: 700, dur: 520, out: 0.42 },       // the record slides out to the right (share of diameter)
   flip: { at: 140, dur: 480, ease: [0.15, 0, 0.3, 1.0] },   // yaw from the left edge on the blurred ground
   // Escape: the flight back to the hover pose; a flipped sleeve turns to its front on the way (edge-on at
   // about 280 ms on the reference). Flight measured from the sleeve's bottom edge.
