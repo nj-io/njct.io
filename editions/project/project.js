@@ -100,7 +100,7 @@ function heroColumn(entry, data, slugOf, entries) {
 // enough to reach it either stops short of it or thins to pass beside it, whichever leaves it larger.
 const measure = document.createElement('canvas').getContext('2d');
 function fitTitle(el, text, vertical, box) {
-  measure.font = '500 100px Inter, system-ui, sans-serif';
+  measure.font = "500 100px 'NJ Text', system-ui, sans-serif";
   const w100 = measure.measureText(text).width - 2 * (text.length - 1);   // letter-spacing -0.02em
   let size = vertical ? Math.min((box.w - 22) / 0.74, box.h / (w100 / 100)) : Math.min(box.w / (w100 / 100), 140);
   if (vertical && box.sub && size * w100 / 100 + box.sub + 24 > box.h)

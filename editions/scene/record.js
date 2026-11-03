@@ -108,7 +108,7 @@ async function drawLabel(entry) {
     }
   } else {
     g.fillStyle = 'rgba(255,255,255,0.92)';
-    g.font = `600 ${S * 0.075}px Inter, system-ui, sans-serif`;
+    g.font = `600 ${S * 0.075}px 'NJ Text', system-ui, sans-serif`;
     g.textAlign = 'center';
     g.textBaseline = 'middle';
     g.fillText(entry.name, S / 2, S / 2);

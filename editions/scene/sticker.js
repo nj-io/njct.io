@@ -46,7 +46,7 @@ function draw(lines) {
   g.fillStyle = '#111';
   g.textAlign = 'center';
   g.textBaseline = 'alphabetic';
-  g.font = `700 ${S * 0.15}px Inter, system-ui, sans-serif`;
+  g.font = `700 ${S * 0.15}px 'NJ Text', system-ui, sans-serif`;
   const lh = S * 0.15;
   lines.forEach((l, k) => g.fillText(l, 0, (k - (lines.length - 1) / 2) * lh + S * 0.055));
   const tex = new THREE.CanvasTexture(c);
