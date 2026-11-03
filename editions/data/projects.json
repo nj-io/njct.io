@@ -26,7 +26,8 @@
    "dark": "#9EC7EA"
   },
   "logo": {
-   "png": "/editions/data/logos/mirra.png"
+   "png": "/editions/data/logos/mirra.png",
+   "icon": "/editions/data/logos/menu/mirra.webp"
   }
  },
  {
@@ -116,7 +117,8 @@
    "dark": "#46D4D8"
   },
   "logo": {
-   "png": "/editions/data/logos/clauded.png"
+   "png": "/editions/data/logos/clauded.png",
+   "icon": "/editions/data/logos/menu/clauded.webp"
   }
  },
  {
@@ -218,7 +220,8 @@
    "dark": "#ffc85a"
   },
   "logo": {
-   "png": "/editions/data/logos/chairtax.png"
+   "png": "/editions/data/logos/chairtax.png",
+   "icon": "/editions/data/logos/menu/chairtax.webp"
   }
  },
  {

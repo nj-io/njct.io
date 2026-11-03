@@ -3,13 +3,19 @@
 // the hash route. A dropdown under the trigger on wider screens, a sheet from the bottom on a phone. It
 // closes on Escape (focus back on the trigger), on a press outside, when focus leaves it and when a page
 // opens; arrow keys, Home and End move between the items. Works on the shelf and the no-WebGL shelf alike.
+// Its marks (small menu versions, logo.icon) and the project.js its tiles need load only on icons() or when
+// the menu first opens: the page calls icons() after the shelf's first WebGL frame, or at once without one,
+// so none of their bytes share the link with the first frame's.
 import { LINEUP, slugOf } from './scene/config.js';
 
 const GAP = 40;   // the trigger's left edge, after the wordmark's right edge (the reference's 40 px)
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
-const iconSrc = logo => (logo?.svg ? `data:image/svg+xml,${encodeURIComponent(logo.svg)}` : logo?.png || null);
+const iconSrc = logo => (logo?.svg ? `data:image/svg+xml,${encodeURIComponent(logo.svg)}` : logo?.icon || logo?.png || null);
 // The line under a name: the project's tag; About Neil, its heading.
 const subOf = e => (e.kind === 'about' ? e.about?.[0] || '' : e.tag || '');
+let load = null;   // set by start(); loads the marks and the tiles' colours, once
+
+export function icons() { load?.(); }
 
 export function start(entries = LINEUP) {
   const nav = document.querySelector('.pm');
@@ -20,7 +26,7 @@ export function start(entries = LINEUP) {
 
   list.innerHTML = entries.map(e => {
     const src = iconSrc(e.logo);
-    const icon = src ? `<img src="${esc(src)}" width="24" height="24" alt="" decoding="async">` : '';
+    const icon = src ? `<img data-src="${esc(src)}" width="24" height="24" alt="" decoding="async">` : '';
     const sub = subOf(e);
     return `<li><a class="pm-item" href="#${slugOf(e)}"><span class="pm-icon" aria-hidden="true" data-name="${esc(e.name)}">${icon}</span>`
       + `<span class="pm-text"><span class="pm-name">${esc(e.name)}</span>${sub ? `<span class="pm-sub">${esc(sub)}</span>` : ''}</span></a></li>`;
@@ -28,12 +34,13 @@ export function start(entries = LINEUP) {
   const items = [...list.querySelectorAll('.pm-item')];
   // A project without a mark shows a tile in its page's colour (project.js), once that module is in.
   const tiles = [...list.querySelectorAll('.pm-icon:empty')];
-  if (tiles.length) {
-    const idle = window.requestIdleCallback || (f => setTimeout(f, 300));
-    idle(() => import('./project/project.js').then(m => {
+  load = () => {
+    load = null;
+    for (const img of list.querySelectorAll('img[data-src]')) img.src = img.dataset.src;
+    if (tiles.length) import('./project/project.js').then(m => {
       for (const t of tiles) { const e = entries.find(x => x.name === t.dataset.name); if (e) t.style.background = m.colours(e).panel; }
-    }).catch(() => {}), { timeout: 3000 });
-  }
+    }).catch(() => {});
+  };
 
   const place = () => { nav.style.left = `${Math.round(wordmark.getBoundingClientRect().right + GAP)}px`; };
   place();
@@ -44,6 +51,7 @@ export function start(entries = LINEUP) {
   function set(on, { focus = false } = {}) {
     if (on === open) return;
     open = on;
+    if (on) icons();
     nav.classList.toggle('open', on);
     btn.setAttribute('aria-expanded', String(on));
     list.inert = !on;

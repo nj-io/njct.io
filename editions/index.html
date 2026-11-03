@@ -248,11 +248,14 @@
 <button class="d-open" id="d-open" type="button" data-action="open" inert>Open</button>
 <script type="module">
   // Without WebGL 2 (or if the scene fails to start) the shelf is plain cards.
+  // The menu's marks load after the shelf's first frame (menu.js icons()); the static shelf has none, so at once.
   const at = window.__editionsSrc ? './' : './dist/';
-  const fallback = () => import(`${at}fallback.js`).then(m => m.start());
-  import(`${at}menu.js`).then(m => m.start()).catch(e => console.warn('menu', e));
+  const menu = import(`${at}menu.js`).then(m => (m.start(), m));
+  menu.catch(e => console.warn('menu', e));
+  const icons = () => menu.then(m => m.icons(), () => {});
+  const fallback = () => { icons(); return import(`${at}fallback.js`).then(m => m.start()); };
   if (!window.__editionsGL) fallback();
-  else import(`${at}main.js`).catch(e => { console.warn('shelf: static fallback', e); fallback(); });
+  else import(`${at}main.js`).then(m => { m.drawn.then(icons); }, e => { console.warn('shelf: static fallback', e); fallback(); });
 </script>
 </body>
 </html>

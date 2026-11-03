@@ -391,6 +391,7 @@ const settled = sleeves.map(() => false);  // intro finished for this sleeve
 const pointer = { x: -1, y: -1 };
 const firstFrame = {};
 firstFrame.ready = new Promise(r => { firstFrame.resolve = r; });
+export const drawn = firstFrame.ready;   // the page loads the menu's marks after it (index.html)
 
 function wake() { if (!raf) raf = requestAnimationFrame(frame); }
 
