@@ -50,16 +50,6 @@ hanken-grotesk-650-cover.woff2 — NJ Hanken, the Topshine wordmark (650, set at
   Licence: OFL-1.1 (https://github.com/marcologous/hanken-grotesk); the same family Topshine vendors
   in ~/dev/topshine-design-waitlist/engine/assets/fonts/
 
-nunito-900-cover.woff2 — NJ Rounded, the Chairtax title (each letter set on its concept letter)
-  Nunito (Vernon Adams, Cyreal, Jacques Le Bailly), gstatic v32, wght 900
-  glyphs: "Caihrtx" (from "Chair" and "tax")
-  css2?family=Nunito:wght@900&text=Chairtx
-  1 492 bytes, sha256 a0749318d5c4164bcc4ace46f2dfc5d1fcefa0ae6a9e04cc3e7ffa91c21eac01
-  Licence: OFL-1.1 (https://github.com/googlefonts/nunito). Chosen by fitting 35 OFL candidates (Fredoka,
-  Baloo 2, Rubik, Lilita One, Gabarito, Inter and others) letter by letter to the concept; Gabarito and
-  Inter 900 fit a little closer (IoU 0.87 against 0.85) but have square terminals, and the concept's
-  lettering is rounded. Every letter box lands within 1.4% of the cover.
-
 bricolage-grotesque-96pt-extrabold-title-cover.woff2 — NJ Bricolage, the Stats title (800, set at −0.01em)
   Bricolage Grotesque (Mathieu Triay), gstatic v9, opsz 96 · wdth 100 · wght 800
   glyphs: "Sast" (from "Stats")

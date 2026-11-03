@@ -6,7 +6,7 @@
 TILE=$REPO/.captures/concepts/tiles/chairtax-e3.jpg   # the 554 px concept tile (gitignored, not committed)
 L=$REPO/build/covers/letters
 python3 $L/comps.py $TILE && python3 $L/bearmask.py $TILE
-node $L/glyphs.mjs nunito-900.woff2
+node $L/glyphs.mjs
 python3 $L/fields.py $TILE && python3 $L/trace.py $REPO/editions/covers/letters/chairtax.json
 ```
 
@@ -17,6 +17,15 @@ The steps:
 - `fields.py` builds each letter's coverage at 4×.
 - `trace.py` traces it.
 
-`nunito-900.woff2` is any Nunito 900 file with the glyphs C h a i r t x, for example `https://fonts.googleapis.com/css2?family=Nunito:wght@900&text=Chairtx` (gstatic v32).
-
 The Python steps need Pillow. `glyphs.mjs` needs headless Chrome and the board-tools puppeteer-core.
+
+## Font
+
+`nunito-900-cover.woff2` is the Nunito the glyphs come from. `glyphs.mjs` reads it from this folder unless it is given another file.
+
+- Nunito (Vernon Adams, Cyreal, Jacques Le Bailly), gstatic v32, wght 900.
+- Glyphs "Caihrtx" (from "Chair" and "tax"), fetched with `css2?family=Nunito:wght@900&text=Chairtx`.
+- 1 492 bytes, sha256 a0749318d5c4164bcc4ace46f2dfc5d1fcefa0ae6a9e04cc3e7ffa91c21eac01.
+- Licence OFL-1.1 (https://github.com/googlefonts/nunito).
+
+It was chosen by fitting 35 OFL candidates (Fredoka, Baloo 2, Rubik, Lilita One, Gabarito, Inter and others) letter by letter to the concept. Gabarito and Inter 900 fit a little closer (IoU 0.87 against 0.85), but their terminals are square and the concept's lettering is rounded. The glyph placements in `glyphs.html` put every letter box within 1.4% of the concept's.
