@@ -165,7 +165,7 @@ export function createProjectView({ renderer, entries, slugOf, onBack }) {
           ${pageHTML(entry, data, slugOf, entries).replace('<p class="pj-lead">', `${proposal}<p class="pj-lead">`)}
           <footer class="pj-foot">
             <button type="button" data-back>Back to the shelf</button>
-            ${entry.url ? `<a href="${esc(entry.url)}" rel="noopener">${esc(host(entry.url))}</a>` : ''}
+            ${entry.url ? `<a href="${esc(entry.url)}" rel="noopener">${esc(entry.urlText || host(entry.url))}</a>` : ''}
           </footer>
         </div>
       </div>`;

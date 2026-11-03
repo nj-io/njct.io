@@ -265,7 +265,8 @@
   "year": "2026",
   "tag": "Visitors, sources and sales in one place",
   "blurb": "A private dashboard for this portfolio's product sites: who visited, where they came from and what they bought, with a summary in Telegram every morning.",
-  "url": null,
+  "url": "https://stats.njct.io/live",
+  "urlText": "stats.njct.io",
   "stack": "Node.js · PostHog · HogQL · Cloudflare Tunnel · Telegram",
   "figs": [
    [
