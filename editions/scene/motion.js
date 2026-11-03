@@ -3,31 +3,13 @@
 // leaves, and eased tweens for Details and the flip.
 import { INTRO, SLEEVE, UNHOVER } from './config.js';
 import { REST_Z, restPose, hoverPose, POSE_KEYS } from './sleeves.js';
+import { clamp01, reduced } from './ease.js';
+
+export { clamp01, setReducedMotion, reduced, dur, delay, bezier } from './ease.js';
 
 export const HOVER_DELAY = 15;   // the reference's sleeve first moves in the third frame after the pointer arrives
 
 const easeIn = u => u * u;
-export const clamp01 = u => Math.min(1, Math.max(0, u));
-
-// Reduced motion: long tweens are cut to a short cross-step, state changes stay visible.
-let reduce = false;
-export const setReducedMotion = on => { reduce = !!on; };
-export const reduced = () => reduce;
-export const dur = ms => (reduce ? Math.min(ms, 120) : ms);
-export const delay = ms => (reduce ? 0 : ms);
-
-// CSS-style cubic-bezier(x1, y1, x2, y2) evaluated at u.
-export function bezier([x1, y1, x2, y2], u) {
-  if (u <= 0) return 0;
-  if (u >= 1) return 1;
-  let lo = 0, hi = 1, t = u;
-  for (let i = 0; i < 24; i++) {
-    t = (lo + hi) / 2;
-    const x = 3 * (1 - t) * (1 - t) * t * x1 + 3 * (1 - t) * t * t * x2 + t * t * t;
-    if (x < u) lo = t; else hi = t;
-  }
-  return 3 * (1 - t) * (1 - t) * t * y1 + 3 * (1 - t) * t * t * y2 + t * t * t;
-}
 export const lerpPose = (a, b, e) => {
   const p = { ...b };
   for (const k of POSE_KEYS) p[k] = a[k] + (b[k] - a[k]) * e;
@@ -45,11 +27,11 @@ export function introTimes(i) {
 }
 
 // When sleeve i is due to appear on the shelves (intro ms), with or without reduced motion.
-export const appearTime = i => (reduce ? 200 + 40 * i : introTimes(i).appear);
+export const appearTime = i => (reduced() ? 200 + 40 * i : introTimes(i).appear);
 
 // Pose of sleeve i at intro time t (ms). Returns null once it rests.
 export function introPose(i, t) {
-  if (reduce) {   // sleeves fade in where they rest, in shelf order
+  if (reduced()) {   // sleeves fade in where they rest, in shelf order
     const a = appearTime(i);
     if (t >= a + 160) return null;
     return { ...restPose(), opacity: clamp01((t - a) / 160) };
@@ -73,7 +55,7 @@ export function introPose(i, t) {
 // Hover: a first-order approach to the hover pose. Returns true while still moving.
 export function stepHover(s, dt) {
   const target = hoverPose();
-  const k = 1 - Math.exp(-dt / (reduce ? 0.04 : SLEEVE.hoverTau));
+  const k = 1 - Math.exp(-dt / (reduced() ? 0.04 : SLEEVE.hoverTau));
   let moving = false;
   for (const key of POSE_KEYS) {
     const d = target[key] - s.pose[key];
@@ -85,7 +67,7 @@ export function stepHover(s, dt) {
 
 // Off the sleeve: from pose `from`, t ms after the pointer left. Returns null once at rest.
 export function fallPose(from, t) {
-  const U = reduce ? { delay: 0, drop: 90, pause: 0, lean: 60 } : UNHOVER;
+  const U = reduced() ? { delay: 0, drop: 90, pause: 0, lean: 60 } : UNHOVER;
   const R = restPose();
   if (t < U.delay) return { ...from };
   const td = t - U.delay;

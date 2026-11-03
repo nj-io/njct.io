@@ -15,6 +15,7 @@
 // whose normals carry the gloss, glass and reflections.
 
 import * as THREE from 'three';
+import { GROUNDS, coverGround } from './grounds.js';
 
 // ---------- fonts ----------
 
@@ -1378,7 +1379,7 @@ function designFor(entry) {
     case 'Mirra': return {
       motif: 'mirra', t0: 0,
       pal: ['#2E78CC', '#6AAAE6', '#B3D6F4', '#E3F1FD', '#C9DFF5', '#8CC0EE'],
-      ground: '#8BB7E7',
+      ground: GROUNDS.Mirra,
       type: [{ lines: ['Mirra'], font: 'NJ Text', weight: 900, track: -0.035, cap: 198, x: 56, base: 247, ch: 0 }],
       inks: ['#FFFFFF'],
       mark: [858, 864, 116],
@@ -1389,7 +1390,7 @@ function designFor(entry) {
     case 'stet': return {
       motif: 'stet', t0: 0,
       pal: ['#072529', '#051D21'],
-      ground: '#072327',
+      ground: GROUNDS.stet,
       // the concept's own letters, traced (letters/stet.json; the first t on channel 0, the s and the joined e and t on 1)
       type: [{ paths: 'letters/stet.json' }],
       inks: ['#F1E8D6', '#F1E8D6'],
@@ -1402,7 +1403,7 @@ function designFor(entry) {
     case 'Social Hook': return {
       motif: 'hook', t0: 0,
       pal: [],   // its fields' colours live in the motif
-      ground: '#427FED',   // its field's mean blue, without the letters and the mark
+      ground: GROUNDS['Social Hook'],
       // the concept's own letters, traced (letters/social-hook.json)
       type: [{ paths: 'letters/social-hook.json' }],
       inks: ['#FFFFFF'],
@@ -1413,7 +1414,7 @@ function designFor(entry) {
     case 'Clauded': return {
       motif: 'clauded', t0: 0,
       pal: [],
-      ground: '#0F5B62',
+      ground: GROUNDS.Clauded,
       // the concept's own letters, traced (letters/clauded.json)
       type: [{ paths: 'letters/clauded.json' }],
       inks: ['#4EE4E8'],
@@ -1426,7 +1427,7 @@ function designFor(entry) {
     case 'LikeWiki': return {
       motif: 'likewiki', t0: 0,
       pal: [],
-      ground: '#1B3930',   // its green field
+      ground: GROUNDS.LikeWiki,
       // the concept's own letters, traced (letters/likewiki.json; green "Like" on channel 0, cream "Wiki" on 1)
       type: [{ paths: 'letters/likewiki.json' }],
       inks: ['#1C3A30', '#F8F7F1'],
@@ -1437,7 +1438,7 @@ function designFor(entry) {
     case 'Topshine': return {
       motif: 'topshine', t0: 0,
       pal: [],   // its colours are its fitted fields (TOPSHINE)
-      ground: '#D3D0F9',   // the lavender room, without the star, orbs and type
+      ground: GROUNDS.Topshine,
       // each letter placed on its concept letter by its ink centre: [glyph, cx, cy, px, degrees, ink]
       type: [{ font: 'NJ Hanken', weight: 600, set: [['t', 72.3, 892.9, 130.4, 0, 0], ['o', 131.1, 902.7, 135.3, 0, 0], ['p', 204.3, 916.1, 133.9, 0, 0],
         ['s', 268.5, 904.5, 130, 0, 0], ['h', 333.6, 890.2, 136.3, 0, 0], ['i', 381.8, 889.3, 130.2, 0, 0], ['n', 429, 903.6, 137.7, 0, 0],
@@ -1453,7 +1454,7 @@ function designFor(entry) {
     case 'Scorecard': return {
       motif: 'scorecard', t0: 0,
       pal: ['#0F1B3D', '#1F5DD8', '#2A6BE3', '#14916F', '#0E7458', '#F6C21C', '#F24A1D', '#F7872E'],
-      ground: '#101D37',   // its navy field
+      ground: GROUNDS.Scorecard,
       // each letter placed on its concept letter by its ink centre: [glyph, cx, cy, px, degrees, ink]
       // the concept's own letters, traced (letters/scorecard.json); those that touch in the concept stay one outline
       type: [{ paths: 'letters/scorecard.json' }],
@@ -1464,7 +1465,7 @@ function designFor(entry) {
     case 'Xactions': return {
       motif: 'xactions', t0: 0,
       pal: ['#060A22', '#0B1234'],
-      ground: '#080D28',
+      ground: GROUNDS.Xactions,
       type: [{ lines: ['Xactions'], font: 'NJ Text', weight: 900, track: -0.035, fit: 940, x: 36, base: 198, ch: 0 }],
       inks: ['#FFFFFF'],
       bandY: 0.5, grain: [0.012, 0.010], shaderMips: true,
@@ -1473,7 +1474,7 @@ function designFor(entry) {
     case 'Stellar Explorer': return {
       motif: 'stellar', t0: 0,
       pal: ['#0B0E1C', '#0D1440', '#1E2C8C', '#5B2E9E', '#5E6FC0', '#E2A6F0', '#1F44D8', '#5A8CF5'],
-      ground: '#0B0E1C',
+      ground: GROUNDS['Stellar Explorer'],
       type: [{ lines: ['Stellar', 'Explorer'], font: 'NJ Serif', weight: 700, track: -0.01, fit: 596, x: 512, align: 'center', base: 137, lead: 104, ch: 0 }],
       inks: ['#FFF8EE'],
       bandY: 0.42, grain: [0.012, 0.010],
@@ -1482,7 +1483,7 @@ function designFor(entry) {
     case 'Chairtax': return {
       motif: 'chairtax', t0: 0,
       pal: ['#140F0B', '#140F0B', '#FFB020', '#F8F2E7', '#2E3D66', '#55669A', '#0E1018', '#6F8BD6'],
-      ground: '#140F0B',
+      ground: GROUNDS.Chairtax,
       // the concept's own letters, traced (letters/chairtax.json; cream "Chair" on channel 0, amber "tax" on 1)
       type: [{ paths: 'letters/chairtax.json' }],
       // the concept's cream and amber (the operator's ruling for this cover)
@@ -1498,7 +1499,7 @@ function designFor(entry) {
     case 'Stats': return {
       motif: 'stats', t0: 0,
       pal: ['#EEF2F7', '#C9D3E1', '#3A6BD6', '#17845A', '#D9822B', '#D6E9FF', '#EEF2F7', '#17202B'],
-      ground: '#E3E9F0',
+      ground: GROUNDS.Stats,
       type: [{ lines: ['Stats'], font: 'NJ Bricolage', weight: 800, track: -0.01, fit: 552, x: 52, base: 367, ch: 0 }],
       inks: ['#17202B'],
       mark: [49, 36, 125],
@@ -1508,7 +1509,7 @@ function designFor(entry) {
     case 'About Neil': return {
       motif: 'about', t0: 0,
       pal: ['#F2E7D3', '#E8D8BC'],
-      ground: '#EFE2CC',
+      ground: GROUNDS['About Neil'],
       // the concept's own letters, traced (letters/about.json)
       type: [{ paths: 'letters/about.json' }],
       inks: ['#D2A64E', '#A8771F'],
@@ -1986,7 +1987,7 @@ async function buildForm(src) {
 // optional (label, fn) => fn() wrapper for timing; nonce (a number) makes every program's source unique, so
 // a measurement sees shader compiles that no driver cache has seen
 // The colour the resting cover reads as (sRGB hex); a flat stand-in the scene fills a sleeve with while its cover is late.
-export const coverGround = (entry, index) => designFor(entry, index).ground;
+export { coverGround };
 export const coverProfiler = { wrap: null, nonce: 0 };
 const jobs = [];
 let pumping = false;
