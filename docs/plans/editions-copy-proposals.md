@@ -532,6 +532,13 @@ Shows how many people visited each of this portfolio's product sites, where they
 
 **Claims to check before approval** (the drafting agent's list)
 
-- (pending the drafting agent's report)
+- **Cloudflare Tunnel and launchd on the Mac mini.** reference.md (lines 60 and 167) says only "the tunnel"; the rest comes from a memory note and a draft plan (plans/stats-dashboard-plan-2026-10-30.md, F2).
+- **HogQL in the stack.** This rests only on analytics/lib/hogql.mjs existing; the drafter did not read the file.
+- **Sales counted under the buyer's source.** Combined from three places: reference.md's Integration contract (checkoutData), line 165 (purchase_completed carries distinct_id and first_utm_campaign), and groupSources in app.js.
+- **"The browser never reports a sale" and "each payment counts once".** From reference.md's Integration contract and line 165.
+- **The proxy drops cookies and authorization headers.** reference.md says this only in the `--host nextjs` row; the draft applies it to every host.
+- **Left out:** private details (the hostname, ports, the tunnel id, PostHog project ids, vault item names, the password setup, and the real visitor figures); built but unused (the ads module, sending conversions to Google and Meta, the forget command, spend logging); planned (Mirra adoption, the attribution article, Social Hook link-scheme integration); and the claim "every product", since only Chairtax and stet are tracked today.
+
+**The link.** The entry's url is null because the dashboard is password-gated. **Question for the operator:** should the page show its host (stats.njct.io) as the project link?
 
 **Question for the operator.** As for rows 33, 34 and 38: the draft describes only what is built. Should planned features be written in, under the marketing convention?
