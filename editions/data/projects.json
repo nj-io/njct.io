@@ -180,56 +180,6 @@
   }
  },
  {
-  "name": "Scorecard",
-  "kind": "project",
-  "year": "2026",
-  "tag": "How websites win their traffic",
-  "blurb": "A dashboard comparing how websites win traffic: their sources, links, social footprint and apps, every number with its source and date.",
-  "url": null,
-  "stack": "Python · D3 · DataForSEO",
-  "figs": [
-   [
-    "10",
-    "sites compared side by side"
-   ],
-   [
-    "4",
-    "views: sources, links, social, apps"
-   ],
-   [
-    "Free first",
-    "paid data only where free routes fail"
-   ]
-  ],
-  "accent": null,
-  "logo": null
- },
- {
-  "name": "Xactions",
-  "kind": "project",
-  "year": "2026",
-  "tag": "X automation suite (OSS contribution)",
-  "blurb": "An open-source X operations suite over MCP — publishing, analytics, audience CRM, personas and autonomous workflows. My contributions extend and harden the toolset that lets agents run an account end to end.",
-  "url": "https://github.com/nirholas/XActions",
-  "stack": "TypeScript · MCP · X API",
-  "figs": [
-   [
-    "1M+",
-    "actions executed"
-   ],
-   [
-    "190+",
-    "automation tools"
-   ],
-   [
-    "24/7",
-    "autonomous personas"
-   ]
-  ],
-  "accent": null,
-  "logo": null
- },
- {
   "name": "Stellar Explorer",
   "kind": "project",
   "year": "2026",
@@ -282,6 +232,61 @@
   },
   "logo": {
    "png": "/editions/data/logos/chairtax.png"
+  }
+ },
+ {
+  "name": "Scorecard",
+  "kind": "project",
+  "year": "2026",
+  "tag": "How websites win their traffic",
+  "blurb": "A dashboard comparing how websites win traffic: their sources, links, social footprint and apps, every number with its source and date.",
+  "url": null,
+  "stack": "Python · D3 · DataForSEO",
+  "figs": [
+   [
+    "10",
+    "sites compared side by side"
+   ],
+   [
+    "4",
+    "views: sources, links, social, apps"
+   ],
+   [
+    "Free first",
+    "paid data only where free routes fail"
+   ]
+  ],
+  "accent": null,
+  "logo": null
+ },
+ {
+  "name": "Stats",
+  "kind": "project",
+  "year": "2026",
+  "tag": "Visitors, sources and sales in one place",
+  "blurb": "A private dashboard for this portfolio's product sites: who visited, where they came from and what they bought, with a summary in Telegram every morning.",
+  "url": null,
+  "stack": "Node.js · PostHog · HogQL · Cloudflare Tunnel · Telegram",
+  "figs": [
+   [
+    "Every sale",
+    "traced to the post, email or ad that brought the buyer"
+   ],
+   [
+    "Daily",
+    "Telegram summary at 09:00, with the week compared every Monday"
+   ],
+   [
+    "One command",
+    "sets up tracking on a new site"
+   ]
+  ],
+  "accent": {
+   "light": "#3A6BD6",
+   "dark": "#6E95EA"
+  },
+  "logo": {
+   "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 32 32\"><rect width=\"32\" height=\"32\" rx=\"7\" fill=\"#1E2834\"/><rect x=\"7\" y=\"17\" width=\"4\" height=\"8\" rx=\"1\" fill=\"#EEF1F4\"/><rect x=\"14\" y=\"11\" width=\"4\" height=\"14\" rx=\"1\" fill=\"#EEF1F4\"/><rect x=\"21\" y=\"7\" width=\"4\" height=\"18\" rx=\"1\" fill=\"#EEF1F4\"/></svg>"
   }
  },
  {

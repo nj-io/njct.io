@@ -184,17 +184,67 @@ export function createWorld(renderer, name, hue, { reduced = false } = {}) {
     r: Math.max(2.5 / SIM, 0.004 + rndH(j + c) * 0.003), amt,
   })));
   const rand = Math.random;
-  let front = 0, age = 0, climT = 0, time = 0, stepAcc = 0, nextAdopt = 0, nextSpore = 4, seeded = false, ready = false;
+  let front = 0, age = 0, climT = 0, time = 0, stepAcc = 0, nextAdopt = 0, nextSpore = 4, seeded = false, ready = false, still = false;
   // Steps per frame: the home page's 11, doubled while the culture is first growing so the world fills
-  // in about as fast as the reference's scene builds; 3 under reduced motion.
-  const steps = () => (reduced ? 3 : age < 4 ? 22 : 11);
+  // in about as fast as the reference's scene builds.
+  const steps = () => (age < 4 ? 22 : 11);
   const A0 = 1.0, A1 = 4.5;   // s: arrival ends, critical mass ends (the home page: 2.5 and 8)
+  // Under reduced motion the culture grows out of sight, three frames' worth per frame, and the world
+  // shows one still frame of it once critical mass is reached (about 1.5 s after the seed).
+  const STILL_AT = A1 + 0.2, FAST = 3;
 
   function init() {
     simM.uniforms.uMode.value = 1;
     for (const t of sim) pass(simM, t);
     simM.uniforms.uMode.value = 0;
     ready = true;
+  }
+  // The lifecycle, as on the home page but compressed so the world builds in about the time the
+  // reference's scene does: a short arrival, a surge of newcomers to critical mass, then a slow tide.
+  function advance(dt, n) {
+    age += dt; time += dt;
+    climT += dt * 0.007;
+    const Fb = age < A0 ? -0.002 : age < A1 ? 0.004 * Math.min(1, (age - A0) / 1.2) : 0.0022 * Math.sin((age - A1) * 0.28);
+    // Newcomers settle near the founders, and further out as the surge goes on, so the window fills.
+    if (seeded && age > A0 && age < A1 && age > nextAdopt) {
+      nextAdopt = age + 0.05 + rand() * 0.08;
+      const s = g.seeds[(rand() * g.seeds.length) | 0], spread = 0.13 + 0.45 * (age - A0) / (A1 - A0);
+      splats.push({ x: (s[0] + (rand() - 0.5) * spread + 1) % 1, y: (s[1] + (rand() - 0.5) * spread + 1) % 1, r: Math.max(2.5 / SIM, 0.004 + rand() * 0.003), amt: 0.55 });
+    }
+    if (seeded && !reduced && age > A1 && age > nextSpore) {
+      nextSpore = age + (4.2 + rand() * 4.8) / g.sporeMul;
+      splats.push({ x: rand(), y: rand(), r: Math.max(2.5 / SIM, 0.004 + rand() * 0.004), amt: 0.5 });
+    }
+    fieldM.uniforms.uCT.value = climT;
+    pass(fieldM, field);
+    simM.uniforms.uF.value = g.F + Fb;
+    simM.uniforms.uAdv.value = 0.3 * g.adv;
+    for (let i = 0; i < n; i++) {
+      const sp = splats.shift();
+      simM.uniforms.uSplat.value.set(sp ? sp.x : 0, sp ? sp.y : 0, sp ? sp.r : 0.02, sp ? sp.amt : 0);
+      simM.uniforms.uPrev.value = sim[front].texture;
+      pass(simM, sim[1 - front]);
+      front = 1 - front;
+    }
+  }
+  const dark = new THREE.Color(0x000000), keep = new THREE.Color();
+  function draw(rect, blank) {
+    renderer.setRenderTarget(null);
+    if (blank) {
+      renderer.getClearColor(keep); const a = renderer.getClearAlpha();
+      renderer.setClearColor(dark, 1); renderer.clear(true, false, false); renderer.setClearColor(keep, a);
+      return;
+    }
+    // The view: the sim is a torus, so the view never spans more than one tile of it.
+    const [x, y, w, h] = rect;
+    const wrapCap = 0.985 / Math.max(w / h, h / w);
+    viewM.uniforms.uZoomD.value = Math.min(g.zoomD, wrapCap);
+    viewM.uniforms.uSim.value = sim[front].texture;
+    viewM.uniforms.uRes.value.set(w, h);
+    viewM.uniforms.uOff.value.set(x, y);
+    viewM.uniforms.uTime.value = time;
+    quad.material = viewM;
+    renderer.render(scene, cam);
   }
 
   return {
@@ -205,49 +255,21 @@ export function createWorld(renderer, name, hue, { reduced = false } = {}) {
       const prevTarget = renderer.getRenderTarget(), prevAuto = renderer.autoClear;
       renderer.autoClear = false;
       if (!ready) init();
-      age += dt; time += dt;
-      climT += dt * 0.007;
-      // The lifecycle, as on the home page but compressed so the world builds in about the time the
-      // reference's scene does: a short arrival, a surge of newcomers to critical mass, then a slow tide.
-      const Fb = age < A0 ? -0.002 : age < A1 ? 0.004 * Math.min(1, (age - A0) / 1.2) : 0.0022 * Math.sin((age - A1) * 0.28);
-      // Newcomers settle near the founders, and further out as the surge goes on, so the window fills.
-      if (seeded && age > A0 && age < A1 && age > nextAdopt) {
-        nextAdopt = age + 0.05 + rand() * 0.08;
-        const s = g.seeds[(rand() * g.seeds.length) | 0], spread = 0.13 + 0.45 * (age - A0) / (A1 - A0);
-        splats.push({ x: (s[0] + (rand() - 0.5) * spread + 1) % 1, y: (s[1] + (rand() - 0.5) * spread + 1) % 1, r: Math.max(2.5 / SIM, 0.004 + rand() * 0.003), amt: 0.55 });
+      if (!reduced) {
+        stepAcc += steps() * Math.min(3, dt * 60);
+        const n = Math.min(26, Math.floor(stepAcc));
+        stepAcc -= n;
+        advance(dt, n);
+      } else if (!still) {
+        for (let k = 0; k < FAST; k++) advance(1 / 60, steps());
+        if (seeded && age >= STILL_AT) still = true;
       }
-      if (seeded && !reduced && age > A1 && age > nextSpore) {
-        nextSpore = age + (4.2 + rand() * 4.8) / g.sporeMul;
-        splats.push({ x: rand(), y: rand(), r: Math.max(2.5 / SIM, 0.004 + rand() * 0.004), amt: 0.5 });
-      }
-      fieldM.uniforms.uCT.value = climT;
-      pass(fieldM, field);
-      simM.uniforms.uF.value = g.F + Fb;
-      simM.uniforms.uAdv.value = reduced ? 0 : 0.3 * g.adv;
-      stepAcc += steps() * Math.min(3, dt * 60);
-      const n = Math.min(26, Math.floor(stepAcc));
-      stepAcc -= n;
-      for (let i = 0; i < n; i++) {
-        const sp = splats.shift();
-        simM.uniforms.uSplat.value.set(sp ? sp.x : 0, sp ? sp.y : 0, sp ? sp.r : 0.02, sp ? sp.amt : 0);
-        simM.uniforms.uPrev.value = sim[front].texture;
-        pass(simM, sim[1 - front]);
-        front = 1 - front;
-      }
-      // The view: the sim is a torus, so the view never spans more than one tile of it.
-      const [x, y, w, h] = rect;
-      const wrapCap = 0.985 / Math.max(w / h, h / w);
-      viewM.uniforms.uZoomD.value = Math.min(g.zoomD, wrapCap);
-      viewM.uniforms.uSim.value = sim[front].texture;
-      viewM.uniforms.uRes.value.set(w, h);
-      viewM.uniforms.uOff.value.set(x, y);
-      viewM.uniforms.uTime.value = time;
-      quad.material = viewM;
-      renderer.setRenderTarget(null);
-      renderer.render(scene, cam);
+      draw(rect, reduced && !still);
       renderer.setRenderTarget(prevTarget);
       renderer.autoClear = prevAuto;
     },
+    // Under reduced motion: whether the world has reached its still frame (nothing more to animate).
+    get still() { return still; },
     dispose() {
       for (const t of sim) t.dispose();
       field.dispose();

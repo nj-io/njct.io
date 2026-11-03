@@ -32,12 +32,29 @@ Every string here waits for operator approval before it ships. Approved copy alr
 | 26 | Project page: the hero's index box and the left rail | Overview 01, Under the hood 02, Build process 03 (approved section names; the numbers are new) | Wave 3 |
 | 27 | Project page: the vertical line beside the giant title | the project's tag (approved), e.g. "Real-time X→Telegram mirror and digest"; About Neil: its third About paragraph | Wave 3 |
 | 28 | Project page: the hero's figure cards | the dossier's glance rows (approved), one card each | Wave 3 |
-| 29 | Topshine and Scorecard pages, above the Overview lead | Draft for review | Wave 3; shown until rows 32 and 33 are approved |
+| 29 | Topshine, Scorecard, Chairtax and Stats pages, above the Overview lead | Draft for review | Wave 3; shown until rows 33, 34, 38 and 49 are approved |
 | 30 | Project page when its file fails to load | This page did not load. | Wave 3 |
 | 31 | Accessible names on the project page | Sections; Projects; a diagram is named by its caption (e.g. "Under the hood — the working architecture.") | Wave 3 |
-| 32 | About Neil page layout | Heading: "Hi, I’m Neil." (about[0]); lead: about[1]; text: about[2] and about[3]; then every project's name and tag (approved) as links to its page; hero index box: the project names numbered 01–09 | Wave 3, from the approved about[] text |
+| 32 | About Neil page layout | Heading: "Hi, I’m Neil." (about[0]); lead: about[1]; text: about[2] and about[3]; then every project's name and tag (approved) as links to its page; hero index box: the project names numbered from 01, one per project (01–10 with Chairtax) | Wave 3, from the approved about[] text |
 | 33 | Topshine dossier | All of it: below | Wave 3, drafted from the Topshine repo |
 | 34 | Scorecard dossier | All of it: below | Wave 3, drafted from the Scorecard memory note and `~/dev/site-scorecard/` |
+| 35 | Chairtax entry: name, tag, blurb | Chairtax; Camera-counted squat breaks for the Mac; When a break is due, Chairtax takes over your Mac's screen. Do a few squats, or one of five other movements, in front of the camera and the screen is yours again. | Wave 4, drafted from the live site (https://chairtax.app, read 2026-11-03): hero "Chairtax takes over your screen. Do a few reps in front of the camera and it's yours again."; "Six movements the camera counts" |
+| 36 | Chairtax entry: figures (alternative for the ranks: "3 · Bearly's ranks: Cub, Brown bear, Grizzly") | 6 · movements the camera counts; 3 · ranks of how hard a break is to skip; On-device · rep counting; the picture is never uploaded | Wave 4, the live site: "Six movements the camera counts"; "Pick your rank" (Cub, Brown bear, Grizzly); "Nobody sees your video" ("The camera counts your reps right on your Mac. The picture is never saved, uploaded or shown to anyone.") |
+| 37 | Chairtax entry: stack, year, url | Swift · SwiftUI · AppKit · Apple Vision · Cloudflare Workers; 2026; https://chairtax.app | Wave 4, `~/dev/chairtax/rel-1.1.0/Package.swift`, `worker/wrangler.toml`; year from the repo's dated docs and the App Store listing (Copyright 2026) |
+| 38 | Chairtax dossier | All of it: below | Wave 4, drafted from the live site and `~/dev/chairtax/rel-1.1.0` (README, AGENTS.md, CHANGELOG, docs, Sources) |
+| 39 | Chairtax cover: title and back-cover strings (for the cover builder's glyph subsets) | Front title: Chairtax. Back: Chairtax; 2026; the three figures of row 36; the stack line of row 37; chairtax.app | Wave 4; the cover module's fallback design shows these until the operator's cover pick lands |
+| 40 | Phone crate, bottom bar | the front sleeve's year (approved) over its name (approved); buttons Details and Open (row 18); in Details, Back (row 23) and Open | Wave 4, the reference's phone bar (season, name, Details, Open; Back in Details) |
+| 41 | Accessible names in the crate bar | Details: <project name>; Open: <project name> (row 19 format) | Wave 4 |
+| 42 | Screen-reader announcements (a polite live region) | Details opened: "Details: <name>. <tag>" (About Neil: "Details: About Neil"); flip: "Back of the sleeve" / "Front of the sleeve"; Details closed: "Back to the shelf" (row 24 text); Open: "Open: <name>"; the crate at rest: "<name>, <n> of <count>", e.g. "Social Hook, 3 of 11" | Wave 4 |
+| 43 | The shelf as a list for screen readers | list "Projects" (row 20); per sleeve a heading with its name and a line "<tag>, <year>", e.g. "Real-time X→Telegram mirror and digest, 2025"; the page heading is the header tagline (row 5) | Wave 4 |
+| 44 | Shelf without WebGL (static fallback) | one card per project: cover tile with the name (About Neil's tile: "Neil", row 3), the name, "<tag>, <year>", the figures (approved), and Open (row 18, named "Open: <name>") | Wave 4 |
+| 45 | The lineup | Xactions is off the shelf (operator ruling, Wave 4): its entry, its dossier and its page are removed. Shelf order: Mirra, stet, Social Hook, Clauded, LikeWiki, Topshine / Stellar Explorer, Chairtax, Scorecard, Stats, About Neil | Wave 4 |
+| 46 | Stats entry: name, tag, blurb | Stats; Visitors, sources and sales in one place; A private dashboard for this portfolio's product sites: who visited, where they came from and what they bought, with a summary in Telegram every morning. | Wave 4, drafted from the live login page (https://stats.njct.io, read 2026-11-03: "Stats", "Visitors and sales for Chairtax and Stet.") and `~/dev/new-site-analytics` |
+| 47 | Stats entry: figures | Every sale · traced to the post, email or ad that brought the buyer; Daily · Telegram summary at 09:00, with the week compared every Monday; One command · sets up tracking on a new site | Wave 4, `~/dev/new-site-analytics` (sources under row 49) |
+| 48 | Stats entry: stack, year, url | Node.js · PostHog · HogQL · Cloudflare Tunnel · Telegram; 2026; no url. **Question for the operator:** the dashboard is password-gated; should the page show its host (stats.njct.io) as the project link? | Wave 4 |
+| 49 | Stats dossier | All of it: below | Wave 4, drafted from `~/dev/new-site-analytics` (README, AGENTS.md, docs/reference.md, analytics/stats-page/) |
+| 50 | Stats cover: title and back-cover strings (for the cover builder's glyph subsets) | Front title: Stats. Back: Stats; 2026; the figures of row 47; the stack line of row 48; no link | Wave 4; the cover module's fallback design shows these until the operator's cover pick lands |
+| 51 | Chairtax page: Bearly | Bearly (the brand's own art, bearly-pointing.webp from chairtax.app, unaltered) stands on the world window's bottom edge beside the panel, pointing into the world; decorative (empty alt), loaded only on the Chairtax page | Wave 4, operator's request for the branding and mascot on the page |
 
 ## Row 33: Topshine dossier (proposal)
 
@@ -145,11 +162,14 @@ Plan a whole ad campaign, music video or film on open video models, see an expec
 - An append-only log with a replayable projection: /Users/neil/dev/topshine/docs/topshine-production-plan-2026-10-28.md § 3.3 (ledger_rows: 'the file is the truth'), § 3.5 (settlement import)
 - Reconciliation as a scheduled job: /Users/neil/dev/topshine/docs/topshine-production-plan-2026-10-28.md § 3.3 (Balances paragraph); /Users/neil/dev/topshine-design-waitlist/docs/launch-2026-10-30.md § Stand-in runs (reconcile found no mismatch)
 
-**Points to check before approval**
+**Claims to check before approval** (the drafting agent's list)
 
-- Topshine has run end to end only on local stand-ins (backend-report-2026-10-28.md § 4). The draft describes the built system and quotes no usage.
-- "Ports and adapters" and "append-only log with a replayable projection" are the drafter's labels for mechanisms the plan describes; the plan does not use those names.
-- Music, voiceover and captions in the Review step come from review.py. The GPU speed check is left out of the draft.
+- **No real runs yet.** Topshine has run only on local stand-ins: no real GPU run and no real payment (topshine-design-waitlist/docs/backend-report-2026-10-28.md § 4).
+- **Pattern labels.** "Ports and adapters at the engine boundary" and "append-only log with a replayable projection" are the drafter's labels. The production plan, § 3.2, 3.3 and 3.5, never uses those terms.
+- **Review step.** Music, voiceover and captions come from the code (topshine/routes/review.py, lines 10–14 and 255–345), not from the plan's screens table.
+- **Left out:** the waitlist; the cost × 2 multiplier (D2 is pending); a savings line naming another provider's price; bring-your-own-agent (planned); launch status, users and pack prices; and the headline "At a fraction of API prices", which reads as a competitor foil.
+
+**Question for the operator.** The draft describes only what is built. The marketing convention presents each product's finished vision, so planned features may appear as live, while quoted numbers stay real and users and revenue are never invented. Should the planned features be written in?
 
 ## Row 34: Scorecard dossier (proposal)
 
@@ -255,8 +275,270 @@ Works out how a website gets its traffic, from rank, visits and channel mix to a
 - Precision-first entity matching: /Users/neil/dev/site-scorecard/RECIPE.md § 3; /Users/neil/dev/site-scorecard/collect/README.md § Run (SITES profile: confirm and exclude patterns, brand word)
 - Secrets read once into memory: /Users/neil/dev/site-scorecard/collect/README.md § Keys
 
-**Points to check before approval**
+**Claims to check before approval** (the drafting agent's list)
 
-- The Cost figure ($0.35 for one full analysis, from COVERAGE.md) conflicts with $0.13–0.14 in collect/README.md and dashboard/data/spend.json. The operator picks the figure.
-- The monthly auto-update records a request; no scheduled job runs it. The draft says re-runs are requests.
-- "Eleven platforms" and "up to ten sites" are counted from the code (ad_platforms.py PLATFORMS; the compare ticks). The closing line paraphrases RECIPE.md's intro.
+- **The cost figure is wrong.** The glance row "Cost: About $0.35 of paid data for a full analysis of one site" is an estimate. The measured spend is about $0.13–0.14 of DataForSEO fees plus credits per site (site-scorecard/COVERAGE.md; collect/out/spend.json). Quoted numbers must be real: replace the figure with the measured one, or drop the row.
+- **Monthly auto-update.** It only records a request; the scheduled job is planned (RECIPE.md § 7).
+- **The closing line paraphrases RECIPE.md's intro.** That line is "feed the marketing of the other products in this portfolio".
+- **Left out:** the tracked sites' names and count, the event timeline, every COVERAGE row marked planned, and any public-product, pricing or user claims.
+
+**Question for the operator.** The draft describes only what is built. The marketing convention presents each product's finished vision, so planned features may appear as live, while quoted numbers stay real and users and revenue are never invented. Should the planned features be written in?
+
+## Row 38: Chairtax dossier (proposal)
+
+Ships as `editions/data/dossiers/chairtax.json` with `"proposal": true`, in the same shape as rows 33 and 34. Sources are the live site as read on 2026-11-03 (a copy: `/private/tmp/claude-501/-Users-neil/954ac214-6032-4ac5-bb58-9a3d61317266/scratchpad/chairtax/live-site-chairtax.app-2026-11-03.html`) and `~/dev/chairtax/rel-1.1.0`.
+
+**what**
+
+At the interval you set, Chairtax covers your Mac's screen and gives it back once the camera has counted your reps: squats, or one of five other movements.
+
+**glance**
+
+| Label | Value |
+|---|---|
+| Movements | Squats, chair stands, jumping jacks, high knees, overhead reach and side bends |
+| Ranks | Cub, Brown bear and Grizzly, from a card you can dismiss to a screen that stays covered |
+| Privacy | Reps are counted on the Mac; the picture is never saved, uploaded or shown |
+| Runs on | macOS 14 or later, from chairtax.app or the Mac App Store |
+
+**archHi**
+
+```html
+<p>Chairtax is a Mac menu-bar app that takes the screen at the interval you set and gives it back when the camera has counted your reps. Setup picks the movement, the reps per break, the workday and the rank; after that, breaks run through the day on their own.</p>
+<ol>
+<li><strong>Heads up.</strong> Thirty seconds before a break, a notice gives the movement and the target. If another app is using the camera or microphone, as on a video call, the break waits five minutes and checks again.</li>
+<li><strong>Get moving.</strong> The screen is covered on every display. You stand where the camera can see you and do the reps, while a stick figure on the break screen follows your movement and the count climbs.</li>
+<li><strong>Back to work.</strong> At the target the screen comes back, and the break goes on your record: the streak, the reps in total, the last 14 days and the award shields.</li>
+</ol>
+<p>The rank decides how hard a break is to skip. Cub puts a card over your work that you can dismiss, Brown bear covers the screen and allows a few skips a day, and Grizzly keeps it covered until the reps are done. Every rank has Emergency override, which gives the screen back after 60 seconds, and every break ends on its own after 15 minutes.</p>
+<p>Because the counting happens on the Mac, the camera picture never leaves it. The download's one network call is its licence check, and the Mac App Store build makes none.</p>
+```
+
+**arch**
+
+```html
+<p>Three Swift layers: <code>ChairtaxCore</code> holds every decision as plain logic with no AppKit, <code>ChairtaxShield</code> owns the windows that cover the screen, and the app wires the camera, Vision, the scheduler, the menu bar and the break screen around them.</p>
+<ul>
+<li><strong>A break is one state machine.</strong> Idle, notice, warming, shielded, detecting, counting, overriding and ended. Camera frames, a held framing, each rep, the override button and a tick about once a second go in; effects such as open the camera, save the break and raise the shield come out. Every timer reads monotonic uptime, so moving the Mac's clock cannot shorten a break.</li>
+<li><strong>Calls are found at the device level.</strong> Before a break, every camera is checked through CoreMediaIO and the default microphone through Core Audio for use by another process; AVFoundation's in-use flag never reported a call in the measurements made before the build. A device in use postpones the break five minutes, and five minutes without keyboard or mouse input reschedules it.</li>
+<li><strong>Saved before the screen is taken.</strong> The active break is written to a temporary file, fsynced and renamed into place before the shield goes up, and written again on every counted rep. A force-quit or crash resumes the break with its reps and its original 15-minute ceiling. Finished breaks go to an append-only log, one fsynced JSON line each.</li>
+<li><strong>A watchdog gives the screen back.</strong> It runs on its own thread, away from the main run loop, and ends the process if the shield is still up 20 minutes after it rose, so a hung main thread cannot hold the screen.</li>
+</ul>
+<p>Each rank is a window level and a set of macOS presentation options:</p>
+<table>
+<tr><th>Rank</th><th>The break</th><th>macOS options while it is up</th></tr>
+<tr><td>Cub</td><td>a translucent card over your work, which can be dismissed</td><td>none</td></tr>
+<tr><td>Brown bear</td><td>every display covered at the shielding window level, with a few skips a day</td><td>Dock and menu bar hidden</td></tr>
+<tr><td>Grizzly</td><td>every display covered until the reps are done, with no skips</td><td>Dock and menu bar hidden and app switching off; the download also turns off Force Quit, Log Out and the Apple menu, which the App Store build leaves working</td></tr>
+</table>
+<ul>
+<li><strong>Vision reads every frame on the Mac.</strong> Each frame runs Apple Vision's 2D body-pose request, with the face and upper-body rectangle requests in the same call where the movement reads them. Where the user's shoulders do not read, as at close range, a second pose pass runs on the frame shrunk to 0.4 inside a black frame, which gives a body at the lens room to be found. It feeds the stick figure and the close-range knee and jumping-jack counts.</li>
+<li><strong>A frame budget protects the frame rate.</strong> The stick figure's second pass runs only while the median times of both passes stay within 40 ms together, a 25 frames-a-second floor; the camera discards late frames, so a slow Mac loses frames and never stalls.</li>
+<li><strong>One person is followed.</strong> A person lock tracks every body in view from frame to frame, matched on position, velocity and size. The break follows the largest, most central readable body, never a body that was in view at the same time as the user, and follows someone new only after the user has been out of sight for five seconds. A mirror's reflection, a poster or a second person in the room cannot take over the count.</li>
+<li><strong>Each movement is a definition.</strong> One table gives each movement its signal (the shoulder line, depth, lean, arms or knees), its thresholds, its rule for a held framing and its status-line behaviour. Squat depth is read from the shoulders, the neck or the face, so a squat counts at 0.5 to 1.0 m, where the shoulders drop out of the frame.</li>
+<li><strong>The energy estimate is a published method.</strong> Setup turns age, sex, weight and the schedule into the energy the breaks use each week and year, using the Compendium of Physical Activities' corrected-MET method with Schofield resting rates, net of sitting.</li>
+<li><strong>Licence keys are signed and held to one Mac.</strong> Paddle's completed-checkout webhook reaches a Cloudflare Worker, which checks Paddle's HMAC signature and mints an Ed25519-signed key. The app activates with the key and a SHA-256 hash of the Mac's hardware UUID, so the raw UUID never leaves the Mac, and receives a signed token good for 60 days that it renews in the last 30.</li>
+<li><strong>The challenge is read from the app's own record.</strong> The money-back challenge asks for 100 camera-counted reps on 16 of the first 30 days. Its claim code carries the daily counts, a running SHA-256 chain over the record's lines that changes if any line is edited, dropped or reordered, and a count of wall-clock jumps measured against uptime.</li>
+</ul>
+```
+
+**proc**
+
+```html
+<ul>
+<li><strong>A Swift package, a Worker and a static site.</strong> Native Swift on macOS 14 and later, with no Xcode project: a SwiftPM package of three targets, AppKit for the windows that cover the screen and SwiftUI for the break screen, setup and Settings, and a script that assembles the <code>.app</code>. Camera frames come through AVFoundation and are read by Apple Vision. Licences run on a Cloudflare Worker with KV storage and Paddle checkout; chairtax.app is static pages on Cloudflare Pages, with its copy managed in stet.</li>
+<li><strong>Functional core, imperative shell.</strong> The break state machine, rep counters, calibration, person lock, records, awards, challenge and licence check live in <code>ChairtaxCore</code> as plain code over time and pose samples passed in. The camera, the windows, the disk and the network stay at the edges.</li>
+<li><strong>A reducer with effects as data.</strong> The break machine never acts on the world itself. It returns effects, and the session performs them in order, which is how saving the break is guaranteed to finish before the shield is raised.</li>
+<li><strong>Write-ahead state and an append-only log.</strong> The active break is on disk before the shield goes up, and the break history is only ever appended to. A line that fails to decode is skipped, so one bad line never costs the whole history.</li>
+<li><strong>A dead-man's switch.</strong> The watchdog holds a deadline on its own thread and exits the process when it passes, independent of anything the main thread is doing.</li>
+<li><strong>One source tree, two builds.</strong> The download and the Mac App Store build compile from the same code, with compile-time flags marking the differences: the App Store build is sandboxed and carries no licence, checkout or money-back code. A release script refuses any binary that still carries a developer switch, or, for the App Store build, the download's money copy.</li>
+<li><strong>Feature flags for the counters.</strong> Each change to how a movement is counted ships behind a named candidate. A release build runs the shipped set, and a debug build can run any other set by name.</li>
+<li><strong>Record and replay.</strong> A debug build records a break's raw Vision output, rounded exactly as the live path rounds it, so a recording rebuilds every pose sample bit for bit. A separate tool, <code>chairtax-replay</code>, runs recordings back through the same core code, so each counting change is measured against real sessions before it ships.</li>
+<li><strong>Idempotent licence minting.</strong> Ed25519 signatures are deterministic, so the webhook and the thanks page's fallback mint the same key for the same transaction, and a redelivered webhook changes nothing.</li>
+<li><strong>Privacy as a build rule.</strong> The camera is the only permission the app requests, and the app sends no analytics. The download makes one kind of network call, the licence check, and the App Store build makes none.</li>
+</ul>
+```
+
+**Sources** (field or bullet lead → file)
+
+- what: /Users/neil/dev/chairtax/rel-1.1.0/AGENTS.md line 3 ('takes the screen at an interval and gives it back when the camera has counted the user's reps'); /private/tmp/claude-501/-Users-neil/954ac214-6032-4ac5-bb58-9a3d61317266/scratchpad/chairtax/live-site-chairtax.app-2026-11-03.html § 'Six movements the camera counts'
+- glance Movements: /private/tmp/claude-501/-Users-neil/954ac214-6032-4ac5-bb58-9a3d61317266/scratchpad/chairtax/live-site-chairtax.app-2026-11-03.html § Six movements the camera counts (list)
+- glance Ranks: /private/tmp/claude-501/-Users-neil/954ac214-6032-4ac5-bb58-9a3d61317266/scratchpad/chairtax/live-site-chairtax.app-2026-11-03.html § Pick your rank
+- glance Privacy: /private/tmp/claude-501/-Users-neil/954ac214-6032-4ac5-bb58-9a3d61317266/scratchpad/chairtax/live-site-chairtax.app-2026-11-03.html § Nobody sees your video
+- glance Runs on: /private/tmp/claude-501/-Users-neil/954ac214-6032-4ac5-bb58-9a3d61317266/scratchpad/chairtax/live-site-chairtax.app-2026-11-03.html § hero ('For macOS 14 or later') and § What it costs (From this site / On the Mac App Store); /Users/neil/dev/chairtax/rel-1.1.0/Package.swift (platforms .macOS(.v14))
+- archHi intro: /Users/neil/dev/chairtax/rel-1.1.0/README.md line 3; /Users/neil/dev/chairtax/rel-1.1.0/docs/launch/app-store-listing.md § Description (reps per break, workday hours); /Users/neil/dev/chairtax/rel-1.1.0/Sources/ChairtaxCore/Settings.swift (targetReps, intervalChoices, workday)
+- archHi Heads up: /private/tmp/claude-501/-Users-neil/954ac214-6032-4ac5-bb58-9a3d61317266/scratchpad/chairtax/live-site-chairtax.app-2026-11-03.html § How a break goes ('Heads up') and FAQ 'What happens if a break comes up during a video call?'
+- archHi Get moving: /private/tmp/claude-501/-Users-neil/954ac214-6032-4ac5-bb58-9a3d61317266/scratchpad/chairtax/live-site-chairtax.app-2026-11-03.html § How a break goes ('Get moving'); § Nobody sees your video (stick figure by default)
+- archHi Back to work: /private/tmp/claude-501/-Users-neil/954ac214-6032-4ac5-bb58-9a3d61317266/scratchpad/chairtax/live-site-chairtax.app-2026-11-03.html § How a break goes ('Back to work'); /Users/neil/dev/chairtax/rel-1.1.0/docs/launch/app-store-listing.md § Description, YOUR RECORD (streak, reps in total, award shields, last 14 days); /Users/neil/dev/chairtax/rel-1.1.0/Sources/ChairtaxCore/Awards.swift lines 1-20
+- archHi ranks para: /private/tmp/claude-501/-Users-neil/954ac214-6032-4ac5-bb58-9a3d61317266/scratchpad/chairtax/live-site-chairtax.app-2026-11-03.html § Pick your rank; FAQ 'Can I get my screen back in an emergency?'
+- archHi closer: /private/tmp/claude-501/-Users-neil/954ac214-6032-4ac5-bb58-9a3d61317266/scratchpad/chairtax/live-site-chairtax.app-2026-11-03.html § FAQ 'Does the camera picture go anywhere?' ('the app's one connection is the licence check'); /Users/neil/dev/chairtax/rel-1.1.0/AGENTS.md § Rules that are not negotiable (direct build one network call; App Store build none)
+- arch intro: /Users/neil/dev/chairtax/rel-1.1.0/README.md § Layout; /Users/neil/dev/chairtax/rel-1.1.0/AGENTS.md § Where things are
+- A break is one state machine.: /Users/neil/dev/chairtax/rel-1.1.0/Sources/ChairtaxCore/BreakMachine.swift lines 1-60 (BreakState, BreakEvent, Effect; tick ~1 Hz); /Users/neil/dev/chairtax/rel-1.1.0/AGENTS.md § Rules (monotonic time)
+- Calls are found at the device level.: /Users/neil/dev/chairtax/rel-1.1.0/Sources/Chairtax/Camera/MeetingDetector.swift lines 41-58; /Users/neil/dev/chairtax/rel-1.1.0/docs/plans/MVP_PLAN.md § Traps, item 3 (isInUseByAnotherApplication never returns true); /Users/neil/dev/chairtax/rel-1.1.0/Sources/Chairtax/BreakSession.swift lines 568-579 (meeting check; IdleDetector.seconds >= 300 reschedules); /private/tmp/claude-501/-Users-neil/954ac214-6032-4ac5-bb58-9a3d61317266/scratchpad/chairtax/live-site-chairtax.app-2026-11-03.html § FAQ video call (waits five minutes)
+- Saved before the screen is taken.: /Users/neil/dev/chairtax/rel-1.1.0/Sources/ChairtaxCore/Store.swift lines 1-30, 96-113, 131-170; /Users/neil/dev/chairtax/rel-1.1.0/Sources/ChairtaxCore/BreakMachine.swift lines 58, 115, 141; /Users/neil/dev/chairtax/rel-1.1.0/CHANGELOG.md § Unreleased/Fixed ('A break the process dies in keeps its reps')
+- A watchdog gives the screen back.: /Users/neil/dev/chairtax/rel-1.1.0/Sources/ChairtaxShield/Watchdog.swift; /Users/neil/dev/chairtax/rel-1.1.0/Sources/ChairtaxShield/ShieldController.swift line 72 (arm(seconds: 1200)); /Users/neil/dev/chairtax/rel-1.1.0/AGENTS.md § Rules (watchdog on its own thread, _exit)
+- ranks table: /Users/neil/dev/chairtax/rel-1.1.0/Sources/ChairtaxShield/TierOptions.swift (nudge/firm/locked options, window level, alpha 0.94; storeLockedOptions); /Users/neil/dev/chairtax/rel-1.1.0/docs/plans/MVP_PLAN.md § state machine tier table; /private/tmp/claude-501/-Users-neil/954ac214-6032-4ac5-bb58-9a3d61317266/scratchpad/chairtax/live-site-chairtax.app-2026-11-03.html § Pick your rank (Cub/Brown bear/Grizzly copy)
+- Vision reads every frame on the Mac.: /Users/neil/dev/chairtax/rel-1.1.0/Sources/Chairtax/Camera/PoseSource.swift lines 160-245; /Users/neil/dev/chairtax/rel-1.1.0/Sources/ChairtaxCore/RawFrame.swift line 141 (figureShrink = 0.4); /Users/neil/dev/chairtax/rel-1.1.0/Sources/ChairtaxCore/Body/MovementDefinition.swift (readsShrunk: knees, forgivingJacks); /Users/neil/dev/chairtax/rel-1.1.0/AGENTS.md § Rules (Vision requests)
+- A frame budget protects the frame rate.: /Users/neil/dev/chairtax/rel-1.1.0/Sources/ChairtaxCore/FrameBudget.swift lines 1-20 (slowestFrameMs = 40, 25 fps floor)
+- One person is followed.: /Users/neil/dev/chairtax/rel-1.1.0/Sources/ChairtaxCore/PersonLock.swift lines 1-30, 48 (switchAfter = 5.0); /Users/neil/dev/chairtax/rel-1.1.0/Sources/Chairtax/Camera/PoseSource.swift lines 20-25
+- Each movement is a definition.: /Users/neil/dev/chairtax/rel-1.1.0/Sources/ChairtaxCore/Body/MovementDefinition.swift lines 1-75; /Users/neil/dev/chairtax/rel-1.1.0/CHANGELOG.md § Unreleased/Added ('The release build counts squats at close range ... a squat counts at 0.5-1.0 m'); /Users/neil/dev/chairtax/rel-1.1.0/Sources/ChairtaxCore/Replay/BreakDriver.swift line 36 (Candidates.shipped)
+- The energy estimate is a published method.: /Users/neil/dev/chairtax/rel-1.1.0/Sources/ChairtaxCore/Energy.swift lines 1-30; /Users/neil/dev/chairtax/rel-1.1.0/docs/launch/app-store-listing.md § Description, YOUR RECORD
+- Licence keys are signed and held to one Mac.: /Users/neil/dev/chairtax/rel-1.1.0/worker/README.md § routes table, § Activation; /Users/neil/dev/chairtax/rel-1.1.0/Sources/ChairtaxCore/Licence.swift line 19 (Ed25519)
+- The challenge is read from the app's own record.: /Users/neil/dev/chairtax/rel-1.1.0/Sources/ChairtaxCore/Challenge.swift lines 26-30, 132-160, 162-215; /private/tmp/claude-501/-Users-neil/954ac214-6032-4ac5-bb58-9a3d61317266/scratchpad/chairtax/live-site-chairtax.app-2026-11-03.html § 'Do the reps and get your $29 back' (100 reps a day, 16 of your first 30 days)
+- A Swift package, a Worker and a static site.: /Users/neil/dev/chairtax/rel-1.1.0/README.md lines 1-5, § Layout, § Site copy; /Users/neil/dev/chairtax/rel-1.1.0/Package.swift; /Users/neil/dev/chairtax/rel-1.1.0/worker/README.md; /private/tmp/claude-501/-Users-neil/954ac214-6032-4ac5-bb58-9a3d61317266/scratchpad/chairtax/live-site-chairtax.app-2026-11-03.html footer (Paddle)
+- Functional core, imperative shell.: /Users/neil/dev/chairtax/rel-1.1.0/AGENTS.md § Where things are (ChairtaxCore: pure logic, no AppKit); /Users/neil/dev/chairtax/rel-1.1.0/Sources/ChairtaxCore/FrameBudget.swift line 13 ('nothing here reads a clock')
+- A reducer with effects as data.: /Users/neil/dev/chairtax/rel-1.1.0/Sources/ChairtaxCore/BreakMachine.swift lines 52-60 (Effect; 'must complete before raiseShield'); /Users/neil/dev/chairtax/rel-1.1.0/docs/plans/MVP_PLAN.md § 3 'Chunk 2 - BreakMachine, the pure reducer'
+- Write-ahead state and an append-only log.: /Users/neil/dev/chairtax/rel-1.1.0/Sources/ChairtaxCore/Store.swift lines 19-22, 131-160
+- A dead-man's switch.: /Users/neil/dev/chairtax/rel-1.1.0/Sources/ChairtaxShield/Watchdog.swift
+- One source tree, two builds.: /Users/neil/dev/chairtax/rel-1.1.0/AGENTS.md § Build, test, run (variants; #if APPSTORE); /Users/neil/dev/chairtax/rel-1.1.0/README.md (check-release.sh)
+- Feature flags for the counters.: /Users/neil/dev/chairtax/rel-1.1.0/Sources/ChairtaxCore/Replay/BreakDriver.swift lines 36-44; /Users/neil/dev/chairtax/rel-1.1.0/CHANGELOG.md § Unreleased/Added (Candidates.shipped; debug runs others via CHAIRTAX_LAB_CANDIDATES)
+- Record and replay.: /Users/neil/dev/chairtax/rel-1.1.0/Sources/Chairtax/Camera/PoseSource.swift line 184 comment ('so the recording rebuilds this sample bit for bit'); /Users/neil/dev/chairtax/rel-1.1.0/Sources/ChairtaxReplay/main.swift lines 8-10; /Users/neil/dev/chairtax/rel-1.1.0/Package.swift (chairtax-replay never part of the app bundle)
+- Idempotent licence minting.: /Users/neil/dev/chairtax/rel-1.1.0/worker/README.md § routes (redeliveries change nothing) and key format paragraph (Ed25519 deterministic)
+- Privacy as a build rule.: /Users/neil/dev/chairtax/rel-1.1.0/AGENTS.md § Rules that are not negotiable (camera only permission; one network call; no analytics)
+
+**Claims to check before approval** (the drafting agent's list, with the builder's notes)
+
+- **3 ranks.** The figure "3 · ranks of how hard a break is to skip" may count as a small literal fact. The ranks are Bearly's (Cub, Brown bear, Grizzly, from the site and the app's rank screens); row 36 gives an alternative.
+- **Year 2026** rests only on dates: the file names research-2026-08-22 and beta-2026-09-28, and "Copyright 2026" in docs/launch/app-store-listing.md.
+- **"The last 14 days" and the energy estimate** come from app-store-listing.md and Sources/ChairtaxCore/Energy.swift, not the live site.
+- **The challenge terms** (100 reps on 16 of the first 30 days) appear with no price (live site; Challenge.swift).
+- **The 0.5–1.0 m squat range** is under "Unreleased" in rel-1.1.0's CHANGELOG (every entry there is), though the code is in the rel-1.1.0 tree (BreakDriver.swift line 36). The same holds for the break that resumes after a crash.
+- **Brown bear skips:** the live site says "a few skips a day"; the listing doc says two.
+- **Version:** rel-1.1.0's Version.swift says 1.0.1 while Info.plist says 1.1.0. Nothing in the draft depends on it.
+- **Lock-down detail.** The Grizzly row says the download turns off Force Quit, Log Out and the Apple menu while a break is up (TierOptions.swift); the operator may prefer to leave that off a public page.
+- **Internal measurement.** "AVFoundation's in-use flag never reported a call" paraphrases docs/plans/MVP_PLAN.md, Traps item 3.
+- **Left out:** unreleased mvp-only work (FrameBudget.staleAfter, faces on every third frame, "Tilt the screen up", FrameEdge.swift, the slower-Mac audit); PostHog purchase and refund events and Google server conversions (planned or off); the ended beta; the health claims and their sources; prices ($29, $29.99, the $29 refund); break intervals (the listing doc says 15 to 60 minutes, the code offers 15 to 120). Bearly is not in the text; he appears as art (row 51).
+
+**Question for the operator.** As for rows 33 and 34: the draft describes only what is built. Should planned features be written in, under the marketing convention?
+
+## Row 49: Stats dossier (proposal)
+
+Ships as `editions/data/dossiers/stats.json` with `"proposal": true`, in the same shape as rows 33, 34 and 38.
+
+**what**
+
+Shows how many people visited each of this portfolio's product sites, where they came from, and which posts, links and sources led to signups and sales.
+
+**glance**
+
+| Label | Value |
+|---|---|
+| Shows | Visitors, sources, funnel, top pages, countries and tagged links, for one site or all of them |
+| Periods | Yesterday, the last 7 days or the last 30, each against the period before |
+| Sales | Each one traced to the post, email or ad the buyer arrived from |
+| Reports | A Telegram summary every morning and a week-on-week summary every Monday |
+
+**archHi**
+
+```html
+<p>Stats is a private dashboard for this portfolio's product sites. It shows how many people visited each site, where they came from and what they did next, from App Store clicks to signups and sales. Its figures come from a tracking setup that each site gets with one command.</p>
+<ol>
+<li><strong>Tag.</strong> Every post, email or ad carries a tagged link made by the tool, so a visit can be traced to what brought it.</li>
+<li><strong>Record.</strong> Each site sends its visits and clicks to PostHog through a proxy on its own domain, with a cookie banner where the law needs one.</li>
+<li><strong>Join.</strong> A sale arrives from the payment provider's webhook carrying the visitor's checkout data, so it lands on the same visitor, and under the same source, as the visit.</li>
+<li><strong>Read.</strong> The dashboard shows every site together or one at a time, for yesterday, the last 7 days or the last 30. A Telegram message sums up each morning, and the whole week each Monday.</li>
+</ol>
+<p>The page and the messages take every figure from the same function, so they always agree, and each sale can be followed back to the post that brought the buyer.</p>
+```
+
+**arch**
+
+```html
+<p>A Node.js server on an always-on Mac mini serves the page and a small JSON API through a Cloudflare tunnel. Figures are read from PostHog with HogQL queries and drawn in the browser by plain HTML, CSS and JavaScript.</p>
+<ul>
+<li><strong>One source of figures.</strong> The page and the daily and weekly messages both read one shared function. No figure is computed anywhere else.</li>
+<li><strong>One source per visitor.</strong> Each visitor counts under a single source: a tagged link with its campaign, a search engine, a referring site, or Direct when there is no referrer. Their clicks, checkouts and sales count under the same source, so every source shows what its visitors went on to do.</li>
+<li><strong>Two kinds of site.</strong> A site that sells shows App Store clicks, Mac downloads, buy clicks, checkouts, sales and revenue before fees. Any other site shows signups or waitlist joins, the signup rate, visitors from tagged links and pages per visit.</li>
+</ul>
+<p>Each site has four views, and each opens with one sentence on what happened in the period and three highlights: the top source's share, the change in visitors and the source that converts best.</p>
+<table>
+<tr><th>View</th><th>Shows</th></tr>
+<tr><td>Overview</td><td>visitors per day by source as an area or bar chart, the headline figures, the source mix, the funnel, top pages, countries and tagged links</td></tr>
+<tr><td>Sources</td><td>a flow from each source to what its visitors did, and the conversion rate of each source</td></tr>
+<tr><td>Funnel</td><td>each step from visit to sale or signup, with the drop-off at each</td></tr>
+<tr><td>Links</td><td>each tagged link with its visitors and results</td></tr>
+</table>
+<ul>
+<li><strong>Filtering runs in the browser.</strong> Tapping a source filters the page to it from the figures already loaded, with no new query. Top pages and countries stay unfiltered.</li>
+<li><strong>All sites at once.</strong> The all-sites view lists every site, busiest first, with its visitors, the change on the period before and a line of its daily totals. A searchable picker opens any one site.</li>
+<li><strong>Calendar days in one time zone.</strong> Yesterday, the last 7 days and the last 30 all end on the previous day in the configured zone, and each is compared with the period before.</li>
+<li><strong>Internal visits are left out.</strong> Opening a site once with <code>?internal=1</code> tags that browser internal, and its visits stay out of the figures.</li>
+<li><strong>Stale figures are labelled.</strong> Figures are cached for five minutes. When PostHog cannot be reached, the server returns the last good figures marked stale, and the page shows the time they are from.</li>
+<li><strong>Sign-in fails closed.</strong> The password exists on the server only as a PBKDF2 hash, and without a valid hash file every request is refused. Sessions are signed cookies valid for 12 hours, or 30 days when kept, and repeated misses lock an address out for a wait that doubles up to five minutes.</li>
+<li><strong>Remote requests always need a session.</strong> Anything arriving through the tunnel counts as remote, whichever local port it reaches. The PostHog key is read once at start and never appears in a response or a log line.</li>
+<li><strong>Markup is never built from data.</strong> Every value is written as text, and the page's content security policy forbids inline styles.</li>
+<li><strong>Phone and desktop.</strong> The layout follows the width of the page. On a phone the period switch moves to a bar at the bottom of the screen, and light and dark follow the system setting.</li>
+<li><strong>A sample-data address.</strong> A second address draws the same page from a seeded event history, so the dashboard can be shown without its real figures.</li>
+<li><strong>Scheduled messages.</strong> At 09:00 each site gets a block with yesterday's visitors, top sources, clicks, sales and top pages, then whether each site is still sending visits and a link to the page. At 09:10 on Mondays the week is set against the week before, with the best source and up to three next steps.</li>
+</ul>
+```
+
+**proc**
+
+```html
+<ul>
+<li><strong>A Node.js server, PostHog and Telegram.</strong> The tool is Node.js 22 with a single package dependency. The page is plain HTML, CSS and JavaScript with no build step, reading a JSON API. Figures come from PostHog through HogQL queries. The server runs as a launchd service on an always-on Mac mini and is reached through a Cloudflare tunnel; the same machine sends the scheduled messages to Telegram.</li>
+<li><strong>A single source of truth for figures.</strong> One function computes every figure, and the dashboard, its API and both Telegram messages are views over its result.</li>
+<li><strong>Mechanism separated from policy.</strong> The engine is generic and names nothing of its owner: no products, machines, organisation or secret store. Product names, domains, wording and how keys are fetched reach it only through a config file kept in a separate personal layer.</li>
+<li><strong>Desired-state convergence.</strong> Setup compares what a site should have with what it has and writes only the difference, so a second run with the same flags changes nothing.</li>
+<li><strong>First-party collection.</strong> Tracking goes through a proxy on the site's own domain, which drops the site's cookies and authorization headers before anything reaches PostHog.</li>
+<li><strong>Money events come from the server.</strong> Sales and refunds are recorded from the payment provider's webhooks, and each payment counts once. The browser never reports a sale.</li>
+<li><strong>Fail closed, serve stale.</strong> Missing credentials lock the page for everyone. A failing upstream falls back to the last good figures, labelled with their time.</li>
+</ul>
+```
+
+**Sources** (field, figure or bullet lead → file)
+
+- card.tag: /Users/neil/dev/new-site-analytics/README.md § What it does (Tracks visits and sales; Traces each sale to its source)
+- card.blurb: /private/tmp/claude-501/-Users-neil/954ac214-6032-4ac5-bb58-9a3d61317266/scratchpad/stats/login.html (noindex; 'Visitors and sales for Chairtax and Stet.'); /Users/neil/dev/new-site-analytics/README.md § What it does; § The messages (Daily, 09:00)
+- card.stack: /Users/neil/dev/new-site-analytics/docs/reference.md line 7 (Node 22, one dependency); /Users/neil/dev/new-site-analytics/analytics/lib/hogql.mjs (file exists; HogQL client); /Users/neil/dev/new-site-analytics/docs/reference.md line 60 (stats_server: 'the https origin the tunnel serves'), line 167 (tunnel headers); /Users/neil/dev/new-site-analytics/README.md § Reports (Telegram)
+- card.year: /Users/neil/dev/new-site-analytics/plans/analytics-tool-plan-2026-10-21.md front matter (date 2026-10-21); /Users/neil/dev/new-site-analytics/plans/stats-dashboard-plan-2026-10-30.md front matter (date 2026-10-30); /Users/neil/.claude/projects/-Users-neil/memory/project_analytics_attribution.md (State 2026-11-01: dashboard live)
+- fig Every sale: /Users/neil/dev/new-site-analytics/README.md § What it does, row 'Traces each sale to its source'
+- fig Daily: /Users/neil/dev/new-site-analytics/README.md § The messages (Daily, 09:00; Mondays, 09:10)
+- fig One command: /Users/neil/dev/new-site-analytics/docs/reference.md line 3 ('Sets up product analytics for a new site with one command')
+- what: /private/tmp/claude-501/-Users-neil/954ac214-6032-4ac5-bb58-9a3d61317266/scratchpad/stats/login.html; /Users/neil/dev/new-site-analytics/analytics/stats-page/app.js lines 248-262 (App Store clicks, sales, signups), 33 (views incl. Links)
+- glance Shows: /Users/neil/dev/new-site-analytics/analytics/stats-page/app.js overview() (Top pages, Countries, Tagged links), sourcesCard, funnelCard, allSitesPage
+- glance Periods: /Users/neil/dev/new-site-analytics/analytics/stats-page/app.js lines 32-36 (PERIODS, VS); /Users/neil/dev/new-site-analytics/docs/reference.md line 45 (stats.time_zone)
+- glance Sales: /Users/neil/dev/new-site-analytics/README.md § What it does (Traces each sale to its source); /Users/neil/dev/new-site-analytics/docs/reference.md line 165 (purchase_completed carries checkoutData first_utm_campaign)
+- glance Reports: /Users/neil/dev/new-site-analytics/README.md § The messages
+- archHi Tag: /Users/neil/dev/new-site-analytics/README.md § What it does (link); /Users/neil/dev/new-site-analytics/docs/reference.md § Links
+- archHi Record: /Users/neil/dev/new-site-analytics/docs/reference.md line 3 (same-origin proxy, consent-aware snippet); /Users/neil/dev/new-site-analytics/README.md § What it does (cookie banner where the law needs one)
+- archHi Join: /Users/neil/dev/new-site-analytics/docs/reference.md § Integration contract (checkoutData() passed to the checkout's custom data; purchase_completed is a server event); /Users/neil/dev/new-site-analytics/docs/reference.md line 71 (products.<p>.webhook_url), line 165 (purchase_completed matched on distinct_id and first_utm_campaign); /Users/neil/dev/new-site-analytics/analytics/stats-page/app.js groupSources (sales per source row)
+- archHi Read: /Users/neil/dev/new-site-analytics/analytics/stats-page/app.js lines 32, 51 (ALL), allSitesPage; /Users/neil/dev/new-site-analytics/README.md § The messages
+- archHi closer: /Users/neil/dev/new-site-analytics/AGENTS.md § One source of figures
+- arch intro: /Users/neil/dev/new-site-analytics/AGENTS.md § Where the code lives (stats-server.mjs, stats-page plain HTML, CSS and JS, Mac Mini scripts); /Users/neil/dev/new-site-analytics/docs/reference.md line 167 (serve-stats JSON API), line 486 (collectSiteStats read from PostHog); /Users/neil/dev/new-site-analytics/analytics/lib/hogql.mjs
+- One source of figures: /Users/neil/dev/new-site-analytics/AGENTS.md § One source of figures; /Users/neil/dev/new-site-analytics/docs/reference.md line 486
+- One source per visitor: /Users/neil/dev/new-site-analytics/analytics/stats-page/app.js lines 43-55 (NAMES, detOf: Direct 'No referrer', '-search' 'Search'), groupSources lines 169-193 (store, buy, checkouts, sales per source; campaign on tagged rows)
+- Two kinds of site: /Users/neil/dev/new-site-analytics/docs/reference.md line 45 (sells vs signups); /Users/neil/dev/new-site-analytics/analytics/stats-page/app.js lines 248-262 (KPI tiles; 'Before fees'; waitlist), 297-299
+- Views table and summary sentence: /Users/neil/dev/new-site-analytics/analytics/stats-page/app.js line 33 (VIEWS), overview(), sourcesView() ('Where visitors went', rate by source rings), funnelView() (drops), linksView(), page() (summary, insights), lines 265-290 (highlights)
+- Filtering runs in the browser: /Users/neil/dev/new-site-analytics/analytics/stats-page/app.js header comment lines 1-3 ('a filter click sends no query'), comment 'Pages and countries stay unfiltered (decision 13)'
+- All sites at once: /Users/neil/dev/new-site-analytics/analytics/stats-page/app.js allSitesPage, byVisitors, spark, buildPicker ('Search sites'); /Users/neil/dev/new-site-analytics/docs/reference.md line 167 (/api/overview)
+- Calendar days in one time zone: /Users/neil/dev/new-site-analytics/docs/reference.md line 45 (stats.time_zone); /Users/neil/dev/new-site-analytics/analytics/stats-page/app.js line 34 (VS)
+- Internal visits are left out: /Users/neil/dev/new-site-analytics/docs/reference.md § Setup run, closing paragraph (?internal=1 … left out of the dashboards); /Users/neil/dev/new-site-analytics/README.md § What it asks of you (Once per browser)
+- Stale figures are labelled: /Users/neil/dev/new-site-analytics/docs/reference.md line 167 (cached 5 minutes, served stale with "stale": true when PostHog fails); /Users/neil/dev/new-site-analytics/analytics/stats-page/app.js setNotice ('PostHog unreachable. Showing figures from …')
+- Sign-in fails closed: /Users/neil/dev/new-site-analytics/docs/reference.md line 60 (pbkdf2_sha256 hash file; missing or malformed file locks the dashboard, 503), line 167 (cookie 12 hours or 30 days with keep; fifth miss lock 2 s doubling to 300 s)
+- Remote requests always need a session: /Users/neil/dev/new-site-analytics/docs/reference.md line 167 ('Every request on the public port counts as remote, as does a request on the local port that carries a tunnel header'; 'The PostHog key is read once at start and never reaches a response or a log line')
+- Markup is never built from data: /Users/neil/dev/new-site-analytics/analytics/stats-page/app.js lines 3-5 (textContent or the CSSOM; CSP forbids inline styles)
+- Phone and desktop: /Users/neil/dev/new-site-analytics/analytics/stats-page/app.css lines 5 (prefers-color-scheme), 158 and 226 (period-bottom sticky bar under @container page max-width 699px), 212-229 (@container queries)
+- A sample-data address: /Users/neil/dev/new-site-analytics/docs/reference.md line 167 (GET /live, live=1 reads the day's seeded sample history; / keeps the real figures); /Users/neil/dev/new-site-analytics/analytics/stats-page/index.html line 2 (data-live)
+- Scheduled messages: /Users/neil/dev/new-site-analytics/README.md § The messages; /Users/neil/dev/new-site-analytics/docs/reference.md § Scheduled run (per-product blocks, Best source, Top pages), line 304 (at most three next steps)
+- proc A Node.js server, PostHog and Telegram: /Users/neil/dev/new-site-analytics/docs/reference.md line 7 (Node 22, one dependency); /Users/neil/dev/new-site-analytics/AGENTS.md § Where the code lives (stats-page: no build step; Mac Mini scripts run-stats-mini, install-mini-stats); /Users/neil/.claude/projects/-Users-neil/memory/project_analytics_attribution.md (State 2026-11-01: launchd service on the Mini; Cloudflare tunnel); /Users/neil/dev/new-site-analytics/plans/stats-dashboard-plan-2026-10-30.md § Goal and F2 (confirm only: tunnel, launchd)
+- A single source of truth for figures: /Users/neil/dev/new-site-analytics/AGENTS.md § One source of figures
+- Mechanism separated from policy: /Users/neil/dev/new-site-analytics/AGENTS.md § Where the code lives (analytics/ engine names nothing of the operator's; analytics-personal/); /Users/neil/dev/new-site-analytics/docs/reference.md § Engine and config
+- Desired-state convergence: /Users/neil/dev/new-site-analytics/docs/reference.md § Setup run ('compares the desired state with the current state and writes only the difference'; 'a second run with the same flags changes nothing')
+- First-party collection: /Users/neil/dev/new-site-analytics/docs/reference.md line 3 (same-origin proxy), § Setup run --host nextjs row ('the proxy drops the site's cookies, authorization and the client's X-Forwarded-For before PostHog')
+- Money events come from the server: /Users/neil/dev/new-site-analytics/docs/reference.md § Integration contract ('never: a browser capture of a server event (purchase_completed, refund_issued, signup_completed)'), line 156 (Paddle transaction.completed, adjustment events), line 165 (one purchase_completed uuid)
+- Fail closed, serve stale: /Users/neil/dev/new-site-analytics/docs/reference.md line 60 (missing hash file locks the dashboard), line 167 (served stale when PostHog fails)
+
+**Claims to check before approval** (the drafting agent's list)
+
+- **Cloudflare Tunnel and launchd on the Mac mini.** reference.md (lines 60 and 167) says only "the tunnel"; the rest comes from a memory note and a draft plan (plans/stats-dashboard-plan-2026-10-30.md, F2).
+- **HogQL in the stack.** This rests only on analytics/lib/hogql.mjs existing; the drafter did not read the file.
+- **Sales counted under the buyer's source.** Combined from three places: reference.md's Integration contract (checkoutData), line 165 (purchase_completed carries distinct_id and first_utm_campaign), and groupSources in app.js.
+- **"The browser never reports a sale" and "each payment counts once".** From reference.md's Integration contract and line 165.
+- **The proxy drops cookies and authorization headers.** reference.md says this only in the `--host nextjs` row; the draft applies it to every host.
+- **Left out:** private details (the hostname, ports, the tunnel id, PostHog project ids, vault item names, the password setup, and the real visitor figures); built but unused (the ads module, sending conversions to Google and Meta, the forget command, spend logging); planned (Mirra adoption, the attribution article, Social Hook link-scheme integration); and the claim "every product", since only Chairtax and stet are tracked today.
+
+**The link.** The entry's url is null because the dashboard is password-gated. **Question for the operator:** should the page show its host (stats.njct.io) as the project link?
+
+**Question for the operator.** As for rows 33, 34 and 38: the draft describes only what is built. Should planned features be written in, under the marketing convention?
