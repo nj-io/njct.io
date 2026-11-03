@@ -61,7 +61,7 @@ void main() { gl_Position = vec4(position.xy, 0.0, 1.0); }`;
 const PRELUDE = /* glsl */`
 precision highp float;
 uniform vec2 uRes, uGrain;
-uniform float uTime, uSS, uMode, uBandY, uBandH;
+uniform float uTime, uSS, uMode, uBandY, uBandH, uStrip;
 uniform sampler2D uText, uOver, uForm, uFormCol, uFront;
 uniform vec3 uFormRect;
 uniform sampler2D uRest;
@@ -149,10 +149,12 @@ const MAIN = /* glsl */`
 #endif
 vec3 shade(vec2 p, float t) {
   if (uMode < 0.5) return motif(p, t);
-  // back: a strip of the finished front across the top, paper below
+  // back: a band of the cover's art across the top, paper below. The band is a crop of the finished
+  // front (0), the art without its type (1), or the title's own fill laid across the band (2).
   float by = 1.0 - uBandH;
   if (p.y < by - 2.0 * PX) return uPaper;
-  vec3 m = texture2D(uFront, vec2(p.x, uBandY + (p.y - (1.0 - 0.5 * uBandH)))).rgb;
+  vec2 q = vec2(p.x, uBandY + (p.y - (1.0 - 0.5 * uBandH)));
+  vec3 m = uStrip < 0.5 ? texture2D(uFront, q).rgb : uStrip < 1.5 ? motif(q, t) : toLin(INK0(q, t));
   return mix(uPaper, m, cover(by - p.y));
 }
 void main() {
@@ -707,7 +709,9 @@ vec3 goldInk(vec2 p) {
 // form: the logo inflated into the motif's hero form: box [x, top, size], R bevel radius,
 //   soft blur (both cover units), key 'alpha' | 'tile' (tile: drop pixels near the tile colour).
 // back: paper, ink (name, values), soft (labels, stack), accent (rules, link).
-// bandY: centre of the front strip shown across the top of the back.
+// bandY: centre of the band of art shown across the top of the back; strip: where that band comes from,
+//   'front' (a crop of the finished front, for bands with no type in them), 'art' (the motif without its
+//   type) or 'fill' (the title's own fill across the band). No band may cut through type.
 // t0: the moment the still cover shows; alive time runs on from it.
 
 function designFor(entry) {
@@ -728,7 +732,7 @@ function designFor(entry) {
       type: [{ lines: ['stet'], font: 'NJ Condensed', weight: 800, track: -0.03, fit: 1040, x: 12, base: 752, ch: 0 }],
       inks: ['#F1E8D6'],
       mark: [30, 26, 142],
-      bandY: 0.48, grain: [0.05, 0.02],
+      bandY: 0.48, strip: 'fill', grain: [0.05, 0.02],
       back: { paper: '#0D2A2C', ink: '#F3EBDB', soft: '#9BBDBB', accent: '#E9B85E' },
     };
     case 'Social Hook': return {
@@ -737,7 +741,7 @@ function designFor(entry) {
       type: [{ lines: ['Social', 'Hook'], font: 'NJ Poppins', weight: 800, track: -0.02, fit: 806, x: 92, base: 278, lead: 224, ch: 0 }],
       inks: ['#FFFFFF'],
       mark: [62, 865, 108],
-      bandY: 0.36, grain: [0.012, 0.010],
+      bandY: 0.32, grain: [0.012, 0.010],
       back: { paper: '#2563EB', ink: '#FFFFFF', soft: '#CFE0FF', accent: '#FFFFFF' },
     };
     case 'Clauded': return {
@@ -759,7 +763,7 @@ function designFor(entry) {
       ],
       inks: ['#1E4A38', '#F3EFE6'],
       mark: [852, 38, 120],
-      bandY: 0.5, grain: [0.03, 0.016],
+      bandY: 0.5, strip: 'art', grain: [0.03, 0.016],
       back: { paper: '#F2EEE6', ink: '#1E4A38', soft: '#5E7A6C', accent: '#2F5D50' },
     };
     case 'Topshine': return {
@@ -1186,6 +1190,15 @@ BLANK.needsUpdate = true;
 const BLANK_FORM = new THREE.DataTexture(new Uint16Array([0x3c00, 0, 0, 0]), 1, 1, THREE.RGBAFormat, THREE.HalfFloatType);
 BLANK_FORM.needsUpdate = true;
 let aliveCover = null;   // at most one cover animates at a time
+// Details backs (1024², 5.3 MiB each) are kept for the last DETAIL_CACHE requests across all covers.
+const DETAIL_CACHE = 2;
+const detailCache = [];   // least recently used first
+function touchDetail(rec) {
+  const k = detailCache.indexOf(rec);
+  if (k >= 0) detailCache.splice(k, 1);
+  detailCache.push(rec);
+  while (detailCache.length > DETAIL_CACHE) detailCache[0].evict();
+}
 
 export async function createCover(renderer, entry, index, { size = 1024, backSize = 512, samples = 4, aliveSamples = Math.min(2, samples) } = {}) {
   await loadCoverFonts();
@@ -1202,6 +1215,7 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
     uSS: { value: samples },
     uMode: { value: 0 },
     uBandY: { value: d.bandY },
+    uStrip: { value: { front: 0, art: 1, fill: 2 }[d.strip || 'front'] },
     uBandH: { value: 0.3 },
     uText: { value: null },
     uOver: { value: BLANK },
@@ -1299,17 +1313,18 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
   const ease = u => u * u * (3 - 2 * u);
   // The back's strip is a crop of the finished front. A front smaller than the back (the scene's
   // 16² front beside a 1024 back) is redrawn at the back's size for the strip, then released.
-  const stripMark = rt => frontRT.width < (rt?.width || 0) ? markAt(rt.width) : Promise.resolve(null);
+  const cropStrip = (d.strip || 'front') === 'front';
+  const needsStripFront = rt => cropStrip && frontRT.width < rt.width;
+  const stripMark = rt => needsStripFront(rt) ? markAt(rt.width) : Promise.resolve(null);
   const renderBack = (rt, img) => {
+    const t = uniforms.uTime.value;
+    uniforms.uTime.value = d.t0;
     let strip = null;
-    if (frontRT.width < rt.width) {
+    if (needsStripFront(rt)) {
       strip = target(rt.width);
-      const t = uniforms.uTime.value;
-      uniforms.uTime.value = d.t0;
       const l = layersAt(rt.width, img);
       draw(strip, 0, l, samples);
       l.dispose();
-      uniforms.uTime.value = t;
     }
     const bctx = textCtx(rt.width);
     drawBack(bctx, entry);
@@ -1317,6 +1332,7 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
     draw(rt, 1, { text, strip }, samples);
     text.dispose();
     if (strip) strip.dispose();
+    uniforms.uTime.value = t;
   };
 
   // alive state: the animated layers, and the resting frame the cover fades back to on release
@@ -1351,21 +1367,31 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
     if (restRT) { restRT.dispose(); restRT = null; }
     if (aliveCover === cover) aliveCover = null;
   };
-  let detailRT = null, detailP = null;
+  let detail = null;   // { size, rt, p, evict }: this cover's entry in the Details-back cache
   const cover = {
     front: frontRT.texture,
     back: backRT ? backRT.texture : null,
-    // The back at detail size (Details magnifies it), rendered once, on the first request.
+    // The back at detail size (Details magnifies it). Cached across covers, at most DETAIL_CACHE at a time:
+    // an evicted back is rendered again on its cover's next request. Resolves null if evicted first.
     detailBack(detailSize = 1024) {
       if (disposed) return Promise.resolve(null);
-      if (!detailP) {
-        detailRT = target(detailSize);
-        detailRT.texture.name = `${entry.name} back ${detailSize}`;
-        detailP = Promise.all([loadBackFonts(), stripMark(detailRT)])
-          .then(([, img]) => enqueue(`${entry.name} back ${detailSize}`, () => renderBack(detailRT, img)))
-          .then(() => detailRT.texture);
+      if (detail && detail.size !== detailSize) detail.evict();
+      if (!detail) {
+        const rec = { size: detailSize, rt: target(detailSize) };
+        rec.rt.texture.name = `${entry.name} back ${detailSize}`;
+        rec.evict = () => {
+          if (rec.rt) { rec.rt.dispose(); rec.rt = null; }
+          const k = detailCache.indexOf(rec);
+          if (k >= 0) detailCache.splice(k, 1);
+          if (detail === rec) detail = null;
+        };
+        rec.p = Promise.all([loadBackFonts(), stripMark(rec.rt)])
+          .then(([, img]) => rec.rt && enqueue(`${entry.name} back ${detailSize}`, () => { if (rec.rt) renderBack(rec.rt, img); }))
+          .then(() => rec.rt ? rec.rt.texture : null);
+        detail = rec;
       }
-      return detailP;
+      touchDetail(detail);
+      return detail.p;
     },
     setAlive(on) {
       if (disposed) return;
@@ -1405,13 +1431,13 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
       disposed = true;
       stop();
       frontRT.dispose(); if (backRT) backRT.dispose(); material.dispose();
-      if (detailRT) detailRT.dispose();
+      if (detail) detail.evict();
       if (form) { form.tex.dispose(); if (form.col) form.col.dispose(); }
     },
     // resident GPU bytes (preview diagnostics): mipmapped RGBA8 targets, half-float form fields
     gpuBytes() {
       const rt = (t, mips) => t ? t.width * t.height * 4 * (mips ? 4 / 3 : 1) : 0;
-      let n = rt(frontRT, true) + rt(backRT, true) + rt(detailRT, true) + rt(restRT, false);
+      let n = rt(frontRT, true) + rt(backRT, true) + rt(detail?.rt, true) + rt(restRT, false);
       if (form) n += form.tex.image.width ** 2 * 8 + (form.col ? form.col.image.width ** 2 * 4 : 0);
       return n;
     },

@@ -212,7 +212,7 @@ async function bench() {
 window.__covers = {
   bench: q.has('bench') && timer ? bench() : null,
   ready: new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))),
-  loadWall, fontWall, gpuMB: gpuBytes / 1048576, timings, frameCost, timerQuery: !!timer,
+  covers, loadWall, fontWall, gpuMB: gpuBytes / 1048576, timings, frameCost, timerQuery: !!timer,
   renderer: renderer.info, programs: renderer.info.programs.length, page: pageSize(indices.length),
 };
 </script>
