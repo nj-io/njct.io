@@ -950,8 +950,9 @@ vec3 motif(vec2 p, float t) {
 // shaderMips: the shader draws the front's mip levels itself, each filtered at its own sampling rate.
 // form: the logo (or, fromType, the front's own type) inflated into the motif's hero form: box [x, top, size], R bevel radius,
 //   soft blur (both cover units), key 'alpha' | 'tile' (tile: drop pixels near the tile colour).
-// ground: the front's resting ground colour (sRGB), the area-weighted mean in linear light of the motif's ground
-//   before anything stands on it.
+// ground: the colour the resting cover reads as; a flat stand-in for a late cover (sRGB). For most covers it is the
+//   area-weighted mean in linear light of the motif's ground; a cover whose ground is mostly covered or split takes
+//   the field it reads as.
 // back: paper, ink (name, values), soft (labels, stack), accent (rules, link).
 // bandY: centre of the band of art shown across the top of the back (bandH tall, 0.3 by default); strip: where that band comes from,
 //   'front' (a crop of the finished front, for bands with no type in them), 'art' (the motif without its
@@ -1040,7 +1041,7 @@ function designFor(entry) {
     case 'Social Hook': return {
       motif: 'hook', t0: 0,
       pal: ['#2A63E6', '#2E6AE9', '#4482F1', '#6AA2F6', '#1C50D7', '#5C96F3'],
-      ground: '#2A64E6',
+      ground: '#538DF3',   // the discs it reads as
       type: [{ lines: ['Social', 'Hook'], font: 'NJ Poppins', weight: 800, track: -0.02, fit: 806, x: 92, base: 278, lead: 224, ch: 0 }],
       inks: ['#FFFFFF'],
       mark: [62, 865, 108],
@@ -1061,7 +1062,7 @@ function designFor(entry) {
     case 'LikeWiki': return {
       motif: 'likewiki', t0: 0,
       pal: ['#EFEBE2', '#1E4A38', '#94C0A8', '#7DB096', '#2D6650', '#F6F3EE', '#336F56'],
-      ground: '#B0B2A9',
+      ground: '#1E4A38',   // its green field
       type: [
         { lines: ['Like'], font: 'NJ Text', weight: 800, track: -0.02, cap: 302, x: 50, base: 482, ch: 0 },
         { lines: ['Wiki'], font: 'NJ Text', weight: 800, track: -0.02, cap: 302, x: 50, base: 852, ch: 1 },
@@ -1087,7 +1088,7 @@ function designFor(entry) {
     case 'Scorecard': return {
       motif: 'scorecard', t0: 0,
       pal: ['#0F1B3D', '#1F5DD8', '#2A6BE3', '#14916F', '#0E7458', '#F6C21C', '#F24A1D', '#F7872E'],
-      ground: '#747A8A',
+      ground: '#0F1B3D',   // its navy field
       type: [{ lines: ['Scorecard'], font: 'NJ Text', weight: 800, track: -0.03, fit: 894, x: 60, base: 206, ch: 0 }],
       inks: ['#FFFFFF'],
       bandY: 0.5, grain: [0.02, 0.012],
@@ -1582,7 +1583,7 @@ async function buildForm(src) {
 
 // optional (label, fn) => fn() wrapper for timing; nonce (a number) makes every program's source unique, so
 // a measurement sees shader compiles that no driver cache has seen
-// The cover's resting ground colour (sRGB hex); the scene uses it as a flat fill on a sleeve whose cover is late.
+// The colour the resting cover reads as (sRGB hex); a flat stand-in the scene fills a sleeve with while its cover is late.
 export const coverGround = (entry, index) => designFor(entry, index).ground;
 export const coverProfiler = { wrap: null, nonce: 0 };
 const jobs = [];
