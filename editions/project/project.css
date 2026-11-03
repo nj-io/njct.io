@@ -138,3 +138,6 @@ html.in-project .details, html.in-project #d-open { display: none; }
   .pj-diagram { padding: 16px; margin: 0 -16px; border-left: 0; border-right: 0; }
   .pj-list a { grid-template-columns: 1fr; gap: 2px; }
 }
+
+/* No WebGL: the world's window holds the accent's light instead. */
+.pj-noworld .pj-window { background: radial-gradient(120% 90% at 30% 35%, color-mix(in srgb, var(--acc) 60%, #000) 0%, #0b0b0d 72%); }

@@ -8,10 +8,9 @@ import { createLightUniforms, applyLights } from './scene/lighting.js';
 import { createWall } from './scene/wall.js';
 import { createShelves } from './scene/shelves.js';
 import { createSleeves, applyPose, writeOccluders, setCover, restPose, hoverPose, COVER_BIAS } from './scene/sleeves.js';
-import { introPose, stepHover, fallPose, HOVER_DELAY, bezier, lerpPose, clamp01, dur, delay, setReducedMotion } from './scene/motion.js';
+import { introPose, stepHover, fallPose, HOVER_DELAY, bezier, lerpPose, clamp01, dur, delay, setReducedMotion, reduced } from './scene/motion.js';
 import { createPost } from './scene/post.js';
 import { createSticker } from './scene/sticker.js';
-import { createCover } from './covers/covers.js';
 import { createCrate, CRATE } from './scene/crate.js';
 
 const entries = LINEUP;
@@ -71,7 +70,10 @@ const crate = createCrate(sleeves.length);
 // Details. A cover that fails to build leaves its sleeve plain, in the entry's accent colour or neutral
 // grey. The sleeves wait for the covers, at most 3 s.
 const covers = sleeves.map(() => null);
-const build = (s, i, opts) => Promise.resolve().then(() => createCover(renderer, s.entry, i, opts));
+// The cover module loads after the first frame, so its bytes and its work stay off the first frame's
+// path on a slow phone (the shelf's first frame needs only the scene).
+const coversMod = new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))).then(() => import('./covers/covers.js'));
+const build = (s, i, opts) => coversMod.then(m => m.createCover(renderer, s.entry, i, opts));
 const coversReady = Promise.all(sleeves.map((s, i) => build(s, i, { size: 1024, backSize: 0 })
   .then(c => { covers[i] = c; setCover(s, c.front, null); wake(); })
   .catch(e => console.warn(`cover ${s.entry.name}: plain sleeve (${e?.message || e})`))));
@@ -366,8 +368,21 @@ function stepDetails(s, now) {
   return moving;
 }
 
+// A lost WebGL context ends the scene: the shelf and pages carry on as the static fallback.
+let glLost = false;
+canvas.addEventListener('webglcontextlost', e => {
+  e.preventDefault();
+  if (glLost) return;
+  glLost = true;
+  if (raf) cancelAnimationFrame(raf);
+  if (det) dropDetails();
+  view?.close();
+  import('./fallback.js').then(m => m.start(entries));
+});
+
 function frame(now) {
   raf = 0;
+  if (glLost) return;
   if (inProject >= 0) { last = 0; return; }   // a page is open: the shelf holds still and draws nothing
   const dt = last ? Math.min(0.05, (now - last) / 1000) : 0;
   last = now;
@@ -531,7 +546,7 @@ function crateIntro(s, ti) {
   if (u >= 1) return null;
   const p = crate.pose(s);
   p.opacity = u;
-  p.lift += (1 - easeOut(u)) * 40 / S;
+  if (!reduced()) p.lift += (1 - easeOut(u)) * 40 / S;   // reduced motion: a fade in place
   return p;
 }
 // The bar and rail follow the front sleeve; the screen reader hears it once the crate comes to rest.
@@ -710,6 +725,7 @@ function openProject(i) {
 }
 
 async function route() {
+  if (glLost) return;   // the fallback routes from here on
   const slug = decodeURIComponent(location.hash.slice(1));
   const i = entries.findIndex(e => slugOf(e) === slug);
   if (i >= 0) {
@@ -815,7 +831,8 @@ window.addEventListener('keyup', e => { if (det && (e.key === ' ' || e.code === 
 // ---- reduced motion -------------------------------------------------------------------------------
 const rm = window.matchMedia('(prefers-reduced-motion: reduce)');
 setReducedMotion(rm.matches);
-rm.addEventListener?.('change', e => setReducedMotion(e.matches));
+crate.setReduced(rm.matches);
+rm.addEventListener?.('change', e => { setReducedMotion(e.matches); crate.setReduced(e.matches); });
 
 // ---- test hooks -----------------------------------------------------------------------------------
 const hooks = {
@@ -826,6 +843,7 @@ const hooks = {
   sleeveRect,
   setCover(i, front, back) { setCover(sleeves[i], front, back); wake(); },
   get project() { return inProject >= 0 ? slugOf(entries[inProject]) : null; },
+  get sleevesAt() { return sleevesStart; },
   get crate() { return crateMode ? { p: crate.p, current: crate.current, dragging: crate.dragging } : null; },
   get details() {
     return det ? { index: det.i, flipped: Math.round(det.flip.to / Math.PI) % 2 === 1, closing: !!det.exit, blur: det.blur, yaw: sleeves[det.i].pose.yaw } : null;

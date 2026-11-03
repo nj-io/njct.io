@@ -204,7 +204,10 @@ export function createProjectView({ renderer, entries, slugOf, onBack, onCta }) 
     }, { rootMargin: '-45% 0px -50% 0px' });
     root.querySelectorAll('.pj-part').forEach(s => io.observe(s));
 
-    const world = createWorld(renderer, entry.name, col.hue, { reduced: reduced() });
+    // Without WebGL (the static fallback) the window shows the accent's light in place of the world.
+    const world = renderer ? createWorld(renderer, entry.name, col.hue, { reduced: reduced() })
+      : { seed() {}, frame() {}, dispose() {}, still: true };
+    if (!renderer) root.classList.add('pj-noworld');
     const cut = performance.now();
     st = { i, root, world, io, raf: 0, last: 0, cut, panelDone: !vertical(), titleDone: false, fit };
     if (!vertical()) panel.style.transform = 'none';
@@ -221,7 +224,7 @@ export function createProjectView({ renderer, entries, slugOf, onBack, onCta }) 
     const visibleRect = () => {
       const r = win.getBoundingClientRect(), cover = body.getBoundingClientRect().top;
       const top = Math.max(r.top, 0), bottom = Math.min(r.bottom, innerHeight, cover);
-      if (bottom - top < 1 || document.hidden) return null;
+      if (bottom - top < 1 || document.hidden || !renderer) return null;
       const pr = renderer.getPixelRatio();
       return [r.left * pr, (innerHeight - r.bottom) * pr, r.width * pr, r.height * pr];
     };
@@ -246,7 +249,8 @@ export function createProjectView({ renderer, entries, slugOf, onBack, onCta }) 
       const rect = visibleRect();
       if (rect) world.frame(dt, rect);
       else st.last = 0;
-      if (rect || busy) st.raf = requestAnimationFrame(frame);
+      // A still world (reduced motion) draws again only when the page scrolls or resizes.
+      if ((rect && !(reduced() && world.still)) || busy) st.raf = requestAnimationFrame(frame);
     }
     function wake() { if (st && !st.raf) st.raf = requestAnimationFrame(frame); }
     st.wake = wake;

@@ -9,6 +9,19 @@
 <link rel="preload" href="/editions/data/projects.json" as="fetch" crossorigin>
 <link rel="modulepreload" href="/vendor/three-0.181.0/three.module.min.js">
 <link rel="modulepreload" href="/vendor/three-0.181.0/three.core.min.js">
+<link rel="modulepreload" href="/editions/main.js">
+<link rel="modulepreload" href="/editions/scene/config.js">
+<link rel="modulepreload" href="/editions/scene/lighting.js">
+<link rel="modulepreload" href="/editions/scene/wall.js">
+<link rel="modulepreload" href="/editions/scene/shelves.js">
+<link rel="modulepreload" href="/editions/scene/sleeves.js">
+<link rel="modulepreload" href="/editions/scene/record.js">
+<link rel="modulepreload" href="/editions/scene/tonemap.js">
+<link rel="modulepreload" href="/editions/scene/motion.js">
+<link rel="modulepreload" href="/editions/scene/post.js">
+<link rel="modulepreload" href="/editions/scene/sticker.js">
+<link rel="modulepreload" href="/editions/scene/crate.js">
+<link rel="modulepreload" href="/vendor/three-0.181.0/addons/environments/RoomEnvironment.js">
 <style>
   @font-face {
     font-family: 'Inter';
@@ -81,7 +94,8 @@
   /* The phone crate: the list stays for screen readers and the keyboard; the bar and rail are its controls. */
   .crate-bar, .crate-rail { display: none; }
   .crate #slots { inset: auto; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-  .crate .index, .crate .d-title, .crate .d-tag, .crate .d-open { display: none; }
+  .crate .index, .crate .d-open { display: none; }
+  .crate .d-title, .crate .d-tag { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .crate .crate-bar { display: flex; position: fixed; left: 16px; right: 16px; bottom: max(17px, env(safe-area-inset-bottom)); align-items: center; gap: 8px; }
   .cb-label { flex: 1; min-width: 0; margin: 0; font-size: 11px; line-height: 14px; }
   .cb-label span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -108,6 +122,24 @@
   }
 
   .rise, .late { opacity: 0; }
+
+  /* Without WebGL: the shelf as cards (editions/fallback.js). */
+  .no-gl, .no-gl body { height: auto; overflow: auto; }
+  .no-gl canvas, .no-gl #slots, .no-gl .index, .no-gl .crate-bar, .no-gl .crate-rail, .no-gl .details, .no-gl .d-open, .no-gl .sound { display: none !important; }
+  .no-gl .rise, .no-gl .late { opacity: 1; }
+  .no-gl .masthead { position: absolute; }
+  .fb { padding: 120px var(--gutter) 64px; }
+  .fb[hidden] { display: none; }
+  .fb-shelf { margin: 0 auto; padding: 0; list-style: none; max-width: 1200px; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 40px 24px; }
+  .fb-item, .fb-item article { height: 100%; }
+  .fb-item article { display: flex; flex-direction: column; gap: 6px; }
+  .fb-cover { aspect-ratio: 1; display: flex; align-items: flex-start; padding: 14px; box-sizing: border-box; background: var(--c); color: var(--f); text-decoration: none;
+    font-size: 32px; line-height: 1; font-weight: 800; letter-spacing: -0.02em; box-shadow: 0 10px 24px -14px rgba(0, 0, 0, 0.5); margin-bottom: 6px; }
+  .fb-item h2 { margin: 0; font-size: 16px; line-height: 20px; font-weight: 500; }
+  .fb-tag { margin: 0; color: var(--ink-soft); }
+  .fb-figs { margin: 4px 0 8px; padding: 0; list-style: none; font-size: 12px; line-height: 17px; color: var(--ink-soft); }
+  .fb-figs b { color: var(--ink); font-weight: 500; }
+  .fb-open { align-self: flex-start; margin-top: auto; height: 44px; padding: 0 18px; border-radius: 22px; background: #000; color: #fff; line-height: 44px; text-decoration: none; }
 </style>
 <script type="importmap">{ "imports": { "three": "/vendor/three-0.181.0/three.module.min.js" } }</script>
 </head>
@@ -141,6 +173,12 @@
   <p class="d-tag"></p>
 </section>
 <button class="d-open" id="d-open" type="button" data-action="open" inert>Open</button>
-<script type="module" src="./main.js"></script>
+<script type="module">
+  // WebGL 2 draws the shelf; without it (or if the scene fails to start) the shelf is plain cards.
+  const gl = (() => { try { return !!document.createElement('canvas').getContext('webgl2'); } catch { return false; } })();
+  const fallback = () => import('./fallback.js').then(m => m.start());
+  if (!gl || window.__editionsTest?.noWebGL) fallback();
+  else import('./main.js').catch(e => { console.warn('shelf: static fallback', e); fallback(); });
+</script>
 </body>
 </html>
