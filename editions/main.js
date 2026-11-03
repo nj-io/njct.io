@@ -1,6 +1,6 @@
-// njct.io Editions: the shelf wall. Shelves, studio light and soft shadows; the intro drop; hover, with
-// the record peeking out of the sleeve; Details (the sleeve flies forward over the blurred shelf, Space
-// flips it to its back cover, Escape puts it back); keyboard; sound. Renders only while something moves.
+// njct.io Editions: the shelf wall. Shelves, studio light and soft shadows; the intro drop; hover;
+// Details (the sleeve flies forward over the blurred shelf, Space flips it to its back cover, Escape puts
+// it back); keyboard; sound. Renders only while something moves.
 import * as THREE from 'three';
 import { RoomEnvironment } from '/vendor/three-0.181.0/addons/environments/RoomEnvironment.js';
 import { CAMERA_Z, REF_H, SHELF, SLEEVE, INTRO, DETAILS, OPEN, LINEUP, viewScale } from './scene/config.js';
@@ -48,7 +48,7 @@ blank.colorSpace = THREE.SRGBColorSpace;
 blank.needsUpdate = true;
 for (const s of sleeves) {
   s.front.map = blank; s.back.map = blank;
-  scene.add(s.mesh, s.record.mesh);
+  scene.add(s.mesh);
 }
 // Details: the sleeve in focus draws on its own layer, over the blurred shelf.
 const FOCUS = 1;
@@ -411,9 +411,9 @@ const easeOut = u => 1 - (1 - u) ** 3;
 const smooth = u => u * u * (3 - 2 * u);
 const TURN = Math.PI * 2;
 
-// Details pose of the sleeve in focus at time now (the flight in or out, the flip, the record).
+// Details pose of the sleeve in focus at time now (the flight in or out, the flip).
 function stepDetails(s, now) {
-  const F = DETAILS.fly, R = DETAILS.record, X = DETAILS.exit, P = DETAILS.flip;
+  const F = DETAILS.fly, X = DETAILS.exit, P = DETAILS.flip;
   const yawAt = () => det.flip.from + (det.flip.to - det.flip.from) * bezier(P.ease, clamp01((now - det.flip.t0 - delay(P.at)) / dur(P.dur)));
   let p, moving;
   if (!det.exit) {
@@ -421,18 +421,9 @@ function stepDetails(s, now) {
     const e = bezier(F.ease, clamp01((t - delay(F.at)) / dur(F.dur)));
     p = flight(s, det.from, detailsPose(s), e);
     p.yaw = yawAt();
-    // The hover peek goes back in during the flight; then the record slides out to the right, and
-    // slips back in while the sleeve shows its back.
-    const slide = easeOut(clamp01((t - delay(R.at)) / dur(R.dur)));
-    if (slide > 0) {
-      if (!det.slid) { det.slid = true; play('slide', { pan: 0.3, intensity: 0.7 }); }
-      p.recX = 1; p.recY = 0; p.rec = crateMode ? 0 : R.out * slide * (1 + Math.cos(p.yaw)) / 2;   // no room beside it on a phone
-    } else {
-      p.recX = det.from.recX; p.recY = det.from.recY; p.rec = det.from.rec * (1 - e);
-    }
     det.blur = crateMode ? 0 : smooth(clamp01((t - delay(DETAILS.blur.at)) / dur(DETAILS.blur.dur)));   // the crate stays sharp, as on the reference
     det.sticker = clamp01((t - delay(DETAILS.title.at)) / dur(DETAILS.title.dur));
-    const end = Math.max(...[F, R, DETAILS.blur, DETAILS.title].map(k => delay(k.at) + dur(k.dur)));
+    const end = Math.max(...[F, DETAILS.blur, DETAILS.title].map(k => delay(k.at) + dur(k.dur)));
     moving = t < end || now - det.flip.t0 < delay(P.at) + dur(P.dur);
   } else {
     // Back to the hover pose on the shelf, turning the rest of the way round if it was flipped.
@@ -440,9 +431,6 @@ function stepDetails(s, now) {
     const e = bezier(X.ease, clamp01((t - delay(X.at)) / dur(X.dur)));
     p = flight(s, x.from, { ...(crateMode ? crate.pose(s) : hoverPose()), yaw: x.yawTo }, e);
     p.yaw = x.from.yaw + (x.yawTo - x.from.yaw) * bezier(X.turn.ease, clamp01((t - delay(X.turn.at)) / dur(X.turn.dur)));
-    if (e < 0.5) { p.recX = x.from.recX; p.recY = x.from.recY; p.rec = x.from.rec * (1 - e * 2); }
-    else if (crateMode) p.rec = 0;
-    else { p.recX = 0; p.recY = 1; p.rec = SLEEVE.hoverRecord * (e - 0.5) * 2; }
     det.blur = x.blur * (1 - smooth(clamp01((t - delay(X.blurOut.at)) / dur(X.blurOut.dur))));
     det.sticker = x.sticker * (1 - clamp01((t - delay(X.at)) / dur(X.textOut)));
     moving = t < delay(X.at) + dur(X.dur) || det.blur > 0;
@@ -481,7 +469,7 @@ function frame(now) {
   if (lifted !== want && (det || now - hoverAt >= delay(HOVER_DELAY))) {
     if (lifted >= 0 && !(det && det.i === lifted)) sleeves[lifted].fall = { from: { ...sleeves[lifted].pose }, t0: hoverAt };
     lifted = want;
-    if (lifted >= 0) { sleeves[lifted].fall = null; sleeves[lifted].record.loadLabel().then(wake); }
+    if (lifted >= 0) sleeves[lifted].fall = null;
   }
   setAlive(det ? det.i : lifted);
   const waiting = lifted !== want;
@@ -723,10 +711,9 @@ function openDetails(i) {
   s.fall = null;
   if (crateMode) crate.go(i);
   const ret = slotOf(document.activeElement) === i ? document.activeElement : null;   // focus comes back here
-  det = { i, t0: now, from: { ...s.pose }, flip: { from: 0, to: 0, t0: -1e9 }, exit: null, blur: 0, sticker: 0, slid: false, ret };
-  for (const o of [s.mesh, s.record.mesh]) o.layers.set(FOCUS);
+  det = { i, t0: now, from: { ...s.pose }, flip: { from: 0, to: 0, t0: -1e9 }, exit: null, blur: 0, sticker: 0, ret };
+  s.mesh.layers.set(FOCUS);
   bgDirty = true;
-  s.record.loadLabel().then(wake);
   backFor(i);
   dTitle.textContent = s.entry.name;
   dTag.textContent = s.entry.tag;
@@ -774,7 +761,7 @@ function endDetails(s, now, opening = false) {
   releaseBack(s);
   s.pose = crateMode ? crate.pose(s) : hoverPose();
   applyPose(s);
-  for (const o of [s.mesh, s.record.mesh]) o.layers.set(0);
+  s.mesh.layers.set(0);
   sticker.mesh.visible = false;
   bgDirty = bakeDirty = true;
   slotsEl.inert = false;
@@ -952,10 +939,10 @@ window.__editions = hooks;
 
 layout();
 // Draw every program once before the first frame (the canvas is still transparent), so nothing compiles
-// mid-motion: the sleeves both fading (transparent) and opaque, the record and the sticker, each drawn to
+// mid-motion: the sleeves both fading (transparent) and opaque, and the sticker, each drawn to
 // the screen and into the Details background target. Drawing, not just compiling: the GPU driver
 // finishes a program on its first draw.
-for (const s of sleeves) { s.mesh.visible = true; s.record.mesh.visible = true; }
+for (const s of sleeves) s.mesh.visible = true;
 sticker.mesh.visible = true;
 for (const transparent of [true, false]) {
   for (const s of sleeves) for (const m of [s.front, s.back, s.mats[0]]) { m.transparent = transparent; m.needsUpdate = true; }

@@ -1,19 +1,17 @@
-// The sleeves: thin card boxes standing on the shelves, each holding a record. A sleeve's pose is its
-// bottom edge's height above its shelf (lift), that edge's distance from the wall (z), its lean back
-// toward the wall (pivoting on that edge), a sideways offset (dx), a turn about its own vertical axis
-// (yaw, for the flip) and how far its record is drawn out (rec, along recDir). Poses also drive the
-// occluders the wall and shelf shaders use.
+// The sleeves: thin card boxes standing on the shelves. A sleeve's pose is its bottom edge's height above
+// its shelf (lift), that edge's distance from the wall (z), its lean back toward the wall (pivoting on
+// that edge), a sideways offset (dx) and a turn about its own vertical axis (yaw, for the flip). Poses
+// also drive the occluders the wall and shelf shaders use.
 import * as THREE from 'three';
 import { SHELF, SLEEVE } from './config.js';
-import { createRecord, RECORD_R } from './record.js';
 import { NEUTRAL_GLSL } from './tonemap.js';
 
 const L = SLEEVE.size;
 export const REST_Z = L * Math.sin(SLEEVE.lean);      // the top edge then touches the wall
-const base = { dx: 0, yaw: 0, rec: 0, recX: 0, recY: 0, opacity: 1 };
+const base = { dx: 0, yaw: 0, opacity: 1 };
 export const restPose = () => ({ ...base, lift: 0, z: REST_Z, lean: SLEEVE.lean });
-export const hoverPose = () => ({ ...base, lift: SLEEVE.hoverLift, z: SLEEVE.hoverZ, lean: 0, rec: SLEEVE.hoverRecord, recY: 1 });
-export const POSE_KEYS = ['lift', 'z', 'lean', 'dx', 'yaw', 'rec', 'recX', 'recY'];
+export const hoverPose = () => ({ ...base, lift: SLEEVE.hoverLift, z: SLEEVE.hoverZ, lean: 0 });
+export const POSE_KEYS = ['lift', 'z', 'lean', 'dx', 'yaw'];
 
 const NEUTRAL = '#d9d6d0'; // flat front for entries without an accent
 
@@ -48,9 +46,8 @@ export function createSleeves(entries) {
     const mats = [edge, edge, edge, edge, front, back];   // +x -x +y -y +z(front) -z(back)
     const mesh = new THREE.Mesh(geo, mats);
     mesh.matrixAutoUpdate = false;
-    const record = createRecord(entry);
     const s = {
-      i, row, col, mesh, front, back, mats, record, entry,
+      i, row, col, mesh, front, back, mats, entry,
       x: (col - (onRow - 1) / 2) * SLEEVE.pitch,
       shelfY: SHELF.tops[row],
       pose: { ...restPose(), opacity: 0 },
@@ -81,14 +78,6 @@ export function applyPose(s) {
   for (const m of [s.front, s.back, s.mats[0]]) {   // mats[0] is this sleeve's edge material
     if (m.transparent !== transparent) { m.transparent = transparent; m.needsUpdate = true; }
     m.opacity = p.opacity;
-  }
-  // The record sits inside the sleeve, between its faces; rec draws it out along (recX, recY).
-  const r = s.record.mesh;
-  r.visible = s.mesh.visible && p.rec > 0.002;
-  if (r.visible) {
-    const out = p.rec * 2 * RECORD_R;
-    r.matrix.makeTranslation(p.recX * out, L / 2 + p.recY * out, SLEEVE.thick / 2).premultiply(s.mesh.matrix);
-    r.matrixWorld.copy(r.matrix);
   }
 }
 
