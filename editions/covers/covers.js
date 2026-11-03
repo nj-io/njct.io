@@ -1645,7 +1645,8 @@ function drawBack(ctx, entry) {
       ctx.fillText(l, M, W - M - 24 * S - (all.length - 1 - j) * 17 * S));
     ctx.fillStyle = CH[2];
     setFont(ctx, 600, 13.5 * S, 'NJ Text', 0);
-    if (entry.url) ctx.fillText(entry.url.replace(/^https?:\/\//, '').replace(/\/$/, ''), M, W - M);   // Scorecard, Topshine: no public url
+    // the link's own text where the entry gives one (Stats: stats.njct.io for its /live url)
+    if (entry.url) ctx.fillText(entry.urlText || entry.url.replace(/^https?:\/\//, '').replace(/\/$/, ''), M, W - M);   // Scorecard, Topshine: no public url
   }
   ctx.fillStyle = CH[1];
   setFont(ctx, 600, 12 * S, 'NJ Text', 0.01);
