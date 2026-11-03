@@ -263,7 +263,11 @@ function fade(el, to, at, ms) {
 // ---- layout ---------------------------------------------------------------------------------------
 // Below 600 px wide (a phone held upright) the sleeves stand in a crate instead of on the shelves, as on
 // the reference; landscape phones and tablets keep the shelves.
-let W = 0, H = 0, S = 1, crateMode = false, detSize = 0, detCY = 0, DZ = 0, DY = 0;
+let W = 0, H = 0, S = 1, crateMode = false, detSize = 0, detCY = 0, DZ = 0, DY = 0, shiftY = 0;
+// A short screen (a phone on its side) would bring the top shelf's sleeves up against the tagline; the
+// scene then moves down on screen (the camera's view offset) to keep the reference's gap: sleeve tops
+// 14 px below the tagline's line box (15.5 px below its ink, at 844x390).
+const TAG_GAP = 14;
 const dbSize = new THREE.Vector2();
 function layout() {
   W = window.innerWidth; H = window.innerHeight;
@@ -275,20 +279,27 @@ function layout() {
   const hw = W / 2 / S, hh = H / 2 / S;
   camera.fov = THREE.MathUtils.radToDeg(2 * Math.atan(hh / CAMZ));
   camera.aspect = W / H;
-  camera.updateProjectionMatrix();
+  camera.clearViewOffset();   // updates the projection
   camera.updateMatrixWorld();
+  shiftY = 0;
+  if (!crateMode) {
+    const rp = restPose(), L = SLEEVE.size;
+    const top = project(0, SHELF.tops[0] + L * Math.cos(rp.lean), rp.z - L * Math.sin(rp.lean) + SLEEVE.thick).y;
+    shiftY = Math.max(0, Math.round(tagline.getBoundingClientRect().bottom + TAG_GAP - top));
+    if (shiftY) camera.setViewOffset(W, H, 0, -shiftY, W, H);
+  }
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.setSize(W, H, false);
   renderer.getDrawingBufferSize(dbSize);
   post.resize(dbSize.x, dbSize.y);
-  const sw = crateMode ? viewScale(W, H) : S, rw = W / 2 / sw * 1.02, rh = H / 2 / sw * 1.02;
-  wall.resize(-hw * 1.02, -hh * 1.02, hw * 1.02, hh * 1.02, Math.ceil(W / 2), Math.ceil(H / 2), crateMode ? [-rw, -rh, rw, rh] : null);
+  const sw = crateMode ? viewScale(W, H) : S, rw = W / 2 / sw * 1.02, rh = H / 2 / sw * 1.02, sy = shiftY / S;
+  wall.resize(-hw * 1.02, -hh * 1.02 + sy, hw * 1.02, hh * 1.02 + sy, Math.ceil(W / 2), Math.ceil(H / 2), crateMode ? [-rw, -rh, rw, rh] : null);
   bakeDirty = bgDirty = true;
   // Details: the sleeve's size and centre on screen, then the depth and height that give them.
   detSize = crateMode ? CRATE.details.size * W : DETAILS.size * S;
   detCY = crateMode ? CRATE.details.centreY * H : H / 2 - (REF_H / 2 - DETAILS.centreY) * S;
   DZ = CAMZ * (1 - SLEEVE.size * S / detSize);
-  DY = (H / 2 - detCY) / S * (CAMZ - DZ) / CAMZ;
+  DY = (H / 2 + shiftY - detCY) / S * (CAMZ - DZ) / CAMZ;
   // The crate has no shelves (and a test can ask for the bare wall).
   const bare = crateMode || !!window.__editionsTest?.noShelves;
   for (const m of shelfMeshes) m.visible = !bare;
