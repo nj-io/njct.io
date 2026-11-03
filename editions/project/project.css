@@ -155,8 +155,9 @@ html.in-project .details, html.in-project #d-open { display: none; }
 .pj-main .pj-list a { display: grid; grid-template-columns: 12em 1fr; gap: 20px; padding: 13px 0; border-top: 1px solid var(--pj-rule); text-decoration: none; font-size: 18px; line-height: 1.5; }
 .pj-list a:hover .n { text-decoration: underline; text-underline-offset: 0.08em; }
 .pj-list .t { color: var(--pj-soft); }
-/* The foot, as the reference's: a rule over one row of mono type. */
-.pj-foot { display: flex; flex-wrap: wrap; gap: 8px 40px; align-items: center; min-height: 56px; padding: 0 0 40px; border-top: 1px solid var(--pj-rule); font: 500 12px/16px var(--mono); }
+/* The foot, as the reference's: its row's type centred 49 px under the rule, 97 px from the rule to the
+   page's end (25 and 57 on phones). */
+.pj-foot { display: flex; flex-wrap: wrap; gap: 8px 40px; align-items: center; padding: 36px 0 36px; border-top: 1px solid var(--pj-rule); font: 500 12px/16px var(--mono); }
 .pj-main .pj-foot a { color: var(--pj-soft); }
 .pj-head .pj-name { color: var(--pj-soft); }   /* the header sits on the band: its name at the band's soft ink */
 .pj-foot button { height: 24px; padding: 0 12px; border: 0; border-radius: 8px; background: var(--pj-btn); color: var(--pj-btn-ink); font: inherit; cursor: pointer; }
@@ -196,6 +197,9 @@ html.in-project .details, html.in-project #d-open { display: none; }
   .pj-items > div::before, .pj-items > div::after { display: none; }
   .pj-diagram { padding: 16px; margin: 0 -16px; border-left: 0; border-right: 0; }
   .pj-main .pj-list a { grid-template-columns: 1fr; gap: 2px; }
+  .pj-foot { padding: 12px 0 20px; }
+  .pj-foot button, .pj-main .pj-foot a { position: relative; }
+  .pj-foot button::before, .pj-main .pj-foot a::before { content: ''; position: absolute; inset: -10px 0; }   /* 44 px touch areas */
 }
 
 /* No WebGL: the world's window holds the accent's light instead. */
