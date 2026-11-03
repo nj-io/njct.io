@@ -24,10 +24,8 @@ const FONT_DIR = new URL('../../vendor/fonts/', import.meta.url);
 // set and how to regenerate it when a title or back-cover string changes).
 const FACES = [
   ['NJ Text', 'ui/inter-variable-ui.woff2', '100 900'],
-  ['NJ Poppins', 'poppins-extrabold-cover.woff2', '800'],
   ['NJ Serif', 'fraunces-144pt-bold-cover.woff2', '700'],
   ['NJ Hanken', 'hanken-grotesk-650-cover.woff2', '650'],
-  ['NJ Narrow', 'archivo-narrow-700-cover.woff2', '700'],
   ['NJ Bricolage', 'bricolage-grotesque-96pt-extrabold-title-cover.woff2', '800'],
 ];
 // Faces only the backs use load with the first back.
@@ -273,38 +271,109 @@ vec3 motif(vec2 p, float t) {
   return col;
 }`;
 
-// stet: the word itself is the artwork, each letter shaded like a folded ribbon: a colour field per letter
-// (sRGB keys on a grid over the letter, fitted to the concept, blended smoothly and stippled where they
-// meet), and the last t's ascender folded crisply along its medial axis, where the slope of the type's
-// distance field (formAt) turns over. The t's fill type channel 0, the s and e channel 1, so the s and e
-// lie over the t's where the tight letters overlap.
+// stet: the word itself is the artwork, its letters traced from the concept (letters/stet.json), each shaded like a
+// folded ribbon: a colour field per face (sRGB keys on a grid over the face, fitted to the concept, blended smoothly
+// and stippled where they meet), the faces parted crisply along the concept's folds: the s's spine where it turns
+// under, the e's bar, the last t's ascender. The first t fills type channel 0; the s and the joined e and last t
+// channel 1, their fields parted along the t's stem.
 MOTIFS.stet = /* glsl */`
-// the letters' keys come from uKeys: row 0 (x, y, sigma), row 1 (r, g, b), letter L at K0[L] .. K0[L + 1]
-const int K0[5] = int[5](0, 56, 92, 148, 184);
-// each letter's fold: the side of the medial axis facing away from xy takes the shade z (the concept folds
-// only the last t's ascender)
-const vec3 FOLD[4] = vec3[4](vec3(0.0, 1.0, 0.0), vec3(0.0, 1.0, 0.0), vec3(0.0, 1.0, 0.0), vec3(-1.0, 0.1, 0.13));
+// the faces' keys come from uKeys: row 0 (x, y, sigma), row 1 (r, g, b), face F at K0[F] .. K0[F + 1]
+const int K0[8] = int[8](0, 18, 81, 117, 187, 197, 282, 292);
+// each letter's faces (the second where its fold turns it, or -1)
+const ivec2 FACES[4] = ivec2[4](ivec2(0, 1), ivec2(2, -1), ivec2(3, 4), ivec2(5, 6));
+// the folds, in concept tile pixels (546 across, y down): the s's, a line from its outer edge down through the
+// counter; the e's bar from x 328.6; the last t's ascender left of x 476.7, fading out down to y 180 .. 210
+const vec2 SF[23] = vec2[23](vec2(26.8, 165.0), vec2(27.0, 190.0), vec2(27.7, 197.0), vec2(29.0, 200.0), vec2(30.7, 203.0), vec2(32.8, 206.0), vec2(35.5, 210.0), vec2(41.0, 216.0), vec2(47.0, 220.0), vec2(50.0, 222.0), vec2(54.0, 224.5), vec2(58.0, 227.0), vec2(62.0, 228.5), vec2(66.0, 230.0), vec2(70.0, 231.0), vec2(73.0, 229.0), vec2(80.0, 224.0), vec2(100.0, 222.0), vec2(120.0, 225.0), vec2(140.0, 237.0), vec2(160.0, 240.0), vec2(180.0, 245.0), vec2(200.0, 250.0));
+// the seam, and the depth of its dark line; the s's fold, moved SHIFT tile px onto its turned side
+const float SEAM = 455.0 / 546.0, SEAMLINE = 0.25, SHIFT = -0.5;
+// grain: the letters' stipple (cell px, strength in light and in mid and dark tones), the ground's mottle (cell px, strength)
+const vec3 GL = vec3(1.7, 0.035, 0.13);
+const vec2 GG = vec2(4.0, 0.11);
+// the speckle: cell px, the noise level under which a spot shows, its softness, its depth
+const vec4 SPK = vec4(2.7, 0.19, 0.05, 0.05);
+// the concept's crisp edges, read off the blurred type mask (four taps r apart at mip bias b): a dark line just outside
+// the letters, where the mask blurred by TAP reads LINE.x (width LINE.y, depth LINE.z), and a light rim just inside,
+// where the mask blurred by RIM.xy reads RIM.z (width RIM.w), towards white by RIMW
+const vec2 TAP = vec2(0.0015, 1.0);
+const vec3 LINE = vec3(0.35, 0.2, 1.0);
+const vec4 RIM = vec4(0.0025, 1.0, 0.8, 0.06);
+const float RIMW = 0.45;
+const vec2 RIMB = vec2(1.5, 1.8);
+// a box's soft window, soft over s tile px
+float box(vec2 x, vec4 b, float s) { return smoothstep(b.x - s, b.x, x.x) * smoothstep(b.z + s, b.z, x.x) * smoothstep(b.y - s, b.y, x.y) * smoothstep(b.w + s, b.w, x.y); }
+float nearType(vec2 c, vec2 rb) {
+  vec2 o = vec2(rb.x, 0.0);
+  vec4 m = texture2D(uText, c + o.xy, rb.y) + texture2D(uText, c - o.xy, rb.y) + texture2D(uText, c + o.yx, rb.y) + texture2D(uText, c - o.yx, rb.y);
+  return sat(0.25 * (m.r + m.g + m.b));
+}
 vec3 motif(vec2 p, float t) {
   float v = length((p - vec2(0.5, 0.55)) * vec2(1.0, 1.1));
-  return mix(uPal[0], uPal[1], smoothstep(0.25, 0.85, v));
+  // the ground's faint mottle, a few pixels across (linear light), and the concept's dark line hugging every letter
+  vec3 col = mix(uPal[0], uPal[1], smoothstep(0.25, 0.85, v)) * (1.0 + (vnoise(FC / GG.x + 9.0) - 0.5) * GG.y);
+  float g = nearType(p, TAP);
+  return col * (1.0 - LINE.z * exp(-pow((g - LINE.x) / LINE.y, 2.0)) * smoothstep(0.0, 0.05, g) * (1.0 - uMode));
 }
-vec3 stetFill(vec2 p, float t, int L) {
-  // the keys drift a little when alive; the stipple jitters where the blend is read
-  vec2 q = p + 0.010 * vec2(sin(t * 0.37), cos(t * 0.29) - 1.0) + (h22(FC * 0.731 + 3.0) - 0.5) * 0.016;
+vec3 face(vec2 q, int F) {
   vec3 c = vec3(0.0); float ws = 0.0;
-  for (int i = K0[L]; i < K0[L + 1]; i++) {
+  for (int i = K0[F]; i < K0[F + 1]; i++) {
     vec4 k = texelFetch(uKeys, ivec2(i, 0), 0);
     vec2 d = q - k.xy;
     float w = exp(-dot(d, d) / (k.z * k.z));
     c += texelFetch(uKeys, ivec2(i, 1), 0).rgb * w; ws += w;
   }
-  c /= max(ws, 1e-6);
-  // the fold: across the medial axis the field's slope turns over, and one side of every stroke is shaded
-  vec4 f = formAt(p);
-  vec2 dir = f.gb / max(length(f.gb), 1e-5);
-  float lit = smoothstep(-0.12, 0.12, dot(dir, normalize(FOLD[L].xy)));
-  c *= 1.0 - FOLD[L].z * (1.0 - lit) * smoothstep(0.7, 0.95, abs(dir.x)) * smoothstep(0.70, 0.74, p.y);
-  c *= 1.0 + (h12(FC * 1.91 + 5.0) - 0.5) * 0.08;
+  return c / max(ws, 1e-6);
+}
+// signed distance to the s's fold (tile px), positive on the side it turns under
+float sFold(vec2 x) {
+  // above it lies only the s's top arm, below and right of it only the turned side
+  if (x.y < 160.0) return -1e3;
+  if (x.y > 256.0 || x.x > 206.0) return 1e3;
+  float best = 1e9, sg = 1.0;
+  for (int i = 0; i < 22; i++) {
+    vec2 a = SF[i], e = SF[i + 1] - a, v = x - a;
+    float d = length(v - e * clamp(dot(v, e) / dot(e, e), 0.0, 1.0));
+    if (d < best) { best = d; sg = e.x * v.y - e.y * v.x < 0.0 ? -1.0 : 1.0; }
+  }
+  return best * sg;
+}
+// how far the point lies on the letter's second face, 0 .. 1, blended over a pixel across the fold; d is the signed
+// distance to the fold (tile px, positive on the second face) and h how strongly the fold is drawn there
+float turned(vec2 p, int L, out float d, out float h) {
+  vec2 x = vec2(p.x, 1.0 - p.y) * 546.0;
+  // the back's band shows the fields out of their letters: there the s's faces blend softly, the e and the t keep their
+  // first faces, and no fold is drawn
+  float w = uMode > 0.5 ? 16.0 : 0.5;
+  h = 0.0; d = 1e3;
+  if (L == 0) { d = sFold(x) + SHIFT; h = 1.0 - uMode; return smoothstep(-0.6 * w, 0.6 * w, d); }
+  if (L == 2) { d = x.x - 328.6; h = smoothstep(236.0, 252.0, x.y) * smoothstep(306.0, 290.0, x.y); h *= 1.0 - uMode; return smoothstep(-w, w, d) * h; }
+  if (L == 3) { d = 476.7 - x.x; h = smoothstep(210.0, 180.0, x.y); h *= 1.0 - uMode; return smoothstep(-w, w, d) * h; }
+  return 0.0;
+}
+// the concept's folds are drawn crisp: a light line on one side and a dark one on the other (gain at d, gain at d,
+// tile px), fading where the fold does
+const vec4 CREASE[4] = vec4[4](vec4(0.0, 0.0, 0.0, 0.0), vec4(0.0), vec4(0.03, -1.1, -0.22, 0.9), vec4(0.035, -0.8, -0.08, 1.2));
+vec3 stetFill(vec2 p, float t, int L) {
+  // the keys drift a little when alive; the stipple jitters where the blend is read
+  vec2 q = p + 0.010 * vec2(sin(t * 0.37), cos(t * 0.29) - 1.0) + (h22(FC * 0.731 + 3.0) - 0.5) * 0.016;
+  ivec2 F = FACES[L];
+  float d = 1e3, h = 0.0;
+  float b = F.y < 0 ? 0.0 : turned(p, L, d, h);
+  vec3 c = b < 1.0 ? face(q, F.x) : vec3(0.0);
+  if (b > 0.0) c = mix(c, face(q, F.y), b);
+  vec4 k = CREASE[L];
+  c *= 1.0 + h * (k.x * exp(-pow((d - k.y) / 0.6, 2.0)) + k.z * exp(-pow((d - k.w) / 0.6, 2.0)));
+  // the rim reads the front's type mask (the back's band has none)
+  if (uMode < 0.5) {
+    // the rim is strongest on the e's bar and round the s's upper counter (boxes in tile px)
+    vec2 x = vec2(p.x, 1.0 - p.y) * 546.0;
+    float boost = RIMB.x * box(x, vec4(326.0, 240.0, 458.0, 304.0), 6.0) + RIMB.y * box(x, vec4(58.0, 194.0, 192.0, 270.0), 6.0);
+    c = mix(c, vec3(1.0), sat(RIMW * (1.0 + boost)) * exp(-pow((nearType(p, RIM.xy) - RIM.z) / RIM.w, 2.0)));
+  }
+  // the concept's stipple, stronger in the mid and dark tones, and its dark speckle, sparse spots a few pixels across
+  // that show most on the light tones
+  float lum = dot(c, vec3(0.299, 0.587, 0.114));
+  c += (vnoise(FC / GL.x + 5.0) - 0.5) * mix(GL.z, GL.y, smoothstep(0.72, 0.88, lum));
+  c *= 1.0 - SPK.w * smoothstep(SPK.y + SPK.z, SPK.y - SPK.z, vnoise(FC / SPK.x + 23.0)) * smoothstep(0.55, 0.85, lum);
   return clamp(c, 0.0, 1.0);
 }
 // the band across the back: the four letters' fields side by side, blended across their borders
@@ -313,44 +382,72 @@ vec3 stripFill(vec2 p, float t) {
   c = mix(c, stetFill(p, t, 2), smoothstep(0.46, 0.53, p.x));
   return mix(c, stetFill(p, t, 3), smoothstep(0.80, 0.87, p.x));
 }
-#define INK0(p, t) (uMode > 0.5 ? stripFill(p, t) : stetFill(p, t, p.x < 0.64 ? 1 : 3))
-#define INK1(p, t) stetFill(p, t, p.x < 0.41 ? 0 : 2)`;
+// the e and the last t are one outline: their fields part along the t's stem, blended over a pixel
+vec3 etFill(vec2 p, float t) {
+  float w = 0.7 / uRes.x;
+  if (p.x < SEAM - w) return stetFill(p, t, 2);
+  // a dark line along the seam, on the t's side, where the e meets it
+  float x = p.x * 546.0 - 456.0, y = (1.0 - p.y) * 546.0;
+  float dark = 1.0 - SEAMLINE * exp(-x * x / 0.64) * smoothstep(236.0, 244.0, y) * smoothstep(300.0, 292.0, y);
+  if (p.x > SEAM + w) return stetFill(p, t, 3) * dark;
+  return mix(stetFill(p, t, 2), stetFill(p, t, 3), smoothstep(SEAM - w, SEAM + w, p.x)) * dark;
+}
+#define INK0(p, t) (uMode > 0.5 ? stripFill(p, t) : stetFill(p, t, 1))
+#define INK1(p, t) (p.x < 0.41 ? stetFill(p, t, 0) : etFill(p, t))`;
 
-// Social Hook: a field of large geometric arcs and planes in the brand's blues.
+// Social Hook: a deep royal-blue field; a dark disc under "Hook"; a pale disc rising from the lower left;
+// a diagonal through a crossing low in the middle, with light along it and a wedge of light beyond it;
+// a deep triangle below the crossing; a disc split light | deep at the lower right, its foot behind the triangle. Each area's colour is a
+// low-order polynomial in position, plus the light band near the diagonal, fitted to the concept (linear light).
 MOTIFS.hook = /* glsl */`
+const vec3 K_G[6] = vec3[](vec3(0.0083, 0.0778, 0.7428), vec3(-0.0020, -0.0003, 0.0050), vec3(0.0033, -0.0133, -0.0825), vec3(0.0036, -0.0075, -0.0780), vec3(-0.0167, -0.0998, -0.2046), vec3(0.0107, 0.0343, -0.0377));
+const vec3 K_M[8] = vec3[](vec3(0.0457, 0.2707, 0.9415), vec3(0.1397, 0.4311, 0.2704), vec3(-0.1988, -0.2366, -0.0457), vec3(0.0646, -0.0152, -0.1472), vec3(0.0411, 0.0751, 0.0290), vec3(-0.0797, -0.0962, -0.0118), vec3(-0.1213, -0.2404, -0.0880), vec3(0.3882, 0.6104, 0.0892));
+const vec3 K_TR[6] = vec3[](vec3(0.0253, 0.1836, 0.7247), vec3(0.0339, 0.0881, 0.2032), vec3(0.0024, -0.0643, -0.2532), vec3(0.0272, 0.0441, 0.0331), vec3(-0.0072, -0.0294, -0.0625), vec3(-0.0036, 0.0234, 0.0759));
+const vec3 K_C3[8] = vec3[](vec3(0.2113, 0.6081, 0.9647), vec3(0.4538, 0.8624, 0.1045), vec3(-0.0925, -0.1751, 0.0481), vec3(0.1979, 0.1699, -0.0895), vec3(-0.0632, -0.0218, 0.0205), vec3(-0.1676, -0.3654, -0.0703), vec3(-0.0409, -0.0632, 0.0016), vec3(0.0435, 0.0589, -0.0056));
+const vec3 K_LF[8] = vec3[](vec3(-0.1830, 0.0553, 0.8927), vec3(0.5099, 0.6389, 0.0551), vec3(-0.2173, -0.2208, 0.0700), vec3(0.5060, 0.4484, 0.0665), vec3(-0.4052, -0.2290, -0.0719), vec3(0.8689, 0.7798, -0.0097), vec3(-0.2980, -0.4885, -0.2012), vec3(0.4712, 0.5704, 0.1513));
+const vec3 K_C4L[8] = vec3[](vec3(0.1141, 0.4222, 0.9458), vec3(0.2277, 0.3209, 0.0688), vec3(-0.2934, -0.4534, 0.0794), vec3(0.0560, 0.0831, 0.0069), vec3(-0.0268, -0.0636, -0.0407), vec3(0.0197, -0.1109, -0.1080), vec3(-0.0153, -0.0662, -0.0304), vec3(0.1748, 0.2307, 0.0213));
+const vec3 K_C4R[6] = vec3[](vec3(0.0061, 0.0706, 0.7333), vec3(0.0061, 0.0325, 0.1113), vec3(0.0001, 0.0070, 0.0293), vec3(0.0064, 0.0201, -0.0231), vec3(0.0041, 0.0104, -0.0473), vec3(0.0013, 0.0012, -0.0208));
+const vec3 K_TRI[6] = vec3[](vec3(0.0071, 0.0850, 0.7454), vec3(0.0040, 0.0086, -0.0060), vec3(0.0082, 0.0330, 0.1119), vec3(-0.0009, -0.0032, -0.0276), vec3(0.0012, 0.0023, 0.0029), vec3(0.0057, 0.0120, -0.0429));
+#define POLY(K, w) (K[0] + K[1] * w.x + K[2] * w.y + K[3] * w.x * w.x + K[4] * w.x * w.y + K[5] * w.y * w.y)
+#define BAND(K, e) (K[6] * e.x + K[7] * e.y)
+// distance to the line through o with slope k (y down), positive on its left
+float sdLeft(vec2 q, vec2 o, float k) { return -((q.x - o.x) * -k + (q.y - o.y)) / sqrt(k * k + 1.0); }
 vec3 motif(vec2 p, float t) {
-  float dr = 0.012 * sin(t * 0.35);
-  vec3 col = mix(uPal[0], uPal[1], 0.25 * smoothstep(0.2, 1.0, p.y));
-  // a large lighter disc entering from the top right
-  vec2 c1 = ic(0.88 + dr, 0.33);
-  float d1 = length(p - c1) - 0.47;
-  col = mix(col, mix(uPal[2], uPal[3], smoothstep(0.1, 0.5, length(p - c1 - vec2(0.15, 0.2)))), cover(d1));
-  // a deeper disc under the second line
-  vec2 c2 = ic(0.61 - dr * 0.6, 0.48);
-  col = mix(col, mix(uPal[4], uPal[0], smoothstep(0.0, 0.2, length(p - c2 - vec2(-0.08, 0.06)))), cover(length(p - c2) - 0.17));
-  // the lower left: a wide luminous arc
-  vec2 c3 = ic(0.08 - dr, 1.06);
-  float d3 = length(p - c3) - 0.53;
-  vec3 g3 = mix(uPal[3], uPal[2], smoothstep(0.0, 0.5, length(p - ic(0.42, 0.62))));
-  col = mix(col, g3, cover(d3));
-  // a bow-tie of planes crossing low in the middle
-  vec2 X = ic(0.47, 0.80);
-  float la = sdLine(p, X, ic(0.27, 0.56));
-  float lb = sdLine(p, X, ic(0.70, 0.58));
-  float top = max(-la, lb);
-  vec3 gt = mix(uPal[5], uPal[2], smoothstep(0.0, 0.25, X.y - p.y + 0.25));
-  col = mix(col, mix(col, gt, 0.75), cover(max(top, -(p.y - X.y))));
-  float bot = max(la, -lb);
-  col = mix(col, mix(uPal[4], uPal[0], smoothstep(0.0, 0.2, X.y - p.y)), cover(max(bot, p.y - X.y)));
-  // a split disc at the lower right
-  vec2 c4 = ic(0.79 + dr * 0.5, 0.74);
-  float d4 = length(p - c4) - 0.265;
-  vec3 left = mix(uPal[5], uPal[2], smoothstep(-0.25, 0.1, p.x - c4.x));
-  col = mix(col, left, cover(max(d4, p.x - c4.x)));
-  col = mix(col, mix(uPal[4], uPal[0], smoothstep(-0.2, 0.25, c4.y - p.y)), cover(max(d4, c4.x - p.x)));
-  // light falling across the planes
-  col *= 1.0 + 0.08 * smoothstep(0.6, 0.0, length(p - ic(0.55, 0.5)));
-  return col;
+  vec2 q = vec2(p.x, 1.0 - p.y), w = q - 0.5;   // concept coordinates, y down
+  // alive, the discs drift a few pixels and the band of light breathes
+  float dr = 0.006 * sin(t * 0.35), br = 1.0 + 0.25 * sin(t * 0.5);
+  vec2 X = vec2(0.47626, 0.77821);
+  float dL = sdLeft(q, X, -0.98364), dA = sdLeft(q, X, -1.01603);
+  float dB = -sdLeft(q, X, 1.05718);   // positive below the triangle's right edge
+  float dl = abs(q.y < X.y ? dL : dA);
+  vec2 e = br * vec2(exp(-dl / 0.01614), exp(-dl / 0.0561));
+  // each area's field is evaluated only where the area shows
+  vec3 G = POLY(K_G, w), col = G;
+  float m = sat((q.y - 0.54851) / 0.19798 + 0.5);
+  if (m > 0.0) col = mix(col, POLY(K_M, w) + BAND(K_M, e), m);
+  // the pale corner beyond the dark disc at the top right
+  vec2 c1 = vec2(0.65799, 0.33545);
+  if (q.x > c1.x && q.y < c1.y) col = mix(col, POLY(K_TR, w), cover(0.35365 - length(q - c1)));
+  // the dark disc under "Hook": the top field's own blue
+  col = mix(col, G, cover(length(q - vec2(0.59558 + dr, 0.43873)) - 0.16549));
+  // the pale disc from the lower left, under the line of the triangle's right edge
+  float a = cover(length(q - vec2(0.02461 - dr, 1.04655)) - 0.51214) * cover(-dB);
+  if (a > 0.0) col = mix(col, POLY(K_C3, w) + BAND(K_C3, e), a);
+  // beyond the diagonal: the light field above the triangle's right edge
+  float right = cover(max(dL, dA));
+  float b = right * cover(dB);
+  if (b > 0.0) col = mix(col, POLY(K_LF, w) + BAND(K_LF, e), b);
+  // the split disc, light on the left of the split (its own circle), deep on the right (half-ellipses)
+  float xs = 0.77971 - dr * 0.8;
+  b = cover(length(q - vec2(0.7876 - dr * 0.8, 0.78558)) - 0.24415) * cover(q.x - xs);
+  if (b > 0.0) col = mix(col, POLY(K_C4L, w) + BAND(K_C4L, e), b);
+  vec2 o4 = q - vec2(0.80816 - dr * 0.8, 0.75084);
+  b = cover(sdEllipse(o4, vec2(o4.x < 0.0 ? 0.26661 : 0.20003, 0.21656))) * cover(xs - q.x);
+  if (b > 0.0) col = mix(col, POLY(K_C4R, w), b);
+  // the deep triangle below the crossing, over the disc's foot
+  b = right * cover(-dB);
+  if (b > 0.0) col = mix(col, POLY(K_TRI, w), b);
+  return max(col, 0.0);
 }`;
 
 // Clauded: the whale mark as one large glossy glass form standing on a lit floor. The glass shading and the room
@@ -775,28 +872,49 @@ vec3 motif(vec2 p, float t) {
 
 // About Neil: one gold sphere resting on cream paper, a soft contact shadow, the light moving across it when alive.
 MOTIFS.about = /* glsl */`
+// gold-leaf grain, static, its strength and size matched to the concept's on flat patches (on the sphere it grows with
+// the key light). It sits near the full-size grid's limit, so the two levels below full size, which the shader draws
+// itself (shaderMips: 2), leave it out: at shelf size it settles to its mean instead of twinkling as the shelf moves.
+#define GRAIN_ON (uMip < 0.5 ? 1.0 : 0.0)
+#define SPH_GF 310.0
+#define SPH_GA 0.125
+#define SPH_GK 1.0
+#define INK_GF 520.0
+#define INK_GA 0.16
+float blob(vec2 s, vec2 o, vec2 w) { vec2 d = (s - o) / w; return exp(-dot(d, d)); }
 vec3 motif(vec2 p, float t) {
-  vec2 C = ic(0.481, 0.555); float R = 0.246;
+  vec2 C = ic(0.4789, 0.5634); float R = 0.2499;
   float v = length((p - vec2(0.48, 0.5)) * vec2(1.0, 0.9));
   vec3 col = mix(uPal[0], uPal[1], smoothstep(0.1, 0.85, v));
-  // contact shadow, cast a little to the left
-  vec2 sq = (p - vec2(C.x - 0.035, C.y - R + 0.004)) / vec2(0.27, 0.04);
-  col *= 1.0 - 0.34 * exp(-dot(sq, sq) * 1.4);
-  vec2 sc = (p - vec2(C.x - 0.005, C.y - R + 0.002)) / vec2(0.1, 0.012);
-  col *= 1.0 - 0.45 * exp(-dot(sc, sc));
-  // the sphere
+  // contact shadow, cast to the left (light from the upper right), in sphere radii from its foot, y down: a
+  // near-black core just under it, a warm penumbra reaching left (the gold's light on the paper), a faint wide falloff
+  // (skipped where the sphere hides it and well above its foot, where every term is under 1e-5)
+  vec2 s = vec2(p.x - C.x, C.y - R - p.y) / R;
   vec2 q = (p - C) / R;
   float rr = dot(q, q);
+  if (rr > 0.95 && s.y > -1.2) {
+    col *= 1.0 - vec3(0.9409, 0.9700, 0.9700) * blob(s, vec2(-0.0758, 0.0246), vec2(0.4078, 0.0757));
+    col *= 1.0 - vec3(0.1923, 0.5800, 0.9617) * blob(s, vec2(-0.2017, 0.0214), vec2(0.9996, 0.1052));
+    col *= 1.0 - vec3(0.1619, 0.4738, 0.8093) * blob(s, vec2(-0.1879, 0.1421), vec2(1.0000, 0.2123));
+  }
+  // the sphere, matte satin: a wrapped key from the upper right with a soft terminator, a dark core on the
+  // left, light bounced up from the paper at the lower left, a lifted limb, a broad low sheen, and the
+  // occlusion darkening it towards its foot (terms and colours fitted to the concept's sphere, in Lab)
   if (rr < 1.08) {
     vec3 n = vec3(q, sqrt(sat(1.0 - rr)));
-    float la = 0.55 + 0.35 * sin(t * 0.4);
-    vec3 L = normalize(vec3(-cos(la) * 0.45, 0.7, 0.6 + 0.1 * sin(la)));
-    float dif = sat(dot(n, L));
-    vec3 g = mix(uPal[3], uPal[2], pow(dif, 0.9));
-    g += uPal[4] * 0.32 * pow(sat(dot(reflect(-L, n), vec3(0.0, 0.0, 1.0))), 5.0);
-    // bounce from the paper on the underside
-    g += uPal[1] * 0.12 * sat(-n.y) * (1.0 - n.z);
-    g *= 1.0 + (h12(floor(p * 900.0)) - 0.5) * 0.05;
+    // alive, the key and its sheen swing a little about the vertical
+    float sw = 0.3 * sin(t * 0.4);
+    vec3 m = vec3(n.x * cos(sw) - n.z * sin(sw), n.y, n.x * sin(sw) + n.z * cos(sw));
+    float key = pow(sat((dot(m, vec3(0.4419, 0.5516, 0.7074)) + 0.2885) / 1.2885), 2.9185);
+    float bounce = pow(sat(dot(n, vec3(-0.3752, -0.8371, 0.3982))), 1.3779);
+    float sheen = pow(sat(dot(m, vec3(0.4984, 0.6846, 0.5319))), 10.4132);
+    vec3 g = vec3(-0.1931, -0.0919, 0.0022) + vec3(1.0784, 0.4034, 0.0205) * key + vec3(0.4774, 0.1352, 0.0035) * bounce
+      + vec3(0.6279, 0.2096, 0.0007) * (1.0 - n.z) + vec3(-0.1709, 0.3627, 0.2973) * sheen
+      + vec3(0.0007, -0.0098, -0.0049) * n.x + vec3(-0.0034, 0.0000, -0.0027) * n.y + vec3(-0.0032, 0.0228, -0.0068) * n.x * n.y
+      // the paper's light caught on the lower-left limb
+      + vec3(1.387, 0.510, 0.054) * pow(1.0 - n.z, 6.0) * sat(dot(n.xy, vec2(-0.4226, -0.9063)) / max(length(n.xy), 1e-4));
+    g *= 1.0 - 1.0000 * exp(-(1.0 + n.y) / 0.1612);
+    g = max(g, 0.0) * (1.0 + (vnoise(p * SPH_GF) - 0.5) * SPH_GA * (SPH_GK + key) * GRAIN_ON);
     col = mix(col, g, cover((sqrt(rr) - 1.0) * R));
   }
   return col;
@@ -804,7 +922,7 @@ vec3 motif(vec2 p, float t) {
 vec3 goldInk(vec2 p) {
   float k = smoothstep(0.98, 0.72, p.y) + 0.25 * (fbm(p * 18.0) - 0.5);
   vec3 c = mix(uInk0, uInk1, sat(k));
-  c *= 1.0 + (h12(FC * 1.3 + 2.0) - 0.5) * 0.16;
+  c *= 1.0 + (vnoise(p * INK_GF + 3.0) - 0.5) * INK_GA * GRAIN_ON;
   return c;
 }
 #define INK0(p, t) goldInk(p)`;
@@ -999,7 +1117,8 @@ vec3 motif(vec2 p, float t) {
 //   front: { src (beside this module), x, top, fade }; fade (px) softens a crop edge at its foot that the
 //   type covers. A motif may lift it with ART_DY(t) (cover units).
 // typeGlow: the type mask carries mips, so the motif can read it blurred (a glow or a shadow around the type).
-// shaderMips: the shader draws the front's mip levels itself, each filtered at its own sampling rate.
+// shaderMips: the shader draws the front's mip levels itself, each filtered at its own sampling rate; a number n
+//   draws levels 1..n only, and the levels below keep the box filter's.
 // form: the logo (or, fromType, the front's own type) inflated into the motif's hero form: box [x, top, size], R bevel radius,
 //   soft blur (both cover units), key 'alpha' | 'tile' (tile: drop pixels near the tile colour).
 // ground: the colour the resting cover reads as; a flat stand-in for a late cover (sRGB). For most covers it is the
@@ -1011,57 +1130,85 @@ vec3 motif(vec2 p, float t) {
 //   type) or 'fill' (the title's own fill across the band). No band may cut through type.
 // t0: the moment the still cover shows; alive time runs on from it.
 
-// each letter's colour keys: [x, y (cover units, y up), r, g, b (sRGB)], fitted to the concept by least squares
+// each face's colour keys: [x, y (cover units, y up), r, g, b (sRGB)], fitted to the concept by least squares (the
+// faces in order: the s's top arm and its turned side, the first t, the e and its bar, the last t and its ascender's fold)
 const STET_KEYS = [
-  [0.0413, 0.7016, 0.836, 0.854, 0.795], [0.0874, 0.7016, 0.660, 0.797, 0.776], [0.1334, 0.7016, 0.875, 0.904, 0.873], [0.1795, 0.7016, 0.938, 0.934, 0.878],
-  [0.2255, 0.7016, 0.921, 0.923, 0.876], [0.2716, 0.7016, 0.975, 0.954, 0.905], [0.3176, 0.7016, 0.826, 0.845, 0.771], [0.0413, 0.6432, 0.349, 0.706, 0.706],
-  [0.0874, 0.6432, 1.000, 1.000, 1.000], [0.1334, 0.6432, 0.688, 0.827, 0.807], [0.1795, 0.6432, 1.000, 1.000, 0.964], [0.2255, 0.6432, 0.952, 0.929, 0.868],
-  [0.2716, 0.6432, 1.000, 0.979, 0.956], [0.3176, 0.6432, 0.986, 0.960, 0.907], [0.0413, 0.5848, 0.061, 0.559, 0.581], [0.0874, 0.5848, 0.514, 0.726, 0.704],
-  [0.1334, 0.5848, 0.358, 0.639, 0.638], [0.1795, 0.5848, 0.488, 0.700, 0.673], [0.2255, 0.5848, 0.810, 0.854, 0.797], [0.2716, 0.5848, 0.981, 0.951, 0.886],
-  [0.3176, 0.5848, 0.830, 0.846, 0.772], [0.0413, 0.5264, 0.484, 0.722, 0.701], [0.0874, 0.5264, 0.000, 0.564, 0.619], [0.1334, 0.5264, 0.244, 0.637, 0.641],
-  [0.1795, 0.5264, 0.349, 0.672, 0.673], [0.2255, 0.5264, 0.781, 0.852, 0.839], [0.2716, 0.5264, 0.978, 0.955, 0.922], [0.3176, 0.5264, 0.856, 0.863, 0.791],
-  [0.0413, 0.4681, 0.471, 0.462, 0.371], [0.0874, 0.4681, 0.505, 0.566, 0.527], [0.1334, 0.4681, 0.600, 0.855, 0.861], [0.1795, 0.4681, 0.900, 0.926, 0.925],
-  [0.2255, 0.4681, 0.994, 0.948, 0.878], [0.2716, 0.4681, 0.911, 0.927, 0.883], [0.3176, 0.4681, 0.994, 0.960, 0.913], [0.0413, 0.4097, 0.673, 0.448, 0.190],
-  [0.0874, 0.4097, 0.820, 0.288, 0.000], [0.1334, 0.4097, 0.912, 0.723, 0.434], [0.1795, 0.4097, 0.804, 0.822, 0.747], [0.2255, 0.4097, 0.904, 0.918, 0.881],
-  [0.2716, 0.4097, 1.000, 0.953, 0.890], [0.3176, 0.4097, 0.941, 0.935, 0.889], [0.0413, 0.3513, 0.977, 0.633, 0.187], [0.0874, 0.3513, 1.000, 0.749, 0.392],
-  [0.1334, 0.3513, 0.974, 0.762, 0.524], [0.1795, 0.3513, 1.000, 0.971, 0.911], [0.2255, 0.3513, 1.000, 0.980, 0.924], [0.2716, 0.3513, 0.914, 0.912, 0.865],
-  [0.3176, 0.3513, 0.640, 0.750, 0.751], [0.0413, 0.2929, 0.818, 0.763, 0.612], [0.0874, 0.2929, 0.934, 0.755, 0.561], [0.1334, 0.2929, 0.989, 0.963, 0.905],
-  [0.1795, 0.2929, 0.870, 0.869, 0.802], [0.2255, 0.2929, 0.783, 0.823, 0.813], [0.2716, 0.2929, 0.426, 0.624, 0.632], [0.3176, 0.2929, 0.645, 0.734, 0.682],
-  [0.3661, 0.7983, 0.802, 0.860, 0.821], [0.4059, 0.7983, 1.000, 0.986, 0.938], [0.4457, 0.7983, 0.994, 0.955, 0.892], [0.4856, 0.7983, 0.718, 0.821, 0.790],
-  [0.3661, 0.7357, 0.959, 0.945, 0.886], [0.4059, 0.7357, 0.961, 0.934, 0.904], [0.4457, 0.7357, 1.000, 0.970, 0.901], [0.4856, 0.7357, 0.844, 0.893, 0.850],
-  [0.3661, 0.6730, 0.961, 0.941, 0.888], [0.4059, 0.6730, 0.943, 0.928, 0.889], [0.4457, 0.6730, 0.968, 0.933, 0.887], [0.4856, 0.6730, 1.000, 0.979, 0.928],
-  [0.3661, 0.6103, 0.895, 0.909, 0.863], [0.4059, 0.6103, 0.989, 0.955, 0.898], [0.4457, 0.6103, 0.992, 0.953, 0.902], [0.4856, 0.6103, 0.764, 0.845, 0.804],
-  [0.3661, 0.5476, 0.621, 0.763, 0.767], [0.4059, 0.5476, 1.000, 0.983, 0.923], [0.4457, 0.5476, 1.000, 0.988, 0.934], [0.4856, 0.5476, 0.717, 0.823, 0.793],
-  [0.3661, 0.4849, 0.163, 0.591, 0.601], [0.4059, 0.4849, 0.964, 0.948, 0.914], [0.4457, 0.4849, 1.000, 0.969, 0.924], [0.4856, 0.4849, 0.717, 0.824, 0.796],
-  [0.3661, 0.4223, 0.000, 0.139, 0.169], [0.4059, 0.4223, 0.555, 1.000, 1.000], [0.4457, 0.4223, 0.958, 0.812, 0.785], [0.4856, 0.4223, 0.738, 0.818, 0.791],
-  [0.3661, 0.3596, 0.024, 0.282, 0.305], [0.4059, 0.3596, 0.000, 0.477, 0.506], [0.4457, 0.3596, 0.607, 0.856, 0.843], [0.4856, 0.3596, 1.000, 0.987, 0.933],
-  [0.3661, 0.2969, 0.387, 0.600, 0.599], [0.4059, 0.2969, 0.000, 0.320, 0.351], [0.4457, 0.2969, 0.024, 0.532, 0.556], [0.4856, 0.2969, 0.390, 0.705, 0.693],
-  [0.5196, 0.7000, 0.961, 1.000, 1.000], [0.5662, 0.7000, 0.826, 0.433, 0.185], [0.6128, 0.7000, 0.882, 0.424, 0.138], [0.6593, 0.7000, 0.935, 0.485, 0.068],
-  [0.7059, 0.7000, 0.965, 0.845, 0.707], [0.7525, 0.7000, 0.989, 1.000, 0.976], [0.7991, 0.7000, 0.848, 0.835, 0.732], [0.5196, 0.6421, 0.948, 0.798, 0.642],
-  [0.5662, 0.6421, 0.809, 0.117, 0.000], [0.6128, 0.6421, 0.976, 0.682, 0.357], [0.6593, 0.6421, 1.000, 0.832, 0.663], [0.7059, 0.6421, 0.982, 1.000, 1.000],
-  [0.7525, 0.6421, 0.952, 0.872, 0.792], [0.7991, 0.6421, 0.994, 0.988, 0.953], [0.5196, 0.5841, 0.920, 0.600, 0.305], [0.5662, 0.5841, 0.938, 0.725, 0.461],
-  [0.6128, 0.5841, 1.000, 1.000, 0.879], [0.6593, 0.5841, 0.795, 0.784, 0.670], [0.7059, 0.5841, 0.840, 0.826, 0.730], [0.7525, 0.5841, 1.000, 1.000, 0.980],
-  [0.7991, 0.5841, 0.893, 0.904, 0.845], [0.5196, 0.5262, 0.659, 0.736, 0.664], [0.5662, 0.5262, 1.000, 1.000, 1.000], [0.6128, 0.5262, 0.000, 0.180, 0.302],
-  [0.6593, 0.5262, 0.347, 0.763, 0.772], [0.7059, 0.5262, 1.000, 0.980, 0.953], [0.7525, 0.5262, 0.973, 0.951, 0.861], [0.7991, 0.5262, 0.794, 0.833, 0.811],
-  [0.5196, 0.4683, 0.753, 0.828, 0.784], [0.5662, 0.4683, 1.000, 1.000, 1.000], [0.6128, 0.4683, 0.029, 0.418, 0.413], [0.6593, 0.4683, 0.450, 0.730, 0.726],
-  [0.7059, 0.4683, 1.000, 1.000, 0.987], [0.7525, 0.4683, 0.893, 0.960, 0.961], [0.7991, 0.4683, 0.599, 0.794, 0.808], [0.5196, 0.4104, 0.973, 0.956, 0.923],
-  [0.5662, 0.4104, 0.615, 0.780, 0.768], [0.6128, 0.4104, 0.629, 0.862, 0.847], [0.6593, 0.4104, 0.763, 0.774, 0.659], [0.7059, 0.4104, 0.818, 0.740, 0.529],
-  [0.7525, 0.4104, 0.652, 0.422, 0.026], [0.7991, 0.4104, 0.267, 0.250, 0.158], [0.5196, 0.3524, 0.750, 0.862, 0.840], [0.5662, 0.3524, 0.429, 0.745, 0.727],
-  [0.6128, 0.3524, 0.000, 0.527, 0.585], [0.6593, 0.3524, 0.818, 0.892, 0.819], [0.7059, 0.3524, 1.000, 0.725, 0.275], [0.7525, 0.3524, 0.913, 0.740, 0.400],
-  [0.7991, 0.3524, 0.908, 0.681, 0.280], [0.5196, 0.2945, 0.481, 0.721, 0.688], [0.5662, 0.2945, 0.335, 0.666, 0.664], [0.6128, 0.2945, 0.350, 0.748, 0.749],
-  [0.6593, 0.2945, 0.805, 0.820, 0.745], [0.7059, 0.2945, 0.880, 0.775, 0.509], [0.7525, 0.2945, 0.953, 0.725, 0.341], [0.7991, 0.2945, 0.805, 0.752, 0.591],
-  [0.8526, 0.8073, 0.540, 0.514, 0.409], [0.8947, 0.8073, 0.969, 0.742, 0.295], [0.9368, 0.8073, 0.978, 0.764, 0.423], [0.9789, 0.8073, 0.888, 0.756, 0.593],
-  [0.8526, 0.7442, 0.337, 0.301, 0.057], [0.8947, 0.7442, 1.000, 1.000, 0.715], [0.9368, 0.7442, 0.891, 0.857, 0.755], [0.9789, 0.7442, 0.893, 0.862, 0.799],
-  [0.8526, 0.6811, 0.951, 0.818, 0.564], [0.8947, 0.6811, 0.948, 0.886, 0.803], [0.9368, 0.6811, 0.937, 0.936, 0.882], [0.9789, 0.6811, 1.000, 1.000, 0.985],
-  [0.8526, 0.6180, 0.935, 0.907, 0.856], [0.8947, 0.6180, 1.000, 0.973, 0.856], [0.9368, 0.6180, 0.918, 0.913, 0.880], [0.9789, 0.6180, 0.932, 0.836, 0.716],
-  [0.8526, 0.5549, 0.375, 0.470, 0.436], [0.8947, 0.5549, 1.000, 1.000, 1.000], [0.9368, 0.5549, 0.545, 0.639, 0.652], [0.9789, 0.5549, 0.882, 0.759, 0.607],
-  [0.8526, 0.4919, 0.117, 0.333, 0.349], [0.8947, 0.4919, 1.000, 1.000, 1.000], [0.9368, 0.4919, 0.535, 0.719, 0.772], [0.9789, 0.4919, 0.878, 0.759, 0.610],
-  [0.8526, 0.4288, 0.177, 0.146, 0.043], [0.8947, 0.4288, 1.000, 1.000, 0.920], [0.9368, 0.4288, 0.684, 0.842, 0.908], [0.9789, 0.4288, 0.880, 0.764, 0.618],
-  [0.8526, 0.3657, 0.417, 0.269, 0.177], [0.8947, 0.3657, 1.000, 0.489, 0.027], [0.9368, 0.3657, 0.986, 0.765, 0.484], [0.9789, 0.3657, 0.981, 0.547, 0.212],
-  [0.8526, 0.3026, 0.811, 0.626, 0.464], [0.8947, 0.3026, 0.736, 0.291, 0.036], [0.9368, 0.3026, 0.893, 0.483, 0.174], [0.9789, 0.3026, 0.827, 0.422, 0.149],
+  [0.0713, 0.7021, 0.827, 0.876, 0.842], [0.1186, 0.7021, 0.859, 0.902, 0.876], [0.1659, 0.7021, 0.911, 0.918, 0.870], [0.2132, 0.7021, 0.941, 0.933, 0.878],
+  [0.2605, 0.7021, 0.974, 0.956, 0.918], [0.3078, 0.7021, 0.874, 0.890, 0.833], [0.0713, 0.6520, 0.799, 0.891, 0.871], [0.1186, 0.6520, 0.794, 0.856, 0.824],
+  [0.1659, 0.6520, 0.926, 0.942, 0.915], [0.2132, 0.6520, 0.970, 0.944, 0.890], [0.2605, 0.6520, 0.949, 0.931, 0.883], [0.3078, 0.6520, 0.994, 0.964, 0.921],
+  [0.0713, 0.6020, 0.778, 0.890, 0.864], [0.1186, 0.6020, 0.764, 0.886, 0.883], [0.1659, 0.6020, 0.832, 0.852, 0.795], [0.2132, 0.6020, 0.885, 0.894, 0.846],
+  [0.2605, 0.6020, 0.981, 0.959, 0.918], [0.3078, 0.6020, 0.903, 0.910, 0.852], [0.0409, 0.6513, 0.525, 0.782, 0.771], [0.0899, 0.6513, 0.784, 0.817, 0.747],
+  [0.1388, 0.6513, 0.791, 0.819, 0.745], [0.1877, 0.6513, 0.792, 0.820, 0.745], [0.2367, 0.6513, 0.792, 0.820, 0.745], [0.2856, 0.6513, 0.792, 0.820, 0.745],
+  [0.3345, 0.6513, 0.792, 0.820, 0.745], [0.0409, 0.6059, 0.384, 0.710, 0.717], [0.0899, 0.6059, 0.381, 0.699, 0.699], [0.1388, 0.6059, 0.736, 0.797, 0.734],
+  [0.1877, 0.6059, 0.785, 0.816, 0.743], [0.2367, 0.6059, 0.792, 0.820, 0.745], [0.2856, 0.6059, 0.792, 0.820, 0.745], [0.3345, 0.6059, 0.792, 0.820, 0.745],
+  [0.0409, 0.5605, 0.243, 0.638, 0.647], [0.0899, 0.5605, 0.248, 0.589, 0.590], [0.1388, 0.5605, 0.145, 0.571, 0.600], [0.1877, 0.5605, 0.352, 0.653, 0.670],
+  [0.2367, 0.5605, 0.796, 0.844, 0.808], [0.2856, 0.5605, 0.799, 0.826, 0.755], [0.3345, 0.5605, 0.793, 0.820, 0.746], [0.0409, 0.5152, 0.368, 0.657, 0.640],
+  [0.0899, 0.5152, 0.187, 0.645, 0.674], [0.1388, 0.5152, 0.430, 0.709, 0.688], [0.1877, 0.5152, 0.563, 0.777, 0.754], [0.2367, 0.5152, 0.871, 0.900, 0.881],
+  [0.2856, 0.5152, 0.986, 0.968, 0.939], [0.3345, 0.5152, 0.827, 0.846, 0.777], [0.0409, 0.4698, 0.589, 0.644, 0.592], [0.0899, 0.4698, 0.461, 0.642, 0.631],
+  [0.1388, 0.4698, 0.462, 0.780, 0.813], [0.1877, 0.4698, 0.911, 0.913, 0.902], [0.2367, 0.4698, 0.887, 0.899, 0.836], [0.2856, 0.4698, 0.985, 0.959, 0.902],
+  [0.3345, 0.4698, 0.945, 0.939, 0.906], [0.0409, 0.4244, 0.544, 0.319, 0.062], [0.0899, 0.4244, 0.669, 0.243, 0.000], [0.1388, 0.4244, 0.845, 0.757, 0.578],
+  [0.1877, 0.4244, 0.849, 0.861, 0.801], [0.2367, 0.4244, 1.000, 0.995, 0.954], [0.2856, 0.4244, 0.883, 0.880, 0.835], [0.3345, 0.4244, 1.000, 0.990, 0.928],
+  [0.0409, 0.3790, 0.926, 0.630, 0.271], [0.0899, 0.3790, 1.000, 0.682, 0.271], [0.1388, 0.3790, 0.984, 0.709, 0.365], [0.1877, 0.3790, 0.905, 0.951, 0.973],
+  [0.2367, 0.3790, 0.867, 0.868, 0.798], [0.2856, 0.3790, 1.000, 1.000, 0.950], [0.3345, 0.3790, 0.675, 0.763, 0.750], [0.0409, 0.3336, 0.907, 0.587, 0.163],
+  [0.0899, 0.3336, 0.944, 0.686, 0.386], [0.1388, 0.3336, 0.945, 0.844, 0.718], [0.1877, 0.3336, 1.000, 0.945, 0.831], [0.2367, 0.3336, 0.959, 0.953, 0.919],
+  [0.2856, 0.3336, 0.725, 0.798, 0.778], [0.3345, 0.3336, 0.536, 0.680, 0.675], [0.0409, 0.2883, 0.874, 0.861, 0.748], [0.0899, 0.2883, 0.984, 0.863, 0.709],
+  [0.1388, 0.2883, 0.968, 0.914, 0.816], [0.1877, 0.2883, 0.853, 0.879, 0.852], [0.2367, 0.2883, 0.666, 0.746, 0.730], [0.2856, 0.2883, 0.438, 0.624, 0.624],
+  [0.3345, 0.2883, 0.775, 0.809, 0.741], [0.3755, 0.8063, 0.746, 0.841, 0.819], [0.4267, 0.8063, 1.000, 0.996, 0.936], [0.4780, 0.8063, 0.734, 0.828, 0.798],
+  [0.3755, 0.7596, 0.990, 0.955, 0.905], [0.4267, 0.7596, 1.000, 0.965, 0.913], [0.4780, 0.7596, 0.759, 0.842, 0.811], [0.3755, 0.7129, 0.927, 0.924, 0.879],
+  [0.4267, 0.7129, 0.956, 0.938, 0.887], [0.4780, 0.7129, 0.972, 0.958, 0.912], [0.3755, 0.6662, 0.966, 0.946, 0.897], [0.4267, 0.6662, 0.964, 0.931, 0.891],
+  [0.4780, 0.6662, 0.992, 0.952, 0.896], [0.3755, 0.6195, 0.934, 0.921, 0.869], [0.4267, 0.6195, 0.977, 0.953, 0.902], [0.4780, 0.6195, 0.848, 0.887, 0.851],
+  [0.3755, 0.5728, 0.812, 0.872, 0.848], [0.4267, 0.5728, 1.000, 0.981, 0.918], [0.4780, 0.5728, 0.734, 0.831, 0.807], [0.3755, 0.5261, 0.662, 0.790, 0.775],
+  [0.4267, 0.5261, 1.000, 0.997, 0.947], [0.4780, 0.5261, 0.723, 0.825, 0.800], [0.3755, 0.4794, 0.391, 0.685, 0.687], [0.4267, 0.4794, 1.000, 0.969, 0.930],
+  [0.4780, 0.4794, 0.720, 0.816, 0.792], [0.3755, 0.4327, 0.125, 0.501, 0.509], [0.4267, 0.4327, 0.834, 0.949, 0.920], [0.4780, 0.4327, 0.738, 0.812, 0.792],
+  [0.3755, 0.3860, 0.076, 0.433, 0.463], [0.4267, 0.3860, 0.468, 0.775, 0.770], [0.4780, 0.3860, 0.927, 0.872, 0.842], [0.3755, 0.3393, 0.000, 0.323, 0.336],
+  [0.4267, 0.3393, 0.194, 0.619, 0.630], [0.4780, 0.3393, 0.759, 0.890, 0.860], [0.3755, 0.2926, 0.287, 0.547, 0.571], [0.4267, 0.2926, 0.000, 0.417, 0.444],
+  [0.4780, 0.2926, 0.272, 0.649, 0.648], [0.5238, 0.7024, 0.802, 0.753, 0.618], [0.5714, 0.7024, 0.851, 0.451, 0.175], [0.6190, 0.7024, 0.884, 0.473, 0.189],
+  [0.6667, 0.7024, 0.923, 0.521, 0.148], [0.7143, 0.7024, 0.975, 0.874, 0.755], [0.7619, 0.7024, 0.948, 0.950, 0.914], [0.8095, 0.7024, 0.812, 0.787, 0.671],
+  [0.5238, 0.6566, 0.826, 0.456, 0.173], [0.5714, 0.6566, 0.896, 0.412, 0.107], [0.6190, 0.6566, 0.936, 0.505, 0.131], [0.6667, 0.6566, 1.000, 0.878, 0.726],
+  [0.7143, 0.6566, 0.944, 0.964, 0.928], [0.7619, 0.6566, 0.997, 0.962, 0.904], [0.8095, 0.6566, 0.939, 0.945, 0.921], [0.5238, 0.6108, 0.947, 0.586, 0.262],
+  [0.5714, 0.6108, 0.947, 0.606, 0.278], [0.6190, 0.6108, 1.000, 0.781, 0.545], [0.6667, 0.6108, 0.851, 0.856, 0.776], [0.7143, 0.6108, 0.980, 0.970, 0.933],
+  [0.7619, 0.6108, 0.941, 0.895, 0.841], [0.8095, 0.6108, 0.978, 0.952, 0.884], [0.5238, 0.5650, 0.949, 0.767, 0.579], [0.5714, 0.5650, 0.973, 0.767, 0.561],
+  [0.6190, 0.5650, 0.964, 0.922, 0.852], [0.6667, 0.5650, 0.803, 0.777, 0.654], [0.7143, 0.5650, 0.855, 0.845, 0.762], [0.7619, 0.5650, 1.000, 1.000, 1.000],
+  [0.8095, 0.5650, 0.828, 0.875, 0.851], [0.5238, 0.5192, 0.953, 0.864, 0.746], [0.5714, 0.5192, 1.000, 0.965, 0.890], [0.6190, 0.5192, 0.901, 0.946, 0.934],
+  [0.6667, 0.5192, 0.802, 0.776, 0.653], [0.7143, 0.5192, 0.803, 0.777, 0.655], [0.7619, 0.5192, 0.807, 0.784, 0.667], [0.8095, 0.5192, 0.794, 0.775, 0.661],
+  [0.5238, 0.4734, 0.951, 0.953, 0.909], [0.5714, 0.4734, 0.961, 0.941, 0.910], [0.6190, 0.4734, 0.836, 0.889, 0.846], [0.6667, 0.4734, 0.801, 0.775, 0.652],
+  [0.7143, 0.4734, 0.801, 0.774, 0.650], [0.7619, 0.4734, 0.799, 0.772, 0.648], [0.8095, 0.4734, 0.798, 0.772, 0.649], [0.5238, 0.4277, 0.939, 0.922, 0.878],
+  [0.5714, 0.4277, 0.736, 0.863, 0.855], [0.6190, 0.4277, 0.694, 0.814, 0.768], [0.6667, 0.4277, 0.800, 0.774, 0.651], [0.7143, 0.4277, 0.773, 0.722, 0.565],
+  [0.7619, 0.4277, 0.449, 0.354, 0.161], [0.8095, 0.4277, 0.316, 0.347, 0.309], [0.5238, 0.3819, 0.819, 0.904, 0.894], [0.5714, 0.3819, 0.553, 0.766, 0.730],
+  [0.6190, 0.3819, 0.178, 0.663, 0.708], [0.6667, 0.3819, 0.818, 0.814, 0.696], [0.7143, 0.3819, 0.917, 0.674, 0.268], [0.7619, 0.3819, 0.819, 0.628, 0.271],
+  [0.8095, 0.3819, 0.574, 0.448, 0.183], [0.5238, 0.3361, 0.581, 0.777, 0.759], [0.5714, 0.3361, 0.305, 0.701, 0.715], [0.6190, 0.3361, 0.234, 0.651, 0.655],
+  [0.6667, 0.3361, 0.820, 0.834, 0.695], [0.7143, 0.3361, 0.970, 0.749, 0.388], [0.7619, 0.3361, 0.882, 0.706, 0.381], [0.8095, 0.3361, 0.929, 0.709, 0.330],
+  [0.5238, 0.2903, 0.778, 0.772, 0.658], [0.5714, 0.2903, 0.247, 0.654, 0.659], [0.6190, 0.2903, 0.443, 0.758, 0.755], [0.6667, 0.2903, 0.751, 0.780, 0.676],
+  [0.7143, 0.2903, 0.919, 0.775, 0.485], [0.7619, 0.2903, 0.939, 0.736, 0.371], [0.8095, 0.2903, 0.803, 0.769, 0.634], [0.6240, 0.5408, 0.113, 0.472, 0.486],
+  [0.6705, 0.5408, 0.638, 0.853, 0.833], [0.7170, 0.5408, 0.956, 0.915, 0.874], [0.7636, 0.5408, 1.000, 1.000, 0.943], [0.8101, 0.5408, 0.840, 0.873, 0.844],
+  [0.6240, 0.4904, 0.072, 0.469, 0.482], [0.6705, 0.4904, 0.672, 0.850, 0.840], [0.7170, 0.4904, 0.941, 0.915, 0.869], [0.7636, 0.4904, 0.867, 0.904, 0.864],
+  [0.8101, 0.4904, 0.587, 0.733, 0.722], [0.8493, 0.8240, 0.891, 0.755, 0.592], [0.8811, 0.8240, 0.893, 0.766, 0.583], [0.9130, 0.8240, 0.921, 0.751, 0.382],
+  [0.9449, 0.8240, 0.922, 0.752, 0.489], [0.9767, 0.8240, 0.891, 0.755, 0.592], [0.8493, 0.7906, 0.897, 0.763, 0.592], [0.8811, 0.7906, 0.942, 0.756, 0.366],
+  [0.9130, 0.7906, 0.909, 0.719, 0.401], [0.9449, 0.7906, 0.963, 0.823, 0.606], [0.9767, 0.7906, 0.891, 0.756, 0.593], [0.8493, 0.7572, 0.908, 0.779, 0.610],
+  [0.8811, 0.7572, 0.972, 0.820, 0.544], [0.9130, 0.7572, 0.930, 0.785, 0.503], [0.9449, 0.7572, 0.972, 0.870, 0.721], [0.9767, 0.7572, 0.891, 0.758, 0.598],
+  [0.8493, 0.7238, 0.905, 0.773, 0.607], [0.8811, 0.7238, 0.947, 0.840, 0.617], [0.9130, 0.7238, 0.948, 0.842, 0.683], [0.9449, 0.7238, 0.966, 0.967, 0.886],
+  [0.9767, 0.7238, 0.947, 0.962, 0.936], [0.8493, 0.6904, 0.900, 0.769, 0.605], [0.8811, 0.6904, 0.962, 0.879, 0.703], [0.9130, 0.6904, 0.943, 0.884, 0.766],
+  [0.9449, 0.6904, 0.953, 0.901, 0.806], [0.9767, 0.6904, 0.955, 0.912, 0.830], [0.8493, 0.6570, 0.928, 0.861, 0.729], [0.8811, 0.6570, 0.960, 0.909, 0.809],
+  [0.9130, 0.6570, 0.970, 0.925, 0.826], [0.9449, 0.6570, 0.960, 0.938, 0.873], [0.9767, 0.6570, 0.969, 0.981, 0.956], [0.8493, 0.6236, 0.947, 0.924, 0.837],
+  [0.8811, 0.6236, 0.941, 0.899, 0.789], [0.9130, 0.6236, 0.971, 0.941, 0.870], [0.9449, 0.6236, 0.948, 0.942, 0.906], [0.9767, 0.6236, 0.905, 0.803, 0.673],
+  [0.8493, 0.5902, 0.924, 0.903, 0.843], [0.8811, 0.5902, 0.977, 0.938, 0.854], [0.9130, 0.5902, 0.950, 0.940, 0.889], [0.9449, 0.5902, 0.955, 0.923, 0.847],
+  [0.9767, 0.5902, 0.891, 0.757, 0.595], [0.8493, 0.5568, 0.681, 0.721, 0.685], [0.8811, 0.5568, 1.000, 1.000, 0.990], [0.9130, 0.5568, 0.865, 0.861, 0.833],
+  [0.9449, 0.5568, 1.000, 1.000, 0.926], [0.9767, 0.5568, 0.891, 0.757, 0.595], [0.8493, 0.5234, 0.488, 0.582, 0.546], [0.8811, 0.5234, 1.000, 1.000, 0.991],
+  [0.9130, 0.5234, 0.824, 0.859, 0.826], [0.9449, 0.5234, 1.000, 1.000, 0.942], [0.9767, 0.5234, 0.891, 0.756, 0.595], [0.8493, 0.4900, 0.419, 0.487, 0.444],
+  [0.8811, 0.4900, 1.000, 1.000, 0.931], [0.9130, 0.4900, 0.835, 0.861, 0.822], [0.9449, 0.4900, 1.000, 1.000, 0.957], [0.9767, 0.4900, 0.891, 0.757, 0.595],
+  [0.8493, 0.4566, 0.496, 0.495, 0.420], [0.8811, 0.4566, 1.000, 0.928, 0.811], [0.9130, 0.4566, 0.901, 0.858, 0.762], [0.9449, 0.4566, 1.000, 1.000, 0.973],
+  [0.9767, 0.4566, 0.891, 0.757, 0.595], [0.8493, 0.4232, 0.441, 0.345, 0.211], [0.8811, 0.4232, 1.000, 0.807, 0.574], [0.9130, 0.4232, 0.955, 0.841, 0.728],
+  [0.9449, 0.4232, 0.958, 0.877, 0.767], [0.9767, 0.4232, 0.891, 0.756, 0.594], [0.8493, 0.3898, 0.590, 0.420, 0.268], [0.8811, 0.3898, 0.950, 0.599, 0.306],
+  [0.9130, 0.3898, 0.929, 0.658, 0.411], [0.9449, 0.3898, 1.000, 0.837, 0.650], [0.9767, 0.3898, 0.895, 0.735, 0.563], [0.8493, 0.3564, 0.498, 0.274, 0.121],
+  [0.8811, 0.3564, 0.915, 0.543, 0.256], [0.9130, 0.3564, 0.930, 0.550, 0.246], [0.9449, 0.3564, 0.975, 0.630, 0.301], [0.9767, 0.3564, 0.951, 0.552, 0.243],
+  [0.8493, 0.3230, 0.787, 0.591, 0.417], [0.8811, 0.3230, 0.737, 0.264, 0.000], [0.9130, 0.3230, 0.893, 0.533, 0.261], [0.9449, 0.3230, 0.897, 0.481, 0.180],
+  [0.9767, 0.3230, 0.878, 0.501, 0.210], [0.8493, 0.2896, 0.889, 0.751, 0.587], [0.8811, 0.2896, 0.840, 0.587, 0.357], [0.9130, 0.2896, 0.813, 0.380, 0.099],
+  [0.9449, 0.2896, 0.862, 0.478, 0.184], [0.9767, 0.2896, 0.855, 0.445, 0.163], [0.8448, 0.7742, 0.613, 0.553, 0.333], [0.8640, 0.7742, 0.386, 0.367, 0.206],
+  [0.8448, 0.7401, 0.748, 0.618, 0.349], [0.8640, 0.7401, 0.809, 0.680, 0.395], [0.8448, 0.7060, 0.864, 0.760, 0.541], [0.8640, 0.7060, 0.837, 0.727, 0.484],
+  [0.8448, 0.6720, 0.888, 0.821, 0.678], [0.8640, 0.6720, 0.940, 0.851, 0.684], [0.8448, 0.6379, 0.919, 0.859, 0.730], [0.8640, 0.6379, 0.913, 0.847, 0.719],
 ];
-const STET_KEY_STARTS = [0, 56, 92, 148, 184];
-const STET_KEY_SIGMA = [0.0496, 0.0533, 0.0492, 0.0536];
+const STET_KEY_STARTS = [0, 18, 81, 117, 187, 197, 282, 292];
+const STET_KEY_SIGMA = [0.0426, 0.0416, 0.0436, 0.0405, 0.0428, 0.0284, 0.0290];
 
 function designFor(entry) {
   switch (entry.name) {
@@ -1080,23 +1227,23 @@ function designFor(entry) {
       motif: 'stet', t0: 0,
       pal: ['#072529', '#051D21'],
       ground: '#072327',
-      // each letter placed on its concept letter (fillText x, 1024 units); the t's under the s and e
-      type: [{ font: 'NJ Narrow', weight: 700, px: 862.7, base: 741.7,
-        glyphs: [['t', 303.6, 0], ['t', 798.6, 0, 1.02], ['s', -11.6, 1], ['e', 483.3, 1]] }],
+      // the concept's own letters, traced (letters/stet.json; the first t on channel 0, the s and the joined e and t on 1)
+      type: [{ paths: 'letters/stet.json' }],
       inks: ['#F1E8D6', '#F1E8D6'],
       mark: [30, 26, 142],
-      form: { fromType: true, box: [0, 0, 1024], R: 0.06, soft: 0.002, key: 'alpha', res: 512 },
       keys: { list: STET_KEYS, starts: STET_KEY_STARTS, sigma: STET_KEY_SIGMA },
+      typeGlow: true,
       bandY: 0.48, strip: 'fill', grain: [0.03, 0.012],
       back: { paper: '#0D2A2C', ink: '#F3EBDB', soft: '#9BBDBB', accent: '#E9B85E' },
     };
     case 'Social Hook': return {
       motif: 'hook', t0: 0,
-      pal: ['#2A63E6', '#2E6AE9', '#4482F1', '#6AA2F6', '#1C50D7', '#5C96F3'],
-      ground: '#538DF3',   // the discs it reads as
-      type: [{ lines: ['Social', 'Hook'], font: 'NJ Poppins', weight: 800, track: -0.02, fit: 806, x: 92, base: 278, lead: 224, ch: 0 }],
+      pal: [],   // its fields' colours live in the motif
+      ground: '#427FED',   // its field's mean blue, without the letters and the mark
+      // the concept's own letters, traced (letters/social-hook.json)
+      type: [{ paths: 'letters/social-hook.json' }],
       inks: ['#FFFFFF'],
-      mark: [62, 865, 108],
+      mark: [50, 868, 121],
       bandY: 0.32, grain: [0.012, 0.010],
       back: { paper: '#2563EB', ink: '#FFFFFF', soft: '#CFE0FF', accent: '#FFFFFF' },
     };
@@ -1192,11 +1339,12 @@ function designFor(entry) {
     };
     case 'About Neil': return {
       motif: 'about', t0: 0,
-      pal: ['#F2E7D3', '#E8D8BC', '#E4A23C', '#8E5214', '#FFE7A8'],
+      pal: ['#F2E7D3', '#E8D8BC'],
       ground: '#EFE2CC',
-      type: [{ lines: ['Neil'], font: 'NJ Text', weight: 900, track: -0.04, fit: 506, x: 60, base: 254, ch: 0 }],
+      // the concept's own letters, traced (letters/about.json)
+      type: [{ paths: 'letters/about.json' }],
       inks: ['#D2A64E', '#A8771F'],
-      bandY: 0.45, grain: [0.03, 0.014],
+      bandY: 0.45, grain: [0.03, 0.014], shaderMips: 2,
       back: { paper: '#F4EADA', ink: '#4A3212', soft: '#86704E', accent: '#B8862C' },
     };
   }
@@ -1851,7 +1999,7 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
   // the motif's fine structure fades to its mean before it can beat against the level's grid.
   const renderFront = (layers, ss) => {
     draw(frontRT, 0, layers, ss);
-    if (d.shaderMips) for (let k = 1; (frontRT.width >> k) >= 32; k++) draw(frontRT, 0, layers, ss, k);
+    if (d.shaderMips) for (let k = 1; (frontRT.width >> k) >= 32 && (d.shaderMips === true || k <= d.shaderMips); k++) draw(frontRT, 0, layers, ss, k);
   };
   const ease = u => u * u * (3 - 2 * u);
   // The back's strip is a crop of the finished front. A front smaller than the back (the scene's

@@ -1,12 +1,17 @@
-# python3 comps.py <tile.jpg>  ->  comps.json
-# The concept's letters as connected parts of its cream ("Chair") and amber ("tax") colour masks, each with its
-# box and pixels at the tile's 554 px: chair = C, h, a, i dot, i, r; tax = t, a, x, then the bottom tick.
-#   python3 comps.py --config <slug>.json <tile.jpg>  ->  comps.json for another cover: each word's letters are the
-#   connected parts of its rule's mask inside its rows (config words, rules), at the tile's own size (W, H kept).
-import sys, json, colorsys
+# python3 comps.py <tile.jpg> [--cover social-hook|about|likewiki|clauded]  ->  comps.json
+# The concept's letters as connected parts of its letter colour masks, each with its box and pixels at 554 px.
+# Chairtax (the default): its cream ("Chair") and amber ("tax") masks: chair = C, h, a, i dot, i, r; tax = t, a, x,
+# then the bottom tick. Social Hook: its white letters, as they touch (S with H, o with c, the two o's), left to right.
+# About Neil: its gold letters (N, e, the i's dot, i, l). Their tiles are first cut to the cover (TILE_BOX) and scaled
+# to 554 px, saved as tile554.png for fields.py. LikeWiki and Clauded: each word's letters as the connected parts of
+# its config's colour rule inside its rows (likewiki.json, clauded.json beside this script), at the tile's own size.
+import sys, json, colorsys, os
 from PIL import Image, ImageFilter
-if sys.argv[1] == '--config':
-    cfg = json.load(open(sys.argv[2])); im = Image.open(sys.argv[3]).convert('RGB'); W, H = im.size; p = im.load()
+COVER = sys.argv[sys.argv.index('--cover') + 1] if '--cover' in sys.argv else 'chairtax'
+CONFIGS = ('likewiki', 'clauded')   # covers set up by a config file (<cover>.json beside this script)
+if COVER in CONFIGS:
+    cfg = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), COVER + '.json')))
+    im = Image.open(sys.argv[1]).convert('RGB'); W, H = im.size; p = im.load()
     def comps_of(rule, y0, y1, x0, x1, minpx):
         m = Image.new('L', (W, H)); q = m.load()
         for y in range(y0, y1):
@@ -35,8 +40,26 @@ if sys.argv[1] == '--config':
     json.dump(res, open('comps.json', 'w'))
     print({k: [e['box'] for e in v] for k, v in res.items() if k not in ('W', 'H')})
     sys.exit()
-im = Image.open(sys.argv[1]).convert('RGB'); W = im.width
-p = im.load(); c = Image.new('L', (W, W)); a = Image.new('L', (W, W)); cp, ap = c.load(), a.load()
+TILE_BOX = {'social-hook': (3, 2, 576, 566), 'about': (5, 1, 578, 573)}   # the cover inside its tile's grey margin
+im = Image.open(sys.argv[1]).convert('RGB')
+if COVER in TILE_BOX:
+    im = im.crop(TILE_BOX[COVER]).resize((554, 554), Image.LANCZOS); im.save('tile554.png')
+W = im.width
+p = im.load()
+if COVER == 'social-hook':
+    m = Image.new('L', (W, W)); mp = m.load()
+    for y in range(300):
+        for x in range(500):
+            r, g, b = p[x, y]
+            if r > 200 and b - r < 45: mp[x, y] = 255
+    m = m.filter(ImageFilter.MedianFilter(3))
+if COVER == 'about':
+    m = Image.new('L', (W, W)); mp = m.load()
+    for y in range(170):
+        for x in range(W):
+            if colorsys.rgb_to_hsv(*(q / 255 for q in p[x, y]))[1] > 0.42: mp[x, y] = 255
+    m = m.filter(ImageFilter.MedianFilter(3))
+c = Image.new('L', (W, W)); a = Image.new('L', (W, W)); cp, ap = c.load(), a.load()
 for y in range(W):
     for x in range(W):
         h, s, v = colorsys.rgb_to_hsv(*(q / 255 for q in p[x, y]))
@@ -60,6 +83,8 @@ def comps(m, y0, y1, minpx=200):
 def entry(pts):
     xs = [u for u, _ in pts]; ys = [v for _, v in pts]
     return {'box': [min(xs), min(ys), max(xs), max(ys)], 'pts': pts}
-res = {'chair': [entry(q) for q in comps(c, 150, 352)], 'tax': [entry(q) for q in comps(a, 320, 500)]}
+if COVER == 'social-hook': res = {'title': [entry(q) for q in comps(m, 0, 300)]}
+elif COVER == 'about': res = {'title': [entry(q) for q in comps(m, 0, 170)]}
+else: res = {'chair': [entry(q) for q in comps(c, 150, 352)], 'tax': [entry(q) for q in comps(a, 320, 500)]}
 json.dump(res, open('comps.json', 'w'))
 print({k: [e['box'] for e in v] for k, v in res.items()})

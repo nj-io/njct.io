@@ -12,28 +12,12 @@ recompute the face's glyph set from editions/data/projects.json (sorted unique c
 strings listed for it), request css2?family=<axes as shown>&text=<set>, take the single url(...) in the
 response, and replace the file. A character outside its face's set renders in a fallback font.
 
-poppins-extrabold-cover.woff2 — NJ Poppins, the Social Hook title
-  Poppins (Indian Type Foundry), gstatic v24, wght 800
-  glyphs: " HSaciklo" (from "Social Hook")
-  css2?family=Poppins:wght@800&text=%20HSaciklo
-  1 052 bytes, sha256 d48f4294e9c981650833ca23eea50f61b72bd5917fe4ca2acbd94b97be49a432
-  Licence: OFL-1.1 (https://github.com/itfoundry/Poppins)
-
 fraunces-144pt-bold-cover.woff2 — NJ Serif, the Stellar Explorer title and the About back's headline
   Fraunces (Undercase Type), gstatic v38, opsz 144 · wght 700 · SOFT 0 · WONK 0
   glyphs: " ,.EHINSaeilmoprtx’" (from "Stellar Explorer" and about[0], "Hi, I’m Neil.")
   css2?family=Fraunces:opsz,wght,SOFT,WONK@144,700,0,0&text=%20%2C.EHINSaeilmoprtx%E2%80%99
   3 032 bytes, sha256 5fb7f377b44dc7bc16204cce8ec513f0958473a35ade6e14459f093f98db6a54
   Licence: OFL-1.1 (https://github.com/undercasetype/Fraunces)
-
-archivo-narrow-700-cover.woff2 — NJ Narrow, the stet title (each letter placed on its concept letter)
-  Archivo Narrow (Omnibus-Type), gstatic v35, wght 700
-  glyphs: "est" (from "stet")
-  css2?family=Archivo+Narrow:wght@700&text=est
-  992 bytes, sha256 cd4ba9c3c2bd42ef30ffa309f826b0432ecbbe0f29384f107be7db4bfabcdf23
-  Licence: OFL-1.1 (https://github.com/Omnibus-Type/ArchivoNarrow). Chosen by fitting 45 OFL candidates
-  (Inter, Archivo at several widths and weights, Archivo Black, Libre Franklin, Barlow, Roboto Condensed and
-  others) to the concept's letter masks; it fit best (IoU 0.87, every letter box within 1.1% of the cover).
 
 hanken-grotesk-650-cover.woff2 — NJ Hanken, the Topshine wordmark (650, set at −0.055em)
   Hanken Grotesk (The Hanken Grotesk Project Authors), gstatic v12, wght 650

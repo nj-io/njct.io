@@ -1,22 +1,27 @@
-# python3 trace.py [out.json]  ->  chairtax.json   (needs fields.json, field-*.png)
+# python3 trace.py [out.json] [--cover chairtax|stet|social-hook|about|likewiki|clauded]  ->  <cover>.json   (needs fields.json, field-*.png)
 # Traces each letter field at its 0.5 level into closed loops (marching squares), removes the generation wobble
 # by smoothing along the outline between corners, keeps the corners sharp, and writes SVG path data in 1024
 # cover units: quadratic B-splines through the simplified points, clamped so each run ends on its corners.
 import json, math, sys
 from PIL import Image
-U=4*554/1024          # field px per cover unit
-OUT=sys.argv[1] if len(sys.argv)>1 else 'chairtax.json'
+COVER=sys.argv[sys.argv.index('--cover')+1] if '--cover' in sys.argv else 'chairtax'
+ARGS=[a for i,a in enumerate(sys.argv[1:],1) if a!='--cover' and sys.argv[i-1]!='--cover']
+TILE={'chairtax':554,'stet':546,'social-hook':554,'about':554}.get(COVER,554)
+U=4*TILE/1024         # field px per cover unit
+OUT=ARGS[0] if ARGS else COVER+'.json'
 SM=6.0       # smoothing sigma, field px along the outline (about 2.8 px on a 1024 cover)
-CORNER=50    # turning in degrees over +-K samples (1 field px apart) that marks a corner
+CORNER={'chairtax':50,'stet':40,'social-hook':50,'about':50}.get(COVER,50)    # turning in degrees over +-K samples (1 field px apart) that marks a corner
 K=12
 TOL=0.6      # simplification tolerance, field px
+# stet: each corner moves to where the straight edges either side of it meet, as sharp as the concept's (the field's
+# 0.5 level rounds a corner off); the edges are fitted on the outline SHARP field px from the corner
+SHARP={'chairtax':None,'stet':(4,16),'social-hook':None,'about':None}.get(COVER)
 meta=json.load(open('fields.json'))
-# fields from fields.py --config carry their tile's size and the file's about line; a tile that is not square
-# maps to the 1024 cover with its own scale on each axis
-TILE=meta.pop('_tile',None)
-UX,UY=(4*TILE['W']/1024,4*TILE['H']/1024) if TILE else (U,U)
-# a cover's config may set its own smoothing and corner angle (config 'trace': {SM, CORNER, K, TOL})
-if TILE: globals().update(TILE.get('trace',{}))
+# a configured cover's fields (likewiki, clauded) carry their tile's size, their about line and their trace settings;
+# a tile that is not square maps to the 1024 cover with its own scale on each axis
+CFG=meta.pop('_tile',None)
+UX,UY=(4*CFG['W']/1024,4*CFG['H']/1024) if CFG else (U,U)
+if CFG: globals().update(CFG.get('trace',{}))
 def loops_of(img):
     w,h=img.size; P=list(img.getdata()); f=lambda x,y: P[y*w+x]/255.0
     T=0.5; pos={}; adj={}
@@ -75,6 +80,21 @@ def corners_of(l):
             if not cs or i-cs[-1]>K: cs.append(i)
     if len(cs)>1 and cs[0]+n-cs[-1]<=K: cs.pop()
     return cs
+def sharpen(l, cs, a, b):
+    # each corner to the meeting point of lines fitted to the outline a..b samples before and after it, when the
+    # lines turn by more than 30 degrees and meet within b samples of it
+    n=len(l); out=list(l)
+    def fit(pts):
+        mx=sum(p[0] for p in pts)/len(pts); my=sum(p[1] for p in pts)/len(pts)
+        sxx=sum((p[0]-mx)**2 for p in pts); syy=sum((p[1]-my)**2 for p in pts); sxy=sum((p[0]-mx)*(p[1]-my) for p in pts)
+        th=0.5*math.atan2(2*sxy,sxx-syy); return (mx,my),(math.cos(th),math.sin(th))
+    for c in cs:
+        (p1,d1)=fit([l[(c-k)%n] for k in range(a,b+1)]); (p2,d2)=fit([l[(c+k)%n] for k in range(a,b+1)])
+        den=d1[0]*d2[1]-d1[1]*d2[0]
+        if abs(den)<math.sin(math.radians(30)): continue
+        t=((p2[0]-p1[0])*d2[1]-(p2[1]-p1[1])*d2[0])/den; q=(p1[0]+t*d1[0],p1[1]+t*d1[1])
+        if math.hypot(q[0]-l[c][0],q[1]-l[c][1])<=b: out[c]=q
+    return out
 def smooth_open(seg, s):
     # Gaussian along a run whose ends are fixed corners (kernel truncated at the ends, renormalised)
     n=len(seg); r=int(3*s); w=[math.exp(-0.5*(j/s)**2) for j in range(-r,r+1)]; out=[seg[0]]
@@ -150,6 +170,7 @@ for name,m in meta.items():
     runs=[]; npts=0
     for l in loops:
         l=resample(l,1.0); cs=corners_of(l)
+        if cs and SHARP: l=sharpen(l,cs,*SHARP)
         if not cs:
             sm=smooth_closed(l,SM); j=max(range(len(sm)),key=lambda i: math.hypot(sm[i][0]-sm[0][0],sm[i][1]-sm[0][1]))
             pts=dp(sm[:j+1],TOL)[:-1]+dp(sm[j:]+[sm[0]],TOL)[:-1]; runs.append(('closed',pts)); npts+=len(pts)
@@ -160,11 +181,21 @@ for name,m in meta.items():
                 seg=smooth_open(seg,SM); seg=simplify(seg); segs.append(seg); npts+=len(seg)
             runs.append(('corners',segs))
     d=path_of(runs,ox,oy); result.append([name,m['ch'],d]); stats[name]=(len(loops),npts,len(d))
-ABOUT=("Chairtax cover letters traced from the concept tile chairtax-e3 (554 px): each letter's coverage by colour unmixing "
+ABOUT={'chairtax':("Chairtax cover letters traced from the concept tile chairtax-e3 (554 px): each letter's coverage by colour unmixing "
   "(cream, amber, ground), its hidden parts under the concept's bear completed from the fitted Nunito 900 glyph (the h's "
   "ascender top rebuilt on the concept's stem edges), traced at 4x, smoothed along the outline between corners. SVG path "
-  "data in 1024 cover units, filled even-odd; ch is the type-mask channel.")
-if TILE: ABOUT=TILE['about']
+  "data in 1024 cover units, filled even-odd; ch is the type-mask channel."),
+ 'stet':("stet cover letters traced from the concept tile stet-a3 (546 px): each letter's coverage from the tile's luma between "
+  "the ground and the letter's own interior, the e and the last t (which touch) as one outline, traced at 4x, smoothed along "
+  "the outline between corners. SVG path data in 1024 cover units, filled even-odd; ch is the type-mask channel."),
+ 'social-hook':("Social Hook cover letters traced from the concept tile social-hook-a1 (cut to the cover, 554 px): each part's coverage "
+  "as its distance from the local ground towards white, the ground filled in from the pixels around the letters; letters "
+  "that touch in the concept stay one outline. Traced at 4x, smoothed along the outline between corners. SVG path data "
+  "in 1024 cover units, filled even-odd; ch is the type-mask channel."),
+ 'about':("About Neil cover letters traced from the concept tile about-b4 (cut to the cover, 554 px): each part's coverage as "
+  "its distance from the local paper towards the letter's own gold, the paper filled in from the pixels around the "
+  "letters. Traced at 4x, smoothed along the outline between corners. SVG path data in 1024 cover units, filled even-odd; "
+  "ch is the type-mask channel.")}.get(COVER) or CFG['about']
 s=json.dumps({'about':ABOUT,'letters':[{'name':n,'ch':c,'d':d} for n,c,d in result]},separators=(',',':'))
 open(OUT,'w').write(s+'\n')
 print(stats, 'total chars', sum(v[2] for v in stats.values()))
