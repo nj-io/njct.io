@@ -29,7 +29,6 @@ export function loadDossier(slug) {
 // panel; the page's ink is darkened until it reads at 4.5:1 on the page ground.
 const COVER_COLOURS = {
   'Scorecard': { panel: '#1F5DD8', tint: '#F6C21C' },
-  'Xactions': { panel: '#0B1234', tint: '#FF8A2A' },
   'Stellar Explorer': { panel: '#1E2C8C', tint: '#DBA95C' },
   'About Neil': { panel: '#9A6418', tint: '#E4A23C' },
 };
@@ -46,8 +45,8 @@ const hueOf = hex => {
   const h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
   return (h * 60 + 360) % 360;
 };
-// An entry with neither (one whose cover takes the module's fallback design) takes the fallback's colours.
-const FALLBACK = COVER_COLOURS.Xactions;
+// An entry with neither takes the colours of the cover module's fallback design (flow lines on navy).
+const FALLBACK = { panel: '#0B1234', tint: '#FF8A2A' };
 export function colours(entry) {
   const c = entry.accent ? { panel: entry.accent.light, tint: entry.accent.light } : COVER_COLOURS[entry.name] || FALLBACK;
   const dark = contrast('#FFFFFF', c.panel) < 4.5;
@@ -156,7 +155,7 @@ export function createProjectView({ renderer, entries, slugOf, onBack, onCta }) 
           <div class="pj-titlecol"><h1 class="pj-title" tabindex="-1" aria-label="${esc(entry.name)}"><span aria-hidden="true"></span></h1>${sub ? `<p class="pj-sub">${esc(sub)}</p>` : ''}</div>
           <div class="pj-col">${heroColumn(entry, data, slugOf, entries)}</div>
         </div>
-        <div class="pj-window" aria-hidden="true"></div>
+        <div class="pj-window" aria-hidden="true">${data?.mascot ? `<img class="pj-mascot" src="${esc(data.mascot.src)}" width="${data.mascot.w}" height="${data.mascot.h}" alt="" decoding="async">` : ''}</div>
       </section>
       <div class="pj-body">
         ${entry.kind === 'about' || !data ? '<div></div>' : `<nav class="pj-rail" aria-label="Sections"><ol>${SECTIONS.map(([id, label]) => `<li><button type="button" data-sec="${id}">${label}</button></li>`).join('')}</ol></nav>`}
@@ -210,7 +209,7 @@ export function createProjectView({ renderer, entries, slugOf, onBack, onCta }) 
     if (!renderer) root.classList.add('pj-noworld');
     const cut = performance.now();
     st = { i, root, world, io, raf: 0, last: 0, cut, panelDone: !vertical(), titleDone: false, fit };
-    if (!vertical()) panel.style.transform = 'none';
+    if (!vertical()) { panel.style.transform = 'none'; q('.pj-mascot')?.classList.add('in'); }
     const onScroll = () => { if (st && !st.raf) wake(); };
     const onResize = () => { st?.fit(); wake(); };
     const onKey = e => { if (e.key === 'Escape' && !e.defaultPrevented) { e.preventDefault(); onBack(); } };
@@ -239,6 +238,7 @@ export function createProjectView({ renderer, entries, slugOf, onBack, onCta }) 
         const P = OPEN.panel, u = bezier(P.ease, clamp01((t - delay(P.at)) / dur(P.dur)));
         panel.style.transform = u >= 1 ? 'none' : `translateX(${((u - 1) * 100).toFixed(3)}%)`;
         st.panelDone = u >= 1; busy = true;
+        if (st.panelDone) q('.pj-mascot')?.classList.add('in');
       }
       if (!st.titleDone) {
         const T = OPEN.title, u = clamp01((t - delay(T.at)) / dur(T.dur));

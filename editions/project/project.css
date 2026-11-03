@@ -141,3 +141,11 @@ html.in-project .details, html.in-project #d-open { display: none; }
 
 /* No WebGL: the world's window holds the accent's light instead. */
 .pj-noworld .pj-window { background: radial-gradient(120% 90% at 30% 35%, color-mix(in srgb, var(--acc) 60%, #000) 0%, #0b0b0d 72%); }
+
+/* A project's mascot (Chairtax: Bearly) stands on the world window's bottom edge at the panel's side,
+   pointing into the world; he steps in once the panel has landed. */
+.pj-mascot { position: absolute; left: 3%; bottom: 0; height: 44%; width: auto; opacity: 0; transform: translateY(14px);
+  transition: opacity 0.45s ease, transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); pointer-events: none; }
+.pj-mascot.in { opacity: 1; transform: none; }
+@media (max-width: 899px) { .pj-mascot { left: 22px; bottom: 16px; height: 40%; } }
+@media (prefers-reduced-motion: reduce) { .pj-mascot { transition: opacity 0.12s linear; transform: none; } }

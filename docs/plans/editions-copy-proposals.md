@@ -32,14 +32,14 @@ Every string here waits for operator approval before it ships. Approved copy alr
 | 26 | Project page: the hero's index box and the left rail | Overview 01, Under the hood 02, Build process 03 (approved section names; the numbers are new) | Wave 3 |
 | 27 | Project page: the vertical line beside the giant title | the project's tag (approved), e.g. "Real-time X→Telegram mirror and digest"; About Neil: its third About paragraph | Wave 3 |
 | 28 | Project page: the hero's figure cards | the dossier's glance rows (approved), one card each | Wave 3 |
-| 29 | Topshine, Scorecard and Chairtax pages, above the Overview lead | Draft for review | Wave 3; shown until rows 33, 34 and 38 are approved |
+| 29 | Topshine, Scorecard, Chairtax and Stats pages, above the Overview lead | Draft for review | Wave 3; shown until rows 33, 34, 38 and 49 are approved |
 | 30 | Project page when its file fails to load | This page did not load. | Wave 3 |
 | 31 | Accessible names on the project page | Sections; Projects; a diagram is named by its caption (e.g. "Under the hood — the working architecture.") | Wave 3 |
 | 32 | About Neil page layout | Heading: "Hi, I’m Neil." (about[0]); lead: about[1]; text: about[2] and about[3]; then every project's name and tag (approved) as links to its page; hero index box: the project names numbered from 01, one per project (01–10 with Chairtax) | Wave 3, from the approved about[] text |
 | 33 | Topshine dossier | All of it: below | Wave 3, drafted from the Topshine repo |
 | 34 | Scorecard dossier | All of it: below | Wave 3, drafted from the Scorecard memory note and `~/dev/site-scorecard/` |
 | 35 | Chairtax entry: name, tag, blurb | Chairtax; Camera-counted squat breaks for the Mac; When a break is due, Chairtax takes over your Mac's screen. Do a few squats, or one of five other movements, in front of the camera and the screen is yours again. | Wave 4, drafted from the live site (https://chairtax.app, read 2026-11-03): hero "Chairtax takes over your screen. Do a few reps in front of the camera and it's yours again."; "Six movements the camera counts" |
-| 36 | Chairtax entry: figures | 6 · movements the camera counts; 3 · ranks of how hard a break is to skip; On-device · rep counting; the picture is never uploaded | Wave 4, the live site: "Six movements the camera counts"; "Pick your rank" (Cub, Brown bear, Grizzly); "Nobody sees your video" ("The camera counts your reps right on your Mac. The picture is never saved, uploaded or shown to anyone.") |
+| 36 | Chairtax entry: figures (alternative for the ranks: "3 · Bearly's ranks: Cub, Brown bear, Grizzly") | 6 · movements the camera counts; 3 · ranks of how hard a break is to skip; On-device · rep counting; the picture is never uploaded | Wave 4, the live site: "Six movements the camera counts"; "Pick your rank" (Cub, Brown bear, Grizzly); "Nobody sees your video" ("The camera counts your reps right on your Mac. The picture is never saved, uploaded or shown to anyone.") |
 | 37 | Chairtax entry: stack, year, url | Swift · SwiftUI · AppKit · Apple Vision · Cloudflare Workers; 2026; https://chairtax.app | Wave 4, `~/dev/chairtax/rel-1.1.0/Package.swift`, `worker/wrangler.toml`; year from the repo's dated docs and the App Store listing (Copyright 2026) |
 | 38 | Chairtax dossier | All of it: below | Wave 4, drafted from the live site and `~/dev/chairtax/rel-1.1.0` (README, AGENTS.md, CHANGELOG, docs, Sources) |
 | 39 | Chairtax cover: title and back-cover strings (for the cover builder's glyph subsets) | Front title: Chairtax. Back: Chairtax; 2026; the three figures of row 36; the stack line of row 37; chairtax.app | Wave 4; the cover module's fallback design shows these until the operator's cover pick lands |
@@ -48,6 +48,13 @@ Every string here waits for operator approval before it ships. Approved copy alr
 | 42 | Screen-reader announcements (a polite live region) | Details opened: "Details: <name>. <tag>" (About Neil: "Details: About Neil"); flip: "Back of the sleeve" / "Front of the sleeve"; Details closed: "Back to the shelf" (row 24 text); Open: "Open: <name>"; the crate at rest: "<name>, <n> of <count>", e.g. "Social Hook, 3 of 11" | Wave 4 |
 | 43 | The shelf as a list for screen readers | list "Projects" (row 20); per sleeve a heading with its name and a line "<tag>, <year>", e.g. "Real-time X→Telegram mirror and digest, 2025"; the page heading is the header tagline (row 5) | Wave 4 |
 | 44 | Shelf without WebGL (static fallback) | one card per project: cover tile with the name (About Neil's tile: "Neil", row 3), the name, "<tag>, <year>", the figures (approved), and Open (row 18, named "Open: <name>") | Wave 4 |
+| 45 | The lineup | Xactions is off the shelf (operator ruling, Wave 4): its entry, its dossier and its page are removed. Shelf order: Mirra, stet, Social Hook, Clauded, LikeWiki, Topshine / Stellar Explorer, Chairtax, Scorecard, Stats, About Neil | Wave 4 |
+| 46 | Stats entry: name, tag, blurb | Stats; Visitors, sources and sales in one place; A private dashboard for this portfolio's product sites: who visited, where they came from and what they bought, with a summary in Telegram every morning. | Wave 4, drafted from the live login page (https://stats.njct.io, read 2026-11-03: "Stats", "Visitors and sales for Chairtax and Stet.") and `~/dev/new-site-analytics` |
+| 47 | Stats entry: figures | Every sale · traced to the post, email or ad that brought the buyer; Daily · Telegram summary at 09:00, with the week compared every Monday; One command · sets up tracking on a new site | Wave 4, `~/dev/new-site-analytics` (sources under row 49) |
+| 48 | Stats entry: stack, year, url | Node.js · PostHog · HogQL · Cloudflare Tunnel · Telegram; 2026; no url. **Question for the operator:** the dashboard is password-gated; should the page show its host (stats.njct.io) as the project link? | Wave 4 |
+| 49 | Stats dossier | All of it: below | Wave 4, drafted from `~/dev/new-site-analytics` (README, AGENTS.md, docs/reference.md, analytics/stats-page/) |
+| 50 | Stats cover: title and back-cover strings (for the cover builder's glyph subsets) | Front title: Stats. Back: Stats; 2026; the figures of row 47; the stack line of row 48; no link | Wave 4; the cover module's fallback design shows these until the operator's cover pick lands |
+| 51 | Chairtax page: Bearly | Bearly (the brand's own art, bearly-pointing.webp from chairtax.app, unaltered) stands on the world window's bottom edge beside the panel, pointing into the world; decorative (empty alt), loaded only on the Chairtax page | Wave 4, operator's request for the branding and mascot on the page |
 
 ## Row 33: Topshine dossier (proposal)
 
@@ -389,12 +396,142 @@ At the interval you set, Chairtax covers your Mac's screen and gives it back onc
 - Idempotent licence minting.: /Users/neil/dev/chairtax/rel-1.1.0/worker/README.md § routes (redeliveries change nothing) and key format paragraph (Ed25519 deterministic)
 - Privacy as a build rule.: /Users/neil/dev/chairtax/rel-1.1.0/AGENTS.md § Rules that are not negotiable (camera only permission; one network call; no analytics)
 
-**Claims to check before approval**
+**Claims to check before approval** (the drafting agent's list, with the builder's notes)
 
-- **Unreleased work.** "A squat counts at 0.5 to 1.0 m" and "a force-quit or crash resumes the break with its reps" come from the `Unreleased` section of rel-1.1.0's CHANGELOG. If they are not in the shipped 1.1.0, they describe the next release.
-- **Lock-down detail.** The Grizzly row says the download turns off Force Quit, Log Out and the Apple menu while a break is up (Sources/ChairtaxShield/TierOptions.swift). The operator may prefer to leave that out of a public page.
-- **Internal measurement.** "AVFoundation's in-use flag never reported a call in the measurements made before the build" paraphrases a trap noted in docs/plans/MVP_PLAN.md.
-- **No prices or health claims.** The draft quotes no price and makes no health claim; the money-back challenge is described by its rule (100 reps on 16 of the first 30 days), not its amount.
-- **Figures.** All three are counts or facts from the live site; the repo holds no user, sales or download numbers, and none are quoted.
+- **3 ranks.** The figure "3 · ranks of how hard a break is to skip" may count as a small literal fact. The ranks are Bearly's (Cub, Brown bear, Grizzly, from the site and the app's rank screens); row 36 gives an alternative.
+- **Year 2026** rests only on dates: the file names research-2026-08-22 and beta-2026-09-28, and "Copyright 2026" in docs/launch/app-store-listing.md.
+- **"The last 14 days" and the energy estimate** come from app-store-listing.md and Sources/ChairtaxCore/Energy.swift, not the live site.
+- **The challenge terms** (100 reps on 16 of the first 30 days) appear with no price (live site; Challenge.swift).
+- **The 0.5–1.0 m squat range** is under "Unreleased" in rel-1.1.0's CHANGELOG (every entry there is), though the code is in the rel-1.1.0 tree (BreakDriver.swift line 36). The same holds for the break that resumes after a crash.
+- **Brown bear skips:** the live site says "a few skips a day"; the listing doc says two.
+- **Version:** rel-1.1.0's Version.swift says 1.0.1 while Info.plist says 1.1.0. Nothing in the draft depends on it.
+- **Lock-down detail.** The Grizzly row says the download turns off Force Quit, Log Out and the Apple menu while a break is up (TierOptions.swift); the operator may prefer to leave that off a public page.
+- **Internal measurement.** "AVFoundation's in-use flag never reported a call" paraphrases docs/plans/MVP_PLAN.md, Traps item 3.
+- **Left out:** unreleased mvp-only work (FrameBudget.staleAfter, faces on every third frame, "Tilt the screen up", FrameEdge.swift, the slower-Mac audit); PostHog purchase and refund events and Google server conversions (planned or off); the ended beta; the health claims and their sources; prices ($29, $29.99, the $29 refund); break intervals (the listing doc says 15 to 60 minutes, the code offers 15 to 120). Bearly is not in the text; he appears as art (row 51).
 
 **Question for the operator.** As for rows 33 and 34: the draft describes only what is built. Should planned features be written in, under the marketing convention?
+
+## Row 49: Stats dossier (proposal)
+
+Ships as `editions/data/dossiers/stats.json` with `"proposal": true`, in the same shape as rows 33, 34 and 38.
+
+**what**
+
+Shows how many people visited each of this portfolio's product sites, where they came from, and which posts, links and sources led to signups and sales.
+
+**glance**
+
+| Label | Value |
+|---|---|
+| Shows | Visitors, sources, funnel, top pages, countries and tagged links, for one site or all of them |
+| Periods | Yesterday, the last 7 days or the last 30, each against the period before |
+| Sales | Each one traced to the post, email or ad the buyer arrived from |
+| Reports | A Telegram summary every morning and a week-on-week summary every Monday |
+
+**archHi**
+
+```html
+<p>Stats is a private dashboard for this portfolio's product sites. It shows how many people visited each site, where they came from and what they did next, from App Store clicks to signups and sales. Its figures come from a tracking setup that each site gets with one command.</p>
+<ol>
+<li><strong>Tag.</strong> Every post, email or ad carries a tagged link made by the tool, so a visit can be traced to what brought it.</li>
+<li><strong>Record.</strong> Each site sends its visits and clicks to PostHog through a proxy on its own domain, with a cookie banner where the law needs one.</li>
+<li><strong>Join.</strong> A sale arrives from the payment provider's webhook carrying the visitor's checkout data, so it lands on the same visitor, and under the same source, as the visit.</li>
+<li><strong>Read.</strong> The dashboard shows every site together or one at a time, for yesterday, the last 7 days or the last 30. A Telegram message sums up each morning, and the whole week each Monday.</li>
+</ol>
+<p>The page and the messages take every figure from the same function, so they always agree, and each sale can be followed back to the post that brought the buyer.</p>
+```
+
+**arch**
+
+```html
+<p>A Node.js server on an always-on Mac mini serves the page and a small JSON API through a Cloudflare tunnel. Figures are read from PostHog with HogQL queries and drawn in the browser by plain HTML, CSS and JavaScript.</p>
+<ul>
+<li><strong>One source of figures.</strong> The page and the daily and weekly messages both read one shared function. No figure is computed anywhere else.</li>
+<li><strong>One source per visitor.</strong> Each visitor counts under a single source: a tagged link with its campaign, a search engine, a referring site, or Direct when there is no referrer. Their clicks, checkouts and sales count under the same source, so every source shows what its visitors went on to do.</li>
+<li><strong>Two kinds of site.</strong> A site that sells shows App Store clicks, Mac downloads, buy clicks, checkouts, sales and revenue before fees. Any other site shows signups or waitlist joins, the signup rate, visitors from tagged links and pages per visit.</li>
+</ul>
+<p>Each site has four views, and each opens with one sentence on what happened in the period and three highlights: the top source's share, the change in visitors and the source that converts best.</p>
+<table>
+<tr><th>View</th><th>Shows</th></tr>
+<tr><td>Overview</td><td>visitors per day by source as an area or bar chart, the headline figures, the source mix, the funnel, top pages, countries and tagged links</td></tr>
+<tr><td>Sources</td><td>a flow from each source to what its visitors did, and the conversion rate of each source</td></tr>
+<tr><td>Funnel</td><td>each step from visit to sale or signup, with the drop-off at each</td></tr>
+<tr><td>Links</td><td>each tagged link with its visitors and results</td></tr>
+</table>
+<ul>
+<li><strong>Filtering runs in the browser.</strong> Tapping a source filters the page to it from the figures already loaded, with no new query. Top pages and countries stay unfiltered.</li>
+<li><strong>All sites at once.</strong> The all-sites view lists every site, busiest first, with its visitors, the change on the period before and a line of its daily totals. A searchable picker opens any one site.</li>
+<li><strong>Calendar days in one time zone.</strong> Yesterday, the last 7 days and the last 30 all end on the previous day in the configured zone, and each is compared with the period before.</li>
+<li><strong>Internal visits are left out.</strong> Opening a site once with <code>?internal=1</code> tags that browser internal, and its visits stay out of the figures.</li>
+<li><strong>Stale figures are labelled.</strong> Figures are cached for five minutes. When PostHog cannot be reached, the server returns the last good figures marked stale, and the page shows the time they are from.</li>
+<li><strong>Sign-in fails closed.</strong> The password exists on the server only as a PBKDF2 hash, and without a valid hash file every request is refused. Sessions are signed cookies valid for 12 hours, or 30 days when kept, and repeated misses lock an address out for a wait that doubles up to five minutes.</li>
+<li><strong>Remote requests always need a session.</strong> Anything arriving through the tunnel counts as remote, whichever local port it reaches. The PostHog key is read once at start and never appears in a response or a log line.</li>
+<li><strong>Markup is never built from data.</strong> Every value is written as text, and the page's content security policy forbids inline styles.</li>
+<li><strong>Phone and desktop.</strong> The layout follows the width of the page. On a phone the period switch moves to a bar at the bottom of the screen, and light and dark follow the system setting.</li>
+<li><strong>A sample-data address.</strong> A second address draws the same page from a seeded event history, so the dashboard can be shown without its real figures.</li>
+<li><strong>Scheduled messages.</strong> At 09:00 each site gets a block with yesterday's visitors, top sources, clicks, sales and top pages, then whether each site is still sending visits and a link to the page. At 09:10 on Mondays the week is set against the week before, with the best source and up to three next steps.</li>
+</ul>
+```
+
+**proc**
+
+```html
+<ul>
+<li><strong>A Node.js server, PostHog and Telegram.</strong> The tool is Node.js 22 with a single package dependency. The page is plain HTML, CSS and JavaScript with no build step, reading a JSON API. Figures come from PostHog through HogQL queries. The server runs as a launchd service on an always-on Mac mini and is reached through a Cloudflare tunnel; the same machine sends the scheduled messages to Telegram.</li>
+<li><strong>A single source of truth for figures.</strong> One function computes every figure, and the dashboard, its API and both Telegram messages are views over its result.</li>
+<li><strong>Mechanism separated from policy.</strong> The engine is generic and names nothing of its owner: no products, machines, organisation or secret store. Product names, domains, wording and how keys are fetched reach it only through a config file kept in a separate personal layer.</li>
+<li><strong>Desired-state convergence.</strong> Setup compares what a site should have with what it has and writes only the difference, so a second run with the same flags changes nothing.</li>
+<li><strong>First-party collection.</strong> Tracking goes through a proxy on the site's own domain, which drops the site's cookies and authorization headers before anything reaches PostHog.</li>
+<li><strong>Money events come from the server.</strong> Sales and refunds are recorded from the payment provider's webhooks, and each payment counts once. The browser never reports a sale.</li>
+<li><strong>Fail closed, serve stale.</strong> Missing credentials lock the page for everyone. A failing upstream falls back to the last good figures, labelled with their time.</li>
+</ul>
+```
+
+**Sources** (field, figure or bullet lead → file)
+
+- card.tag: /Users/neil/dev/new-site-analytics/README.md § What it does (Tracks visits and sales; Traces each sale to its source)
+- card.blurb: /private/tmp/claude-501/-Users-neil/954ac214-6032-4ac5-bb58-9a3d61317266/scratchpad/stats/login.html (noindex; 'Visitors and sales for Chairtax and Stet.'); /Users/neil/dev/new-site-analytics/README.md § What it does; § The messages (Daily, 09:00)
+- card.stack: /Users/neil/dev/new-site-analytics/docs/reference.md line 7 (Node 22, one dependency); /Users/neil/dev/new-site-analytics/analytics/lib/hogql.mjs (file exists; HogQL client); /Users/neil/dev/new-site-analytics/docs/reference.md line 60 (stats_server: 'the https origin the tunnel serves'), line 167 (tunnel headers); /Users/neil/dev/new-site-analytics/README.md § Reports (Telegram)
+- card.year: /Users/neil/dev/new-site-analytics/plans/analytics-tool-plan-2026-10-21.md front matter (date 2026-10-21); /Users/neil/dev/new-site-analytics/plans/stats-dashboard-plan-2026-10-30.md front matter (date 2026-10-30); /Users/neil/.claude/projects/-Users-neil/memory/project_analytics_attribution.md (State 2026-11-01: dashboard live)
+- fig Every sale: /Users/neil/dev/new-site-analytics/README.md § What it does, row 'Traces each sale to its source'
+- fig Daily: /Users/neil/dev/new-site-analytics/README.md § The messages (Daily, 09:00; Mondays, 09:10)
+- fig One command: /Users/neil/dev/new-site-analytics/docs/reference.md line 3 ('Sets up product analytics for a new site with one command')
+- what: /private/tmp/claude-501/-Users-neil/954ac214-6032-4ac5-bb58-9a3d61317266/scratchpad/stats/login.html; /Users/neil/dev/new-site-analytics/analytics/stats-page/app.js lines 248-262 (App Store clicks, sales, signups), 33 (views incl. Links)
+- glance Shows: /Users/neil/dev/new-site-analytics/analytics/stats-page/app.js overview() (Top pages, Countries, Tagged links), sourcesCard, funnelCard, allSitesPage
+- glance Periods: /Users/neil/dev/new-site-analytics/analytics/stats-page/app.js lines 32-36 (PERIODS, VS); /Users/neil/dev/new-site-analytics/docs/reference.md line 45 (stats.time_zone)
+- glance Sales: /Users/neil/dev/new-site-analytics/README.md § What it does (Traces each sale to its source); /Users/neil/dev/new-site-analytics/docs/reference.md line 165 (purchase_completed carries checkoutData first_utm_campaign)
+- glance Reports: /Users/neil/dev/new-site-analytics/README.md § The messages
+- archHi Tag: /Users/neil/dev/new-site-analytics/README.md § What it does (link); /Users/neil/dev/new-site-analytics/docs/reference.md § Links
+- archHi Record: /Users/neil/dev/new-site-analytics/docs/reference.md line 3 (same-origin proxy, consent-aware snippet); /Users/neil/dev/new-site-analytics/README.md § What it does (cookie banner where the law needs one)
+- archHi Join: /Users/neil/dev/new-site-analytics/docs/reference.md § Integration contract (checkoutData() passed to the checkout's custom data; purchase_completed is a server event); /Users/neil/dev/new-site-analytics/docs/reference.md line 71 (products.<p>.webhook_url), line 165 (purchase_completed matched on distinct_id and first_utm_campaign); /Users/neil/dev/new-site-analytics/analytics/stats-page/app.js groupSources (sales per source row)
+- archHi Read: /Users/neil/dev/new-site-analytics/analytics/stats-page/app.js lines 32, 51 (ALL), allSitesPage; /Users/neil/dev/new-site-analytics/README.md § The messages
+- archHi closer: /Users/neil/dev/new-site-analytics/AGENTS.md § One source of figures
+- arch intro: /Users/neil/dev/new-site-analytics/AGENTS.md § Where the code lives (stats-server.mjs, stats-page plain HTML, CSS and JS, Mac Mini scripts); /Users/neil/dev/new-site-analytics/docs/reference.md line 167 (serve-stats JSON API), line 486 (collectSiteStats read from PostHog); /Users/neil/dev/new-site-analytics/analytics/lib/hogql.mjs
+- One source of figures: /Users/neil/dev/new-site-analytics/AGENTS.md § One source of figures; /Users/neil/dev/new-site-analytics/docs/reference.md line 486
+- One source per visitor: /Users/neil/dev/new-site-analytics/analytics/stats-page/app.js lines 43-55 (NAMES, detOf: Direct 'No referrer', '-search' 'Search'), groupSources lines 169-193 (store, buy, checkouts, sales per source; campaign on tagged rows)
+- Two kinds of site: /Users/neil/dev/new-site-analytics/docs/reference.md line 45 (sells vs signups); /Users/neil/dev/new-site-analytics/analytics/stats-page/app.js lines 248-262 (KPI tiles; 'Before fees'; waitlist), 297-299
+- Views table and summary sentence: /Users/neil/dev/new-site-analytics/analytics/stats-page/app.js line 33 (VIEWS), overview(), sourcesView() ('Where visitors went', rate by source rings), funnelView() (drops), linksView(), page() (summary, insights), lines 265-290 (highlights)
+- Filtering runs in the browser: /Users/neil/dev/new-site-analytics/analytics/stats-page/app.js header comment lines 1-3 ('a filter click sends no query'), comment 'Pages and countries stay unfiltered (decision 13)'
+- All sites at once: /Users/neil/dev/new-site-analytics/analytics/stats-page/app.js allSitesPage, byVisitors, spark, buildPicker ('Search sites'); /Users/neil/dev/new-site-analytics/docs/reference.md line 167 (/api/overview)
+- Calendar days in one time zone: /Users/neil/dev/new-site-analytics/docs/reference.md line 45 (stats.time_zone); /Users/neil/dev/new-site-analytics/analytics/stats-page/app.js line 34 (VS)
+- Internal visits are left out: /Users/neil/dev/new-site-analytics/docs/reference.md § Setup run, closing paragraph (?internal=1 … left out of the dashboards); /Users/neil/dev/new-site-analytics/README.md § What it asks of you (Once per browser)
+- Stale figures are labelled: /Users/neil/dev/new-site-analytics/docs/reference.md line 167 (cached 5 minutes, served stale with "stale": true when PostHog fails); /Users/neil/dev/new-site-analytics/analytics/stats-page/app.js setNotice ('PostHog unreachable. Showing figures from …')
+- Sign-in fails closed: /Users/neil/dev/new-site-analytics/docs/reference.md line 60 (pbkdf2_sha256 hash file; missing or malformed file locks the dashboard, 503), line 167 (cookie 12 hours or 30 days with keep; fifth miss lock 2 s doubling to 300 s)
+- Remote requests always need a session: /Users/neil/dev/new-site-analytics/docs/reference.md line 167 ('Every request on the public port counts as remote, as does a request on the local port that carries a tunnel header'; 'The PostHog key is read once at start and never reaches a response or a log line')
+- Markup is never built from data: /Users/neil/dev/new-site-analytics/analytics/stats-page/app.js lines 3-5 (textContent or the CSSOM; CSP forbids inline styles)
+- Phone and desktop: /Users/neil/dev/new-site-analytics/analytics/stats-page/app.css lines 5 (prefers-color-scheme), 158 and 226 (period-bottom sticky bar under @container page max-width 699px), 212-229 (@container queries)
+- A sample-data address: /Users/neil/dev/new-site-analytics/docs/reference.md line 167 (GET /live, live=1 reads the day's seeded sample history; / keeps the real figures); /Users/neil/dev/new-site-analytics/analytics/stats-page/index.html line 2 (data-live)
+- Scheduled messages: /Users/neil/dev/new-site-analytics/README.md § The messages; /Users/neil/dev/new-site-analytics/docs/reference.md § Scheduled run (per-product blocks, Best source, Top pages), line 304 (at most three next steps)
+- proc A Node.js server, PostHog and Telegram: /Users/neil/dev/new-site-analytics/docs/reference.md line 7 (Node 22, one dependency); /Users/neil/dev/new-site-analytics/AGENTS.md § Where the code lives (stats-page: no build step; Mac Mini scripts run-stats-mini, install-mini-stats); /Users/neil/.claude/projects/-Users-neil/memory/project_analytics_attribution.md (State 2026-11-01: launchd service on the Mini; Cloudflare tunnel); /Users/neil/dev/new-site-analytics/plans/stats-dashboard-plan-2026-10-30.md § Goal and F2 (confirm only: tunnel, launchd)
+- A single source of truth for figures: /Users/neil/dev/new-site-analytics/AGENTS.md § One source of figures
+- Mechanism separated from policy: /Users/neil/dev/new-site-analytics/AGENTS.md § Where the code lives (analytics/ engine names nothing of the operator's; analytics-personal/); /Users/neil/dev/new-site-analytics/docs/reference.md § Engine and config
+- Desired-state convergence: /Users/neil/dev/new-site-analytics/docs/reference.md § Setup run ('compares the desired state with the current state and writes only the difference'; 'a second run with the same flags changes nothing')
+- First-party collection: /Users/neil/dev/new-site-analytics/docs/reference.md line 3 (same-origin proxy), § Setup run --host nextjs row ('the proxy drops the site's cookies, authorization and the client's X-Forwarded-For before PostHog')
+- Money events come from the server: /Users/neil/dev/new-site-analytics/docs/reference.md § Integration contract ('never: a browser capture of a server event (purchase_completed, refund_issued, signup_completed)'), line 156 (Paddle transaction.completed, adjustment events), line 165 (one purchase_completed uuid)
+- Fail closed, serve stale: /Users/neil/dev/new-site-analytics/docs/reference.md line 60 (missing hash file locks the dashboard), line 167 (served stale when PostHog fails)
+
+**Claims to check before approval** (the drafting agent's list)
+
+- (pending the drafting agent's report)
+
+**Question for the operator.** As for rows 33, 34 and 38: the draft describes only what is built. Should planned features be written in, under the marketing convention?
