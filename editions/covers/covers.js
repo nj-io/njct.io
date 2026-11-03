@@ -497,53 +497,73 @@ float streak(vec2 u, vec2 c, vec2 s, vec2 cs) {
   vec2 d = u - c, e = vec2(d.x * cs.x + d.y * cs.y, -d.x * cs.y + d.y * cs.x) / s;
   return exp(-dot(e, e));
 }
-vec3 orbCol(int k, vec2 u, vec3 o, float hi) {
-  float d = (length(u - o.xy) - o.z) * CPX;
-  return field(k, u) + field(k + 1, u) * line(d + 1.0, 1.0) + field(k + 2, u) * line(d + 3.5, 1.5) + field(k + 3, u) * hi;
-}
-vec3 motif(vec2 p, float t) {
+// one sample's weight for every block (its feature times the coverage of its part) and its extra light (alive)
+void weigh(vec2 p, float t, inout float w[${FO.length}], inout vec3 extra) {
   vec2 u = vec2(p.x, 1.0 - p.y);
   float live = 1.0 - exp(-t * 1.2);
-  // the ring: its edges and fill, in front of the star on its lower half
-  vec2 d = u - RC, o = vec2(d.x * RCS.x + d.y * RCS.y, -d.x * RCS.y + d.y * RCS.x);
-  float rd = sdEllipse(o, RAB) * CPX, front = sig(o.y * CPX / 2.0);
-  vec3 ring = vec3(0.0);
-  if (rd > -14.0 && rd < 6.0) {
-    ring = field(1, u) * line(rd + 0.5, 1.0) + field(2, u) * line(rd + 3.0, 1.0) + field(3, u) * line(rd + 6.0, 1.0)
-         + field(4, u) * sig(-rd / 0.8) * sig((rd + 7.0) / 0.8);
-    float ang = atan(o.y / RAB.y, o.x / RAB.x) - t * 0.9;
-    ring += vec3(0.9, 0.88, 1.0) * 0.45 * live * line(rd + 1.0, 1.4) * exp(-pow(abs(mod(ang + PI, TAU) - PI) / 0.35, 2.0));
-  }
   vec4 f = formAt(p);
   float cs = cover(f.r);
-  vec3 col = vec3(0.0);
-  if (cs < 1.0) {
-    col = field(0, u) + ring;
+  float c0 = cover(length(u - ORB0.xy) - ORB0.z), c1 = cover(length(u - ORB1.xy) - ORB1.z);
+  float o1 = c1, o0 = c0 * (1.0 - c1), st = cs * (1.0 - c0) * (1.0 - c1), gr = (1.0 - cs) * (1.0 - c0) * (1.0 - c1);
+  // the ring: its edges and fill, in front of the star on its lower half
+  vec2 d = u - RC, o = vec2(d.x * RCS.x + d.y * RCS.y, -d.x * RCS.y + d.y * RCS.x);
+  float rd = sdEllipse(o, RAB) * CPX, ringW = gr + st * sig(o.y * CPX / 2.0);
+  if (rd > -14.0 && rd < 6.0 && ringW > 0.0) {
+    w[1] += ringW * line(rd + 0.5, 1.0); w[2] += ringW * line(rd + 3.0, 1.0); w[3] += ringW * line(rd + 6.0, 1.0);
+    w[4] += ringW * sig(-rd / 0.8) * sig((rd + 7.0) / 0.8);
+    float ang = atan(o.y / RAB.y, o.x / RAB.x) - t * 0.9;
+    extra += vec3(0.9, 0.88, 1.0) * 0.45 * live * ringW * line(rd + 1.0, 1.4) * exp(-pow(abs(mod(ang + PI, TAU) - PI) / 0.35, 2.0));
+  }
+  if (gr > 0.0) {
+    w[0] += gr;
     // the brand mark's halo
     vec2 m = u - MS.xy;
     if (dot(m, m) < 0.01) {
       float md = min(superD(u, MS.xy, MS.zw, ${f(M[4])}), min(length(u - MD0.xy) - MD0.z, length(u - MD1.xy) - MD1.z) * CPX);
-      col += field(5, u) * exp(-max(md, 0.0) / ${f(T.halo)});
+      w[5] += gr * exp(-max(md, 0.0) / ${f(T.halo)});
     }
   }
-  if (cs > 0.0) {
-    float ds = f.r * CPX, thin = smoothstep(2.0, 6.0, -ds);
-    vec3 s = field(6, u) + field(7, u) * line(ds + 1.0, 0.9) + field(8, u) * exp(min(ds, 0.0) / 6.0)
-           + field(9, u) * sig(-crease(u, 0.42) / 1.5)
-           + thin * (field(10, u) * line(crease(u, 0.53), 1.3) + field(11, u) * line(crease(u, 0.47), 1.3)
-                   + field(12, u) * line(crease(u, 0.42), 1.3) + field(13, u) * line(crease(u, 0.37), 1.3));
+  if (st > 0.0) {
+    float ds = f.r * CPX, thin = st * smoothstep(2.0, 6.0, -ds);
+    w[6] += st; w[7] += st * line(ds + 1.0, 0.9); w[8] += st * exp(min(ds, 0.0) / 6.0); w[9] += st * sig(-crease(u, 0.42) / 1.5);
+    w[10] += thin * line(crease(u, 0.53), 1.3); w[11] += thin * line(crease(u, 0.47), 1.3);
+    w[12] += thin * line(crease(u, 0.42), 1.3); w[13] += thin * line(crease(u, 0.37), 1.3);
     if (live > 0.0) {
       // caustics: bright threads in the glass that shimmer
       vec3 n = formNormal(f);
       float cz = sin(dot(p, vec2(31.0, 23.0)) + n.x * 9.0 - n.y * 7.0 + t * 1.1) * sin(dot(p, vec2(-19.0, 29.0)) + n.y * 8.0 - t * 0.8);
-      s += vec3(0.95, 0.9, 1.0) * 0.18 * live * pow(sat(cz), 6.0) * f.a;
+      extra += vec3(0.95, 0.9, 1.0) * 0.18 * live * st * pow(sat(cz), 6.0) * f.a;
     }
-    col = mix(col, s + ring * front, cs);
   }
-  float c0 = cover(length(u - ORB0.xy) - ORB0.z), c1 = cover(length(u - ORB1.xy) - ORB1.z);
-  if (c0 > 0.0) col = mix(col, orbCol(14, u, ORB0, ${spec(T.specs[0])}), c0);
-  if (c1 > 0.0) col = mix(col, orbCol(18, u, ORB1, ${spec(T.specs[1])}), c1);
-  return max(col, vec3(0.0));
+  if (o0 > 0.0) {
+    float dd = (length(u - ORB0.xy) - ORB0.z) * CPX;
+    w[14] += o0; w[15] += o0 * line(dd + 1.0, 1.0); w[16] += o0 * line(dd + 3.5, 1.5); w[17] += o0 * (${spec(T.specs[0])});
+  }
+  if (o1 > 0.0) {
+    float dd = (length(u - ORB1.xy) - ORB1.z) * CPX;
+    w[18] += o1; w[19] += o1 * line(dd + 1.0, 1.0); w[20] += o1 * line(dd + 3.5, 1.5); w[21] += o1 * (${spec(T.specs[1])});
+  }
+}
+// The fields are smooth at the pixel scale, so they are read once per pixel at its centre while every sample keeps its
+// own weights (edges, rims and creases stay supersampled): the first call for a pixel shades all of its samples and
+// the later calls return that mean. Only the front calls it per pixel (the back's strip is a crop of the front).
+vec2 tsFC = vec2(-1.0);
+vec3 tsCol;
+vec3 motif(vec2 p, float t) {
+  if (FC == tsFC) return tsCol;
+  tsFC = FC;
+  int ns = int(uSS + 0.5);
+  vec2 offs[4] = vec2[4](vec2(0.125, 0.375), vec2(-0.375, 0.125), vec2(0.375, -0.125), vec2(-0.125, -0.375));
+  float w[${FO.length}];
+  for (int k = 0; k < ${FO.length}; k++) w[k] = 0.0;
+  vec3 col = vec3(0.0);
+  for (int i = 0; i < ns; i++) {
+    weigh((FC + (ns > 1 ? offs[i] : vec2(0.0))) / uRes, t, w, col);
+  }
+  vec2 u = vec2(FC.x, uRes.y - FC.y) / uRes;
+  for (int k = 0; k < ${FO.length}; k++) if (abs(w[k]) > 1e-4 * float(ns)) col += w[k] * field(k, u);
+  tsCol = max(col / float(ns), vec3(0.0));
+  return tsCol;
 }`;
 })();
 
