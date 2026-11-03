@@ -49,7 +49,10 @@ vec3 motif(vec2 p, float t) {{
     (1.0 - Tp) * L * (1.0 - dg) * O, (1.0 - Tp) * L * dg * O, (1.0 - Tp) * (1.0 - L) * (1.0 - nb) * O, (1.0 - Tp) * (1.0 - L) * nb * O,
     T2 * L2 * D, T2 * (1.0 - L2) * D * A, T2 * (1.0 - L2) * D * (1.0 - A), (1.0 - T2) * (1.0 - L2) * D,
     (1.0 - T2) * L2 * D * B, (1.0 - T2) * L2 * D * (1.0 - B));
-  vec2 u = (X - 283.0) / 283.0, v = (Xq - 283.0) / 283.0;
+  // a turned quarter reads its colour inside the disc it was fitted in (a cubic runs off fast outside it)
+  vec2 DC = vec2({fl(dcx)}, {fl(dcy)}), dq = Xq - DC;
+  vec2 Xc = DC + dq * min(1.0, {fl(min(R, Ry))} / max(length(dq), 1e-3));
+  vec2 u = (X - 283.0) / 283.0, v = (Xc - 283.0) / 283.0;
   {monos('u', 'mf')}
   {monos('v', 'md')}
   vec3 col = vec3(0.0); float s2 = 0.0;

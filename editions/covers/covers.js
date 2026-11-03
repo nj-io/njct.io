@@ -619,7 +619,10 @@ vec3 motif(vec2 p, float t) {
     (1.0 - Tp) * L * (1.0 - dg) * O, (1.0 - Tp) * L * dg * O, (1.0 - Tp) * (1.0 - L) * (1.0 - nb) * O, (1.0 - Tp) * (1.0 - L) * nb * O,
     T2 * L2 * D, T2 * (1.0 - L2) * D * A, T2 * (1.0 - L2) * D * (1.0 - A), (1.0 - T2) * (1.0 - L2) * D,
     (1.0 - T2) * L2 * D * B, (1.0 - T2) * L2 * D * (1.0 - B));
-  vec2 u = (X - 283.0) / 283.0, v = (Xq - 283.0) / 283.0;
+  // a turned quarter reads its colour inside the disc it was fitted in (a cubic runs off fast outside it)
+  vec2 DC = vec2(277.487, 281.652), dq = Xq - DC;
+  vec2 Xc = DC + dq * min(1.0, 148.914 / max(length(dq), 1e-3));
+  vec2 u = (X - 283.0) / 283.0, v = (Xc - 283.0) / 283.0;
   float mf[10] = float[10](1.0, u.y, u.y * u.y, u.y * u.y * u.y, u.x, u.x * u.y, u.x * u.y * u.y, u.x * u.x, u.x * u.x * u.y, u.x * u.x * u.x);
   float md[10] = float[10](1.0, v.y, v.y * v.y, v.y * v.y * v.y, v.x, v.x * v.y, v.x * v.y * v.y, v.x * v.x, v.x * v.x * v.y, v.x * v.x * v.x);
   vec3 col = vec3(0.0); float s2 = 0.0;
@@ -1251,7 +1254,7 @@ function designFor(entry) {
     case 'Scorecard': return {
       motif: 'scorecard', t0: 0,
       pal: ['#0F1B3D', '#1F5DD8', '#2A6BE3', '#14916F', '#0E7458', '#F6C21C', '#F24A1D', '#F7872E'],
-      ground: '#0F1B3D',   // its navy field
+      ground: '#101D37',   // its navy field
       // each letter placed on its concept letter by its ink centre: [glyph, cx, cy, px, degrees, ink]
       // the concept's own letters, traced (letters/scorecard.json); those that touch in the concept stay one outline
       type: [{ paths: 'letters/scorecard.json' }],
