@@ -318,17 +318,17 @@ vec3 stripFill(vec2 p, float t) {
 
 // Social Hook: a deep royal-blue field; a dark disc under "Hook"; a pale disc rising from the lower left;
 // a diagonal through a crossing low in the middle, with light along it and a wedge of light beyond it;
-// a deep triangle below the crossing; a disc split light | deep at the lower right. Each area's colour is a
+// a deep triangle below the crossing; a disc split light | deep at the lower right, its foot behind the triangle. Each area's colour is a
 // low-order polynomial in position, plus the light band near the diagonal, fitted to the concept (linear light).
 MOTIFS.hook = /* glsl */`
-const vec3 K_G[6] = vec3[](vec3(0.0075, 0.0762, 0.7430), vec3(-0.0027, -0.0021, 0.0051), vec3(-0.0039, -0.0265, -0.0823), vec3(0.0030, -0.0084, -0.0784), vec3(-0.0188, -0.1046, -0.2042), vec3(-0.0008, 0.0136, -0.0380));
-const vec3 K_M[8] = vec3[](vec3(0.0385, 0.2648, 0.9415), vec3(0.1086, 0.3989, 0.2675), vec3(-0.1188, -0.1566, -0.0453), vec3(0.0396, -0.0429, -0.1501), vec3(0.0362, 0.0695, 0.0279), vec3(-0.0481, -0.0669, -0.0155), vec3(-0.1354, -0.2552, -0.0803), vec3(0.3584, 0.5801, 0.0858));
-const vec3 K_TR[6] = vec3[](vec3(0.0253, 0.1837, 0.7247), vec3(0.0339, 0.0882, 0.2033), vec3(0.0025, -0.0641, -0.2530), vec3(0.0272, 0.0442, 0.0331), vec3(-0.0072, -0.0293, -0.0624), vec3(-0.0037, 0.0233, 0.0758));
-const vec3 K_C3[8] = vec3[](vec3(0.2116, 0.6087, 0.9650), vec3(0.4545, 0.8640, 0.1052), vec3(-0.0914, -0.1739, 0.0481), vec3(0.1969, 0.1686, -0.0898), vec3(-0.0621, -0.0211, 0.0198), vec3(-0.1660, -0.3634, -0.0703), vec3(-0.0406, -0.0632, 0.0022), vec3(0.0415, 0.0562, -0.0063));
-const vec3 K_LF[8] = vec3[](vec3(-0.1237, 0.0986, 0.9117), vec3(0.4344, 0.5751, 0.0352), vec3(-0.2414, -0.2480, 0.0576), vec3(0.4534, 0.4431, 0.0470), vec3(-0.5178, -0.2971, -0.0980), vec3(0.9593, 0.8222, 0.0100), vec3(-0.2806, -0.4881, -0.1954), vec3(0.4048, 0.5181, 0.1247));
-const vec3 K_TRI[6] = vec3[](vec3(0.0066, 0.0821, 0.7425), vec3(0.0044, 0.0099, -0.0047), vec3(0.0091, 0.0380, 0.1169), vec3(-0.0004, -0.0015, -0.0258), vec3(0.0015, 0.0038, 0.0046), vec3(0.0064, 0.0158, -0.0390));
-const vec3 K_C4L[8] = vec3[](vec3(0.1257, 0.4322, 0.9127), vec3(0.1872, 0.2645, 0.1032), vec3(-0.2957, -0.4320, 0.1403), vec3(0.0552, 0.0855, 0.0219), vec3(-0.0095, -0.0556, -0.0241), vec3(-0.0401, -0.1754, -0.0266), vec3(-0.0407, -0.0951, -0.0565), vec3(0.1816, 0.2320, 0.0491));
-const vec3 K_C4R[6] = vec3[](vec3(0.0064, 0.0713, 0.7340), vec3(0.0059, 0.0316, 0.1104), vec3(-0.0006, 0.0052, 0.0279), vec3(0.0064, 0.0199, -0.0237), vec3(0.0043, 0.0106, -0.0475), vec3(0.0015, 0.0028, -0.0192));
+const vec3 K_G[6] = vec3[](vec3(0.0083, 0.0778, 0.7428), vec3(-0.0020, -0.0003, 0.0050), vec3(0.0033, -0.0133, -0.0825), vec3(0.0036, -0.0075, -0.0780), vec3(-0.0167, -0.0998, -0.2046), vec3(0.0107, 0.0343, -0.0377));
+const vec3 K_M[8] = vec3[](vec3(0.0457, 0.2707, 0.9415), vec3(0.1397, 0.4311, 0.2704), vec3(-0.1988, -0.2366, -0.0457), vec3(0.0646, -0.0152, -0.1472), vec3(0.0411, 0.0751, 0.0290), vec3(-0.0797, -0.0962, -0.0118), vec3(-0.1213, -0.2404, -0.0880), vec3(0.3882, 0.6104, 0.0892));
+const vec3 K_TR[6] = vec3[](vec3(0.0253, 0.1836, 0.7247), vec3(0.0339, 0.0881, 0.2032), vec3(0.0024, -0.0643, -0.2532), vec3(0.0272, 0.0441, 0.0331), vec3(-0.0072, -0.0294, -0.0625), vec3(-0.0036, 0.0234, 0.0759));
+const vec3 K_C3[8] = vec3[](vec3(0.2113, 0.6081, 0.9647), vec3(0.4538, 0.8624, 0.1045), vec3(-0.0925, -0.1751, 0.0481), vec3(0.1979, 0.1699, -0.0895), vec3(-0.0632, -0.0218, 0.0205), vec3(-0.1676, -0.3654, -0.0703), vec3(-0.0409, -0.0632, 0.0016), vec3(0.0435, 0.0589, -0.0056));
+const vec3 K_LF[8] = vec3[](vec3(-0.1830, 0.0553, 0.8927), vec3(0.5099, 0.6389, 0.0551), vec3(-0.2173, -0.2208, 0.0700), vec3(0.5060, 0.4484, 0.0665), vec3(-0.4052, -0.2290, -0.0719), vec3(0.8689, 0.7798, -0.0097), vec3(-0.2980, -0.4885, -0.2012), vec3(0.4712, 0.5704, 0.1513));
+const vec3 K_C4L[8] = vec3[](vec3(0.1141, 0.4222, 0.9458), vec3(0.2277, 0.3209, 0.0688), vec3(-0.2934, -0.4534, 0.0794), vec3(0.0560, 0.0831, 0.0069), vec3(-0.0268, -0.0636, -0.0407), vec3(0.0197, -0.1109, -0.1080), vec3(-0.0153, -0.0662, -0.0304), vec3(0.1748, 0.2307, 0.0213));
+const vec3 K_C4R[6] = vec3[](vec3(0.0061, 0.0706, 0.7333), vec3(0.0061, 0.0325, 0.1113), vec3(0.0001, 0.0070, 0.0293), vec3(0.0064, 0.0201, -0.0231), vec3(0.0041, 0.0104, -0.0473), vec3(0.0013, 0.0012, -0.0208));
+const vec3 K_TRI[6] = vec3[](vec3(0.0071, 0.0850, 0.7454), vec3(0.0040, 0.0086, -0.0060), vec3(0.0082, 0.0330, 0.1119), vec3(-0.0009, -0.0032, -0.0276), vec3(0.0012, 0.0023, 0.0029), vec3(0.0057, 0.0120, -0.0429));
 #define POLY(K, w) (K[0] + K[1] * w.x + K[2] * w.y + K[3] * w.x * w.x + K[4] * w.x * w.y + K[5] * w.y * w.y)
 #define BAND(K, e) (K[6] * e.x + K[7] * e.y)
 // distance to the line through o with slope k (y down), positive on its left
@@ -337,42 +337,37 @@ vec3 motif(vec2 p, float t) {
   vec2 q = vec2(p.x, 1.0 - p.y), w = q - 0.5;   // concept coordinates, y down
   // alive, the discs drift a few pixels and the band of light breathes
   float dr = 0.006 * sin(t * 0.35), br = 1.0 + 0.25 * sin(t * 0.5);
-  vec2 X = vec2(0.47464, 0.77985);
-  float dL = sdLeft(q, X, -0.98376), dA = sdLeft(q, X, -1.01631);
-  float dB = -sdLeft(q, X, 1.02854);   // positive below the triangle's right edge
+  vec2 X = vec2(0.47626, 0.77821);
+  float dL = sdLeft(q, X, -0.98364), dA = sdLeft(q, X, -1.01603);
+  float dB = -sdLeft(q, X, 1.05718);   // positive below the triangle's right edge
   float dl = abs(q.y < X.y ? dL : dA);
-  vec2 e = br * vec2(exp(-dl / 0.01523), exp(-dl / 0.05448));
+  vec2 e = br * vec2(exp(-dl / 0.01614), exp(-dl / 0.0561));
   // each area's field is evaluated only where the area shows
   vec3 G = POLY(K_G, w), col = G;
-  float a = sat((q.y - 0.54851) / 0.19746 + 0.5);
-  if (a > 0.0) col = mix(col, POLY(K_M, w) + BAND(K_M, e), a);
+  float m = sat((q.y - 0.54851) / 0.19798 + 0.5);
+  if (m > 0.0) col = mix(col, POLY(K_M, w) + BAND(K_M, e), m);
   // the pale corner beyond the dark disc at the top right
-  vec2 c1 = vec2(0.65801, 0.3355);
-  if (q.x > c1.x && q.y < c1.y) col = mix(col, POLY(K_TR, w), cover(0.35368 - length(q - c1)));
+  vec2 c1 = vec2(0.65799, 0.33545);
+  if (q.x > c1.x && q.y < c1.y) col = mix(col, POLY(K_TR, w), cover(0.35365 - length(q - c1)));
   // the dark disc under "Hook": the top field's own blue
-  col = mix(col, G, cover(length(q - vec2(0.59386 + dr, 0.43736)) - 0.16601));
-  // the pale disc from the lower left
-  a = cover(length(q - vec2(0.02423 - dr, 1.04633)) - 0.51204);
+  col = mix(col, G, cover(length(q - vec2(0.59558 + dr, 0.43873)) - 0.16549));
+  // the pale disc from the lower left, under the line of the triangle's right edge
+  float a = cover(length(q - vec2(0.02461 - dr, 1.04655)) - 0.51214) * cover(-dB);
   if (a > 0.0) col = mix(col, POLY(K_C3, w) + BAND(K_C3, e), a);
-  // beyond the diagonal: the light field above the triangle's right edge, the deep triangle below it
+  // beyond the diagonal: the light field above the triangle's right edge
   float right = cover(max(dL, dA));
-  if (right > 0.0) {
-    a = right * cover(dB);
-    if (a > 0.0) col = mix(col, POLY(K_LF, w) + BAND(K_LF, e), a);
-    a = right * cover(-dB);
-    if (a > 0.0) col = mix(col, POLY(K_TRI, w), a);
-  }
-  // the split disc: two half-ellipses on one centre, light on the left of the split, deep on the right
-  vec2 o4 = q - vec2(0.80638 - dr * 0.8, 0.75089);
-  float d4 = sdEllipse(o4, vec2(o4.x < 0.0 ? 0.2648 : 0.20203, 0.217));
-  float xs = 0.7797 - dr * 0.8;
-  float a4 = cover(d4);
-  if (a4 > 0.0) {
-    a = a4 * cover(q.x - xs);
-    if (a > 0.0) col = mix(col, POLY(K_C4L, w) + BAND(K_C4L, e), a);
-    a = a4 * cover(xs - q.x);
-    if (a > 0.0) col = mix(col, POLY(K_C4R, w), a);
-  }
+  float b = right * cover(dB);
+  if (b > 0.0) col = mix(col, POLY(K_LF, w) + BAND(K_LF, e), b);
+  // the split disc, light on the left of the split (its own circle), deep on the right (half-ellipses)
+  float xs = 0.77971 - dr * 0.8;
+  b = cover(length(q - vec2(0.7876 - dr * 0.8, 0.78558)) - 0.24415) * cover(q.x - xs);
+  if (b > 0.0) col = mix(col, POLY(K_C4L, w) + BAND(K_C4L, e), b);
+  vec2 o4 = q - vec2(0.80816 - dr * 0.8, 0.75084);
+  b = cover(sdEllipse(o4, vec2(o4.x < 0.0 ? 0.26661 : 0.20003, 0.21656))) * cover(xs - q.x);
+  if (b > 0.0) col = mix(col, POLY(K_C4R, w), b);
+  // the deep triangle below the crossing, over the disc's foot
+  b = right * cover(-dB);
+  if (b > 0.0) col = mix(col, POLY(K_TRI, w), b);
   return max(col, 0.0);
 }`;
 
