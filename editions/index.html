@@ -78,6 +78,14 @@
   .index li { font-size: 11px; line-height: 14px; white-space: nowrap; }
   .index .y { display: block; color: var(--ink-soft); min-height: 14px; }
   .index .n { display: block; margin-top: 1.5px; color: var(--ink); }
+  /* Narrower screens: the index spreads across the width and long names end in an ellipsis; short
+     screens (a phone on its side) drop it, as the reference does. */
+  @media (max-width: 1100px) {
+    .index ol { justify-content: space-between; gap: 6px; }
+    .index li { flex: 0 1 auto; min-width: 0; }
+    .index .n { overflow: hidden; text-overflow: ellipsis; }
+  }
+  @media (max-height: 500px) { .index { display: none; } }
 
   .in-details .slot button { opacity: 0 !important; pointer-events: none !important; transition-delay: 0s !important; }
 
