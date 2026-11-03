@@ -450,68 +450,50 @@ vec3 motif(vec2 p, float t) {
   return max(col, 0.0);
 }`;
 
-// Clauded: the whale mark as one large glossy glass form standing on a lit floor. The glass shading and the room
-// (ground, floor, the whale's streaked reflection) are linear in features the shader computes from the form field;
-// each feature's colour weight is fitted to the concept (clauded-b4) by least squares.
+// Clauded: the whale mark as one large glass form standing on a lit floor. The glass's tint and glints and the room
+// (wall, floor, the whale's short streaked reflection) are linear in features the shader computes from the form field,
+// each colour weight fitted to the concept (clauded-b4) by least squares. The gaps, the facets' side faces and their
+// bright edge lines follow the concept's edge profiles, measured across every inner edge with each profile aligned on
+// the concept's own gap.
 MOTIFS.clauded = /* glsl */`
 const float YF = 0.205;
-// the room: a smooth wall above the floor line and a floor below it, each a cubic B-spline over a coarse grid
-const vec3 WALL[42] = vec3[42](
-  vec3(0.002, 0.064, 0.0813), vec3(0.018, 0.1474, 0.1629), vec3(0.037, 0.213, 0.2265), vec3(0.0443, 0.2418, 0.2532), vec3(0.0306, 0.227, 0.2365), vec3(0.014, 0.1742, 0.183), vec3(0.002, 0.1022, 0.1109),
-  vec3(0.002, 0.038, 0.0491), vec3(0.002, 0.0959, 0.1128), vec3(0.0153, 0.1653, 0.1834), vec3(0.029, 0.1859, 0.2033), vec3(0.0069, 0.1629, 0.1776), vec3(0.0022, 0.1072, 0.1191), vec3(0.002, 0.0563, 0.0636),
-  vec3(0.0042, 0.03, 0.035), vec3(0.002, 0.049, 0.0667), vec3(0.0022, 0.1106, 0.1317), vec3(0.002, 0.1201, 0.1428), vec3(0.002, 0.0897, 0.1098), vec3(0.0036, 0.0425, 0.0577), vec3(0.002, 0.03, 0.035),
-  vec3(0.0041, 0.0408, 0.0428), vec3(0.0034, 0.0503, 0.0628), vec3(0.004, 0.0759, 0.0932), vec3(0.0046, 0.0834, 0.1032), vec3(0.004, 0.0685, 0.0831), vec3(0.003, 0.0433, 0.0551), vec3(0.004, 0.03, 0.035),
-  vec3(0.0023, 0.0405, 0.0432), vec3(0.002, 0.0316, 0.041), vec3(0.002, 0.045, 0.0568), vec3(0.002, 0.0672, 0.0809), vec3(0.002, 0.0407, 0.0529), vec3(0.002, 0.03, 0.0376), vec3(0.0026, 0.03, 0.035),
-  vec3(0.0037, 0.0336, 0.0371), vec3(0.0052, 0.0354, 0.0393), vec3(0.0049, 0.0473, 0.0515), vec3(0.0052, 0.0595, 0.0655), vec3(0.0052, 0.0492, 0.0568), vec3(0.0068, 0.0378, 0.0444), vec3(0.005, 0.03, 0.035));
-const vec3 FLOOR[28] = vec3[28](
-  vec3(0.002, 0.03, 0.035), vec3(0.002, 0.0933, 0.1122), vec3(0.0085, 0.1892, 0.2143), vec3(0.0341, 0.2615, 0.2876), vec3(0.0335, 0.2661, 0.2892), vec3(0.0139, 0.1929, 0.2137), vec3(0.002, 0.0887, 0.1063),
-  vec3(0.0021, 0.03, 0.035), vec3(0.002, 0.0433, 0.0618), vec3(0.0071, 0.1486, 0.1697), vec3(0.0224, 0.22, 0.2408), vec3(0.0034, 0.1674, 0.1909), vec3(0.002, 0.0803, 0.0994), vec3(0.002, 0.0419, 0.0532),
-  vec3(0.002, 0.03, 0.035), vec3(0.002, 0.0326, 0.0458), vec3(0.0061, 0.1016, 0.1175), vec3(0.0095, 0.1492, 0.1635), vec3(0.002, 0.0569, 0.0785), vec3(0.002, 0.03, 0.035), vec3(0.0119, 0.03, 0.035),
-  vec3(0.002, 0.03, 0.035), vec3(0.002, 0.0341, 0.0411), vec3(0.0156, 0.0477, 0.0553), vec3(0.0312, 0.0547, 0.06), vec3(0.002, 0.03, 0.035), vec3(0.0047, 0.03, 0.035), vec3(0.0186, 0.03, 0.035));
+// the room: a smooth wall above the floor line and a floor below it, each a cubic B-spline over a coarse grid. The
+// grids are written out as sums: a constant array read at a computed index costs the GPU far more than the arithmetic
 float b3(float t) { t = abs(t); return t < 1.0 ? (4.0 - 6.0 * t * t + 3.0 * t * t * t) / 6.0 : t < 2.0 ? pow(2.0 - t, 3.0) / 6.0 : 0.0; }
-vec3 spline(vec2 s, int nu, int nv, bool wall) {
-  int i0 = int(floor(s.x)) - 1, j0 = int(floor(s.y)) - 1;
-  float wx[4], wy[4];
-  for (int k = 0; k < 4; k++) { wx[k] = b3(s.x - float(i0 + k)); wy[k] = b3(s.y - float(j0 + k)); }
-  vec3 c = vec3(0.0);
-  for (int dj = 0; dj < 4; dj++) for (int di = 0; di < 4; di++) {
-    int i = i0 + di, j = j0 + dj;
-    if (i < 0 || j < 0 || i >= nu || j >= nv) continue;
-    c += wx[di] * wy[dj] * (wall ? WALL[j * nu + i] : FLOOR[j * nu + i]);
-  }
-  return c;
-}
-// the whale's coverage with a soft edge, so its streaked reflection comes out blurred
-float silSoft(vec2 q) { return smoothstep(0.02, -0.02, formAt(q).r); }
+// the gaps and the contour: dark teal, deepest at the gap's middle
+const vec3 RAMP = vec3(0.004, 0.1095, 0.1248), CORE = vec3(0.0009, 0.0742, 0.0865);
+const vec3 SIDEDK = vec3(0.0048, 0.1441, 0.162), SIDELT = vec3(0.0497, 0.4564, 0.4793);
 vec3 room(vec2 p, vec4 f) {
   float wb = smoothstep(YF + 0.006, YF - 0.006, p.y), dz = max(YF - p.y, 0.0) / YF;
   float rc = 0.0;
-  if (wb > 0.0) {
-    // the whale's lower body over each floor column: its reflection, streaked
-    for (int i = 0; i < 3; i++) for (int k = 0; k < 3; k++) rc += silSoft(vec2(p.x + float(k - 1) * 0.012, YF + 0.015 + 0.03 * float(i)));
-    rc /= 9.0;
-  }
+  // the whale's lower body over each floor column, one soft tap: its reflection, streaked
+  if (wb > 0.0) rc = smoothstep(0.1, -0.04, formAt(vec2(p.x, YF + 0.03)).r);
   float gx = exp(-pow((p.x - 0.47) / 0.25, 2.0));
-  float fo = max(f.r, 0.0);
-  vec3 c = (1.0 - wb) * spline(vec2(p.x * 4.0 + 1.0, p.y * 3.0 + 1.0), 7, 6, true);
-  if (wb > 0.0) c += wb * spline(vec2(p.x * 4.0 + 1.0, dz + 1.0), 7, 4, false);
-  c += vec3(-0.0226, -0.0691, -0.0696) * (wb * rc);
-  c += vec3(-0.0787, -1.036, -1.0838) * (wb * rc * exp(-dz * YF / 0.03));
-  c += vec3(0.0885, 0.9275, 0.9739) * (wb * rc * exp(-dz * YF / 0.1));
-  c += vec3(-0.0092, -0.0103, -0.007) * (gx * exp(-pow((p.y - YF) / 0.02, 2.0)));
-  c += vec3(0.0009, 0.0177, 0.0152) * (exp(-fo / 0.01) * (1.0 - cover(f.r)));
-  c += vec3(-0.0016, -0.0142, -0.0149) * (exp(-fo / 0.04) * (1.0 - cover(f.r)));
-  return max(c, 0.0);
+  float sx = p.x * 4.0 + 1.0, u0 = b3(sx), u1 = b3(sx - 1.0), u2 = b3(sx - 2.0), u3 = b3(sx - 3.0), u4 = b3(sx - 4.0), u5 = b3(sx - 5.0), u6 = b3(sx - 6.0);
+  vec3 c = vec3(0.0);
+  if (wb < 1.0) { float sy = p.y * 3.0 + 1.0; c = (1.0 - wb) * (b3(sy) * (u0 * vec3(0.002, 0.0891, 0.1044) + u1 * vec3(0.0032, 0.173, 0.1902) + u2 * vec3(0.0037, 0.2292, 0.2476) + u3 * vec3(0.002, 0.2419, 0.261) + u4 * vec3(0.002, 0.2293, 0.2475) + u5 * vec3(0.0025, 0.1895, 0.2067) + u6 * vec3(0.0022, 0.1257, 0.1424))
+      + b3(sy - 1.0) * (u0 * vec3(0.002, 0.0454, 0.0552) + u1 * vec3(0.0024, 0.1055, 0.1231) + u2 * vec3(0.0061, 0.1813, 0.2006) + u3 * vec3(0.002, 0.1669, 0.1874) + u4 * vec3(0.002, 0.1589, 0.1768) + u5 * vec3(0.0041, 0.1199, 0.1347) + u6 * vec3(0.002, 0.0656, 0.0767))
+      + b3(sy - 2.0) * (u0 * vec3(0.0027, 0.03, 0.035) + u1 * vec3(0.002, 0.035, 0.0514) + u2 * vec3(0.0033, 0.1118, 0.1317) + u3 * vec3(0.002, 0.1073, 0.1274) + u4 * vec3(0.0039, 0.0831, 0.1019) + u5 * vec3(0.002, 0.0356, 0.0489) + u6 * vec3(0.002, 0.03, 0.035))
+      + b3(sy - 3.0) * (u0 * vec3(0.0028, 0.045, 0.0508) + u1 * vec3(0.0028, 0.0477, 0.0612) + u2 * vec3(0.0027, 0.0722, 0.0896) + u3 * vec3(0.0038, 0.0776, 0.0973) + u4 * vec3(0.0026, 0.0681, 0.0829) + u5 * vec3(0.0025, 0.038, 0.0513) + u6 * vec3(0.0051, 0.03, 0.035))
+      + b3(sy - 4.0) * (u0 * vec3(0.002, 0.0368, 0.0465) + u1 * vec3(0.002, 0.03, 0.035) + u2 * vec3(0.002, 0.0367, 0.0483) + u3 * vec3(0.002, 0.0658, 0.079) + u4 * vec3(0.002, 0.0302, 0.0415) + u5 * vec3(0.002, 0.03, 0.035) + u6 * vec3(0.002, 0.03, 0.035))
+      + b3(sy - 5.0) * (u0 * vec3(0.002, 0.03, 0.035) + u1 * vec3(0.0027, 0.031, 0.0403) + u2 * vec3(0.0028, 0.0518, 0.0608) + u3 * vec3(0.0033, 0.0706, 0.0808) + u4 * vec3(0.0034, 0.0541, 0.067) + u5 * vec3(0.004, 0.0352, 0.0478) + u6 * vec3(0.002, 0.03, 0.035))); }
+  if (wb > 0.0) { float sy = dz + 1.0; c += wb * (b3(sy) * (u0 * vec3(0.002, 0.03, 0.035) + u1 * vec3(0.002, 0.03, 0.035) + u2 * vec3(0.1233, 0.03, 0.035) + u3 * vec3(1.5166, 3.3168, 2.9677) + u4 * vec3(0.002, 0.0496, 0.0462) + u5 * vec3(0.002, 1.1035, 1.2152) + u6 * vec3(0.0842, 0.03, 0.035))
+      + b3(sy - 1.0) * (u0 * vec3(0.002, 0.03, 0.035) + u1 * vec3(0.002, 0.03, 0.035) + u2 * vec3(0.0267, 0.4086, 0.4379) + u3 * vec3(0.002, 0.5992, 0.6654) + u4 * vec3(0.002, 0.1559, 0.1945) + u5 * vec3(0.002, 0.03, 0.035) + u6 * vec3(0.0024, 0.03, 0.035))
+      + b3(sy - 2.0) * (u0 * vec3(0.002, 0.03, 0.035) + u1 * vec3(0.002, 0.03, 0.035) + u2 * vec3(0.002, 0.0784, 0.1016) + u3 * vec3(0.002, 0.03, 0.035) + u4 * vec3(0.002, 0.03, 0.035) + u5 * vec3(0.002, 0.03, 0.035) + u6 * vec3(0.006, 0.03, 0.035))
+      + b3(sy - 3.0) * (u0 * vec3(0.002, 0.03, 0.035) + u1 * vec3(0.002, 0.03, 0.035) + u2 * vec3(0.002, 0.03, 0.035) + u3 * vec3(0.0127, 0.8331, 0.8382) + u4 * vec3(0.0226, 0.1687, 0.2221) + u5 * vec3(0.002, 0.03, 0.035) + u6 * vec3(0.002, 0.2732, 0.5997))); }
+
+  float fo = max(f.r, 0.0), wgap = (1.0 - cover(f.r)) * exp(-pow(fo / 0.006, 2.0));
+  c = max(c, 0.0) * (1.0 - wgap) + wgap * mix(RAMP, CORE, smoothstep(0.0, 0.0055, fo));
+  // the glass's thickness: each facet's side face, seen in the gap below and right of its front face, lit from the
+  // floor at its foot, with a bright line along its lower edge
+  if (f.r > 0.0 && f.r < 0.012) {
+    float rb = formAt(p + vec2(-0.0015, 0.0045)).r, sb = cover(rb) * (1.0 - cover(f.r));
+    vec3 sc = mix(SIDEDK, SIDELT, smoothstep(-0.0045, 0.0, rb)) + SIDELT * 0.6 * exp(-pow(rb / 0.0012, 2.0));
+    c = mix(c, sc, sb);
+  }
+  return c;
 }
-// the glass's tint across the body: a 6 x 6 grid over the whale, read bilinearly
-const vec3 TINT[36] = vec3[36](
-  vec3(0.1885, 0.6292, 0.6707), vec3(0.1435, 1.2844, 1.3969), vec3(0.0645, 0.9087, 0.9925), vec3(0.0204, 0.6345, 0.6958), vec3(0.1554, 0.5621, 0.6007), vec3(0.1296, 0.4893, 0.5235),
-  vec3(0.0002, 0.0361, 0.0397), vec3(0.0014, 0.2754, 0.3029), vec3(0.0004, 0.087, 0.0956), vec3(0.0006, 0.1131, 0.1244), vec3(0.0132, 0.7317, 0.8036), vec3(0.1793, 0.5644, 0.6005),
-  vec3(0.2409, 0.7115, 0.7553), vec3(0.1203, 0.8104, 0.8779), vec3(0.0166, 0.5399, 0.5922), vec3(0.0613, 0.678, 0.739), vec3(0.001, 0.2065, 0.227), vec3(0.4368, 1.0973, 1.1574),
-  vec3(0.2495, 0.4337, 0.4487), vec3(0.1149, 0.339, 0.3598), vec3(0.0906, 0.507, 0.5475), vec3(0.3888, 0.7176, 0.7452), vec3(0.4397, 1.0554, 1.1111), vec3(0.2264, 0.4982, 0.5223),
-  vec3(0.0008, 0.151, 0.166), vec3(0.0, 0.0, 0.0), vec3(0.0, 0.0, 0.0), vec3(0.0, 0.0, 0.0), vec3(0.0329, 0.2084, 0.2255), vec3(0.1336, 0.3905, 0.4144),
-  vec3(0.064, 0.2556, 0.2739), vec3(0.0769, 0.269, 0.2872), vec3(0.1164, 0.3385, 0.3592), vec3(0.0994, 0.3149, 0.3351), vec3(0.1434, 0.3988, 0.4224), vec3(0.1778, 0.466, 0.4924));
-const vec3 RIM = vec3(0.472, 0.72, 0.76);
+const vec3 RIM = vec3(0.472, 0.72, 0.76), SIDE = vec3(0.0075, 0.1878, 0.2159);   // SIDE: the concept's teal just inside its edges
 vec3 whale(vec4 f, vec2 p, float t) {
   vec3 n = formNormal(f);
   vec3 L = normalize(vec3(-0.35 + 0.3 * sin(t * 0.45), 0.65, 0.68));
@@ -519,16 +501,26 @@ vec3 whale(vec4 f, vec2 p, float t) {
   float rz = 2.0 * dot(n, L) * n.z - L.z;
   float dirt = dot(n.xy, normalize(L.xy)) / (length(n.xy) + 1e-5);
   float gu = sat((p.x - 0.12) / 0.76) * 5.0, gv = sat((p.y - 0.15) / 0.7) * 5.0;
-  int i0 = int(min(floor(gu), 4.0)), j0 = int(min(floor(gv), 4.0)), k = j0 * 6 + i0;
-  float fu = gu - float(i0), fv = gv - float(j0);
-  vec3 c = mix(mix(TINT[k], TINT[k + 1], fu), mix(TINT[k + 6], TINT[k + 7], fu), fv);
-  // light on the glass, and its bright rim (strongest on the edges that face the key light)
-  c += RIM * exp(-dd / 0.0025) * (0.4 + 0.6 * sat(dirt));
+  // the glass's tint across the body: a 6 x 6 grid over the whale, read bilinearly
+  float a0 = max(0.0, 1.0 - abs(gu)), a1 = max(0.0, 1.0 - abs(gu - 1.0)), a2 = max(0.0, 1.0 - abs(gu - 2.0)), a3 = max(0.0, 1.0 - abs(gu - 3.0)), a4 = max(0.0, 1.0 - abs(gu - 4.0)), a5 = max(0.0, 1.0 - abs(gu - 5.0)), b0 = max(0.0, 1.0 - abs(gv)), b1 = max(0.0, 1.0 - abs(gv - 1.0)), b2 = max(0.0, 1.0 - abs(gv - 2.0)), b3 = max(0.0, 1.0 - abs(gv - 3.0)), b4 = max(0.0, 1.0 - abs(gv - 4.0)), b5 = max(0.0, 1.0 - abs(gv - 5.0));
+  vec3 c = b0 * (a0 * vec3(0.1885, 0.6292, 0.6707) + a1 * vec3(0.1435, 1.2844, 1.3969) + a2 * vec3(0.0645, 0.9087, 0.9925) + a3 * vec3(0.0204, 0.6345, 0.6958) + a4 * vec3(0.1554, 0.5621, 0.6007) + a5 * vec3(0.1296, 0.4893, 0.5235))
+      + b1 * (a0 * vec3(0.0002, 0.0361, 0.0397) + a1 * vec3(0.0014, 0.2754, 0.3029) + a2 * vec3(0.0004, 0.087, 0.0956) + a3 * vec3(0.0006, 0.1131, 0.1244) + a4 * vec3(0.0132, 0.7317, 0.8036) + a5 * vec3(0.1793, 0.5644, 0.6005))
+      + b2 * (a0 * vec3(0.2409, 0.7115, 0.7553) + a1 * vec3(0.1203, 0.8104, 0.8779) + a2 * vec3(0.0166, 0.5399, 0.5922) + a3 * vec3(0.0613, 0.678, 0.739) + a4 * vec3(0.001, 0.2065, 0.227) + a5 * vec3(0.4368, 1.0973, 1.1574))
+      + b3 * (a0 * vec3(0.2495, 0.4337, 0.4487) + a1 * vec3(0.1149, 0.339, 0.3598) + a2 * vec3(0.0906, 0.507, 0.5475) + a3 * vec3(0.3888, 0.7176, 0.7452) + a4 * vec3(0.4397, 1.0554, 1.1111) + a5 * vec3(0.2264, 0.4982, 0.5223))
+      + b4 * (a0 * vec3(0.0008, 0.151, 0.166) + a1 * vec3(0.0, 0.0, 0.0) + a2 * vec3(0.0, 0.0, 0.0) + a3 * vec3(0.0, 0.0, 0.0) + a4 * vec3(0.0329, 0.2084, 0.2255) + a5 * vec3(0.1336, 0.3905, 0.4144))
+      + b5 * (a0 * vec3(0.064, 0.2556, 0.2739) + a1 * vec3(0.0769, 0.269, 0.2872) + a2 * vec3(0.1164, 0.3385, 0.3592) + a3 * vec3(0.0994, 0.3149, 0.3351) + a4 * vec3(0.1434, 0.3988, 0.4224) + a5 * vec3(0.1778, 0.466, 0.4924));
+  // the glass's thickness: a darker band inside every edge, deepest on the lower edges where the side face shows,
+  // then a thin bright line along the edge's lip (strongest on the edges that face the key light)
+  float ln = length(n.xy) + 1e-5, lower = sat(-n.y / ln) * sat(ln / 0.15);
+  c = mix(c, SIDE, 0.600 * (0.55 + 0.45 * lower) * exp(-dd / 0.0030));
+  c += RIM * 1.70 * exp(-pow(dd / 0.0018, 2.0)) * (0.4 + 0.6 * sat(dirt));
   c += vec3(0.0028, 0.0019, 0.0) * (pow(sat(rz), 8.0));
   c += vec3(0.0073, 0.0, 0.0) * (pow(sat(rz), 30.0));
   c += vec3(0.0086, 0.0, 0.0) * (e * sat(dirt));
   c += vec3(0.0, 0.0398, 0.0) * (e * sat(-dirt));
   c += vec3(0.0, 0.0262, 0.0) * (exp(-dd / 0.02));
+  // the floor's light caught in the glass's lower body, strongest at the lower edges
+  c += SIDELT * 1.5 * exp(-max(p.y - YF, 0.0) / 0.08) * (0.35 + 0.65 * lower) * exp(-dd / 0.03);
   return max(c, 0.0);
 }
 vec3 motif(vec2 p, float t) {
@@ -1120,7 +1112,8 @@ vec3 motif(vec2 p, float t) {
 // shaderMips: the shader draws the front's mip levels itself, each filtered at its own sampling rate; a number n
 //   draws levels 1..n only, and the levels below keep the box filter's.
 // form: the logo (or, fromType, the front's own type) inflated into the motif's hero form: box [x, top, size], R bevel radius,
-//   soft blur (both cover units), key 'alpha' | 'tile' (tile: drop pixels near the tile colour).
+//   soft blur (both cover units), key 'alpha' | 'tile' (tile: drop pixels near the tile colour); smooth (cover units) blurs the
+//   distance field of a mark that comes only as a small raster, so its edges run straight.
 // ground: the colour the resting cover reads as; a flat stand-in for a late cover (sRGB). For most covers it is the
 //   area-weighted mean in linear light of the motif's ground; a cover whose ground is mostly covered or split takes
 //   the field it reads as.
@@ -1256,7 +1249,7 @@ function designFor(entry) {
       inks: ['#4EE4E8'],
       // the mark bare on the ground, off its app tile
       mark: [27, 836, 189], markKey: { lo: 22, hi: 60 },
-      form: { box: [44, 114, 934], R: 0.010, soft: 0.002, key: 'tile', lo: 22, hi: 60, res: 640 },
+      form: { box: [44, 114, 934], R: 0.004, soft: 0.0015, smooth: 0.0025, key: 'tile', lo: 22, hi: 60, res: 640 },
       bandY: 0.44, grain: [0.014, 0.012],
       back: { paper: '#0A3B3E', ink: '#E6FFFB', soft: '#8FCFC8', accent: '#5FE3D6' },
     };
@@ -1737,6 +1730,16 @@ function formField(px, res, off, inner, P, f) {
     const u = Math.min(1, Math.max(0, -dist) / f.R);
     h[i] = f.R * Math.sqrt(1 - (1 - u) * (1 - u));
   }
+  if (f.smooth) {
+    // a mark drawn from a small raster: its distance field blurred (smooth, cover units) so the stair-steps of the
+    // source's edges straighten out, and the dome rebuilt on it
+    const sr = Math.max(1, Math.round(f.smooth / P));
+    for (let k = 0; k < 3; k++) boxBlur(sdf, tmp, res, sr);
+    for (let i = 0; i < N; i++) {
+      const u = Math.min(1, Math.max(0, -sdf[i]) / f.R);
+      h[i] = f.R * Math.sqrt(1 - (1 - u) * (1 - u));
+    }
+  }
   const br = Math.max(1, Math.round(f.soft / P));
   for (let k = 0; k < 3; k++) boxBlur(h, tmp, res, br);
   const out = new Uint16Array(N * 4), f32 = new Float32Array(1), u32 = new Uint32Array(f32.buffer);
@@ -1790,7 +1793,7 @@ function formSource(img, f) {
   }
   const rectSize = f.box[2] * (1 + 2 * MARGIN) / 1024;     // cover units
   const rx = (f.box[0] - f.box[2] * MARGIN) / 1024, ryTop = (f.box[1] - f.box[2] * MARGIN) / 1024;
-  const spec = { key: f.key, ink: f.ink, lo: f.lo, hi: f.hi, R: f.R, soft: f.soft };
+  const spec = { key: f.key, ink: f.ink, lo: f.lo, hi: f.hi, R: f.R, soft: f.soft, smooth: f.smooth };
   return { px, res, off, inner, P: rectSize / res, spec, col, rect: new THREE.Vector3(rx, 1 - ryTop - rectSize, rectSize) };
 }
 async function buildForm(src) {
