@@ -5,12 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Editions covers</title>
 <style>
-  html, body { margin: 0; height: 100%; overflow: hidden; background: rgb(205,205,205); }
-  canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  html, body { margin: 0; background: rgb(205,205,205); }
+  body { position: relative; min-height: 100vh; }
+  canvas { position: absolute; left: 0; top: 0; display: block; }
   #bar { position: fixed; left: 16px; top: 10px; display: flex; gap: 12px; align-items: center;
-    font: 500 13px/1 system-ui, sans-serif; color: #222; z-index: 1; }
+    font: 500 13px/1 system-ui, sans-serif; color: #222; z-index: 2; }
   #bar select, #bar a { font: inherit; color: inherit; }
   #stats { color: #555; }
+  .concept { position: absolute; object-fit: cover; display: block; background: #bbb; z-index: 1; }
+  .label { position: absolute; font: 500 11px/1 system-ui, sans-serif; color: #444; z-index: 1; white-space: nowrap; }
 </style>
 <script type="importmap">{ "imports": { "three": "/vendor/three-0.181.0/three.module.min.js" } }</script>
 </head>
@@ -22,13 +25,25 @@
   <span id="stats"></span>
 </div>
 <script type="module">
+// Each cover as a row: its concept tile, the shader front and the back, all at the same size.
+//   ?view=i      one cover at Details size (500 CSS px per panel)
+//   ?cell=200    panel size in the grid (default: shelf size, 200)
+//   ?backs=0     no shelf backs, as the page renders them (measures the page's ready time and memory)
+//   ?alive=i     start cover i alive;  ?measure  ?bench  timing hooks for the capture script
 import * as THREE from 'three';
-import { createCover, coverProfiler } from './covers.js';
+import { createCover, coverProfiler, loadCoverFonts } from './covers.js';
 
+const CONCEPTS = {
+  'Mirra': 'mirra-b4', 'stet': 'stet-a3', 'Social Hook': 'social-hook-a1', 'Clauded': 'clauded-b4',
+  'LikeWiki': 'likewiki-a3', 'Topshine': 'topshine-a2', 'Scorecard': 'scorecard-a1', 'Xactions': 'xactions-b2',
+  'Stellar Explorer': 'stellar-a4', 'About Neil': 'about-b4',
+};
 const q = new URLSearchParams(location.search);
-const view = q.has('view') ? +q.get('view') : -1;        // one cover, front and back at 512 CSS px each
+const view = q.has('view') ? +q.get('view') : -1;
 const measure = q.has('measure');
 const size = +(q.get('size') || 1024);
+const backs = q.get('backs') !== '0';
+const cell = view >= 0 ? +(q.get('cell') || 500) : +(q.get('cell') || 200);
 
 const canvas = document.getElementById('c');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -43,34 +58,51 @@ const camera = new THREE.OrthographicCamera(0, 1, 0, 1, -1, 1);
 const plane = new THREE.PlaneGeometry(1, 1);
 const cells = [];
 
-function layout() {
-  const w = innerWidth, h = innerHeight;
-  renderer.setSize(w, h, false);
+// panel k of cover slot r: 0 concept, 1 front, 2 back
+const GAP = 12, TOP = 44, LABEL = 16;
+const perRow = view >= 0 ? 1 : 2;
+const panels = backs ? 3 : 2;
+function rectFor(r, k) {
+  const groupW = panels * cell + (panels - 1) * GAP;
+  const col = r % perRow, row = Math.floor(r / perRow);
+  const x0 = GAP * 2 + col * (groupW + GAP * 3);
+  return { x: x0 + k * (cell + GAP), y: TOP + LABEL + row * (cell + LABEL + GAP * 2), s: cell };
+}
+function pageSize(n) {
+  const rows = Math.ceil(n / perRow);
+  const groupW = panels * cell + (panels - 1) * GAP;
+  return { w: GAP * 4 + perRow * groupW + (perRow - 1) * GAP * 3, h: TOP + rows * (cell + LABEL + GAP * 2) };
+}
+function layout(n) {
+  const { w, h } = pageSize(n);
+  renderer.setSize(w, h);
+  document.body.style.width = w + 'px'; document.body.style.height = h + 'px';
   camera.left = 0; camera.right = w; camera.top = 0; camera.bottom = h;   // CSS px, y down
   camera.updateProjectionMatrix();
   for (const c of cells) {
-    const r = rectFor(c.slot);
-    c.rect = r;
-    c.mesh.position.set(r.x + r.s / 2, r.y + r.s / 2, 0);
-    c.mesh.scale.set(r.s, -r.s, 1);
+    c.mesh.position.set(c.rect.x + c.rect.s / 2, c.rect.y + c.rect.s / 2, 0);
+    c.mesh.scale.set(c.rect.s, -c.rect.s, 1);
   }
 }
-function rectFor(slot) {
-  const w = innerWidth, h = innerHeight, gap = 16, top = 40;
-  if (view >= 0) {
-    const s = Math.min(512, (w - 3 * gap) / 2, h - top - gap);
-    const x0 = (w - 2 * s - gap) / 2;
-    return { x: Math.round(x0 + slot * (s + gap)), y: top, s };
-  }
-  const s = Math.floor(Math.min((w - 6 * gap) / 5, (h - top - 4 * gap) / 4));
-  const x0 = Math.round((w - 5 * s - 4 * gap) / 2);
-  const col = slot % 5, row = Math.floor(slot / 5);
-  return { x: x0 + col * (s + gap), y: top + row * (s + gap), s };
-}
-function addCell(slot, map, index) {
+function addCell(r, k, map, index) {
   const mesh = new THREE.Mesh(plane, new THREE.MeshBasicMaterial({ map, toneMapped: false, side: THREE.DoubleSide }));
   scene.add(mesh);
-  cells.push({ slot, mesh, index });
+  cells.push({ mesh, index, rect: rectFor(r, k) });
+}
+function addHtml(r, entry) {
+  const a = rectFor(r, 0);
+  const img = document.createElement('img');
+  img.className = 'concept';
+  img.alt = '';
+  img.src = `/.captures/concepts/tiles/${CONCEPTS[entry.name] || 'missing'}.jpg`;
+  Object.assign(img.style, { left: a.x + 'px', top: a.y + 'px', width: a.s + 'px', height: a.s + 'px' });
+  document.body.appendChild(img);
+  const lab = document.createElement('div');
+  lab.className = 'label';
+  lab.textContent = `${entry.name} · concept ${CONCEPTS[entry.name] || '—'} · front${backs ? ' · back' : ''}`;
+  Object.assign(lab.style, { left: a.x + 'px', top: (a.y - LABEL + 2) + 'px' });
+  document.body.appendChild(lab);
+  return img;
 }
 
 // timing: GPU timer queries when the driver offers them, else a readPixels sync around each job
@@ -103,20 +135,25 @@ function collectQueries() {
 }
 
 const data = await (await fetch('../data/projects.json')).json();
-const t0 = performance.now();
 const indices = view >= 0 ? [view] : data.map((_, i) => i);
-const covers = await Promise.all(indices.map(i => createCover(renderer, data[i], i, { size, samples: +(q.get('samples') || 4) })));
+const imgs = indices.map((i, r) => addHtml(r, data[i]));
+layout(indices.length);
+const fontsT0 = performance.now();
+await loadCoverFonts();
+const fontWall = performance.now() - fontsT0;
+const t0 = performance.now();
+const covers = await Promise.all(indices.map(i => createCover(renderer, data[i], i, { size, backSize: backs ? 512 : 0, samples: +(q.get('samples') || 4) })));
 const loadWall = performance.now() - t0;
-covers.forEach((c, k) => {
-  const i = indices[k];
-  if (view >= 0) { addCell(0, c.front, i); addCell(1, c.back, i); }
-  else { addCell(i, c.front, i); addCell(10 + i, c.back, i); }
+covers.forEach((c, r) => {
+  const i = indices[r];
+  addCell(r, 1, c.front, i);
+  if (backs) addCell(r, 2, c.back, i);
 });
-layout();
-addEventListener('resize', layout);
+layout(indices.length);
+await Promise.all(imgs.map(im => im.decode().catch(() => {})));
 
 let gpuBytes = 0;
-for (const c of covers) for (const t of [c.front, c.back]) gpuBytes += t.image.width * t.image.height * 4 * 4 / 3;
+for (const c of covers) gpuBytes += c.gpuBytes();
 const sel = document.getElementById('alive');
 indices.forEach(i => sel.add(new Option(`${i} ${data[i].name}`, i)));
 let alive = -1;
@@ -129,8 +166,11 @@ function setAlive(i) {
 }
 sel.onchange = () => setAlive(+sel.value);
 canvas.addEventListener('pointermove', e => {
-  const hit = cells.find(c => c.slot < 10 || view >= 0 ? (e.clientX >= c.rect.x && e.clientX < c.rect.x + c.rect.s && e.clientY >= c.rect.y && e.clientY < c.rect.y + c.rect.s) : false);
-  if (hit && !q.has('alive')) setAlive(hit.index);
+  if (q.has('alive')) return;
+  const r = canvas.getBoundingClientRect();
+  const x = e.clientX - r.left, y = e.clientY - r.top;
+  const hit = cells.find(c => x >= c.rect.x && x < c.rect.x + c.rect.s && y >= c.rect.y && y < c.rect.y + c.rect.s);
+  if (hit) setAlive(hit.index);
 });
 if (q.has('alive')) setAlive(+q.get('alive'));
 
@@ -151,8 +191,8 @@ function frame(now) {
 requestAnimationFrame(frame);
 
 const stats = document.getElementById('stats');
-stats.textContent = `${covers.length} covers · ${(gpuBytes / 1048576).toFixed(1)} MB GPU · ${loadWall.toFixed(0)} ms to ready`;
-// ?bench: GPU time of 20 back-to-back front renders per cover, one timer query each
+stats.textContent = `${covers.length} covers · ${(gpuBytes / 1048576).toFixed(1)} MiB GPU · fonts ${fontWall.toFixed(0)} ms · ${loadWall.toFixed(0)} ms to ready`;
+// ?bench: GPU time of 20 back-to-back alive front renders per cover, one timer query each
 async function bench() {
   const out = [];
   for (let k = 0; k < covers.length; k++) {
@@ -163,17 +203,17 @@ async function bench() {
     gl.beginQuery(timer.TIME_ELAPSED_EXT, qy);
     for (let n = 0; n < 20; n++) c.update(0.016);
     gl.endQuery(timer.TIME_ELAPSED_EXT);
-    c.setAlive(false);
+    c._stop();
     while (!gl.getQueryParameter(qy, gl.QUERY_RESULT_AVAILABLE)) await new Promise(r => setTimeout(r, 5));
-    out.push({ name: data[indices[k]].name, frontMs: gl.getQueryParameter(qy, gl.QUERY_RESULT) / 1e6 / 20 });
+    out.push({ name: data[indices[k]].name, aliveMs: gl.getQueryParameter(qy, gl.QUERY_RESULT) / 1e6 / 20 });
   }
   return out;
 }
 window.__covers = {
   bench: q.has('bench') && timer ? bench() : null,
   ready: new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))),
-  loadWall, gpuMB: gpuBytes / 1048576, timings, frameCost, timerQuery: !!timer,
-  renderer: renderer.info,
+  loadWall, fontWall, gpuMB: gpuBytes / 1048576, timings, frameCost, timerQuery: !!timer,
+  renderer: renderer.info, page: pageSize(indices.length),
 };
 </script>
 </body>
