@@ -29,7 +29,6 @@ const FACES = [
   ['NJ Serif', 'fraunces-144pt-bold-cover.woff2', '700'],
   ['NJ Hanken', 'hanken-grotesk-650-cover.woff2', '650'],
   ['NJ Narrow', 'archivo-narrow-700-cover.woff2', '700'],
-  ['NJ Rounded', 'nunito-900-cover.woff2', '900'],
   ['NJ Bricolage', 'bricolage-grotesque-96pt-extrabold-title-cover.woff2', '800'],
 ];
 // Faces only the backs use load with the first back.
@@ -798,6 +797,9 @@ vec3 chair(vec3 col, vec2 p, float t) {
 }
 // the amber motion ticks; alive, they pulse
 vec3 tick(vec3 col, vec2 p, vec2 a, vec2 b, float r0, float k) {
+  // a and b are the tick's visible ends on the concept: the stroke's centre line stops a radius short of each
+  vec2 u = normalize(b - a);
+  a += u * r0; b -= u * 0.45 * r0;
   vec2 m = 0.5 * (a + b);
   float d = sdTaper(p, m + (a - m) * k, m + (b - m) * k, r0 * k, r0 * 0.45 * k);
   col += uPal[2] * 0.10 * falloff(d, 0.02);
@@ -811,28 +813,37 @@ vec4 blurText(vec2 c, float r, float bias) {
   return 0.25 * (texture2D(uText, c + o.xy, bias) + texture2D(uText, c - o.xy, bias) + texture2D(uText, c + o.yx, bias) + texture2D(uText, c - o.yx, bias));
 }
 vec3 motif(vec2 p, float t) {
-  // the concept's flat ground, and the warm pool of light on the floor under "tax"
+  // the concept's flat ground, and the warm pool of light on the floor under "tax": a steep rise under the t,
+  // a long tail out past the x (measured across the concept's floor)
   vec3 col = uPal[0];
-  vec2 fp = (p - ic(0.379, 0.899)) / vec2(0.2, 0.0246);
-  col += POOL * exp(-0.5 * (fp.x * fp.x * fp.x * fp.x + fp.y * fp.y));   // flat-topped across, soft below
+  float px = p.x - 0.415, py = (p.y - ic(0.0, 0.899).y) / 0.0246;
+  float hx = px < 0.0 ? exp(-0.5 * pow(-px / 0.2166, 4.0)) : 0.7 * exp(-0.5 * px * px / 0.01166) + 0.3 * exp(-0.5 * px * px / 0.1303);
+  col += POOL * hx * exp(-0.5 * py * py);
   float type = 1.0 - uMode;
   // the letters' drop shadow, 0.032 right and 0.033 down, 14% dark
   vec4 g = blurText(p + vec2(-0.032, 0.033), 0.002, 3.5);
   col *= 1.0 - 0.14 * sat(g.r + g.g + g.b) * type;
-  // contact shadows where the t's foot and the a's base meet the floor
-  vec2 ct = (p - ic(0.26, 0.891)) / vec2(0.075, 0.009), ca = (p - ic(0.46, 0.872)) / vec2(0.08, 0.009);
-  col *= 1.0 - (0.65 * exp(-0.5 * dot(ct, ct)) + 0.4 * exp(-0.5 * dot(ca, ca))) * type;
-  // the thin warm halo just outside every letter, lit from a little below; fainter round the amber letters
+  // the thin warm halo just outside every letter, lit from a little below; fainter round the amber letters,
+  // brighter in the narrow gaps the concept lights from both sides (h-a, a-i, a-x) and under the x
   g = blurText(p + vec2(0.0, 0.004), 0.003, 3.5);
-  col += HALO * (0.85 * g.r + 0.45 * g.g) * type;
+  vec2 g1 = (p - ic(0.518, 0.505)) / vec2(0.011, 0.08), g2 = (p - ic(0.711, 0.469)) / vec2(0.011, 0.09);
+  vec2 g3 = (p - ic(0.574, 0.758)) / vec2(0.012, 0.07), g4 = (p - ic(0.679, 0.81)) / vec2(0.03, 0.025);
+  vec2 g5 = (p - ic(0.62, 0.842)) / vec2(0.06, 0.018), c1 = (p - ic(0.05, 0.48)) / vec2(0.05, 0.15), c2 = (p - ic(0.18, 0.345)) / vec2(0.1, 0.025);
+  float gap = 1.0 + 1.2 * exp(-0.5 * dot(g1, g1)) + 4.5 * exp(-0.5 * dot(g2, g2)) + 3.0 * exp(-0.5 * dot(g3, g3))
+    + 3.0 * exp(-0.5 * dot(g4, g4)) + 6.0 * exp(-0.5 * dot(g5, g5));
+  gap *= 1.0 - 0.8 * exp(-0.5 * dot(c1, c1)) - 0.6 * exp(-0.5 * dot(c2, c2));   // the C's left and top are nearly bare
+  col += HALO * (0.85 * g.r + 0.45 * g.g) * gap * type;
+  // contact shadows, over the halo too: a dark, sharp-edged band right under the t's foot, a softer one under the a
+  vec2 ct = (p - ic(0.266, 0.8915)) / vec2(0.0616, 0.0067), ca = (p - ic(0.46, 0.872)) / vec2(0.08, 0.009);
+  col *= 1.0 - (0.8 * exp(-0.5 * (ct.x * ct.x * ct.x * ct.x + ct.y * ct.y * ct.y * ct.y)) + 0.4 * exp(-0.5 * dot(ca, ca))) * type;
   float k = 1.0 + 0.12 * sin(t * 2.6);
   // thick end first, measured on the concept
-  col = tick(col, p, ic(0.738, 0.083), ic(0.689, 0.152), 0.0115, k);
-  col = tick(col, p, ic(0.801, 0.172), ic(0.726, 0.199), 0.0115, k);
-  col = tick(col, p, ic(0.216, 0.196), ic(0.276, 0.225), 0.0100, k);
-  col = tick(col, p, ic(0.204, 0.273), ic(0.265, 0.272), 0.0100, k);
-  col = tick(col, p, ic(0.712, 0.870), ic(0.775, 0.893), 0.0092, k);
-  col = tick(col, p, ic(0.664, 0.931), ic(0.758, 0.919), 0.0095, k);
+  col = tick(col, p, ic(0.738, 0.083), ic(0.689, 0.152), 0.0127, k);
+  col = tick(col, p, ic(0.801, 0.172), ic(0.726, 0.199), 0.0127, k);
+  col = tick(col, p, ic(0.216, 0.196), ic(0.276, 0.225), 0.0110, k);
+  col = tick(col, p, ic(0.204, 0.273), ic(0.265, 0.272), 0.0110, k);
+  col = tick(col, p, ic(0.712, 0.870), ic(0.775, 0.893), 0.0101, k);
+  col = tick(col, p, ic(0.664, 0.931), ic(0.758, 0.919), 0.0105, k);
   return chair(col, p, t);
 }`;
 
@@ -926,6 +937,7 @@ vec3 motif(vec2 p, float t) {
 // type: title blocks; each line goes to channel ch of the type mask (R, G, B -> INK0..2).
 //   size by cap (cap height), fit (widest line's ink width) or px; x/base place the first line.
 //   runs: [[text, ch], ...] sets a one-line block in several inks.
+//   paths: a letters/*.json file of traced letter outlines ({ ch, d } in 1024 units), drawn in place of set type.
 // inks: sRGB colour per type channel, used when the motif does not fill it itself.
 // mark: where the logo is drawn unaltered, [x, top, size].
 // art: brand artwork drawn unaltered over the motif and under the type, at its own pixel size on a 1024
@@ -1088,12 +1100,8 @@ function designFor(entry) {
     case 'Chairtax': return {
       motif: 'chairtax', t0: 0,
       pal: ['#140F0B', '#140F0B', '#FFB020', '#F8F2E7', '#2E3D66', '#55669A', '#0E1018', '#6F8BD6'],
-      // each letter set on its concept letter (ink centre, size and tilt fitted to the concept, 1024 units)
-      type: [{ font: 'NJ Rounded', weight: 900, set: [
-        ['C', 173.75, 494.44, 413.95, 1, 0], ['h', 422.35, 478.73, 394.98, -2, 0], ['a', 626.6, 496.29, 386.38, -2.5, 0],
-        ['i', 769.85, 438.99, 370.54, -1, 0], ['r', 890.92, 464.87, 392.26, -2.5, 0],
-        ['t', 253.23, 758.76, 439.58, 2.5, 1], ['a', 465.79, 760.61, 457.55, -2, 1], ['x', 696.84, 727.33, 463.13, -5, 1],
-      ] }],
+      // the concept's own letters, traced (letters/chairtax.json; cream "Chair" on channel 0, amber "tax" on 1)
+      type: [{ paths: 'letters/chairtax.json' }],
       // the concept's cream and amber (the operator's ruling for this cover)
       inks: ['#FCEECE', '#F9B224'],
       mark: [8, 6, 164],
@@ -1189,6 +1197,14 @@ function wrap(ctx, text, width) {
 
 // One title block, set to its cap height or fitted to its width, aligned by ink.
 function drawType(ctx, b, S, fill) {
+  if (b.paths) {
+    // letters as traced outlines (letters/*.json, loaded by letterPaths before any draw), in 1024 units
+    ctx.save();
+    ctx.scale(S, S);
+    for (const { ch, path } of letterSets.get(b.paths)) { ctx.fillStyle = fill || CH[ch]; ctx.fill(path, 'evenodd'); }
+    ctx.restore();
+    return;
+  }
   if (b.glyphs) {
     // glyphs placed one by one: [text, x, ch, scale] on the block's baseline
     for (const [g, x, ch, k = 1] of b.glyphs) {
@@ -1321,6 +1337,18 @@ function logoImage(logo, px) {
     img.src = url;
     p = img.decode().then(() => img).finally(() => { if (revoke) URL.revokeObjectURL(url); });
     logoImages.set(key, p);
+  }
+  return p;
+}
+// traced letter outlines (letters/): one fetch per file, kept as Path2D for drawType
+const letterSets = new Map(), letterLoads = new Map();
+function letterPaths(src) {
+  let p = letterLoads.get(src);
+  if (!p) {
+    p = fetch(new URL(src, import.meta.url)).then(r => r.json()).then(j => {
+      letterSets.set(src, j.letters.map(({ ch, d }) => ({ ch, path: new Path2D(d) })));
+    });
+    letterLoads.set(src, p);
   }
   return p;
 }
@@ -1578,6 +1606,7 @@ function touchDetail(rec) {
 export async function createCover(renderer, entry, index, { size = 1024, backSize = 512, samples = 4, aliveSamples = Math.min(2, samples) } = {}) {
   await loadCoverFonts();
   const d = designFor(entry, index);
+  const lettersReady = Promise.all(d.type.filter(b => b.paths).map(b => letterPaths(b.paths)));
   const logo = validLogo(entry.logo);
   const pal = d.pal.map(lin);
   while (pal.length < 8) pal.push(new THREE.Color(0, 0, 0));
@@ -1662,9 +1691,10 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
   const markAt = sz => logo && d.mark ? logoImage(logo, Math.round(d.mark[2] * sz / 1024)) : Promise.resolve(null);
   const [markImg, formImg, art] = await Promise.all([
     markAt(size),
-    d.form?.fromType ? typeImage(d) : logo && d.form ? logoImage(logo, Math.round((d.form.res || 512) / (1 + 2 * MARGIN))) : null,
+    d.form?.fromType ? lettersReady.then(() => typeImage(d)) : logo && d.form ? logoImage(logo, Math.round((d.form.res || 512) / (1 + 2 * MARGIN))) : null,
     d.art ? artTexture(d.art.src) : null,
     compiled,
+    lettersReady,
   ]);
   if (art) {
     const { width: w, height: h } = art.image;
