@@ -57,6 +57,46 @@ Each project is a record sleeve on a shelf wall, in the interaction model of Sho
 | 6 | Speed, reduced motion, keyboard and screen-reader paths | Every budget met, measured |
 | 7 | Ship: replaces njct.io, current site to `/classic` | Operator rules ship |
 
+## First version
+
+The first version is the complete experience (phases 1–6), built in waves, then judged under the review protocol below before the operator sees it. The iteration job starts after the operator's review.
+
+| Wave | Builds | Depends on |
+|---|---|---|
+| 1a | Cover system `editions/covers/` | `editions/data/projects.json` |
+| 1b | Sound engine `editions/audio/` | nothing |
+| 1c | Scene: shelf, light, shadows, intro, layout, bottom index, header (`editions/main.js`) | harness (Phase 0) |
+| 2 | Interactions: hover, record, Details, background blur, flip, back cover, keyboard; covers and sound wired in | 1a, 1b, 1c |
+| 3 | Open: each project's own scene and its dossier; About Neil's page | 2 |
+| 4 | Phone crate view, speed budgets, reduced motion, screen-reader path | 3 |
+
+### Shared data
+
+`editions/data/projects.json` — ten entries in shelf order (left to right, top shelf first): `name, kind ("project" | "about"), year, tag, blurb, url, stack, figs[[value, label]], accent {light, dark} | null, logo (data URI) | null`, and for About Neil `about[]` (four paragraphs). All strings are the copy already approved and live on njct.io. Xactions and Stellar Explorer carry no brand accent or logo: their covers derive a palette from the name.
+
+### Module contracts
+
+**Covers** — `editions/covers/covers.js`:
+`createCover(renderer, entry, index, { size }) → Promise<{ front: THREE.Texture, back: THREE.Texture, setAlive(on), update(dt, t), dispose() }>`.
+A cover renders once into a render target; `setAlive(true)` re-renders it every frame with animated uniforms (at most one alive cover at a time). `back` holds the project's figures, stack and link (About Neil: the About text). Textures are sRGB, mipmapped, with the renderer's maximum anisotropy. A preview page `editions/covers/preview.html` shows all ten fronts and backs and an alive toggle. The sleeve entering Details gets a 1024² back rendered on demand, because a 512² back is visibly soft when magnified at DPR 2; the shelf keeps 512² backs.
+
+**Sound** — `editions/audio/audio.js`:
+`createAudio() → { enabled, setEnabled(on), unlock(), play(name, opts?), setRoomTone(on), dispose() }`, names `hover | lift | slide | details | flip | open | close | tick`. Every sound is synthesised (oscillators, noise buffers, filters, envelopes) through one master bus with a soft limiter (a waveshaper: transparent below −9 dBFS, ceiling −6 dBFS; Chrome’s DynamicsCompressorNode was rejected because it plays about 12 dB quiet for the first 0.4 s after the context starts and adds +5.4 dB make-up gain). Muted by default; the preference persists in `localStorage` behind try/catch. `unlock()` runs on the first user gesture. A preview page `editions/audio/preview.html` plays each sound and renders each offline (`OfflineAudioContext`) to a waveform and spectrogram with peak dBFS, RMS and duration, so reviewers can check sound without hearing it.
+
+### Copy
+
+The first version uses only copy already approved and live. New strings — the header line, the About sleeve text layout, stickers, back-cover labels — are drafted, marked as proposals, and listed in the handover for approval. Nothing ships without approval.
+
+## Review protocol
+
+Review rounds run one at a time, a fresh reviewer each round. Rounds 1 and 2 are Fable at high effort; later rounds are Opus at high effort. A round reads the harness capture (every moment, ours beside theirs), zoomed crops, and the code.
+
+- Every finding names the moment, the region (a crop), what is wrong, the fix, a severity (blocker, major, minor, nit), and a label: *mechanical, builder applies* or *design, operator decides*.
+- The scope covers fidelity to the reference (motion timing and easing, sizes, spacing, light, shadow, blur, type) and craft defects on their own: aliasing, banding, shadow acne, z-fighting, blurry or misaligned text, colour-space errors, sub-pixel jitter, layout shift, dropped frames, audio clipping or harshness.
+- Captures cover 1440×900 at DPR 1 and 2, and 390×844 at DPR 2. The harness adds 4× crops of sleeve edges, shadow contact, type and the record label.
+- An Opus xhigh builder fixes every blocker, major and minor between rounds. Design items go to the operator.
+- Exit: at least three rounds, ending only when a full round finds nothing above a nit at every capture size.
+
 ## Iteration
 
 Every phase runs in rounds: build, capture ours and theirs at the same moments with `build/compare/capture.mjs`, critique against the checklist, fix. A round that finds nothing worth a fix closes the phase. Each round's capture is kept under `.captures/<round>/` (gitignored: it holds screenshots of a third-party site).
