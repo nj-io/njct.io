@@ -1,4 +1,4 @@
-# python3 trace.py [out.json] [--cover chairtax|stet|social-hook|about|likewiki|clauded]  ->  <cover>.json   (needs fields.json, field-*.png)
+# python3 trace.py [out.json] [--cover chairtax|stet|social-hook|about|scorecard|likewiki|clauded]  ->  <cover>.json   (needs fields.json, field-*.png)
 # Traces each letter field at its 0.5 level into closed loops (marching squares), removes the generation wobble
 # by smoothing along the outline between corners, keeps the corners sharp, and writes SVG path data in 1024
 # cover units: quadratic B-splines through the simplified points, clamped so each run ends on its corners.
@@ -6,16 +6,16 @@ import json, math, sys
 from PIL import Image
 COVER=sys.argv[sys.argv.index('--cover')+1] if '--cover' in sys.argv else 'chairtax'
 ARGS=[a for i,a in enumerate(sys.argv[1:],1) if a!='--cover' and sys.argv[i-1]!='--cover']
-TILE={'chairtax':554,'stet':546,'social-hook':554,'about':554}.get(COVER,554)
+TILE={'chairtax':554,'stet':546,'social-hook':554,'about':554,'scorecard':554}.get(COVER,554)
 U=4*TILE/1024         # field px per cover unit
 OUT=ARGS[0] if ARGS else COVER+'.json'
 SM=6.0       # smoothing sigma, field px along the outline (about 2.8 px on a 1024 cover)
-CORNER={'chairtax':50,'stet':40,'social-hook':50,'about':50}.get(COVER,50)    # turning in degrees over +-K samples (1 field px apart) that marks a corner
+CORNER={'chairtax':50,'stet':40,'social-hook':50,'about':50,'scorecard':50}.get(COVER,50)    # turning in degrees over +-K samples (1 field px apart) that marks a corner
 K=12
 TOL=0.6      # simplification tolerance, field px
 # stet: each corner moves to where the straight edges either side of it meet, as sharp as the concept's (the field's
 # 0.5 level rounds a corner off); the edges are fitted on the outline SHARP field px from the corner
-SHARP={'chairtax':None,'stet':(4,16),'social-hook':None,'about':None}.get(COVER)
+SHARP={'chairtax':None,'stet':(4,16),'social-hook':None,'about':None,'scorecard':(4,16)}.get(COVER)
 meta=json.load(open('fields.json'))
 # a configured cover's fields (likewiki, clauded) carry their tile's size, their about line and their trace settings;
 # a tile that is not square maps to the 1024 cover with its own scale on each axis
@@ -195,7 +195,11 @@ ABOUT={'chairtax':("Chairtax cover letters traced from the concept tile chairtax
  'about':("About Neil cover letters traced from the concept tile about-b4 (cut to the cover, 554 px): each part's coverage as "
   "its distance from the local paper towards the letter's own gold, the paper filled in from the pixels around the "
   "letters. Traced at 4x, smoothed along the outline between corners. SVG path data in 1024 cover units, filled even-odd; "
-  "ch is the type-mask channel.")}.get(COVER) or CFG['about']
+  "ch is the type-mask channel."),
+ 'scorecard':("Scorecard cover letters traced from the concept tile scorecard-a1 (cut to the cover, 554 px): each part's coverage "
+  "as its distance from the local ground towards white, the ground filled in from the pixels around the letters; letters "
+  "that touch in the concept stay one outline. Traced at 4x, smoothed along the outline between corners. SVG path data "
+  "in 1024 cover units, filled even-odd; ch is the type-mask channel.")}.get(COVER) or CFG['about']
 s=json.dumps({'about':ABOUT,'letters':[{'name':n,'ch':c,'d':d} for n,c,d in result]},separators=(',',':'))
 open(OUT,'w').write(s+'\n')
 print(stats, 'total chars', sum(v[2] for v in stats.values()))

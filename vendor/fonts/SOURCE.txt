@@ -19,13 +19,15 @@ fraunces-144pt-bold-cover.woff2 — NJ Serif, the Stellar Explorer title and the
   3 032 bytes, sha256 5fb7f377b44dc7bc16204cce8ec513f0958473a35ade6e14459f093f98db6a54
   Licence: OFL-1.1 (https://github.com/undercasetype/Fraunces)
 
-hanken-grotesk-650-cover.woff2 — NJ Hanken, the Topshine wordmark (650, set at −0.055em)
-  Hanken Grotesk (The Hanken Grotesk Project Authors), gstatic v12, wght 650
+hanken-grotesk-600-cover.woff2 — NJ Hanken, the Topshine wordmark (600, each letter placed on its concept letter)
+  Hanken Grotesk (The Hanken Grotesk Project Authors), gstatic v12, wght 600
   glyphs: "ehinopst" (from "topshine")
-  css2?family=Hanken%20Grotesk:wght@650&text=ehinopst
-  2 856 bytes, sha256 729739eaa5b3935fb85f5e05b6c1c3da21f329bd9c8f1ebfbbdb18794247bc89
+  css2?family=Hanken%20Grotesk:wght@600&text=ehinopst
+  1 440 bytes, sha256 ad152b3c0e603c9a73fac8adeb76d13393edc11bbbcc5f92fe0dd4c1d3095f64
   Licence: OFL-1.1 (https://github.com/marcologous/hanken-grotesk); the same family Topshine vendors
-  in ~/dev/topshine-design-waitlist/engine/assets/fonts/
+  in ~/dev/topshine-design-waitlist/engine/assets/fonts/. Chosen by fitting 57 OFL candidates (Hanken Grotesk at
+  600 to 800, Red Hat Display, Manrope, Plus Jakarta Sans, Inter, Figtree and others) to the concept's letter masks;
+  it fit best with Red Hat Display 700 (IoU 0.93), every letter box within 0.2% of the cover.
 
 bricolage-grotesque-96pt-extrabold-title-cover.woff2 — NJ Bricolage, the Stats title (800, set at −0.01em)
   Bricolage Grotesque (Mathieu Triay), gstatic v9, opsz 96 · wdth 100 · wght 800
@@ -49,4 +51,4 @@ jetbrains-mono-medium-cover.woff2 — NJ Mono, back covers: the stack line
   3 684 bytes, sha256 b5669e1fd093231b17d55c0583a27371fc1689231fbf1eef3d25d237316aa17c
   Licence: OFL-1.1 (https://github.com/JetBrains/JetBrainsMono)
 
-The fronts load the first seven with the UI face; the last two load with the first back.
+The fronts load the first four with the UI face; the last two load with the first back.

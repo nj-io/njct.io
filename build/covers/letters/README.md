@@ -1,6 +1,6 @@
 # Cover letters
 
-`editions/covers/letters/<cover>.json` holds a cover's letters as SVG paths, traced from its concept tile: Chairtax, stet, Social Hook, About Neil, LikeWiki and Clauded. The scripts take `--cover chairtax|stet|social-hook|about|likewiki|clauded` (Chairtax by default; `comps.py` serves every cover but stet).
+`editions/covers/letters/<cover>.json` holds a cover's letters as SVG paths, traced from its concept tile: Chairtax, stet, Social Hook, About Neil, Scorecard, LikeWiki and Clauded. The scripts take `--cover chairtax|stet|social-hook|about|scorecard|likewiki|clauded` (Chairtax by default; `comps.py` serves every cover but stet).
 
 ## Chairtax
 
@@ -81,6 +81,20 @@ python3 $L/trace.py $REPO/editions/covers/letters/about.json --cover about
 ```
 
 `fields.py` takes each pixel's coverage as its distance from the local paper towards the letter's own gold. The gold is filled out from the letter's interior, because it shades top to bottom and carries grain. The paper fill widens its blur where the gaps inside the word leave too little paper near.
+
+## Scorecard
+
+`editions/covers/letters/scorecard.json` holds the Scorecard cover's white letters, traced from its concept tile. Letters that touch in the concept stay one outline: S with c, c with a, r with d. To regenerate it, run in an empty work directory:
+
+```sh
+TILE=$REPO/.captures/concepts/tiles/scorecard-a1.jpg   # 569 x 570, a photo of the sleeve; comps.py cuts the cover out and scales it to 554 px
+L=$REPO/build/covers/letters
+python3 $L/comps.py $TILE --cover scorecard
+python3 $L/fields.py $TILE --cover scorecard
+python3 $L/trace.py $REPO/editions/covers/letters/scorecard.json --cover scorecard
+```
+
+The fields are made as for Social Hook. `trace.py` moves each corner to where the straight edges either side of it meet, as for stet, so the stems and terminals stay square.
 
 ## LikeWiki and Clauded
 

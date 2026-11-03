@@ -1,10 +1,11 @@
-# python3 comps.py <tile.jpg> [--cover social-hook|about|likewiki|clauded]  ->  comps.json
+# python3 comps.py <tile.jpg> [--cover social-hook|about|scorecard|likewiki|clauded]  ->  comps.json
 # The concept's letters as connected parts of its letter colour masks, each with its box and pixels at 554 px.
 # Chairtax (the default): its cream ("Chair") and amber ("tax") masks: chair = C, h, a, i dot, i, r; tax = t, a, x,
 # then the bottom tick. Social Hook: its white letters, as they touch (S with H, o with c, the two o's), left to right.
 # About Neil: its gold letters (N, e, the i's dot, i, l). Their tiles are first cut to the cover (TILE_BOX) and scaled
-# to 554 px, saved as tile554.png for fields.py. LikeWiki and Clauded: each word's letters as the connected parts of
-# its config's colour rule inside its rows (likewiki.json, clauded.json beside this script), at the tile's own size.
+# to 554 px, saved as tile554.png for fields.py. Scorecard: its white letters, as they touch, left to right.
+# LikeWiki and Clauded: each word's letters as the connected parts of its config's colour rule inside its rows
+# (likewiki.json, clauded.json beside this script), at the tile's own size.
 import sys, json, colorsys, os
 from PIL import Image, ImageFilter
 COVER = sys.argv[sys.argv.index('--cover') + 1] if '--cover' in sys.argv else 'chairtax'
@@ -40,7 +41,7 @@ if COVER in CONFIGS:
     json.dump(res, open('comps.json', 'w'))
     print({k: [e['box'] for e in v] for k, v in res.items() if k not in ('W', 'H')})
     sys.exit()
-TILE_BOX = {'social-hook': (3, 2, 576, 566), 'about': (5, 1, 578, 573)}   # the cover inside its tile's grey margin
+TILE_BOX = {'social-hook': (3, 2, 576, 566), 'about': (5, 1, 578, 573), 'scorecard': (3, 1, 568, 562)}   # the cover inside its tile's grey margin
 im = Image.open(sys.argv[1]).convert('RGB')
 if COVER in TILE_BOX:
     im = im.crop(TILE_BOX[COVER]).resize((554, 554), Image.LANCZOS); im.save('tile554.png')
@@ -58,6 +59,13 @@ if COVER == 'about':
     for y in range(170):
         for x in range(W):
             if colorsys.rgb_to_hsv(*(q / 255 for q in p[x, y]))[1] > 0.42: mp[x, y] = 255
+    m = m.filter(ImageFilter.MedianFilter(3))
+if COVER == 'scorecard':
+    m = Image.new('L', (W, W)); mp = m.load()
+    for y in range(140):
+        for x in range(W):
+            h, s, v = colorsys.rgb_to_hsv(*(q / 255 for q in p[x, y]))
+            if v > 0.75 and s < 0.32: mp[x, y] = 255
     m = m.filter(ImageFilter.MedianFilter(3))
 c = Image.new('L', (W, W)); a = Image.new('L', (W, W)); cp, ap = c.load(), a.load()
 for y in range(W):
@@ -85,6 +93,7 @@ def entry(pts):
     return {'box': [min(xs), min(ys), max(xs), max(ys)], 'pts': pts}
 if COVER == 'social-hook': res = {'title': [entry(q) for q in comps(m, 0, 300)]}
 elif COVER == 'about': res = {'title': [entry(q) for q in comps(m, 0, 170)]}
+elif COVER == 'scorecard': res = {'title': [entry(q) for q in comps(m, 0, 140)]}
 else: res = {'chair': [entry(q) for q in comps(c, 150, 352)], 'tax': [entry(q) for q in comps(a, 320, 500)]}
 json.dump(res, open('comps.json', 'w'))
 print({k: [e['box'] for e in v] for k, v in res.items()})

@@ -1,10 +1,10 @@
-# python3 fields.py <tile.jpg> [--cover chairtax|stet|social-hook|about|likewiki|clauded]  ->  field-<letter>.png, fields.json
+# python3 fields.py <tile.jpg> [--cover chairtax|stet|social-hook|about|scorecard|likewiki|clauded]  ->  field-<letter>.png, fields.json
 # Per-letter coverage fields at 4x the concept tile, cropped to each letter's box (fields.json keeps the offsets).
 #   chairtax (the default; needs comps.json, bear.png, nunito-*.png): the concept's own letter by colour unmixing
 #     (cream / amber / ground), completed from the fitted Nunito glyph only where the concept's bear covers it.
 #   stet: each letter's coverage from the tile's luma, between the ground and the letter's own interior near the
 #     pixel (its letters are shaded in many colours); the e and the last t, which touch, are one field.
-#   social-hook, about (need comps.json and tile554.png from comps.py): each pixel's coverage as its distance from the
+#   social-hook, about, scorecard (need comps.json and tile554.png from comps.py): each pixel's coverage as its distance from the
 #     local ground towards the local ink (white, or About Neil's gold filled out from the letter's interior).
 #   likewiki, clauded (need comps.json from comps.py; configs likewiki.json, clauded.json beside this script): each
 #     letter is its word's ink unmixed against the ground it stands on, at 4x the tile's own size, with the config's
@@ -186,7 +186,7 @@ def ink_over_ground(tile, COVER):
     # carries grain). One field per connected part (touching letters stay one outline).
     con=Image.open('tile554.png').convert('RGB')
     cc=json.load(open('comps.json'))['title']
-    NAMES={'social-hook':['SH','oc','oo','idot','i','k','a','l'],'about':['N','e','idot','i','l']}[COVER]   # the parts, by left edge (comps.py's order)
+    NAMES={'social-hook':['SH','oc','oo','idot','i','k','a','l'],'about':['N','e','idot','i','l'],'scorecard':['Sc','o','r','e','ca','rd']}[COVER]   # the parts, by left edge (comps.py's order)
     allm=Image.new('L',(W,W)); ap_=allm.load()
     for c in cc:
         for x,y in c['pts']: ap_[x,y]=255
@@ -276,6 +276,6 @@ def config(tile, cover):
 
 
 cover = sys.argv[sys.argv.index('--cover') + 1] if '--cover' in sys.argv else 'chairtax'
-if cover in ('social-hook', 'about'): ink_over_ground(sys.argv[1], cover)
+if cover in ('social-hook', 'about', 'scorecard'): ink_over_ground(sys.argv[1], cover)
 elif cover in ('likewiki', 'clauded'): config(sys.argv[1], cover)
 else: {'chairtax': chairtax, 'stet': stet}[cover](sys.argv[1])
