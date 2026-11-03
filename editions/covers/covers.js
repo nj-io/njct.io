@@ -803,13 +803,28 @@ vec3 tick(vec3 col, vec2 p, vec2 a, vec2 b, float r0, float k) {
   col += uPal[2] * 0.10 * falloff(d, 0.02);
   return mix(col, uPal[2], cover(d));
 }
+// halo and pool colours in linear light, measured on the concept (amber, more red than the ink)
+const vec3 HALO = vec3(0.056, 0.021, 0.0), POOL = vec3(0.033, 0.010, 0.0);
+// the type mask blurred on its coarse levels, four taps r apart
+vec4 blurText(vec2 c, float r, float bias) {
+  vec2 o = vec2(r, 0.0);
+  return 0.25 * (texture2D(uText, c + o.xy, bias) + texture2D(uText, c - o.xy, bias) + texture2D(uText, c + o.yx, bias) + texture2D(uText, c - o.yx, bias));
+}
 vec3 motif(vec2 p, float t) {
-  vec3 col = mix(uPal[1], uPal[0], smoothstep(0.1, 0.8, length((p - vec2(0.48, 0.5)) * vec2(0.9, 1.0))));
-  // the letters' drop shadow, measured on the concept: offset 0.032 right and 0.033 down, about 3.5 px soft
-  // on a 1024 (the mask's coarse levels), 14% dark; the letters' own edges stay analytic
-  vec2 so = p + vec2(-0.032, 0.033), o = vec2(0.002, 0.0);
-  vec4 g = 0.25 * (texture2D(uText, so + o.xy, 3.5) + texture2D(uText, so - o.xy, 3.5) + texture2D(uText, so + o.yx, 3.5) + texture2D(uText, so - o.yx, 3.5));
-  col *= 1.0 - 0.14 * sat(g.r + g.g + g.b) * (1.0 - uMode);
+  // the concept's flat ground, and the warm pool of light on the floor under "tax"
+  vec3 col = uPal[0];
+  vec2 fp = (p - ic(0.379, 0.899)) / vec2(0.2, 0.0246);
+  col += POOL * exp(-0.5 * (fp.x * fp.x * fp.x * fp.x + fp.y * fp.y));   // flat-topped across, soft below
+  float type = 1.0 - uMode;
+  // the letters' drop shadow, 0.032 right and 0.033 down, 14% dark
+  vec4 g = blurText(p + vec2(-0.032, 0.033), 0.002, 3.5);
+  col *= 1.0 - 0.14 * sat(g.r + g.g + g.b) * type;
+  // contact shadows where the t's foot and the a's base meet the floor
+  vec2 ct = (p - ic(0.26, 0.891)) / vec2(0.075, 0.009), ca = (p - ic(0.46, 0.872)) / vec2(0.08, 0.009);
+  col *= 1.0 - (0.65 * exp(-0.5 * dot(ct, ct)) + 0.4 * exp(-0.5 * dot(ca, ca))) * type;
+  // the thin warm halo just outside every letter, lit from a little below; fainter round the amber letters
+  g = blurText(p + vec2(0.0, 0.004), 0.003, 3.5);
+  col += HALO * (0.85 * g.r + 0.45 * g.g) * type;
   float k = 1.0 + 0.12 * sin(t * 2.6);
   // thick end first, measured on the concept
   col = tick(col, p, ic(0.738, 0.083), ic(0.689, 0.152), 0.0115, k);
@@ -977,9 +992,6 @@ const STET_KEYS = [
 ];
 const STET_KEY_STARTS = [0, 56, 92, 148, 184];
 const STET_KEY_SIGMA = [0.0496, 0.0533, 0.0492, 0.0536];
-// Chairtax's two letter inks, cream and amber: 'brand' (the brand's) or 'concept' (sampled from the concept)
-const CHAIRTAX_INKS = { brand: ['#F8F2E7', '#FFB020'], concept: ['#FCEECE', '#F9B224'] };
-const CHAIRTAX_INK = 'concept';
 
 function designFor(entry) {
   switch (entry.name) {
@@ -1075,14 +1087,15 @@ function designFor(entry) {
     };
     case 'Chairtax': return {
       motif: 'chairtax', t0: 0,
-      pal: ['#110E0A', '#1E1811', '#FFB020', '#F8F2E7', '#2E3D66', '#55669A', '#0E1018', '#6F8BD6'],
+      pal: ['#140F0B', '#140F0B', '#FFB020', '#F8F2E7', '#2E3D66', '#55669A', '#0E1018', '#6F8BD6'],
       // each letter set on its concept letter (ink centre, size and tilt fitted to the concept, 1024 units)
       type: [{ font: 'NJ Rounded', weight: 900, set: [
         ['C', 173.75, 494.44, 413.95, 1, 0], ['h', 422.35, 478.73, 394.98, -2, 0], ['a', 626.6, 496.29, 386.38, -2.5, 0],
         ['i', 769.85, 438.99, 370.54, -1, 0], ['r', 890.92, 464.87, 392.26, -2.5, 0],
         ['t', 253.23, 758.76, 439.58, 2.5, 1], ['a', 465.79, 760.61, 457.55, -2, 1], ['x', 696.84, 727.33, 463.13, -5, 1],
       ] }],
-      inks: CHAIRTAX_INKS[CHAIRTAX_INK],
+      // the concept's cream and amber (the operator's ruling for this cover)
+      inks: ['#FCEECE', '#F9B224'],
       mark: [8, 6, 164],
       // his forearms' underside rests on the top of the "a" in "Chair"
       art: { src: 'art/bearly-lean.webp', x: 300, top: 18 },
