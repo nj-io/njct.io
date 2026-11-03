@@ -3,7 +3,13 @@
 // came), with no shader cache (a fresh profile per run and the GPU shader disk
 // cache off), at 1x and under a 4x CPU slowdown.
 //
-//   node build/compare/coldcovers.mjs --round r0 [--runs 3]
+//   node build/compare/coldcovers.mjs --round r0 [--runs 3] [--rates 1,4]
+//
+// Each run logs the Chrome processes already running (and the load average) at its start and end, so a
+// slow run can be told apart from contention. Five 1x runs on 2026-11-03 (.captures/w6-contention, no
+// other headless Chrome running, load average about 11 from other work) were all clean: every cover
+// ready 290-708 ms before its scheduled appearance, worst intro frame 16.8 ms. An earlier 1x run with
+// covers 3-11 about 150 ms late did not recur.
 //
 // Output: .captures/<round>/coldcovers.json. Only headless Chrome; only ours.
 import puppeteer from '/Users/neil/.cache/board-tools/node_modules/puppeteer-core/lib/esm/puppeteer/puppeteer-core.js';
@@ -11,19 +17,26 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { execSync } from 'child_process';
 import { INTRO_APPEAR } from './coldcovers-intro.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '../..');
 const args = process.argv.slice(2);
 const arg = k => { const i = args.indexOf(`--${k}`); return i >= 0 ? args[i + 1] : undefined; };
-const round = arg('round'), runs = +(arg('runs') || 3);
+const round = arg('round'), runs = +(arg('runs') || 3), rates = (arg('rates') || '1,4').split(',').map(Number);
+const procs = () => ({
+  load: execSync('sysctl -n vm.loadavg').toString().trim(),
+  chrome: execSync('ps -axo pid,pcpu,comm').toString().split('\n').filter(l => /chrome/i.test(l))
+    .map(l => l.trim().replace(/\s+\/.*\/([^/]+)$/, ' $1')),
+});
 if (!round || !/^[\w.-]+$/.test(round)) { console.error('usage: node build/compare/coldcovers.mjs --round <name> [--runs 3]'); process.exit(2); }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const res = { capturedAt: new Date().toISOString(), runs: {} };
-for (const rate of [1, 4]) {
+for (const rate of rates) {
   res.runs[`cpu${rate}x`] = [];
   for (let k = 0; k < runs; k++) {
+    const psStart = procs();
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nj-cold-'));
     const browser = await puppeteer.launch({
       executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true, userDataDir: dir, protocolTimeout: 120000,
@@ -55,6 +68,7 @@ for (const rate of [1, 4]) {
     r.appear = r.ready.map((_, i) => INTRO_APPEAR(i));
     r.appeared = await pg.evaluate(() => window.__editions.appearAt.map(t => (t == null ? null : Math.round(t))));   // after any hold
     r.late = r.ready.map((t, i) => (t == null ? null : t - r.appear[i]));
+    r.ps = { start: psStart, end: procs() };   // end: ours still open
     res.runs[`cpu${rate}x`].push(r);
     await browser.close();
     fs.rmSync(dir, { recursive: true, force: true });
