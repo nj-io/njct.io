@@ -1,0 +1,10 @@
+# The bundle's entry files carry no content hash (their names are the page's import paths), so a stale
+# copy would outlive a deploy: revalidate them on every load; the hashed chunks cache as long as liked.
+/dist/main.js
+  Cache-Control: public, max-age=0, must-revalidate
+
+/dist/menu.js
+  Cache-Control: public, max-age=0, must-revalidate
+
+/dist/fallback.js
+  Cache-Control: public, max-age=0, must-revalidate
