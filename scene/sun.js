@@ -12,14 +12,17 @@
 // The patch reads by hue: a warm near-white core and an amber edge, compressed so nothing clips.
 // With the sun off nothing here runs: every material keeps v1's own program.
 import * as THREE from 'three';
-import { CAFE, SHELF, SLEEVE } from './config.js';
+import { CAFE, SHELF, SLEEVE, slugOf } from './config.js';
 import { SHELF_VERT, SHELF_FRAG } from './shelves.js';
 
 const DEG = Math.PI / 180;
 const LEAF_R = [7, 12, 18];          // blur radius of each leaf mask level, in wall units
 const MASK_RES = 512;
-const COVER_GAIN = 1.35;              // the sun on a cover, against its fitted light (about 1.0)
 const SHELF_GAIN = 1.1;
+const RELIEF = 6.0;                   // the plaster's slope, as the sun sees it
+// The patch's light bounced onto every cover (linear, at full sun): a warm lift within a mean ΔE of 2
+// outside the patch (operator ruling, 4 November 2026).
+const BOUNCE = [0.035, 0.02, 0.006];
 
 // Shared by every sun program. uSlv: per sleeve, its face's corner (w: how strongly it shades) and two edges.
 const sunGlsl = n => /* glsl */`
@@ -34,6 +37,7 @@ uniform sampler2D uLeaf0, uLeaf1, uLeaf2;
 uniform vec3 uLeafR;
 uniform vec4 uSlv[${n * 3}];
 uniform vec4 uShelfB[2];              // x0, x1, the underside's height, depth
+uniform vec3 uSunBounce;              // the sun's light bounced off the patch, on the covers
 const float NJ_SUN_DISC = 0.00925;    // the sun's diameter in radians
 
 float njBox(vec2 p, vec2 b) { vec2 d = abs(p) - b; return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0); }
@@ -140,11 +144,32 @@ uniform float uSunDebug;   // a test's view: 1 the window alone, 2 the leaves al
 varying vec2 vUv;
 varying vec3 vNjWorld;
 ${glsl}
+float njHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float njNoise(vec2 x) {
+  vec2 i = floor(x), f = fract(x);
+  f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(njHash(i), njHash(i + vec2(1.0, 0.0)), f.x), mix(njHash(i + vec2(0.0, 1.0)), njHash(i + vec2(1.0, 1.0)), f.x), f.y);
+}
+// Trowelled cement plaster: broad sweeps and a fine grain, whose slope tilts the wall's normal for the
+// sun alone, so the texture shows only where the sun rakes across it.
+float njPlaster(vec2 p) {
+  vec2 w = p + 30.0 * vec2(njNoise(p / 150.0), njNoise(p / 150.0 + 5.2));
+  return 0.68 * njNoise(w / 46.0) + 0.27 * njNoise(w / 15.0 + 3.1) + 0.05 * njNoise(p / 4.5 + 9.7);
+}
 void main() {
   vec3 c = texture2D(uBake, vUv).rgb * uGain;
   if (uSunD.z > 0.0 && uSunFade > 0.0) {
     float v = uSunDebug > 1.5 ? njLeaves(vNjWorld) : uSunDebug > 0.5 ? njWindow(vNjWorld) : njSunVis(vNjWorld, -1);
-    c = njSunAdd(c, njSunColour(v) * (uSunPower * uSunFade * uSunD.z * v));
+    if (v > 0.0) {
+      vec3 lit = njSunAdd(c, njSunColour(v) * (uSunPower * uSunFade * uSunD.z * v));
+      // The relief only takes light away where a trowel mark turns from the sun, after the roll-off, so
+      // it shows in the patch's core too and can never clip.
+      vec2 pp = vNjWorld.xy;
+      float h = njPlaster(pp);
+      vec2 g = vec2(njPlaster(pp + vec2(1.5, 0.0)) - h, njPlaster(pp + vec2(0.0, 1.5)) - h) / 1.5;
+      float k = clamp(dot(normalize(vec3(-g * ${RELIEF.toFixed(2)}, 1.0)), uSunD) / uSunD.z, 0.0, 1.0);
+      c = mix(c, lit, k);
+    }
   }
   gl_FragColor = vec4(c, 1.0);
   #include <colorspace_fragment>
@@ -165,21 +190,23 @@ function shelfFrag(glsl) {
 }
 
 // The covers (sleeves.js neutral() materials): the sun joins their direct light, before the Neutral curve.
-function coverInject(sh, glsl, self) {
+function coverInject(sh, glsl, self, gain) {
   sh.vertexShader = sh.vertexShader
     .replace('void main() {', 'varying vec3 vNjWorld;\nvoid main() {')
     .replace('#include <project_vertex>', '#include <project_vertex>\n  vNjWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;');
   sh.fragmentShader = sh.fragmentShader
-    .replace('void main() {', `varying vec3 vNjWorld;\nuniform int uNjSelf;\n${glsl}\nvoid main() {`)
+    .replace('void main() {', `varying vec3 vNjWorld;\nuniform int uNjSelf;\nuniform float uNjGain;\n${glsl}\nvoid main() {`)
     .replace('#include <aomap_fragment>', `#include <aomap_fragment>
   {
     float njNl = dot(inverseTransformDirection(normal, viewMatrix), uSunD);
     if (njNl > 0.0 && uSunFade > 0.0) {
       float njV = njSunVis(vNjWorld, uNjSelf);
-      reflectedLight.directDiffuse += diffuseColor.rgb * njSunColour(njV) * (uSunPower * uSunFade * njNl * njV * ${COVER_GAIN.toFixed(3)});
+      reflectedLight.directDiffuse += diffuseColor.rgb * njSunColour(njV) * (uSunPower * uSunFade * njNl * njV * uNjGain);
     }
+    reflectedLight.indirectDiffuse += diffuseColor.rgb * uSunBounce * uSunFade;
   }`);
   sh.uniforms.uNjSelf = { value: self };
+  sh.uniforms.uNjGain = { value: gain };
 }
 
 // ---- the leaves: a mask in the sun's view, at three blurs -------------------------------------------
@@ -364,6 +391,7 @@ export function createSun({ renderer, scene, wallMesh, shelfMeshes, sleeves }) {
     uLeafR: { value: new THREE.Vector3(...LEAF_R) },
     uSlv: { value: Array.from({ length: n * 3 }, () => new THREE.Vector4()) },
     uShelfB: { value: SHELF.tops.map(top => new THREE.Vector4(-SHELF.width / 2, SHELF.width / 2, top - SHELF.thick, SHELF.depth)) },
+    uSunBounce: { value: new THREE.Vector3(...BOUNCE) },
   };
   const glsl = sunGlsl(n);
   const mask = createLeafMask(renderer);
@@ -383,7 +411,8 @@ export function createSun({ renderer, scene, wallMesh, shelfMeshes, sleeves }) {
       prevCompile.call(m, sh, r);
       if (!m.userData.njSun) return;
       Object.assign(sh.uniforms, U);
-      coverInject(sh, glsl, s.i);
+      // A cover takes the sun against its fitted light; a pale one less, so its title keeps its contrast.
+      coverInject(sh, glsl, s.i, CAFE.sun.coverGain[slugOf(s.entry)] ?? CAFE.sun.coverGain.default);
     };
     m.customProgramCacheKey = () => prevKey.call(m) + (m.userData.njSun ? '-sun' : '');
     coverMats.push(m);
