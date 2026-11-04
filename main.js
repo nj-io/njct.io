@@ -13,6 +13,7 @@ import { createPost } from './scene/post.js';
 import { createSticker } from './scene/sticker.js';
 import { createCrate, createCrateShadow, CRATE } from './scene/crate.js';
 import { createFilm } from './scene/film.js';
+import { createRoom, viewOfHash } from './room/room.js';
 
 const entries = LINEUP;
 
@@ -166,6 +167,7 @@ function startSun() {
     sun.setFade(SUN_TEST?.fade ?? 0);
     sun.setEnabled(!crateMode);
     wake();
+    if (room.allowed) (window.requestIdleCallback || (f => setTimeout(f, 300)))(() => room.load().catch(e => console.warn(`room: ${e?.message || e}`)), { timeout: 3000 });
     return sun;
   }).catch(e => { console.warn(`sun: ${e?.message || e}`); });
   return sunP;
@@ -185,6 +187,27 @@ function ambient() {
   ambientTimer = setTimeout(() => { ambientTimer = 0; sunTickDue = true; wake(); }, 1000 / CAFE.sun.ambientHz);
 }
 document.addEventListener('visibilitychange', () => { if (!document.hidden) { sunTickDue = true; wake(); } });
+
+// ---- the café's views (room/room.js) ----------------------------------------------------------------
+// Counter <- Editions -> Table. Off Editions the shelf's pills, index and hover rest; the room's shapes
+// (room/shell.js) load after the sun, compile out of sight, and draw only off Editions.
+const room = createRoom({
+  camera,
+  canTurn: () => !det && inProject < 0 && !glLost && !crateMode && hooks.firstFrameAt !== null,
+  view: () => ({ W, H, hh: H / 2 / S, camZ: CAMZ, shift: -shiftY }),
+  relayout: () => layout(),
+  onAway(isAway) { if (isAway) { pointerHit = -1; setHovered(-1); } },
+  load: () => Promise.resolve(sunP || startSun()).then(() => import('./room/shell.js')).then(async m => {
+    const shell = m.createShell({ renderer, scene, lightUniforms: uniforms, sun: sunM });
+    shell.group.visible = true;
+    if (renderer.compileAsync) await renderer.compileAsync(scene, camera); else renderer.compile(scene, camera);
+    shell.group.visible = false;
+    return shell;
+  }),
+  wake: () => wake(),
+  announce: t => announce(t),
+  play: (n, o) => play(n, o),
+});
 
 // The intro holds each sleeve until its cover is in. Sleeve i appears at its scheduled time, or when its
 // cover lands if that is later, and never sooner after the sleeve before it than the schedule spaces
@@ -387,6 +410,7 @@ function layout() {
   hitRects = sleeves.map(s => restRect(s));
   if (!crateMode) sleeves.forEach(placeSlot);
   placeDetails();
+  room.relayout();
   wake();
 }
 // Where a sleeve rests: leaning on its shelf, or its place in the crate.
@@ -539,7 +563,7 @@ function frame(now) {
   if (inProject >= 0) { last = 0; return; }   // a page is open: the shelf holds still and draws nothing
   const dt = last ? Math.min(0.05, (now - last) / 1000) : 0;
   last = now;
-  let active = false;
+  let active = room.stepFrame(now);
   const ti = sleevesStart === null ? -1 : now - sleevesStart;
   const crateWas = crateBusy;
   const crateMoving = crateMode && crate.step(dt);
@@ -589,7 +613,7 @@ function frame(now) {
       active = true;
     }
   }
-  if (bakeDirty) { writeOccluders(sleeves, uniforms, crateMode); wall.bake(); bakeDirty = false; bgDirty = true; }
+  if (bakeDirty) { writeOccluders(sleeves, uniforms, crateMode); wall.bake(); if (room.away) room.shell?.bake(); bakeDirty = false; bgDirty = true; }
   // The crate's shadow comes in with its sleeves.
   if (crateMode) crateShadow.setOpacity(ti < 0 || appearAt[0] === null ? 0 : clamp01((ti - appearAt[0]) / dur(600)));
   // The sticker follows the newest sleeve, on the focus layer while that sleeve is in Details.
@@ -617,6 +641,8 @@ function frame(now) {
     renderer.render(scene, camera);
     renderer.autoClear = true;
     camera.layers.set(0);
+  } else if (room.away && room.shell) {
+    room.shell.finish.render(scene, camera, room.grade);   // off Editions: the room's finishing pass
   } else {
     if (worldWarm) { worldWarm.draw(); worldWarm = null; }   // drawn over at once by the shelf
     renderer.render(scene, camera);
@@ -684,6 +710,7 @@ let pointerHit = -1;   // keyboard focus moves the hover too; the pointer takes 
 window.addEventListener('pointermove', e => {
   if (e.pointerType === 'touch' || crateMode) return;
   pointer.x = e.clientX; pointer.y = e.clientY;
+  if (room.away) return;   // off Editions the sleeves rest
   if (det) { syncHot(); return; }
   const hit = e.target.closest?.('.pm') ? -1 : hitAt(e.clientX, e.clientY);   // the open Projects menu covers the sleeves under it
   if (hit !== pointerHit) { pointerHit = hit; setHovered(hit); }
@@ -695,7 +722,7 @@ window.addEventListener('resize', layout);
 // A click on a sleeve opens its Details; in Details, a click on the sleeve flips it and a click on the
 // ground puts it back.
 canvas.addEventListener('click', e => {
-  if (crateMode) return;   // the crate's own pointer handling below takes taps
+  if (crateMode || room.away) return;   // the crate's own pointer handling below takes taps
   pointer.x = e.clientX; pointer.y = e.clientY;
   if (det) { if (det.exit) return; if (overFocus()) flip(); else closeDetails(); return; }
   const hit = hitAt(e.clientX, e.clientY);
@@ -926,6 +953,8 @@ async function route() {
     slots[i0].querySelector('[data-action="open"]').focus({ preventScroll: true });
     wake();
   }
+  // #counter and #table face that view (a cut); no hash, Editions.
+  if (i < 0 && inProject < 0) { const v = viewOfHash(slug); if (v) room.go(v, { instant: true }); else if (room.at !== 'editions') room.go('editions', { instant: true }); }
 }
 // Back, Escape and the wordmark: the browser's Back when the page was opened from the shelf, else the
 // shelf's own address (a deep link has no shelf behind it).
@@ -983,6 +1012,12 @@ window.addEventListener('keydown', e => {
     else if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); if (!e.repeat) flip(); }
     return;
   }
+  if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !crateMode && room.allowed && (room.away || (slotOf(document.activeElement) < 0 && !e.target.closest?.('.pm')))) {
+    e.preventDefault();
+    if (!e.repeat) room.step(e.key === 'ArrowLeft' ? -1 : 1);
+    return;
+  }
+  if (room.away) return;
   if (crateMode) {
     // The crate: arrows step through it; focus, if it is on the list, moves with the front sleeve.
     const step = { ArrowLeft: -1, ArrowUp: -1, ArrowRight: 1, ArrowDown: 1 }[e.key];
@@ -1019,6 +1054,11 @@ rm.addEventListener?.('change', e => { setReducedMotion(e.matches); crate.setRed
 // ---- test hooks -----------------------------------------------------------------------------------
 const hooks = {
   count: sleeves.length,
+  // The café's views: where the camera is, and (for a test) a cut to a view or a pose held along the move.
+  get room() { return { at: room.at, away: room.away, moving: room.moving, allowed: room.allowed, shell: !!room.shell }; },
+  roomReady: () => room.load(),
+  roomGo: (v, instant = false) => room.go(v, { instant }),
+  roomHold: (v, u) => room.hold(v, u),
   // The café's sun: whether it is on, and (for a test) a promise for it, which loads it if it isn't yet.
   get sun() { return sunM ? { on: sunOn && sunM.on, fade: sunM.fade } : null; },
   sunReady: () => (sunP || startSun() || Promise.resolve(null)),

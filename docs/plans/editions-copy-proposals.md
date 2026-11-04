@@ -80,6 +80,10 @@ Every string here waits for operator approval before it ships. Approved copy alr
 | 74 | Edge buttons: accessible names | Turn to <view name> | Café brief, 4 Nov 2026 |
 | 75 | Laptop screen, the terminal window | real output from this repo (the build, git log), typed slowly | Café brief, 4 Nov 2026 |
 | 76 | The Thai tea glass on the table | Neil, written on the glass | Café brief, 4 Nov 2026 |
+| 77 | The café's edge buttons, by view: Editions shows "Counter" and "Table"; Counter shows "Editions"; Table shows "Editions" | Counter; Editions; Table (row 73's names) | Round 2, 4 Nov 2026 |
+| 78 | The café's navigation: accessible name | The café | Round 2, 4 Nov 2026 |
+| 79 | The Counter view's HTML (screen readers and search) | Heading "Counter"; "What I do for clients."; the two services with row 68's lines | Round 2, 4 Nov 2026 |
+| 80 | The Table view's HTML (screen readers and search) | Heading "Table"; "My table by the window, where I work: the laptop open on the record wall, a Thai tea beside it." | Round 2, 4 Nov 2026 |
 
 ## Row 33: Topshine dossier (proposal)
 

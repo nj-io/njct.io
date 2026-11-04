@@ -21,7 +21,7 @@
     document.currentScript.after(m);
   } else if (window.__editionsGL) {
     // bundle: first-view chunks, written by build/bundle.mjs
-    const first = ["/dist/main.js","/dist/chunk-GMQ5IERM.js","/dist/chunk-XUX7XAJI.js","/dist/chunk-ZSC7IPES.js","/dist/chunk-TH7WALPN.js","/dist/menu.js"];
+    const first = ["/dist/main.js","/dist/chunk-TH7WALPN.js","/dist/chunk-Y75BIKGP.js","/dist/chunk-SUF5GSKW.js","/dist/chunk-BLGVCQSZ.js","/dist/chunk-NBWD5ZMU.js","/dist/chunk-GPH2DGKR.js","/dist/menu.js"];
     // /bundle
     for (const href of first) document.head.append(Object.assign(document.createElement('link'), { rel: 'modulepreload', href }));
   }
@@ -232,6 +232,25 @@
     .d-open { height: 44px; line-height: 44px; border-radius: 22px; }
   }
 
+
+  /* The café's views (room/room.js): a button at each edge, named for the view it turns to; the outer one
+     hides at each end of the line. Desktop only (the script hides them elsewhere). Off Editions the
+     shelf's pills and index rest. */
+  .room-nav { position: fixed; inset: 0; z-index: 2; pointer-events: none; }
+  .room-nav[hidden] { display: none; }
+  .rn-turn {
+    position: absolute; top: 50%; translate: 0 -50%; height: 40px; padding: 0 14px; border: 0; border-radius: 20px;
+    display: flex; align-items: center; gap: 6px; background: rgba(255, 255, 255, 0.7); color: var(--ink);
+    line-height: 40px; white-space: nowrap; cursor: pointer; pointer-events: auto;
+    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  }
+  .rn-turn[hidden] { display: none; }
+  .rn-turn svg { width: 16px; height: 16px; display: block; flex: none; }
+  .rn-prev { left: var(--gutter); padding-left: 10px; }
+  .rn-next { right: var(--gutter); padding-right: 10px; }
+  .room-away #slots, .room-away .index { visibility: hidden; }
+  .in-details .room-nav, .in-project .room-nav, .no-gl .room-nav { visibility: hidden; }
+
   .rise, .late { opacity: 0; }
 
   /* Without WebGL: the shelf as cards (editions/fallback.js). */
@@ -272,7 +291,23 @@
     </svg>
   </button>
 </header>
+<nav class="room-nav late" aria-label="The café" hidden>
+  <button class="rn-turn rn-prev" type="button"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 4l-4 4 4 4"/></svg><span class="rn-name">Counter</span></button>
+  <button class="rn-turn rn-next" type="button"><span class="rn-name">Table</span><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg></button>
+</nav>
 <ul id="slots" aria-label="Projects"></ul>
+<section class="view-html sr" data-view="counter" aria-labelledby="vh-counter" inert aria-hidden="true">
+  <h2 id="vh-counter">Counter</h2>
+  <p>What I do for clients.</p>
+  <ul>
+    <li>Cross-platform content: video, images and posts made for each platform and published for you.</li>
+    <li>Community management: comments, messages and requests answered in your brand's voice.</li>
+  </ul>
+</section>
+<section class="view-html sr" data-view="table" aria-labelledby="vh-table" inert aria-hidden="true">
+  <h2 id="vh-table">Table</h2>
+  <p>My table by the window, where I work: the laptop open on the record wall, a Thai tea beside it.</p>
+</section>
 <div class="index late" aria-hidden="true"><ol id="index"></ol></div>
 <div class="crate-bar late" id="crate-bar">
   <p class="cb-label" aria-hidden="true"><span class="cb-year"></span><span class="cb-name"></span></p>

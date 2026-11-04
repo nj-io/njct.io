@@ -1,14 +1,14 @@
-import{B as x,D as d,L as v,M as w,o as c,q as f,s as l,v as p}from"./chunk-XUX7XAJI.js";import{e as h,f as u}from"./chunk-ZSC7IPES.js";var b=h.hoverLift.toFixed(2),r=h.cols,y=(h.pitch/2).toFixed(2),S={key:{rect:[1148.801,12.997,8768.289,3472.806],z:994.831,power:2.322},fill:{rect:[-2516.226,-9815.124,2516.226,10070.146],z:573.364,power:1.474},shelfAlbedo:1.219,shelfAmbient:.383,contact:{strength:.332,reach:19.033},keyMix:.571,base:{centre:.614,edge:.752,cy:-293.494,rx:806.633,ry:309.574,pow:.304},edgeShade:{strength:.989,reach:5.54},liftShade:{strength:.5,reach:8},halo:{right:.4,left:.383,top:.056,rise:.308,fall:60.395,row2:.724,vfall:10,drop:.881,dropReach:31.417},glow:{strength:.2,fall:100,side:60,fade:24.653,width:1100}},i=4*r;function k(){return{uLightRect:{value:[new l,new l]},uLightZ:{value:[0,0]},uLightPower:{value:[0,0]},uShelf:{value:[new l,new l]},uShelfDepth:{value:0},uSlab:{value:Array.from({length:i},()=>new l(0,0,0,0))},uSlabZ:{value:new Array(i).fill(1)},uSlabA:{value:new Array(i).fill(0)},uFoot:{value:Array.from({length:2*r},()=>new l(0,0,0,1e3))},uShelfAlbedo:{value:1},uShelfAmbient:{value:0},uContact:{value:new c},uHalo:{value:new f},uHaloShape:{value:new l},uHaloDrop:{value:new c},uGlow:{value:new l},uGlowWidth:{value:1e4},uEdgeShade:{value:new l},uKeyMix:{value:.5},uBase:{value:new f},uBaseShape:{value:new f}}}function T(t,e=S){[e.key,e.fill].forEach((n,o)=>{t.uLightRect.value[o].set(...n.rect),t.uLightZ.value[o]=n.z,t.uLightPower.value[o]=n.power}),t.uShelfAlbedo.value=e.shelfAlbedo,t.uShelfAmbient.value=e.shelfAmbient,t.uContact.value.set(e.contact.strength,e.contact.reach),t.uHalo.value.set(e.halo.right,e.halo.left,e.halo.top),t.uHaloShape.value.set(e.halo.rise,e.halo.fall,e.halo.row2,e.halo.vfall),t.uHaloDrop.value.set(e.halo.drop,e.halo.dropReach),t.uGlow.value.set(e.glow.strength,e.glow.fall,e.glow.side,e.glow.fade),t.uGlowWidth.value=e.glow.width,t.uEdgeShade.value.set(e.edgeShade.strength,e.edgeShade.reach,e.liftShade.strength,e.liftShade.reach),t.uKeyMix.value=e.keyMix,t.uBase.value.set(e.base.centre,e.base.edge,e.base.cy),t.uBaseShape.value.set(e.base.rx,e.base.ry,e.base.pow)}var m=`
+import{e as h}from"./chunk-BLGVCQSZ.js";import{p as s,r,t as a}from"./chunk-NBWD5ZMU.js";var c=h.hoverLift.toFixed(2),o=h.cols,n=(h.pitch/2).toFixed(2),u={key:{rect:[1148.801,12.997,8768.289,3472.806],z:994.831,power:2.322},fill:{rect:[-2516.226,-9815.124,2516.226,10070.146],z:573.364,power:1.474},shelfAlbedo:1.219,shelfAmbient:.383,contact:{strength:.332,reach:19.033},keyMix:.571,base:{centre:.614,edge:.752,cy:-293.494,rx:806.633,ry:309.574,pow:.304},edgeShade:{strength:.989,reach:5.54},liftShade:{strength:.5,reach:8},halo:{right:.4,left:.383,top:.056,rise:.308,fall:60.395,row2:.724,vfall:10,drop:.881,dropReach:31.417},glow:{strength:.2,fall:100,side:60,fade:24.653,width:1100}},l=4*o;function w(){return{uLightRect:{value:[new a,new a]},uLightZ:{value:[0,0]},uLightPower:{value:[0,0]},uShelf:{value:[new a,new a]},uShelfDepth:{value:0},uSlab:{value:Array.from({length:l},()=>new a(0,0,0,0))},uSlabZ:{value:new Array(l).fill(1)},uSlabA:{value:new Array(l).fill(0)},uFoot:{value:Array.from({length:2*o},()=>new a(0,0,0,1e3))},uShelfAlbedo:{value:1},uShelfAmbient:{value:0},uContact:{value:new s},uHalo:{value:new r},uHaloShape:{value:new a},uHaloDrop:{value:new s},uGlow:{value:new a},uGlowWidth:{value:1e4},uEdgeShade:{value:new a},uKeyMix:{value:.5},uBase:{value:new r},uBaseShape:{value:new r}}}function d(t,e=u){[e.key,e.fill].forEach((i,f)=>{t.uLightRect.value[f].set(...i.rect),t.uLightZ.value[f]=i.z,t.uLightPower.value[f]=i.power}),t.uShelfAlbedo.value=e.shelfAlbedo,t.uShelfAmbient.value=e.shelfAmbient,t.uContact.value.set(e.contact.strength,e.contact.reach),t.uHalo.value.set(e.halo.right,e.halo.left,e.halo.top),t.uHaloShape.value.set(e.halo.rise,e.halo.fall,e.halo.row2,e.halo.vfall),t.uHaloDrop.value.set(e.halo.drop,e.halo.dropReach),t.uGlow.value.set(e.glow.strength,e.glow.fall,e.glow.side,e.glow.fade),t.uGlowWidth.value=e.glow.width,t.uEdgeShade.value.set(e.edgeShade.strength,e.edgeShade.reach,e.liftShade.strength,e.liftShade.reach),t.uKeyMix.value=e.keyMix,t.uBase.value.set(e.base.centre,e.base.edge,e.base.cy),t.uBaseShape.value.set(e.base.rx,e.base.ry,e.base.pow)}var v=`
 #define PI 3.141592653589793
 uniform vec4 uLightRect[2];
 uniform float uLightZ[2];
 uniform float uLightPower[2];
 uniform vec4 uShelf[2];      // x0, x1, y bottom, y top
 uniform float uShelfDepth;
-uniform vec4 uSlab[${i}];  // x0, y0, x1, y1 of a slab parallel to the wall
-uniform float uSlabZ[${i}];
-uniform float uSlabA[${i}];  // occlusion strength: the sleeve's opacity
-uniform vec4 uFoot[${2*r}];      // per sleeve: x0, x1, bottom edge depth, height of the bottom edge above its shelf
+uniform vec4 uSlab[${l}];  // x0, y0, x1, y1 of a slab parallel to the wall
+uniform float uSlabZ[${l}];
+uniform float uSlabA[${l}];  // occlusion strength: the sleeve's opacity
+uniform vec4 uFoot[${2*o}];      // per sleeve: x0, x1, bottom edge depth, height of the bottom edge above its shelf
 
 // Form factor from a point (normal +z) to the part of a parallel rectangle with one corner straight
 // above the point and the opposite corner at q, the plane at distance c. Odd in q.x and q.y.
@@ -74,8 +74,8 @@ float wallLight(int l, vec2 p, int row) {
     vis *= 1.0 - clamp(occ / full, 0.0, 1.0);
   }
   if (row >= 0) {
-    for (int k = 0; k < ${2*r}; k++) {
-      int i = row * ${2*r} + k;
+    for (int k = 0; k < ${2*o}; k++) {
+      int i = row * ${2*o} + k;
       vec4 r = uSlab[i];
       if (r.z <= r.x) continue;
       float m = c / uSlabZ[i];
@@ -107,8 +107,8 @@ uniform vec4 uEdgeShade;  // left edge strength, reach; under a lifted sleeve st
 float haloAt(vec2 p, int row) {
   if (row < 0) return 0.0;
   float e = 0.0, g = 0.0;
-  for (int k = 0; k < ${r}; k++) {
-    int i = row * ${2*r} + k * 2;
+  for (int k = 0; k < ${o}; k++) {
+    int i = row * ${2*o} + k * 2;
     vec4 a = uSlab[i], b = uSlab[i + 1];
     if (a.z <= a.x) continue;
     vec4 r = vec4(min(a.xy, b.xy), max(a.zw, b.zw));
@@ -120,7 +120,7 @@ float haloAt(vec2 p, int row) {
     float k2 = mix(uHalo.z, side, o.x / d);
     e += uSlabA[i] * k2 * (1.0 - exp(-d / uHaloShape.x)) * exp(-d / uHaloShape.y) * exp(-o.y / uHaloShape.w);
     float cx = p.x - 0.5 * (r.x + r.z);
-    float wx = smoothstep(-uGlow.z, uGlow.z, cx + ${y}) - smoothstep(-uGlow.z, uGlow.z, cx - ${y});
+    float wx = smoothstep(-uGlow.z, uGlow.z, cx + ${n}) - smoothstep(-uGlow.z, uGlow.z, cx - ${n});
     g += uSlabA[i] * wx * exp(-max(up, 0.0) / uGlow.y) * smoothstep(-uGlow.w, 0.0, up);
   }
   float x = p.x / uGlowWidth;
@@ -132,8 +132,8 @@ float haloAt(vec2 p, int row) {
 float edgeShade(vec2 p, int row) {
   if (row < 0) return 1.0;
   float f = 1.0;
-  for (int k = 0; k < ${r}; k++) {
-    int i = row * ${2*r} + k * 2;
+  for (int k = 0; k < ${o}; k++) {
+    int i = row * ${2*o} + k * 2;
     vec4 a = uSlab[i], b = uSlab[i + 1];
     if (a.z <= a.x) continue;
     float dx = min(a.x, b.x) - p.x;
@@ -141,7 +141,7 @@ float edgeShade(vec2 p, int row) {
     if (dx > 0.0 && p.y >= a.y && p.y <= b.w)
       f *= 1.0 - uSlabA[i] * uEdgeShade.x * exp(-dx / uEdgeShade.y) * (1.0 - uHaloDrop.x * (1.0 - smoothstep(0.0, uHaloDrop.y, b.w - p.y)));
     // Under a lifted sleeve: a band from its bottom edge, offset a little to the left.
-    float lift = clamp(uFoot[row * ${r} + k].w / ${b}, 0.0, 1.0);
+    float lift = clamp(uFoot[row * ${o} + k].w / ${c}, 0.0, 1.0);
     float dy = a.y - p.y;
     if (lift > 0.0 && dy > 0.0 && p.x > a.x - 6.0 && p.x < a.z - 4.0)
       f *= 1.0 - lift * uEdgeShade.z * exp(-dy / uEdgeShade.w) * smoothstep(a.x - 6.0, a.x + 2.0, p.x) * (1.0 - smoothstep(a.z - 12.0, a.z - 4.0, p.x));
@@ -170,43 +170,4 @@ float boxLight(int l, vec3 p, vec3 n) {
   }
   return sum * cell.x * cell.y;
 }
-`;function E(){let{width:t,depth:e,thick:n,bevel:o}=u,a=new v;a.moveTo(0,-n),a.lineTo(e-o,-n),a.absarc(e-o,-n+o,o,-Math.PI/2,0,!1),a.lineTo(e,-o),a.absarc(e-o,-o,o,0,Math.PI/2,!1),a.lineTo(0,0),a.closePath();let s=new w(a,{depth:t,bevelEnabled:!1,curveSegments:6});return s.applyMatrix4(new p().set(0,0,-1,t/2,0,1,0,0,1,0,0,0,0,0,0,1)),s.computeVertexNormals(),s}var z=`
-varying vec3 vPos;
-varying vec3 vNormal;
-void main() {
-  vec4 w = modelMatrix * vec4(position, 1.0);
-  vPos = w.xyz;
-  vNormal = normalize(mat3(modelMatrix) * normal);
-  gl_Position = projectionMatrix * viewMatrix * w;
-}`,H=`
-${m}
-uniform float uShelfAlbedo;
-uniform float uShelfAmbient;
-uniform vec2 uContact;   // strength, reach
-uniform int uRow;
-varying vec3 vPos;
-varying vec3 vNormal;
-void main() {
-  vec3 n = normalize(vNormal);
-  // The rounded front edges are shaded as the front face: lit at their own normals they face the soft boxes
-  // more squarely than either face and read as bright lines, which the reference does not show.
-  vec3 nl = n.z > 0.02 && abs(n.y) > 0.02 && abs(n.y) < 0.98 ? vec3(0.0, 0.0, 1.0) : n;
-  float e = uLightPower[0] * boxLight(0, vPos, nl) + uLightPower[1] * boxLight(1, vPos, nl);
-  // Ambient from the room: full on the front, less on the top, least underneath.
-  e += uShelfAmbient * (0.75 + 0.25 * nl.z - 0.35 * max(-nl.y, 0.0));
-  if (n.y > 0.5) {
-    // Contact shadow in front of each sleeve standing on this shelf.
-    float shade = 0.0;
-    for (int k = 0; k < ${h.cols}; k++) {
-      vec4 f = uFoot[uRow * ${h.cols} + k];   // x0, x1, bottom edge depth, height above the shelf
-      float inX = smoothstep(f.x - 4.0, f.x + 8.0, vPos.x) * (1.0 - smoothstep(f.y - 8.0, f.y + 4.0, vPos.x));
-      float dz = vPos.z - f.z;
-      shade = max(shade, inX * step(-1.0, dz) * exp(-max(dz, 0.0) / uContact.y) * exp(-f.w / 6.0));
-    }
-    e *= 1.0 - uContact.x * shade;
-  }
-  gl_FragColor = vec4(vec3(e * uShelfAlbedo), 1.0);
-  #include <colorspace_fragment>
-  float nz = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
-  gl_FragColor.rgb += (nz - 0.5) / 255.0;
-}`;function P(t){let e=E();return u.tops.map((n,o)=>{let a=new d({uniforms:{...t,uRow:{value:o}},vertexShader:z,fragmentShader:H,toneMapped:!1}),s=new x(e,a);return s.position.set(0,n,0),s.updateMatrixWorld(),s})}export{k as a,T as b,m as c,z as d,H as e,P as f};
+`;export{w as a,d as b,v as c};

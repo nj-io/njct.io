@@ -99,7 +99,34 @@ export const OPEN = {
 // the plane z = 0; the street front, with the window, is the plane x = room.front to its right; the floor
 // is at y = room.floor. Round 1 settles these numbers from the operator's sun study.
 export const CAFE = {
-  room: { front: 1200, floor: -620 },
+  // The room: the record wall is z = 0 and the street front x = front; the back wall (the counter's) is at
+  // x = back and the wall behind the Editions camera at z = depth, so a shophouse 6.4 m long and 5 m wide,
+  // 3.4 m to the ceiling. The floor and ceiling stay outside every Editions frame from 4:3 to 21:9.
+  room: { front: 1200, floor: -620, ceiling: 1298, back: -2400, depth: 2800, wall: 18 },
+  // The record shelving around v1's wall: cubbies to the ceiling, leaving the niche the shelves stand in
+  // (x within niche.x, y below niche.top), out of every Editions frame. depth: out from the wall.
+  shelving: { niche: { x: 900, top: 560 }, cubby: 186, frame: 12, depth: 220 },
+  // The counter along the back wall, the table by the window, and the things on it (round 2's shapes).
+  // The shopfront: the street front's whole glazed opening, a steel grid around the clear window (which
+  // alone lets the sun through as a patch); the panes around it are reeded glass, bright but diffuse.
+  shopfront: { z0: 260, z1: 1420, y0: -250, y1: 820, sideBars: [380, 1280] },
+  // The bar, as a shop works: the back counter along the back wall (back deep, its top at backTop, 0.9 m),
+  // the barista's aisle (0.9 m), then the island, the service counter, from x0 to x1 with its front to the
+  // customers at x1 (1.05 m high), open at both ends; the staff come out by the record wall. No seating
+  // in front of it: that is where the customers queue and wait.
+  counter: { x0: -1560, x1: -1180, z0: 760, z1: 2300, top: -28, back: 320, backTop: -110 },
+  // Neil's work table by the window, along the street front (1.6 m by 0.8 m, oak, 0.75 m high), out of the
+  // sun's beam and the Editions frame; his chair is on the room side, facing the window.
+  table: { x0: 690, x1: 1140, z0: 1180, z1: 2080, top: -197 },
+  // The three views, in a line: Counter <- Editions -> Table. A room view's camera stands at pos, level,
+  // looking at look (its height framed by shifting the lens), with a vertical field of fov degrees.
+  views: {
+    table: { pos: [-160, 120, 2420], look: [780, -185, 1150], fov: 48, frame: 0.55 },
+    counter: { pos: [420, 135, 2080], look: [-2250, -60, 1040], fov: 50, frame: 0.54 },
+    // The move: the camera first walks in as the lens widens to this field of view, the record wall easing
+    // back to 1 / reveal of its size so the café opens around it; it turns once a third of the way in.
+    walk: { fov: 44, reveal: 1.45, turnAt: 0.3, walkTo: 0.55, ms: 1300 },
+  },
   // The window in the street front: its opening (z measured out from the record wall, y), the steel frame,
   // two glazing bars running its full height, and the transom at a share of the height: three lights
   // below it and three above.
