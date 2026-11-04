@@ -436,6 +436,7 @@ const TURN = Math.PI * 2;
 // easing, overlapping the end of the travel by TURN_OVERLAP. Reduced motion: no turn; the sleeve changes
 // sides when the turn would start.
 const TURN_OVERLAP = 0.1;
+const FILM_FADE = 450;
 const turnOf = u => (reduced() ? (u >= 0 ? 1 : 0) : bezier(DETAILS.flip.ease, clamp01(u / dur(DETAILS.flip.dur))));
 const turnLead = () => delay(DETAILS.fly.at) + dur(DETAILS.fly.dur) * (1 - TURN_OVERLAP);
 const showsBack = yaw => Math.abs(Math.round(yaw / Math.PI)) % 2 === 1;
@@ -453,9 +454,11 @@ function stepDetails(s, now) {
     p = flight(s, det.from, detailsPose(s), e);
     p.yaw = det.turn * turnOf(t - turnLead()) + yawAt();
     det.blur = crateMode ? 0 : smooth(clamp01((t - delay(DETAILS.blur.at)) / dur(DETAILS.blur.dur)));   // the crate stays sharp, as on the reference
-    const end = Math.max(turnLead() + dur(P.dur), ...[F, DETAILS.blur, DETAILS.title].map(k => delay(k.at) + dur(k.dur)));
+    // A film fades in over the back's art band only once the turn is done (FILM_FADE ms).
+    const turned = turnLead() + dur(P.dur), filmIn = sleeves[det.i].entry.video ? dur(FILM_FADE) : 0;
+    const end = Math.max(turned + filmIn, ...[F, DETAILS.blur, DETAILS.title].map(k => delay(k.at) + dur(k.dur)));
     moving = t < end || now - det.flip.t0 < delay(P.at) + dur(P.dur);
-    det.film = [turnOf(t - turnLead()), !moving && showsBack(p.yaw)];
+    det.film = [filmIn ? smooth(clamp01((t - turned) / filmIn)) : 0, !moving && showsBack(p.yaw)];
   } else {
     // Turn back to the front in place first, then fly back to the hover pose on the shelf (or its place in
     // the crate). x.lag is the turn's length less the overlap; 0 when the sleeve already shows its front.
