@@ -1,4 +1,4 @@
-import{c as v}from"./chunk-SUF5GSKW.js";import{e as s,f as l}from"./chunk-BLGVCQSZ.js";import{E as h,G as f,Q as c,R as m,w as i}from"./chunk-NBWD5ZMU.js";function d(){let{width:r,depth:a,thick:n,bevel:e}=l,o=new c;o.moveTo(0,-n),o.lineTo(a-e,-n),o.absarc(a-e,-n+e,e,-Math.PI/2,0,!1),o.lineTo(a,-e),o.absarc(a-e,-e,e,0,Math.PI/2,!1),o.lineTo(0,0),o.closePath();let t=new m(o,{depth:r,bevelEnabled:!1,curveSegments:6});return t.applyMatrix4(new i().set(0,0,-1,r/2,0,1,0,0,1,0,0,0,0,0,0,1)),t.computeVertexNormals(),t}var u=`
+import{c as v}from"./chunk-D5HKBPVU.js";import{e as s,f as l}from"./chunk-GSSTSC5W.js";import{E as h,G as f,Q as c,R as m,w as i}from"./chunk-NBWD5ZMU.js";function d(){let{width:r,depth:a,thick:n,bevel:e}=l,o=new c;o.moveTo(0,-n),o.lineTo(a-e,-n),o.absarc(a-e,-n+e,e,-Math.PI/2,0,!1),o.lineTo(a,-e),o.absarc(a-e,-e,e,0,Math.PI/2,!1),o.lineTo(0,0),o.closePath();let t=new m(o,{depth:r,bevelEnabled:!1,curveSegments:6});return t.applyMatrix4(new i().set(0,0,-1,r/2,0,1,0,0,1,0,0,0,0,0,0,1)),t.computeVertexNormals(),t}var u=`
 varying vec3 vPos;
 varying vec3 vNormal;
 void main() {

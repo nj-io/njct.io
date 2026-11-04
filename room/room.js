@@ -8,8 +8,9 @@
 // off the sleeve list and the Projects menu); the outer button hides at each end. #counter and #table
 // open facing that view. Each view's text is HTML (index.html .view-html; Editions' is the sleeve list),
 // and only the facing view's is live. Desktop only: a fine pointer that hovers, a window of at least
-// 1024 x 640, wider than 1.2 to 1. A move waits for Details and project pages, and cuts under reduced
-// motion. The room's shapes (room/shell.js) load at idle, after the sun, and draw only off Editions.
+// 1024 x 640, between 1.2 and 2.35 to 1 (wider, the café's edges would enter Editions' frame). A move
+// waits for Details and project pages, and cuts under reduced motion. The room's shapes (room/shell.js)
+// load at idle, after the sun (or when the window first allows the café), and draw only off Editions.
 import * as THREE from 'three';
 import { CAFE } from '../scene/config.js';
 import { clamp01, reduced } from '../scene/ease.js';
@@ -20,16 +21,19 @@ export const viewOfHash = h => (h === 'counter' || h === 'table' ? h : null);
 const smooth = u => u * u * (3 - 2 * u);
 const DEG = Math.PI / 180;
 
-// o: camera, canTurn(), view() -> { W, H, hh, camZ, shift } (Editions as layout() set it), relayout(),
-// onAway(away), load() -> Promise<shell>, wake(), announce(text), play(name).
+// o: camera, canTurn(), canPreload(), view() -> { W, H, hh, camZ, shift } (Editions as layout() set it),
+// relayout() (layout(): Editions' camera, whole), onAway(away), load() -> Promise<shell>, wake(),
+// announce(text), play(name).
 export function createRoom(o) {
   const { camera } = o;
-  let at = 'editions', move = null, shell = null, shellP = null, queued = 0;
+  // queued: the view a press asked for while a move or the café's load was under way, and how to get there
+  // pending: the view a go() is waiting on the café's load to reach
+  let at = 'editions', move = null, shell = null, shellP = null, pending = null, queued = null;
   const nav = document.querySelector('.room-nav');
   const prev = nav.querySelector('.rn-prev'), next = nav.querySelector('.rn-next');
   const mirrors = { editions: document.getElementById('slots'), counter: document.querySelector('.view-html[data-view="counter"]'), table: document.querySelector('.view-html[data-view="table"]') };
   const fine = matchMedia('(hover: hover) and (pointer: fine)');
-  const allowed = () => fine.matches && innerWidth >= 1024 && innerHeight >= 640 && innerWidth / innerHeight >= 1.2;
+  const allowed = () => fine.matches && innerWidth >= 1024 && innerHeight >= 640 && innerWidth / innerHeight >= 1.2 && innerWidth / innerHeight <= 2.35;
 
   // ---- poses ------------------------------------------------------------------------------------------
   const ID = new THREE.Quaternion(), tmpQ = new THREE.Quaternion(), tmpE = new THREE.Euler(0, 0, 0, 'YXZ');
@@ -67,10 +71,12 @@ export function createRoom(o) {
   function sync() {
     const i = ORDER.indexOf(at), ok = allowed();
     nav.hidden = !ok;
-    const l = ORDER[i - 1], r = ORDER[i + 1];
-    prev.hidden = !l || !!move; next.hidden = !r || !!move;
-    if (l) { prev.querySelector('.rn-name').textContent = VIEW_NAMES[l]; prev.setAttribute('aria-label', `Turn to ${VIEW_NAMES[l]}`); }
-    if (r) { next.querySelector('.rn-name').textContent = VIEW_NAMES[r]; next.setAttribute('aria-label', `Turn to ${VIEW_NAMES[r]}`); }
+    // During a move the buttons stay as they were, marked busy, so keyboard focus stays on them.
+    for (const [b, name] of [[prev, ORDER[i - 1]], [next, ORDER[i + 1]]]) {
+      b.hidden = !name;
+      b.toggleAttribute('aria-disabled', !!move);
+      if (name) { b.querySelector('.rn-name').textContent = VIEW_NAMES[name]; b.setAttribute('aria-label', `Turn to ${VIEW_NAMES[name]}`); }
+    }
     for (const [k, m] of Object.entries(mirrors)) if (m) { const off = k !== at || !!move; m.inert = off; m.toggleAttribute('aria-hidden', off && k !== 'editions'); }
     document.body.classList.toggle('room-away', away());
     o.onAway(away());
@@ -80,18 +86,24 @@ export function createRoom(o) {
     const want = at === 'editions' ? '' : `#${at}`;
     if (location.hash !== want) history.replaceState(history.state, '', want || location.pathname + location.search);
   }
-  const loadShell = () => shellP || (shellP = o.load().then(s => { shell = s; sync(); return s; }));
+  // A failed load is forgotten, so a later press tries again.
+  const loadShell = () => shellP || (shellP = o.load().then(s => { shell = s; sync(); return s; }, e => { shellP = null; throw e; }));
+  const idle = f => (window.requestIdleCallback || (g => setTimeout(g, 300)))(f, { timeout: 3000 });
+  // The window allows the café only now (it didn't when the sun came in): fetch it at idle.
+  function preload() { if (!shellP && allowed() && o.canPreload()) idle(() => { if (allowed()) loadShell().catch(e => console.warn(`room: ${e?.message || e}`)); }); }
 
-  // Go to view `to`, moving through the line one step at a time (Counter and Table are one step from
-  // Editions). instant: a cut (a deep link, reduced motion).
+  // Go to view `to`, through Editions between Counter and Table. instant: a cut (a deep link, reduced
+  // motion). A press during a move or the load waits for it, as the view it asked for.
   async function go(to, { instant = false } = {}) {
     if (!ORDER.includes(to) || !allowed()) return;
-    if (move) { queued = ORDER.indexOf(to) - ORDER.indexOf(move.to); return; }   // relative to where the move ends
-    if (to === at) return;
-    if (!o.canTurn()) return;
-    if (to !== 'editions' && at !== 'editions') { await go('editions', { instant }); if (at !== 'editions') return; }
-    await loadShell();
-    if (!o.canTurn()) return;
+    if (move || pending) { queued = { to, instant }; return; }
+    if (to === at || !o.canTurn()) return;
+    if (!shell) {
+      pending = to;
+      try { await loadShell(); } catch (e) { console.warn(`room: ${e?.message || e}`); queued = null; return; } finally { pending = null; }
+      if (to === at || !allowed() || !o.canTurn()) { drain(); return; }
+    }
+    if (to !== 'editions' && at !== 'editions') { queued = { to, instant }; to = 'editions'; }
     const room = to === 'editions' ? at : to, from = to === 'editions' ? 1 : 0;
     o.play('tick');
     o.announce(VIEW_NAMES[to]);
@@ -102,21 +114,34 @@ export function createRoom(o) {
   }
   function finish(room) {
     move = null;
+    const had = document.activeElement;
     if (at === 'editions') o.relayout(); else apply(poseAt(room, 1));
     sync();
+    if ((had === prev || had === next) && had.hidden) (prev.hidden ? next : prev).focus({ preventScroll: true });
     address();
     o.wake();
-    if (queued) { const q = queued; queued = 0; step(q); }
+    drain();
   }
+  function drain() { if (queued && !move) { const q = queued; queued = null; go(q.to, { instant: q.instant }); } }
+  // One step along the line from where things will stand once what is under way has finished.
   function step(dir) {
-    if (move) { queued = Math.sign(dir); return; }
-    const to = ORDER[ORDER.indexOf(at) + Math.sign(dir)];
+    const from = queued ? queued.to : pending || (move ? move.to : at), to = ORDER[ORDER.indexOf(from) + Math.sign(dir)];
     if (to) go(to);
+  }
+  // Back to Editions at once, wherever things stand: the window no longer allows the café, or a project
+  // page opened over a move (keepAddress: the page's own address stays).
+  function home({ keepAddress = false } = {}) {
+    if (at === 'editions' && !move) return;
+    at = 'editions'; move = null; queued = null;
+    o.relayout();
+    sync();
+    if (!keepAddress) address();
+    o.wake();
   }
 
   prev.addEventListener('click', () => step(-1));
   next.addEventListener('click', () => step(1));
-  for (const q of [fine]) q.addEventListener?.('change', () => { if (!allowed() && at !== 'editions') { at = 'editions'; move = null; o.relayout(); } sync(); });
+  fine.addEventListener?.('change', () => { if (!allowed()) home(); else preload(); sync(); });
   sync();
 
   return {
@@ -124,7 +149,7 @@ export function createRoom(o) {
     get away() { return away(); },
     get allowed() { return allowed(); },
     get moving() { return !!move; },
-    go, step,
+    go, step, home,
     load: loadShell,
     // The frame loop: the camera along the move; returns whether it still moves.
     stepFrame(now) {
@@ -136,8 +161,9 @@ export function createRoom(o) {
     },
     // After layout() has set Editions' camera: put a room view's camera back (the window changed size).
     relayout() {
-      if (!allowed() && at !== 'editions') { at = 'editions'; move = null; sync(); o.relayout(); return; }
+      if (!allowed() && away()) { home(); return; }
       if (at !== 'editions' && !move) apply(poseAt(at, 1));
+      preload();
       sync();
     },
     get shell() { return shell; },

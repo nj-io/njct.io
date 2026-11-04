@@ -117,7 +117,7 @@ export const CAFE = {
   counter: { x0: -1560, x1: -1180, z0: 760, z1: 2300, top: -28, back: 320, backTop: -110 },
   // Neil's work table by the window, along the street front (1.6 m by 0.8 m, oak, 0.75 m high), out of the
   // sun's beam and the Editions frame; his chair is on the room side, facing the window.
-  table: { x0: 690, x1: 1140, z0: 1180, z1: 2080, top: -197 },
+  table: { x0: 690, x1: 1140, z0: 1220, z1: 2120, top: -197 },
   // The three views, in a line: Counter <- Editions -> Table. A room view's camera stands at pos, level,
   // looking at look (its height framed by shifting the lens), with a vertical field of fov degrees.
   views: {

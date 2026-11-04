@@ -194,14 +194,13 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) { su
 const room = createRoom({
   camera,
   canTurn: () => !det && inProject < 0 && !glLost && !crateMode && hooks.firstFrameAt !== null,
+  canPreload: () => sunOn,   // the café follows the sun in; until then the sun's start fetches it
   view: () => ({ W, H, hh: H / 2 / S, camZ: CAMZ, shift: -shiftY }),
   relayout: () => layout(),
   onAway(isAway) { if (isAway) { pointerHit = -1; setHovered(-1); } },
   load: () => Promise.resolve(sunP || startSun()).then(() => import('./room/shell.js')).then(async m => {
     const shell = m.createShell({ renderer, scene, lightUniforms: uniforms, sun: sunM });
-    shell.group.visible = true;
-    if (renderer.compileAsync) await renderer.compileAsync(scene, camera); else renderer.compile(scene, camera);
-    shell.group.visible = false;
+    await shell.warm(camera);   // its programs for its own target, its textures and target, out of sight
     return shell;
   }),
   wake: () => wake(),
@@ -363,7 +362,7 @@ function layout() {
   crateMode = W < 600;
   CAMZ = crateMode ? CAMERA_Z * 4 : CAMERA_Z;
   S = crateMode ? crate.layout(W, H, CAMZ) : viewScale(W, H);
-  camera.position.z = CAMZ; camera.far = CAMZ * 2;
+  camera.position.set(0, 0, CAMZ); camera.quaternion.identity(); camera.far = CAMZ * 2;   // whole: a room view may have turned it
   const hw = W / 2 / S, hh = H / 2 / S;
   camera.fov = THREE.MathUtils.radToDeg(2 * Math.atan(hh / CAMZ));
   camera.aspect = W / H;
@@ -934,6 +933,7 @@ async function route() {
     if (entries.findIndex(e => slugOf(e) === decodeURIComponent(location.hash.slice(1))) !== i || i === inProject) return;
     if (det) dropDetails(true);
     setHovered(-1);
+    room.home({ keepAddress: true });   // a page opened over a move (the header's Projects menu): Editions behind it
     inProject = i;
     for (const a of canvas.getAnimations()) a.finish();   // a deep link skips the canvas fade
     audio?.setRoomTone(false);

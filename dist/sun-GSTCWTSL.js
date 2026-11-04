@@ -1,4 +1,4 @@
-import{a as ce,b as U}from"./chunk-Y75BIKGP.js";import"./chunk-SUF5GSKW.js";import{c as le,e as z,f as j,k as s}from"./chunk-BLGVCQSZ.js";import{C as oe,D as re,E as ue,G as k,H as se,K as ie,f as K,h as te,k as ae,o as ne,p as C,r as u,t as b,u as X}from"./chunk-NBWD5ZMU.js";var fe=Math.PI/180,O=[7,12,18],d=512,he=1.1,we=6,xe=[.035,.02,.006],ge=t=>`
+import{a as ce,b as U}from"./chunk-PGS23HJD.js";import"./chunk-D5HKBPVU.js";import{c as le,e as z,f as j,k as s}from"./chunk-GSSTSC5W.js";import{C as oe,D as re,E as ue,G as k,H as se,K as ie,f as K,h as te,k as ae,o as ne,p as C,r as u,t as b,u as X}from"./chunk-NBWD5ZMU.js";var fe=Math.PI/180,O=[7,12,18],d=512,he=1.1,we=6,xe=[.035,.02,.006],ge=t=>`
 uniform vec3 uSunD, uSunU, uSunV;     // toward the sun; across and up in the sun's view
 uniform float uSunPower, uSunFade;
 uniform vec4 uWin;                    // the opening: z0, y0, z1, y1 on the street front

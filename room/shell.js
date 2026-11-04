@@ -97,7 +97,8 @@ float njNoise2(vec2 x) {
   f = f * f * (3.0 - 2.0 * f);
   return mix(mix(njHash2(i), njHash2(i + vec2(1.0, 0.0)), f.x), mix(njHash2(i + vec2(0.0, 1.0)), njHash2(i + vec2(1.0, 1.0)), f.x), f.y);
 }
-float njDither() { return (fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715)))) - 0.5) / 255.0; }
+// What light reaches a leaf or a curtain from behind: the window and the ambient, no lamps or occlusion.
+vec3 njBackLight(vec3 p, vec3 n) { return uSkyCol * njQuad(p, n, uWinQ[0], uWinQ[1], uWinQ[2], uWinQ[3]) + vec3(uAmbient); }
 `;
 
 const VERT = /* glsl */`
@@ -172,7 +173,7 @@ vec3 albedo(vec3 p, vec3 n) {
 void main() {
   vec3 n = normalize(vN);
   vec3 e = njRoomLight(vP, n);
-  if (uKind == 9) e += 0.7 * njRoomLight(vP, -n) * vec3(1.0, 0.82, 0.6);
+  if (uKind == 9) e += 0.7 * njBackLight(vP, -n) * vec3(1.0, 0.82, 0.6);
   vec3 col = albedo(vP, n) * e;
   // a soft sheen on gloss: the window seen in it
   if (uGloss > 0.0) {
@@ -182,7 +183,6 @@ void main() {
   }
   gl_FragColor = vec4(njShoulder(col), 1.0);
   #include <colorspace_fragment>
-  gl_FragColor.rgb += njDither();
 }`;
 
 // The record cabinet's front: a grid of cubbies seen into by interior mapping, each holding a row of
@@ -253,7 +253,6 @@ void main() {
   }
   gl_FragColor = vec4(njShoulder(col), 1.0);
   #include <colorspace_fragment>
-  gl_FragColor.rgb += njDither();
 }`;
 
 // What is seen through the window: a bright, hazy street in late sun, the same leaves that throw the
@@ -336,15 +335,15 @@ varying vec2 vUv;
 ${ROOM_GLSL}
 void main() {
   vec4 t = texture2D(uAtlas, vUv);
-  if (t.a < 0.5) discard;
+  if (t.a < 0.2) discard;
+  float cover = clamp((t.a - 0.5) / max(fwidth(t.a), 1e-3) + 0.5, 0.0, 1.0);
   vec3 n = normalize(vN) * (gl_FrontFacing ? 1.0 : -1.0);
   vec3 c = vCol * t.rgb;
-  vec3 col = c * (njRoomLight(vP, n) + njRoomLight(vP, -n) * 0.45 * vec3(0.85, 1.0, 0.45));
+  vec3 col = c * (njRoomLight(vP, n) + njBackLight(vP, -n) * 0.45 * vec3(0.85, 1.0, 0.45));
   vec3 v = normalize(vP - cameraPosition), r = reflect(v, n);
   col += 0.07 * uSkyCol * pow(max(dot(r, normalize(${WIN_MID} - vP)), 0.0), 10.0);
-  gl_FragColor = vec4(njShoulder(col), 1.0);
+  gl_FragColor = vec4(njShoulder(col), cover);
   #include <colorspace_fragment>
-  gl_FragColor.rgb += njDither();
 }`;
 
 const EMISSIVE_FRAG = /* glsl */`
@@ -500,8 +499,11 @@ void main() {
   #include <colorspace_fragment>
   gl_FragColor.rgb += (fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715)))) - 0.5) / 255.0;
 }`;
+// The target follows the drawing buffer, capped at 1.5 CSS pixels to the pixel until the cost is measured on
+// real GPUs, with 4 samples, or 2 past 4 million pixels.
+const FINISH_MAX_RATIO = 1.5, FINISH_BIG = 4e6;
 function createFinish(renderer) {
-  const rt = new THREE.WebGLRenderTarget(4, 4, { type: THREE.HalfFloatType, samples: 4, depthBuffer: true });
+  let rt = new THREE.WebGLRenderTarget(4, 4, { type: THREE.HalfFloatType, samples: 4, depthBuffer: true });
   const mat = new THREE.ShaderMaterial({ uniforms: { uSrc: { value: rt.texture }, uAmount: { value: 0 } },
     vertexShader: 'varying vec2 vUv; void main() { vUv = position.xy * 0.5 + 0.5; gl_Position = vec4(position.xy, 0.0, 1.0); }',
     fragmentShader: FINISH_FRAG, depthTest: false, depthWrite: false, toneMapped: false });
@@ -510,10 +512,19 @@ function createFinish(renderer) {
   const quad = new THREE.Mesh(tri, mat); quad.frustumCulled = false;
   const sc = new THREE.Scene(), cam = new THREE.Camera(); sc.add(quad);
   const size = new THREE.Vector2();
+  function fit() {
+    renderer.getDrawingBufferSize(size);
+    const k = Math.min(1, FINISH_MAX_RATIO / Math.max(1, renderer.getPixelRatio()));
+    const w = Math.max(1, Math.round(size.x * k)), h = Math.max(1, Math.round(size.y * k)), samples = w * h > FINISH_BIG ? 2 : 4;
+    if (rt.samples !== samples) { rt.dispose(); rt = new THREE.WebGLRenderTarget(w, h, { type: THREE.HalfFloatType, samples, depthBuffer: true }); mat.uniforms.uSrc.value = rt.texture; }
+    else if (rt.width !== w || rt.height !== h) rt.setSize(w, h);
+  }
   return {
+    get target() { fit(); return rt; },
+    // The finishing quad's program, for the screen, built before the first move needs it.
+    compile() { renderer.compile(sc, cam); },
     render(scene, camera, amount) {
-      renderer.getDrawingBufferSize(size);
-      if (rt.width !== size.x || rt.height !== size.y) rt.setSize(size.x, size.y);
+      fit();
       renderer.setRenderTarget(rt);
       renderer.render(scene, camera);
       renderer.setRenderTarget(null);
@@ -579,7 +590,7 @@ export function createShell({ renderer, scene, lightUniforms, sun }) {
   const FR = { x0: XB, x1: XB + 300, z0: 2065, z1: 2345, top: 560 };             // the drinks fridge at its end
   const DOOR = { z0: 2440, z1: 2740, spring: 400 };                               // the arched way to the back
   const ISL = CT;                                                                 // the island
-  const SHV = { x0: -2075, x1: -1065, d: 240, top: 760 };                         // shelving along the record wall
+  const SHV = { x0: -2058, x1: -1065, d: 240, top: 760 };                         // shelving along the record wall
   // Two domes over the island, their cords clear of the menu from the Counter view, one over the brew bar,
   // and a globe over Neil's table.
   const tableLamp = V((TB.x0 + TB.x1) / 2, 310, (TB.z0 + TB.z1) / 2 + 60);
@@ -627,7 +638,7 @@ export function createShell({ renderer, scene, lightUniforms, sun }) {
     [(ISL.x0 + ISL.x1) / 2, (ISL.z0 + ISL.z1) / 2, (ISL.x1 - ISL.x0) / 2, (ISL.z1 - ISL.z0) / 2, ISL.top],
     [(SHV.x0 + SHV.x1) / 2, SHV.d / 2, (SHV.x1 - SHV.x0) / 2, SHV.d / 2, SHV.top],
     [(TB.x0 + TB.x1) / 2, (TB.z0 + TB.z1) / 2, (TB.x1 - TB.x0) / 2, (TB.z1 - TB.z0) / 2, TB.top],
-    [560, 1640, 105, 105, -366], [620, 1990, 105, 105, -366],
+    [560, 1700, 105, 105, -366], [630, 1430, 105, 105, -366],
     [XF - 70, 715, 70, 485, SF.y0], [(SH.niche.x + XF) / 2, 115, (XF - SH.niche.x) / 2, 115, 316],
     [-1000, 430, 100, 100, -420],
     [-1347, 1510, 145, 210, ISL.top + 250], [-1330, 1935, 140, 150, ISL.top + 220],
@@ -643,7 +654,7 @@ export function createShell({ renderer, scene, lightUniforms, sun }) {
     plain: surf(0), satin: surf(0, 0.3), chrome: surf(0, 0.9), wood: surf(2, 0.04), flute: surf(5, 0.04), plaster: surf(3),
     marble: surf(4, 0.25), tile: surf(1, 0.04), glazed: surf(6, 0.5), fabric: surf(7), cane: surf(8), thru: surf(9, 0.2),
     emit: shaderMat(EMISSIVE_FRAG),
-    leaf: shaderMat(LEAF_FRAG, { uAtlas: { value: leafTex } }, { side: THREE.DoubleSide }),
+    leaf: shaderMat(LEAF_FRAG, { uAtlas: { value: leafTex } }, { side: THREE.DoubleSide, alphaToCoverage: true }),
     glass: shaderMat(GLASS_FRAG, { uAlpha: { value: 0.05 } }, { transparent: true, depthWrite: false, side: THREE.DoubleSide }),
   };
 
@@ -720,26 +731,32 @@ export function createShell({ renderer, scene, lightUniforms, sun }) {
       leaf(0, jit(C.leafM, r), tip, V(Math.cos(a), 0.45 - r() * 0.7, Math.sin(a)), size * (0.68 + r() * 0.2), size * (0.62 + r() * 0.2), 0.16, (r() - 0.5) * 0.7);
     }
   }
+  // A fiddle-leaf fig: a trunk that forks into three branches part way up, its leaves on their upper parts,
+  // turned within a0..a1 (0 is +x, a quarter turn +z).
   function fig(x, y, z, height, seed, a0 = 0, a1 = 2 * Math.PI, n = 20) {
-    const r = mulberry32(seed), top = V(x + 14, y + height, z - 8);
-    rod('wood', C.bark, V(x, y, z), top, 10, null, 7);
+    const r = mulberry32(seed), fork = V(x + 6, y + height * 0.42, z - 4);
+    rod('wood', C.bark, V(x, y, z), fork, 11, null, 7);
+    const ends = [0, 1, 2].map(i => { const a = a0 + (a1 - a0) * (0.2 + 0.3 * i), lean = 0.22 + 0.08 * i; return fork.clone().add(V(Math.cos(a) * height * lean, height * (0.5 + 0.05 * i), Math.sin(a) * height * lean)); });
+    for (const e of ends) rod('wood', C.bark, fork, e, 7, null, 6);
     for (let k = 0; k < n; k++) {
-      const t = 0.32 + 0.68 * (k / (n - 1)), a = a0 + (a1 - a0) * ((k * 0.618 + r() * 0.2) % 1);
-      const base = V(x + 14 * t, y + height * t, z - 8 * t), out = V(Math.cos(a), 0.5, Math.sin(a)).normalize();
-      const b2 = base.clone().addScaledVector(out, 18);
+      const b = ends[k % 3], t = 0.3 + 0.7 * ((k * 0.37 + r() * 0.2) % 1);
+      const base = fork.clone().lerp(b, t), a = a0 + (a1 - a0) * ((k * 0.618 + r() * 0.2) % 1);
+      const out = V(Math.cos(a), 0.5, Math.sin(a)).normalize(), b2 = base.clone().addScaledVector(out, 18);
       stem(base, b2, 3);
-      const len = (120 + 80 * r()) * (1.15 - 0.35 * t);
-      leaf(2, jit(C.leafF, r), b2, V(Math.cos(a), 0.4 + r() * 0.9 - 0.4 * (1 - t), Math.sin(a)), len * 0.62, len, 0.1, (r() - 0.5) * 0.9);
+      const len = (120 + 80 * r()) * (1.1 - 0.3 * t);
+      leaf(2, jit(C.leafF, r), b2, V(Math.cos(a), 0.4 + r() * 0.9, Math.sin(a)), len * 0.62, len, 0.1, (r() - 0.5) * 0.9);
     }
   }
   // A pothos vine from a pot's rim, trailing out along `out` and down.
-  function vine(start, out0, len, seed, size = 40) {
+  // clear: how far it runs out over its shelf or table, nearly level, before it falls past the edge.
+  function vine(start, out0, len, seed, size = 40, clear = 0) {
     const r = mulberry32(seed), out = out0.clone().setY(0).normalize();
-    let p = start.clone();
+    let p = start.clone(), run = 0;
     const steps = Math.max(2, Math.round(len / 32));
     for (let k = 0; k < steps; k++) {
-      const reach = k < 2 ? 16 : 3;
-      const q = p.clone().add(V(out.x * reach + (r() - 0.5) * 10, -26 - r() * 10, out.z * reach + (r() - 0.5) * 10));
+      const over = run < clear, reach = over ? 30 : k < 2 ? 16 : 3;
+      run += reach;
+      const q = p.clone().add(V(out.x * reach + (r() - 0.5) * 10, over ? -2 - r() * 3 : -26 - r() * 10, out.z * reach + (r() - 0.5) * 10));
       stem(p, q, 1.8);
       const side = k % 2 ? 1 : -1, across = V(-out.z, 0, out.x).multiplyScalar(side);
       const dir = across.multiplyScalar(0.7).add(out.clone().multiplyScalar(0.7)).add(V(0, -0.2 - r() * 0.6, 0));
@@ -755,12 +772,14 @@ export function createShell({ renderer, scene, lightUniforms, sun }) {
     }
   }
   // A small pot of trailing pothos, for a shelf or a table.
-  function shelfPlant(x, y, z, out, seed, r = 38, h = 52, col = C.cream) {
+  // clear: the distance from its rim to the edge it trails over (0 for a pot that hangs).
+  function shelfPlant(x, y, z, out, seed, r = 38, h = 52, col = C.cream, clear = 90) {
     pot(x, y, z, r, h, col);
     const rr = mulberry32(seed);
     for (let k = 0; k < 5; k++) { const a = k * 1.3 + rr(); leaf(1, jit(C.leafP, rr), V(x + Math.cos(a) * 8, y + h * 0.85, z + Math.sin(a) * 8), V(Math.cos(a), 0.9, Math.sin(a)), 34, 38, 0.2, rr()); }
-    vine(V(x + out.x * r, y + h * 0.9, z + out.z * r), out, 120 + rr() * 140, seed + 1, 34);
-    vine(V(x + out.z * r * 0.6, y + h * 0.9, z - out.x * r * 0.6), out, 60 + rr() * 80, seed + 2, 32);
+    const o = out.clone().setY(0).normalize();
+    vine(V(x + o.x * r, y + h * 0.9, z + o.z * r), o, 120 + rr() * 140 + clear, seed + 1, 34, clear);
+    vine(V(x + o.x * r * 0.7 + o.z * r * 0.6, y + h * 0.9, z + o.z * r * 0.7 - o.x * r * 0.6), o, 60 + rr() * 80 + clear, seed + 2, 32, clear);
   }
 
   // ---- small things -------------------------------------------------------------------------------------------
@@ -845,7 +864,7 @@ export function createShell({ renderer, scene, lightUniforms, sun }) {
   // and glazing bars, as the sun sees them
   const bar = (z0, y0, z1, y1) => bx('satin', C.steel, XF - 4, y0, z0, XF + 14, y1, z1);
   const Fw = W.frame;
-  for (const z of [SF.z0, W.z0, W.z1, SF.z1 - Fw]) bar(z, SF.y0, z + Fw, SF.y1);
+  for (const z of [SF.z0, W.z0, W.z1 - Fw, SF.z1 - Fw]) bar(z, SF.y0, z + Fw, SF.y1);
   for (const z of SF.sideBars) bar(z - W.bar / 2, SF.y0, z + W.bar / 2, SF.y1);
   for (const y of [SF.y0, W.y0, W.y1 - Fw, SF.y1 - Fw]) bar(SF.z0, y, SF.z1, y + Fw);
   const ty = W.y0 + (W.y1 - W.y0) * W.transom, zs = [W.z0 + Fw + (W.z1 - W.z0 - 2 * Fw) / 3, W.z0 + Fw + 2 * (W.z1 - W.z0 - 2 * Fw) / 3];
@@ -886,12 +905,12 @@ export function createShell({ renderer, scene, lightUniforms, sun }) {
   bx('wood', C.oak, NX, cabTop, 0, XF, cabTop + 16, SD + 10);
   pot(1060, cabTop + 16, 112, 70, 130, C.terra);
   monstera(1060, cabTop + 130, 112, 180, 12, 11, Math.PI / 2 - 0.2, Math.PI + 0.3);
-  for (const [x, c] of [[930, [0.85, 0.82, 0.75]], [960, [0.16, 0.16, 0.18]]]) bx('satin', c, x - 6, cabTop + 16, 30, x + 6, cabTop + 196, 200);   // two sleeves leaning
+  for (const [x, c] of [[1166, [0.85, 0.82, 0.75]], [1186, [0.16, 0.16, 0.18]]]) bx('satin', c, x - 6, cabTop + 16, 30, x + 6, cabTop + 196, 200);   // two sleeves standing
   bx('plaster', C.plaster, -NX - 110, YF, 0, -NX, YC, 70);
   quad('plaster', C.plaster, -NX - 110 - XB, YC - YF, at((XB - NX - 110) / 2, (YF + YC) / 2, 0.5));
   // track lights on the ceiling, aimed at the record wall (what lights it so)
   bx('plain', C.slate, -1700, YC - 26, 380, 900, YC - 14, 400);
-  for (const x of [-1300, -500, 300]) cy('plain', C.slate, 0, -50, 0, 26, 100, at(x, YC - 70, 390, 0, -0.5), 30, 20);
+  for (const x of [-1300, -500, 300]) cy('plain', C.slate, 0, -50, 0, 26, 100, at(x, YC - 70, 390, 0, 0.5), 30, 20);
 
   // ---- the bar ------------------------------------------------------------------------------------------------
   // The back counter: teak cupboards under a marble top, sage tiles behind it, a floating shelf above.
@@ -911,7 +930,7 @@ export function createShell({ renderer, scene, lightUniforms, sun }) {
       else if (k === 'glasses') { for (let j = 0; j < 4; j++) tumbler(x, y, z + j * 52, 64); z += 230; }
       else if (k === 'jars') { for (let j = 0; j < 3; j++) jar(x, y, z + j * 78, 90 + 30 * r(), j % 2 ? C.beans : [0.85, 0.75, 0.55]); z += 250; }
       else if (k === 'plant') { shelfPlant(x, y, z + 30, V(1, 0, 0.15), 40 + z, 36, 48); z += 150; }
-      else if (k === 'teapot') { el('satin', C.clay, x, y + 50, z + 30, 50, 46, 50); rod('satin', C.clay, V(x, y + 50, z + 70), V(x + 6, y + 84, z + 110), 7); ring('satin', C.clay, 24, 5, at(x, y + 60, z - 18, Math.PI / 2, 0, Math.PI / 2), Math.PI, 12); z += 150; }
+      else if (k === 'teapot') { el('satin', C.clay, x, y + 46, z + 30, 50, 46, 50); rod('satin', C.clay, V(x, y + 46, z + 70), V(x + 6, y + 80, z + 110), 7); ring('satin', C.clay, 24, 5, at(x, y + 56, z - 18, Math.PI / 2, 0, -Math.PI / 2), Math.PI, 12); z += 150; }
       else if (k === 'bags') { for (let j = 0; j < 3; j++) bag(x, y, z + j * 82, 50, 150 - j * 12, 74, BAGS[j + 1], LABELS[j], null, 'x'); z += 260; }
     }
   }
@@ -946,13 +965,15 @@ export function createShell({ renderer, scene, lightUniforms, sun }) {
       cy('plain', C.coffee, x, y + 28, z, 38, 34, null, 42, 20);
       lathe('satin', C.cream, [[0, 0], [16, 0], [56, 66], [60, 72], [56, 72], [14, 6], [0, 6]], x, y + 196, z);
     }
-    kettle(x + 20, y, 1040, C.ink, null, Math.PI / 2);
-    // the batch brewer
-    bx('satin', C.stainless, x - 120, y, 1070, x + 100, y + 380, 1250);
-    bx('plain', C.ink, x + 100, y + 230, 1090, x + 130, y + 300, 1230);
-    bx('emit', [0.25, 0.5, 0.42], x + 100, y + 330, 1140, x + 102, y + 350, 1180);
-    lathe('glass', C.clear, [[0, 0], [60, 0], [64, 70], [40, 120], [36, 130], [0, 130]], x + 40, y + 6, 1160);
-    cy('plain', C.coffee, x + 40, y + 8, 1160, 58, 60, null, 62, 20);
+    kettle(x + 70, y, 1045, C.ink, null, 0);
+    // the batch brewer: its tower at the back, the brew basket over its carafe on the hot plate in front
+    bx('satin', C.stainless, x - 150, y, 1110, x - 30, y + 400, 1290);
+    bx('satin', C.stainless, x - 30, y + 250, 1120, x + 100, y + 330, 1280);
+    bx('plain', C.ink, x - 20, y + 236, 1150, x + 70, y + 250, 1250);
+    bx('satin', C.stainless, x - 30, y, 1120, x + 100, y + 14, 1280);
+    bx('emit', [0.25, 0.5, 0.42], x + 100, y + 296, 1180, x + 102, y + 316, 1220);
+    lathe('glass', C.clear, [[0, 0], [54, 0], [58, 64], [36, 110], [32, 120], [0, 120]], x + 34, y + 14, 1200);
+    cy('plain', C.coffee, x + 34, y + 16, 1200, 52, 54, null, 56, 20);
     // Thai tea: the urn, the cloth filter on its stand over a pot, a stack of glasses
     cy('satin', C.stainless, x - 20, y, 1420, 74, 250, null, 70, 28);
     cy('satin', C.ink, x - 20, y + 250, 1420, 50, 30, null, 30, 20);
@@ -1015,7 +1036,7 @@ export function createShell({ renderer, scene, lightUniforms, sun }) {
     bx('chrome', C.chrome, x0 - 80, y, z0 + 30, x0, y + 16, z1 - 30);
     for (const z of [z0 + 25, z1 - 25]) rod('chrome', C.chrome, V(x0 - 10, y + 200, z), V(x0 - 70, y + 40, z), 5);
     // milk jugs and a knock box beside it
-    for (const [dx, dz] of [[0, 0], [40, 46]]) lathe('chrome', C.stainless, [[0, 0], [30, 0], [30, 50], [24, 66], [27, 72], [0, 70]], -1520 + dx, y, 1760 + dz, null, 20);
+    for (const [dx, dz] of [[0, 0], [-6, 44]]) lathe('chrome', C.stainless, [[0, 0], [30, 0], [30, 50], [24, 66], [27, 72], [0, 70]], -1525 + dx, y, 1730 + dz, null, 20);
     bx('satin', C.ink, -1470, y, 1215, -1395, y + 70, 1285);
   }
   // two grinders (their hoppers full of beans), the pick-up end with drinks waiting and a bud vase
@@ -1131,8 +1152,8 @@ export function createShell({ renderer, scene, lightUniforms, sun }) {
     ring('wood', wd, 68, 8, at(-98, sy + 230, 0, Math.PI / 2, 0, 0, F), Math.PI, 24);
     ring('wood', wd, 46, 5, at(-90, sy + 196, 0, Math.PI / 2, 0, 0, F), Math.PI, 20);
   }
-  chair(560, 1640, -0.18);
-  chair(630, 1990, 0.06);
+  chair(560, 1700, -0.18);   // Neil's, pulled out before the laptop
+  chair(630, 1430, 0.06);    // the other place, pushed in, clear of the screen from the Table view
   // On the table, as Neil left it: the laptop open toward his chair, the Thai tea, a notebook and pen, his
   // phone, an espresso by the other place, a carafe of water, a small plant by the window.
   const screenTex = keep(canvasTexture(900, 576, drawScreen));
@@ -1165,7 +1186,7 @@ export function createShell({ renderer, scene, lightUniforms, sun }) {
     lathe('glass', C.clear, [[0, 0], [40, 0], [44, 60], [30, 120], [18, 150], [20, 160], [0, 160]], 1050, y, 1300, null, 24);
     cy('glass', [0.7, 0.85, 0.9], 1050, y + 4, 1300, 38, 90, null, 34, 20);
     tumbler(990, y, 1270, 64);
-    shelfPlant(1075, y, 2010, V(0, 0, -1), 71, 34, 46, C.terra);
+    shelfPlant(1075, y, 2010, V(1, 0, 0), 71, 34, 46, C.terra, 80);
   }
   // a globe pendant over the table, and a pothos hanging by the window
   rod('plain', C.ink, V(tableLamp.x, tableLamp.y + 60, tableLamp.z), V(tableLamp.x, YC, tableLamp.z), 2.5);
@@ -1174,7 +1195,7 @@ export function createShell({ renderer, scene, lightUniforms, sun }) {
     const p = V(1060, 620, 1470);
     for (let k = 0; k < 3; k++) { const a = k * 2.094; rod('plain', [0.6, 0.52, 0.4], V(p.x + Math.cos(a) * 44, p.y + 60, p.z + Math.sin(a) * 44), V(p.x, YC - 200, p.z), 1.5); }
     rod('plain', [0.6, 0.52, 0.4], V(p.x, YC - 200, p.z), V(p.x, YC, p.z), 2);
-    shelfPlant(p.x, p.y, p.z, V(-1, 0, 0), 81, 52, 64, C.cream);
+    shelfPlant(p.x, p.y, p.z, V(-1, 0, 0), 81, 52, 64, C.cream, 0);
     vine(V(p.x - 20, p.y + 58, p.z + 40), V(-0.5, 0, 0.86), 280, 83, 38);
     vine(V(p.x + 10, p.y + 58, p.z - 46), V(-0.3, 0, -0.95), 220, 84, 36);
   }
@@ -1203,10 +1224,25 @@ export function createShell({ renderer, scene, lightUniforms, sun }) {
 
   const finish = createFinish(renderer);
   disposables.push(finish);
+  const textures = [leafTex, menuTex, screenTex];
   return {
     group,
     fan,
     finish,
+    // Out of sight before the first move: build every program for the room's own (linear) target and the
+    // finishing quad's for the screen, upload the drawn textures, and allocate the target.
+    async warm(camera) {
+      group.visible = true;
+      const was = renderer.getRenderTarget();
+      renderer.setRenderTarget(finish.target);
+      const p = renderer.compileAsync ? renderer.compileAsync(scene, camera) : (renderer.compile(scene, camera), null);
+      renderer.setRenderTarget(was);
+      group.visible = false;
+      if (p) await p;
+      for (const t of textures) renderer.initTexture(t);
+      finish.compile();
+      ext.bake();   // allocates the record wall extension's bake target too
+    },
     // Re-light the record wall's extension when the studio bake does (sleeves moved).
     bake() { ext.bake(); },
     setVisible(v) { if (group.visible !== v) { group.visible = v; if (v) ext.bake(); } },
