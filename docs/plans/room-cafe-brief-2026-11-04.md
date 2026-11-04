@@ -1,9 +1,13 @@
 # Editions v2: the café
 
 - **Branch:** `feat/room`. Supersedes `room-skeleton-brief-2026-11-04.md` (the four-wall room).
-- **Status:** the direction was chosen by the operator on 4 November 2026 on the Café Art Direction page (https://claude.ai/artifact/5pPJ24QXhTFdNq2BXX2oXC). v1, the record wall, is frozen on `feat/editions`.
-- **Skeleton commit** `1950bd1` is superseded:
-  - **Carries over:** the turn controller (`editions/room/room.js`), the edge buttons and keys, the hash routes, each view's HTML mirror, lazy loading, the guards on Details and project pages, and the reduced-motion cut.
+- **Status:** the direction was chosen by the operator on 4 November 2026 on the Café Art Direction page (https://claude.ai/artifact/5pPJ24QXhTFdNq2BXX2oXC). v1, the record wall, lives on `feat/editions`, which other sessions keep updating.
+- **Keeping up with `feat/editions`:**
+  - This branch merges it in, never the other way. Nothing here is pushed to `feat/editions` or `main`.
+  - It was merged at `ce10c67`, which brings Details flying to the centre and then turning, films on some backs, Open going to the live site (Decision 16), and Get in touch as a contact form.
+  - Before each round, merge the latest `feat/editions`. The v1 baseline for every comparison is that head.
+- **Skeleton commit** `1950bd1` is superseded and has been reverted, so this branch's code is v1's again:
+  - **Recover from that commit in round 2:** the turn controller (`editions/room/room.js`), the edge buttons and keys, the hash routes, each view's HTML mirror, lazy loading, the guards on Details and project pages, and the reduced-motion cut.
   - **Dropped:** the room map, the four placeholder walls, the yaw-only turn on the long lens, swipe, and the phone controls.
 
 ## Goal
@@ -28,10 +32,10 @@ The record wall becomes one wall of a café in Bangkok where Neil works. Two mor
   - It falls across the record wall from the upper right, the side v1's key light already comes from, so the sleeves' shading stays consistent.
 - **Table:**
   - **A MacBook Pro.** Its screen is a live render of the record wall, with a terminal window on top typing real output from this repo; the lid's logo faces away from the camera.
-  - **Coffee and plants.**
+  - **A Thai tea** (cha yen) in a glass with condensation, and plants.
 - **Counter:**
   - The menu board lists the services: **Cross-platform content** and **Community management**.
-  - "Order here" leads to Get in touch.
+  - "Order here" opens the Get in touch form, the same modal as the header's button.
   - Order slips on a rail above the counter are kept; the operator hasn't given the three steps yet.
 - **Window lettering:** "njct.io", seen reversed from inside.
 - **Tagline:** "Products I've designed and built." (replaces "Systems I've designed and built.").
@@ -44,7 +48,7 @@ The record wall becomes one wall of a café in Bangkok where Neil works. Two mor
 ## Bangkok: proposals to confirm in round 2's greybox
 - **The room:** a shophouse café: a tall, narrow room with a high ceiling, a slow ceiling fan, a patterned cement-tile or terrazzo floor, and a steel-framed window with a decorative grille. The grille adds to the frame's shadow on the record wall.
 - **Outside the window:** tropical leaves (banana, monstera, frangipani) and a soi in hazy golden light, with the tangle of overhead cables Bangkok streets are known for.
-- **The coffee:** Thai iced coffee in a glass with condensation, beside the laptop.
+- **The drink:** Thai tea, its orange glow in a glass with condensation, beside the laptop (decided by the operator).
 - **The leaf shadows:** large, slow-moving and tropical.
 
 ## Rounds
@@ -61,7 +65,7 @@ Each round is build, capture, measure, critique and fix, as in v1.
 - **Files:** the sun is a term in `scene/lighting.js` (the wall bake and the shelves) and in the sleeves' shading. The covers keep their fitted colour outside the patch.
 - **The tagline** changes in this round.
 - **Checks:**
-  - **Sun off:** every pixel matches `feat/editions` at 1440×900, at rest and in Details. This proves only the light changed.
+  - **Sun off:** every pixel matches `feat/editions` at 1440×900, at rest and in Details. This proves only the light changed. In Details, compare a sleeve without a film, or before its film starts.
   - **Sun on:** captures at rest and in Details, and the covers in the patch stay legible.
   - **Timing:** not measured in the cloud, which has no GPU; it's measured on the Mac Mini.
 
@@ -85,7 +89,7 @@ Each round is build, capture, measure, critique and fix, as in v1.
 
 ### 5. The table
 - The laptop: the screen render and the terminal.
-- The iced coffee, the plants, the window lettering.
+- The Thai tea, the plants, the window lettering.
 
 ### 6. Life and sound
 - Steam, condensation, dust in the light, the leaves, the fan.
@@ -101,7 +105,7 @@ Each round is build, capture, measure, critique and fix, as in v1.
 - **For Bangkok:** its listening bars and vinyl cafés, e.g. Studio Lam on Sukhumvit 51.
 
 ## Rules
-- **Copy:** visible strings are proposals until the operator approves them. Rows 65 onward of `editions-copy-proposals.md` hold this brief's strings.
+- **Copy:** visible strings are proposals until the operator approves them. Rows 66 onward of `editions-copy-proposals.md` hold this brief's strings.
 - **The record wall:** v1's camera, layout and behaviour stay exactly as built, and only the light changes. Prove it as in round 1.
 - **Budgets:**
   - 60 fps while turning, on a machine with a GPU.
