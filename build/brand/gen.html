@@ -1,0 +1,42 @@
+<!doctype html>
+<!-- njct.io brand assets, drawn from the live site's own fonts and colours.
+     Rendered headless, one asset per run:
+       ?a=icon&s=16|32|48   favicon tiles (rounded, transparent corners)
+       ?a=touch              180px apple-touch tile (square; iOS rounds it)
+       ?a=og                 the 1200x630 link-preview card
+     chrome --headless=new --screenshot=out.png --window-size=W,H this-file?<query>
+     The candidate is C (operator, 4 Nov 2026): "nj" in wall grey on black. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+@font-face { font-family: NJ Inter; src: url('../../vendor/fonts/ui/inter-variable-ui.woff2') format('woff2'); font-weight: 100 900; }
+@font-face { font-family: NJ Mono; src: url('../../vendor/fonts/ui/jetbrains-mono-500-page.woff2') format('woff2'); font-weight: 500; }
+html, body { margin: 0; padding: 0; }
+body { width: var(--s); height: var(--s); overflow: hidden; }
+.tile { width: var(--s); height: var(--s); background: #000; color: #dcdcdc;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'NJ Inter', sans-serif; font-weight: 600; letter-spacing: calc(var(--s) * -0.03);
+  font-size: calc(var(--s) * 0.62); line-height: 1; }
+body.icon .tile { border-radius: calc(var(--s) * 0.18); }
+body.touch .tile { border-radius: 0; }
+body.og { --s: auto; background: radial-gradient(120% 65% at 50% 38%,
+  #d3d3d3, #d6d6d6 25%, #d9d9d9 55%, #dcdcdc 100%); }
+.ogcard { width: 1200px; height: 630px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 22px; color: #000; }
+.ogcard .big { font-family: 'NJ Inter', sans-serif; font-weight: 500; font-size: 132px; letter-spacing: -0.03em; line-height: 1; }
+.ogcard .rule { width: 60px; height: 1px; background: rgba(0,0,0,.35); }
+.ogcard .small { font-family: 'NJ Mono', monospace; font-weight: 500; font-size: 31px; color: rgba(0,0,0,.6); }
+</style>
+</head>
+<body>
+<script>
+const q = new URLSearchParams(location.search), a = q.get('a') || 'icon', s = q.get('s') || '32';
+document.body.className = a;
+document.body.style.setProperty('--s', a === 'og' ? '1200px' : s + 'px');
+document.body.innerHTML = a === 'og'
+  ? '<div class="ogcard"><div class="big">njct.io</div><div class="rule"></div><div class="small">the NJCT product portfolio</div></div>'
+  : '<div class="tile">nj</div>';
+</script>
+</body>
+</html>
