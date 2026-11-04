@@ -926,7 +926,7 @@ slotsEl.addEventListener('focusout', e => {
   if (!det) setHovered(pointerHit);
 });
 window.addEventListener('keydown', e => {
-  if (e.metaKey || e.ctrlKey || e.altKey || inProject >= 0) return;
+  if (e.metaKey || e.ctrlKey || e.altKey || inProject >= 0 || document.querySelector('dialog.ct[open]')) return;
   if (det) {
     if (film.zoomed) { if (e.key === 'Escape') { e.preventDefault(); film.unzoom(); } return; }
     if (e.key === 'Escape') { e.preventDefault(); closeDetails(); }

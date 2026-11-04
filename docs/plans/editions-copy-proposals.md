@@ -809,3 +809,10 @@ Shows who visited each product site, where they came from and which post, email 
 ## Details film (proposal, 2026-11-04)
 - Play button label (screen readers): "Play the film"
 - Close button label (screen readers): "Close the film"
+
+## Get in touch modal (proposal, 2026-11-04)
+- Title: "Get in touch"
+- Field labels: "Name", "Email", "Message"
+- Button: "Send"
+- Close button label (screen readers): "Close"
+- Email the form composes: subject "Hello from {name}", body "{message}\n\n{name} <{email}>"
