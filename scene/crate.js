@@ -21,10 +21,12 @@ export const CRATE = {
   drag: 150, carry: 0.06, omega: 8.5,
   details: { size: 0.815, centreY: 0.404 },              // the sleeve in Details: share of the width, centre height
   wheelNotch: 60,
-  // The ground: 203 on the reference's phone against the shelf view's 218-220 here (a linear factor), and
-  // a soft shadow the crate casts to its left: from the screen's left edge to its centre, 40.3% to 79.4%
-  // of the screen height, 11 levels darker (192 of 203: 5.4% in display terms), 20 px soft edges.
-  groundGain: 0.838, edgeColour: 0x1c1c1c,
+  // The crate casts a soft shadow to its left: from the screen's left edge to its centre, 40.3% to 79.4% of
+  // the screen height, 5.4% darker in display terms, with 20 px soft edges.
+  // The ground at the shelf's own brightness, and the covers' light 2.5 times the shelf's: leaning toward the
+  // visitor, each front faces a little down, away from the room's light, and without this read darker
+  // than the same cover on the shelf (Topshine's front measured within 2 levels of the shelf's at 2.5).
+  groundGain: 1, coverLight: 2.5, edgeColour: 0x1c1c1c,
   shadow: { y0: 0.403, y1: 0.794, alpha: 0.054, feather: 20 },
 };
 
@@ -93,6 +95,8 @@ export function createCrate(count) {
       q.lean = -(CRATE.lean + (CRATE.flatLean - CRATE.lean) * u);
       q.lift = Yb - flatOff(k) - s.shelfY;
       q.z = Z0 + 0.25 * L * u + 5 * Math.max(0, flatOff(k) - flatOff(1));
+      // Only the last two flipped show: the one before fades as it drops, so the pile never reaches the bar.
+      q.opacity = Math.max(0, Math.min(1, 2.5 - k));
     }
     return q;
   }

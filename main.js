@@ -29,7 +29,8 @@ const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 // RoomEnvironment lights a card facing the camera at about 2.3x unit irradiance; this brings a flat
 // cover's base colour back to itself under the Neutral tone mapper.
-scene.environmentIntensity = 0.46;
+const ENV_INTENSITY = 0.46;
+scene.environmentIntensity = ENV_INTENSITY;
 pmrem.dispose();
 
 const uniforms = createLightUniforms();
@@ -411,6 +412,7 @@ function layout() {
   for (const m of shelfMeshes) m.visible = !bare;
   // The crate's ground: darker, with its shadow, and the sleeves' edges dark as on the reference's crate.
   wall.setGain(crateMode ? CRATE.groundGain : 1);
+  scene.environmentIntensity = ENV_INTENSITY * (crateMode ? CRATE.coverLight : 1);
   crateShadow.mesh.visible = crateMode;
   if (crateMode) crateShadow.layout(W, H, S);
   for (const s of sleeves) s.mats[0].color.set(crateMode ? CRATE.edgeColour : 0xf1efea);
