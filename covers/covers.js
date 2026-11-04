@@ -394,6 +394,10 @@ float turned(vec2 p, int L, out float d, out float h) {
 // the concept's folds are drawn crisp: a light line on one side and a dark one on the other (gain at d, gain at d,
 // tile px), fading where the fold does
 const vec4 CREASE[4] = vec4[4](vec4(0.0, 0.0, 0.0, 0.0), vec4(0.0), vec4(0.03, -1.1, -0.22, 0.9), vec4(0.035, -0.8, -0.08, 1.2));
+// each face's keys' box (cover units, x0, y0, x1, y1): a turning lookup is held inside its face's keys, beyond which the
+// face's colour field has nothing to blend (it would read black)
+const vec4 FBOX[7] = vec4[7](vec4(0.0713, 0.602, 0.3078, 0.7021), vec4(0.0409, 0.2883, 0.3345, 0.6513), vec4(0.3755, 0.2926, 0.478, 0.8063),
+  vec4(0.5238, 0.2903, 0.8095, 0.7024), vec4(0.624, 0.4904, 0.8101, 0.5408), vec4(0.8493, 0.2896, 0.9767, 0.824), vec4(0.8448, 0.6379, 0.864, 0.7742));
 // each letter's middle and half-size (cover units), from its faces' keys: the s, the first t, the e, the last t
 const vec4 LETTER[4] = vec4[4](vec4(0.188, 0.495, 0.147, 0.207), vec4(0.427, 0.549, 0.051, 0.257), vec4(0.667, 0.496, 0.143, 0.206), vec4(0.911, 0.557, 0.066, 0.267));
 vec3 stetFill(vec2 p, float t, int L) {
@@ -404,15 +408,21 @@ vec3 stetFill(vec2 p, float t, int L) {
   if (mOn(1.0) && t > 0.0) {
     vec4 c = LETTER[L];
     float per = L == 0 ? 22.0 : L == 1 ? -17.0 : L == 2 ? 26.0 : -19.0, k = 1.0 + 0.18 * sin(TAU * t / (11.0 + 2.0 * float(L)));
-    // kept inside the letter's own keys: beyond them the colour field has nothing to blend
-    q = c.xy + clamp(rot(TAU * t / per) * ((p - c.xy) / c.zw) * k, -0.97, 0.97) * c.zw;
+    q = c.xy + rot(TAU * t / per) * ((p - c.xy) / c.zw) * k * c.zw;
   }
   q += (h22(FC * 0.731 + 3.0) - 0.5) * 0.016;
   ivec2 F = FACES[L];
   float d = 1e3, h = 0.0;
   float b = F.y < 0 ? 0.0 : turned(p, L, d, h);
-  vec3 c = b < 1.0 ? face(q, F.x) : vec3(0.0);
-  if (b > 0.0) c = mix(c, face(q, F.y), b);
+  // motion a: each face reads its colour from inside its own keys (blended in from clock 0, so the still frame is untouched)
+  vec2 qa = q, qb = q;
+  if (mOn(1.0) && t > 0.0) {
+    float g = sat(t / 1.5);
+    qa = mix(q, clamp(q, FBOX[F.x].xy, FBOX[F.x].zw), g);
+    if (F.y >= 0) qb = mix(q, clamp(q, FBOX[F.y].xy, FBOX[F.y].zw), g);
+  }
+  vec3 c = b < 1.0 ? face(qa, F.x) : vec3(0.0);
+  if (b > 0.0) c = mix(c, face(qb, F.y), b);
   vec4 k = CREASE[L];
   c *= 1.0 + h * (k.x * exp(-pow((d - k.y) / 0.6, 2.0)) + k.z * exp(-pow((d - k.w) / 0.6, 2.0)));
   // the rim reads the front's type mask (the back's band has none)
