@@ -134,6 +134,8 @@ float falloff(float d, float r) { float u = sat(1.0 - max(d, 0.0) / r); return u
 // option is exactly the still frame at clock 0. mRise is 0 before a and 1 after b; mBump is 0 outside [a, b], 1 at its middle.
 uniform float uMotion, uCycle;
 bool mOn(float k) { return abs(uMotion - k) < 0.5; }
+// uV1: the motion is off, so the cover in focus plays v1's own hover motion, exactly as v1 did
+uniform float uV1;
 float mRise(float u, float a, float b) { return ease(sat((u - a) / (b - a))); }
 float mBump(float u, float a, float b) { float x = sat((u - a) / (b - a)); return 0.5 - 0.5 * cos(TAU * x); }
 
@@ -405,7 +407,8 @@ vec3 stetFill(vec2 p, float t, int L) {
   // shape, each letter on its own clock (the t's the other way round), breathing in and out as they turn; the stipple
   // jitters where the blend is read
   vec2 q = p;
-  if (mOn(1.0) && t > 0.0) {
+  if (uV1 > 0.5) q = p + 0.010 * vec2(sin(t * 0.37), cos(t * 0.29) - 1.0);   // v1: the keys drift a little
+  else if (mOn(1.0) && t > 0.0) {
     vec4 c = LETTER[L];
     float per = L == 0 ? 22.0 : L == 1 ? -17.0 : L == 2 ? 26.0 : -19.0, k = 1.0 + 0.18 * sin(TAU * t / (11.0 + 2.0 * float(L)));
     q = c.xy + rot(TAU * t / per) * ((p - c.xy) / c.zw) * k * c.zw;
@@ -416,7 +419,7 @@ vec3 stetFill(vec2 p, float t, int L) {
   float b = F.y < 0 ? 0.0 : turned(p, L, d, h);
   // motion a: each face reads its colour from inside its own keys (blended in from clock 0, so the still frame is untouched)
   vec2 qa = q, qb = q;
-  if (mOn(1.0) && t > 0.0) {
+  if (mOn(1.0) && t > 0.0 && uV1 < 0.5) {
     float g = sat(t / 1.5);
     qa = mix(q, clamp(q, FBOX[F.x].xy, FBOX[F.x].zw), g);
     if (F.y >= 0) qb = mix(q, clamp(q, FBOX[F.y].xy, FBOX[F.y].zw), g);
@@ -490,7 +493,12 @@ vec3 motif(vec2 p, float t) {
   vec2 X = vec2(0.47626, 0.77821), c1 = vec2(0.65799, 0.33545), cD = vec2(0.59558, 0.43873), cP = vec2(0.02461, 1.04655);
   float r1 = 0.35365, rD = 0.16549, rP = 0.51214, br = 1.0;
   vec2 q4 = q, w4 = w, w1 = w, wP = w;
-  if (mOn(1.0) && t > 0.0) {
+  if (uV1 > 0.5) {
+    // v1: the discs drift a few pixels and the band of light breathes
+    float dr = 0.006 * sin(t * 0.35);
+    br = 1.0 + 0.25 * sin(t * 0.5);
+    cD.x += dr; cP.x -= dr; q4 = q + vec2(0.8 * dr, 0.0);
+  } else if (mOn(1.0) && t > 0.0) {
     vec4 s = sin(TAU * t / vec4(9.0, 11.0, 13.0, 14.0)), s2 = sin(TAU * t / vec4(15.0, 17.0, 19.0, 21.0)), s3 = sin(TAU * t / vec4(23.0, 25.0, 27.0, 29.0));
     br += 0.25 * s.x;
     X += vec2(0.07 * s2.w, 0.04 * s3.z);
@@ -776,7 +784,7 @@ float streak(vec2 u, vec2 c, vec2 s, vec2 cs) {
 void weigh(vec2 p, float t, inout float w[${FO.length}], inout vec3 extra) {
   vec2 u = vec2(p.x, 1.0 - p.y);
   // motion a: a glint runs round the ring and caustics shimmer in the star, fading in and out over the cycle
-  float live = mOn(1.0) ? mRise(t / uCycle, 0.0, 0.12) * (1.0 - mRise(t / uCycle, 0.86, 1.0)) : 0.0;
+  float live = uV1 > 0.5 ? 1.0 - exp(-t * 1.2) : mOn(1.0) ? mRise(t / uCycle, 0.0, 0.12) * (1.0 - mRise(t / uCycle, 0.86, 1.0)) : 0.0;
   vec4 f = formAt(p);
   float cs = cover(f.r);
   vec2 uo0 = u - OFF0, uo1 = u - OFF1;
@@ -1214,6 +1222,7 @@ MOTIFS.chairtax = /* glsl */`
 // Bearly's lift (cover units): motion a, a small bob; motion b, three slow squats down behind "Chair" and up again
 float squat(float u) { return mBump(u, 0.06, 0.3) + mBump(u, 0.32, 0.56) + mBump(u, 0.58, 0.82); }
 float lift(float t) {
+  if (uV1 > 0.5) return 0.004 * (0.5 - 0.5 * cos(t * 2.0));
   if (mOn(1.0)) return 0.004 * (0.5 - 0.5 * cos(4.0 * TAU * t / uCycle));
   if (mOn(2.0)) return -0.034 * squat(t / uCycle);
   return 0.0;
@@ -1300,7 +1309,7 @@ vec3 motif(vec2 p, float t) {
   vec2 ct = (p - ic(0.266, 0.8915)) / vec2(0.0616, 0.0067), ca = (p - ic(0.46, 0.872)) / vec2(0.08, 0.009);
   col *= 1.0 - (0.8 * exp(-0.5 * (ct.x * ct.x * ct.x * ct.x + ct.y * ct.y * ct.y * ct.y)) + 0.4 * exp(-0.5 * dot(ca, ca))) * type;
   // motion a: the ticks pulse; motion b: they flash at the foot of each squat, counting the reps
-  float k = 1.0 + 0.12 * sin(mOn(1.0) ? 6.0 * TAU * t / uCycle : 0.0);
+  float k = 1.0 + 0.12 * sin(uV1 > 0.5 ? t * 2.6 : mOn(1.0) ? 6.0 * TAU * t / uCycle : 0.0);
   if (mOn(2.0)) { float u = t / uCycle; k += 0.3 * (mBump(u, 0.13, 0.23) + mBump(u, 0.39, 0.49) + mBump(u, 0.65, 0.75)); }
   // thick end first, measured on the concept
   col = tick(col, p, ic(0.738, 0.083), ic(0.689, 0.152), 0.0127, k);
@@ -1372,7 +1381,7 @@ vec3 orbit(vec3 col, vec2 p, float t, bool front) {
   float w = 0.0064, x = sat(abs(d) / w);
   float ang = atan(o.y / ab.y, o.x / ab.x);
   // motion a: the light along the tube sweeps round it
-  float sweep = pow(0.5 + 0.5 * sin(ang - (mOn(1.0) ? t : 0.0) * 0.6 + 2.2), 3.0);
+  float sweep = pow(0.5 + 0.5 * sin(ang - (uV1 > 0.5 ? t * 0.7 : mOn(1.0) ? t * 0.6 : 0.0) + 2.2), 3.0);
   vec3 tube = mix(col, uPal[5], 0.3) + 0.02;
   tube += vec3(1.0) * 0.36 * pow(x, 4.0);
   tube += vec3(1.0) * 0.40 * exp(-pow((d + w * 0.3) / (w * 0.22), 2.0)) * (0.25 + 0.75 * sweep);
@@ -2331,11 +2340,19 @@ function plan(now, crate) {
   }
 }
 
+// The operator's picks (round 2, "a and c together" playing a for now), which ?motion plays.
+const PICKS = { mirra: 'c', stet: 'a', 'social-hook': 'a', clauded: 'c', likewiki: 'b', topshine: 'a', 'stellar-explorer': 'a', chairtax: 'a',
+  scorecard: 'a', stats: 'b', about: 'c' };
+
 export const coverMotion = {
-  // main.js: its wake() and reduced(), and the test hook's choices
+  // main.js: its wake() and reduced(), and the test hook's choices. For local testing, ?motion turns the motion on (all at
+  // once, the operator's picks, the hovered cover keeping its pace) at the Slow pace, ?motion=glacial|slow|steady at that
+  // pace; the test hook, when set, wins. Without either the motion stays off, as v1.
   attach({ wake, reduced, test } = {}) {
     amb.wake = wake || null;
     if (reduced) amb.reduced = reduced;
+    const url = new URLSearchParams(location.search);
+    if (!test && url.has('motion')) test = { ...PICKS, mode: 'all', hover: 'same', pace: PACES[url.get('motion')] ? url.get('motion') : 'slow' };
     document.addEventListener('visibilitychange', () => { if (!document.hidden && amb.running) { amb.last = -1; amb.wake?.(); } });
     if (test) this.configure({ mode: 'all', ...test });
   },
@@ -2495,6 +2512,7 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
     uAux: { value: Array.from({ length: 8 }, () => new THREE.Vector4()) },
     uMotion: { value: 0 },
     uCycle: { value: 1 },
+    uV1: { value: 0 },
   };
   // a motif's colour keys (stet, Topshine), as a float texture the shader reads with texelFetch: key i at column
   // i % KW in row pair i / KW (row 2k: x, y, sigma; row 2k + 1: r, g, b), KW = min(keys, 2048)
@@ -2681,7 +2699,8 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
   const tick = dc => {
     const o = optOf();
     if (!o || !dc) return false;
-    const was = mo.clock, cyc = o.cycle || 3600, end = o.cycle ? o.move * o.cycle : Infinity;
+    // with the motion off (v1's hover motion) the clock runs on unwrapped, as v1's did
+    const was = mo.clock, cyc = amb.running ? o.cycle || 3600 : Infinity, end = o.cycle ? o.move * o.cycle : Infinity;
     mo.clock = (mo.clock + dc) % cyc;
     mo.dirty = true;
     return mo.clock < was || (was < end && mo.clock >= end);
@@ -2692,6 +2711,7 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
     if (!alive) alive = frontLayers(meets(o?.rect, markRect));
     uniforms.uMotion.value = mo.opt;
     uniforms.uCycle.value = o?.cycle || 1;
+    uniforms.uV1.value = amb.running ? 0 : 1;
     uniforms.uTime.value = d.t0 + mo.clock;
     uniforms.uRestMix.value = mo.mix > 0 && restRT ? ease(mo.mix) : 0;
     uniforms.uRest.value = mo.mix > 0 && restRT ? restRT.texture : BLANK;
@@ -2795,6 +2815,7 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
       if (!alive) alive = frontLayers();
       uniforms.uMotion.value = opt;
       uniforms.uCycle.value = optOf()?.cycle || 1;
+      uniforms.uV1.value = 0;
       uniforms.uTime.value = d.t0 + clock;
       uniforms.uRestMix.value = 0; uniforms.uRest.value = BLANK;
       renderFront(alive, ss, part ? optOf()?.rect || null : null);
