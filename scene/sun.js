@@ -2,10 +2,10 @@
 // the record wall, its shelves and sleeves. A lazy chunk: main.js loads it once the sleeves have landed.
 //
 // The light is worked out per pixel where it lands, over v1's unchanged studio light (wall.js's bake):
-// - the window: an exact shape (frame, glazing bars, transom, sunburst fanlight) met along the sun; its
+// - the window: an exact shape (frame, transom, two glazing bars through both rows) met along the sun; its
 //   shadows soften with distance from the window, as the sun's 0.53 degree disc makes them;
-// - the leaves: tropical foliage beyond the window (shredded banana, holed monstera, frangipani, a pair of
-//   cables), drawn from the sun into a mask and blurred with a disc the size of the sun's image at three
+// - the leaves: tropical foliage beyond the window (shredded banana, a tree crown, holed monstera,
+//   frangipani), drawn from the sun into a mask and blurred with a disc the size of the sun's image at three
 //   distances, so every gap between leaves throws a small image of the sun;
 // - the sleeves and shelves: each sleeve's face as a quad met along the sun, each shelf's underside as a
 //   rectangle; sharp where they meet the wall, softer further off.
@@ -31,7 +31,6 @@ uniform float uSunPower, uSunFade;
 uniform vec4 uWin;                    // the opening: z0, y0, z1, y1 on the street front
 uniform float uWinX;                  // the street front's x
 uniform vec4 uWinBars;                // frame, glazing bar, transom height, transom bar
-uniform vec2 uWinFan;                 // the fanlight's rays, its arc as a share of the fanlight's height
 uniform vec4 uMask;                   // the leaf mask's centre (u, v), half size, the leaves' depth along the sun
 uniform sampler2D uLeaf0, uLeaf1, uLeaf2;
 uniform vec3 uLeafR;
@@ -46,20 +45,11 @@ float njBox(vec2 p, vec2 b) { vec2 d = abs(p) - b; return length(max(d, 0.0)) + 
 float njWindowSd(vec2 w) {
   vec2 c = 0.5 * (uWin.xy + uWin.zw), hb = 0.5 * (uWin.zw - uWin.xy) - uWinBars.x;
   float open = njBox(w - c, hb);
-  float ty = uWinBars.z;
-  float bars = abs(w.y - ty) - 0.5 * uWinBars.w;
-  if (w.y < ty) {
-    float z1 = c.x - hb.x + 2.0 * hb.x / 3.0, z2 = c.x - hb.x + 4.0 * hb.x / 3.0;
-    bars = min(bars, min(abs(w.x - z1), abs(w.x - z2)) - 0.5 * uWinBars.y);
-  } else {
-    vec2 q = w - vec2(c.x, ty);
-    float fan = c.y + hb.y - ty;
-    float sectors = uWinFan.x + 1.0;
-    float k = floor(atan(q.y, q.x) / 3.14159265 * sectors + 0.5);
-    float ak = k / sectors * 3.14159265;
-    if (k > 0.5 && k < sectors - 0.5) bars = min(bars, abs(dot(q, vec2(-sin(ak), cos(ak)))) - 0.5 * uWinBars.y);
-    bars = min(bars, abs(length(q) - uWinFan.y * fan) - 0.5 * uWinBars.y);
-  }
+  // The transom, and two glazing bars running the full height: three lights below it, three above, so the
+  // whole patch reads as one window. (A decorative fanlight may come back once it can read.)
+  float bars = abs(w.y - uWinBars.z) - 0.5 * uWinBars.w;
+  float z1 = c.x - hb.x + 2.0 * hb.x / 3.0, z2 = c.x - hb.x + 4.0 * hb.x / 3.0;
+  bars = min(bars, min(abs(w.x - z1), abs(w.x - z2)) - 0.5 * uWinBars.y);
   return max(open, -bars);
 }
 float njWindow(vec3 p) {
@@ -216,7 +206,7 @@ void main() { vUv = position.xy * 0.5 + 0.5; gl_Position = vec4(position.xy, 0.0
 
 // Foliage beyond the window, in the sun's view: p in wall units from the window's centre, n the same
 // across the opening (-1 to 1). Each leaf is drawn in its own frame: x along the midrib from its base, y
-// across. 1 where a leaf or cable stops the sun.
+// across. 1 where a leaf stops the sun.
 const LEAF_FRAG = /* glsl */`
 precision highp float;
 varying vec2 vUv;
@@ -293,11 +283,6 @@ float rosette(vec2 p, vec2 c, float a0, float len, float wid, float sway) {
   }
   return m;
 }
-float cable(vec2 p, float y0, float slope, float sag, float w) {
-  float x = p.x / 600.0;
-  float y = y0 + slope * p.x + sag * x * x;
-  return step(abs(p.y - y) / sqrt(1.0 + pow(slope + 2.0 * sag * x / 600.0, 2.0)), w);
-}
 void main() {
   // The sun's view, turned to read as the wall does: +x toward the window's side of the patch.
   vec2 p = (vUv * 2.0 - 1.0) * uH;
@@ -319,9 +304,6 @@ void main() {
   m = max(m, step(capsule(p, mix(c1, b0, 0.4), c2, 6.5), 0.0));
   m = max(m, rosette(p, c1, 0.4, 135.0, 40.0, 0.05 * sway + 0.08 * gust * sin(t * 6.0)));
   m = max(m, rosette(p, c2, 1.9, 118.0, 36.0, 0.06 * sway + 0.08 * gust * sin(t * 6.4)));
-  // Two cables across the soi, sagging through the fanlight.
-  m = max(m, cable(p, 0.8 * uExt.y, 0.1, 36.0, 2.4));
-  m = max(m, cable(p, 0.9 * uExt.y, -0.06, 28.0, 1.8));
   gl_FragColor = vec4(vec3(1.0 - m), 1.0);
 }`;
 
@@ -385,7 +367,7 @@ export function createSun({ renderer, scene, wallMesh, shelfMeshes, sleeves }) {
     uSunD: { value: new THREE.Vector3() }, uSunU: { value: new THREE.Vector3() }, uSunV: { value: new THREE.Vector3() },
     uSunPower: { value: CAFE.sun.power }, uSunFade: { value: 0 },
     uWin: { value: new THREE.Vector4() }, uWinX: { value: CAFE.room.front },
-    uWinBars: { value: new THREE.Vector4() }, uWinFan: { value: new THREE.Vector2() },
+    uWinBars: { value: new THREE.Vector4() },
     uMask: { value: new THREE.Vector4() },
     uLeaf0: { value: null }, uLeaf1: { value: null }, uLeaf2: { value: null },
     uLeafR: { value: new THREE.Vector3(...LEAF_R) },
@@ -431,7 +413,6 @@ export function createSun({ renderer, scene, wallMesh, shelfMeshes, sleeves }) {
     U.uWin.value.set(w.z0, w.y0, w.z1, w.y1);
     U.uWinX.value = x;
     U.uWinBars.value.set(w.frame, w.bar, w.y0 + (w.y1 - w.y0) * w.transom, w.transomBar);
-    U.uWinFan.value.set(w.rays, w.arc);
     // The mask covers the opening as the sun sees it, with room for the widest blur.
     let u0 = Infinity, u1 = -Infinity, v0 = Infinity, v1 = -Infinity;
     for (const z of [w.z0, w.z1]) for (const y of [w.y0, w.y1]) {

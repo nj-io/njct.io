@@ -101,9 +101,9 @@ export const OPEN = {
 export const CAFE = {
   room: { front: 1200, floor: -620 },
   // The window in the street front: its opening (z measured out from the record wall, y), the steel frame,
-  // the two glazing bars of the three lower lights, the transom at a share of the height, and the
-  // fanlight above it: a sunburst of rays from the transom's middle, crossed by an arc.
-  window: { z0: 500, z1: 1140, y0: -60, y1: 620, frame: 14, bar: 7, transom: 0.7, transomBar: 10, rays: 7, arc: 0.58 },
+  // two glazing bars running its full height, and the transom at a share of the height: three lights
+  // below it and three above.
+  window: { z0: 500, z1: 1140, y0: -60, y1: 620, frame: 14, bar: 7, transom: 0.7, transomBar: 10 },
   // The sun, in degrees: azimuth from the street front's normal toward the record wall, and elevation.
   // power: its light on a wall square to it, in the wall's linear units; leaves: how far beyond the
   // window's centre the foliage hangs, along the sun.
