@@ -163,13 +163,13 @@ async function runSite(browser, siteKey) {
   const shoot = (caster, name, origin, target, group, opts) => burst(caster, '', origin, [{ name, at: target }], group, opts);
 
   // Sleeve i's control. theirs: every sleeve's Open link and Details button sit in the DOM in sleeve order
-  // (the i-th exact-text match); ours: the data-action button. Clicked with the real mouse at its centre,
+  // (the i-th exact-text match); ours: the data-action control (Open is a link). Clicked with the real mouse at its centre,
   // which keeps the sleeve hovered; el.click() only when the element has no box.
   const clickControl = async (pg, action, index) => {
     const box = await pg.evaluate((siteKey, action, index) => {
       let el;
       if (siteKey === 'ours') {
-        el = document.querySelector(`button[data-action="${action}"][data-index="${index}"]`);
+        el = document.querySelector(`[data-action="${action}"][data-index="${index}"]`);
       } else {
         const label = action === 'open' ? 'Open' : 'Details';
         el = [...document.querySelectorAll('a,button')].filter(e => (e.innerText || '').trim() === label)[index];
@@ -184,6 +184,9 @@ async function runSite(browser, siteKey) {
     return !!box;
   };
 
+  // The sleeve whose Open is followed to its page: theirs sleeve 0; ours Topshine, whose Open is its page
+  // here (the others open their live site in a new tab).
+  const OPEN_I = siteKey === 'ours' ? 5 : 0;
   const sleeveCentre = async (pg, i) => {
     if (siteKey === 'theirs') return THEIR_CENTRES[i];
     const r = await pg.evaluate(i => window.__editions?.sleeveRect(i) ?? null, i).catch(() => null);
@@ -336,11 +339,12 @@ async function runSite(browser, siteKey) {
   await page.mouse.click(EMPTY_CLICK.x, EMPTY_CLICK.y).catch(() => {});
   await sleep(1500);
 
-  // Open sleeve 0 (theirs navigates to /editions/fall2026 about 1.7 s after the click), then the page:
+  // Open sleeve OPEN_I (theirs navigates to /editions/fall2026 about 1.7 s after the click), then the page:
   // its top, middle and end, then the browser's Back.
   await mouseTo(NEUTRAL); await sleep(1000);
-  if (c0) { await mouseTo(c0); await sleep(900); }
-  const openFound = await clickControl(page, 'open', 0);
+  const cOpen = OPEN_I ? await sleeveCentre(page, OPEN_I) : c0;
+  if (cOpen) { await mouseTo(cOpen); await sleep(900); }
+  const openFound = await clickControl(page, 'open', OPEN_I);
   const openT = Date.now();
   const openOpts = openFound ? {} : na('Open control');
   await recorded('open', openT, 7000, () => burst(caster, 'open-', openT,
@@ -382,10 +386,10 @@ async function runSite(browser, siteKey) {
     await sleep(7000);
     await sp.evaluate(() => { for (const b of document.querySelectorAll('button')) if (/^(accept|accept all|ok|got it)$/i.test((b.innerText || '').trim())) b.click(); }).catch(() => {});
     await sp.mouse.move(NEUTRAL.x, NEUTRAL.y); await sleep(800);
-    const sc0 = siteKey === 'theirs' ? THEIR_CENTRES[0] : await sleeveCentre(sp, 0);
+    const sc0 = siteKey === 'theirs' ? THEIR_CENTRES[0] : await sleeveCentre(sp, OPEN_I);
     if (sc0) { await sp.mouse.move(sc0.x, sc0.y); await sleep(900); }
     const startUrl = await sp.evaluate(() => location.href).catch(() => '');
-    if (await clickControl(sp, 'open', 0)) {
+    if (await clickControl(sp, 'open', OPEN_I)) {
       const t = Date.now();
       await sp.mouse.move(900, 500);
       let ready = null, opened = null;
@@ -435,8 +439,9 @@ async function runSite(browser, siteKey) {
     await sleep(1500);
     await d2.mouse.click(EMPTY_CLICK.x, EMPTY_CLICK.y).catch(() => {});
     await sleep(800);
-    if (dc0) { await d2.mouse.move(dc0.x, dc0.y); await sleep(900); }
-    const dOpen = await clickControl(d2, 'open', 0);
+    const dcOpen = OPEN_I ? await sleeveCentre(d2, OPEN_I) : dc0;
+    if (dcOpen) { await d2.mouse.move(dcOpen.x, dcOpen.y); await sleep(900); }
+    const dOpen = await clickControl(d2, 'open', OPEN_I);
     await snap('dpr2/open-held', Date.now(), 6000, dOpen ? {} : na('Open control'));
     await d2.evaluate(() => window.scrollTo({ top: 0.5 * (document.documentElement.scrollHeight - innerHeight), behavior: 'instant' })).catch(() => {});
     await snap('dpr2/page-mid', Date.now(), 1200, dOpen ? {} : na('Open control'));
