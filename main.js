@@ -169,13 +169,17 @@ const BACK_PLAIN = 0xe9e6e0;   // the back's card colour in sleeves.js
 // own program. A test can keep it off (__editionsTest.noSun) or set its angles, clock and fade
 // (__editionsTest.sun = { az, el, t, fade }).
 const SUN_TEST = window.__editionsTest?.sun || null;
-let sunM = null, sunP = null, sunOn = false, sunFadeAt = 0, sunSleeves = true, sunTickDue = true, ambientTimer = 0;
+let sunM = null, sunP = null, gardenM = null, sunOn = false, sunFadeAt = 0, sunSleeves = true, sunTickDue = true, ambientTimer = 0;
 const AMBIENT_STILL = 7.5;   // the clock's frame under reduced motion
 const ambientT = () => (SUN_TEST?.t ?? (reduced() ? AMBIENT_STILL : performance.now() / 1000));
 function startSun() {
   if (sunP || window.__editionsTest?.noSun) return;
-  sunP = import('./scene/sun.js').then(async m => {
-    const sun = m.createSun({ renderer, scene, wallMesh: wall.mesh, shelfMeshes, sleeves });
+  // On the café's branch the sun's leaves are the garden outside the window (scene/garden.js), loaded with it.
+  sunP = Promise.all([import('./scene/sun.js'), import('./scene/garden.js')]).then(async ([m, gm]) => {
+    const garden = gm.createGarden({ renderer });
+    scene.add(garden.group);
+    gardenM = garden;
+    const sun = m.createSun({ renderer, scene, wallMesh: wall.mesh, shelfMeshes, sleeves, leaves: garden });
     if (SUN_TEST) sun.setParams(SUN_TEST);
     sun.sleevesMoved();
     sun.tick(ambientT());
@@ -197,7 +201,7 @@ function stepSun(now) {
   if (sunSleeves) { sunM.sleevesMoved(); sunSleeves = false; }
   const f = SUN_TEST?.fade ?? clamp01((now - sunFadeAt) / dur(CAFE.sun.fadeIn));
   sunM.setFade(f);
-  if (sunTickDue) { sunTickDue = false; if (sunM.tick(ambientT()) && det) bgDirty = true; }
+  if (sunTickDue) { sunTickDue = false; if (sunM.tick(ambientT()) && det) bgDirty = true; if (room.away) room.shell?.tick(ambientT()); }   // the room's own motion (the record turning) on the same clock
   return f < 1;
 }
 // The ambient clock asks for the next frame of leaves.
@@ -216,10 +220,10 @@ const room = createRoom({
   canPreload: () => sunOn,   // the café follows the sun in; until then the sun's start fetches it
   view: () => ({ W, H, hh: H / 2 / S, camZ: CAMZ, shift: -shiftY }),
   relayout: () => layout(),
-  onAway(isAway) { if (isAway) { pointerHit = -1; setHovered(-1); } },
+  onAway(isAway) { if (isAway) { pointerHit = -1; setHovered(-1); } if (gardenM) gardenM.group.visible = isAway; },   // the garden is seen only from the café
   load: () => Promise.resolve(sunP || startSun()).then(() => import('./room/shell.js')).then(async m => {
     const shell = m.createShell({ renderer, scene, lightUniforms: uniforms, sun: sunM });
-    await shell.warm(camera);   // its programs for its own target, its textures and target, out of sight
+    await shell.warm(camera, gardenM ? [gardenM.group] : [], gardenM ? gardenM.textures : []);   // its programs for its own target (and the garden's), textures and target, out of sight
     return shell;
   }),
   wake: () => wake(),
@@ -678,7 +682,7 @@ function frame(now) {
     renderer.autoClear = true;
     camera.layers.set(0);
   } else if (room.away && room.shell) {
-    room.shell.finish.render(scene, camera, room.grade);   // off Editions: the room's finishing pass
+    room.shell.render(scene, camera, room.grade, room.at === 'table' || room.moving);   // off Editions: the room, its laptop's live wall, the finishing pass
   } else {
     renderer.render(scene, camera);
   }

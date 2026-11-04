@@ -324,7 +324,9 @@ void main() {
   gl_FragColor = vec4(vec3(acc / 48.0), 1.0);
 }`;
 
-function createLeafMask(renderer) {
+// leaves: a source that draws the mask itself from shapes in the scene (the café's garden), else the
+// drawn foliage below.
+function createLeafMask(renderer, leaves = null) {
   const opts = { type: THREE.UnsignedByteType, format: THREE.RGBAFormat, depthBuffer: false, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, generateMipmaps: false };
   const base = new THREE.WebGLRenderTarget(MASK_RES, MASK_RES, opts);
   const levels = [MASK_RES, MASK_RES / 2, MASK_RES / 4].map(n => new THREE.WebGLRenderTarget(n, n, opts));
@@ -343,10 +345,13 @@ function createLeafMask(renderer) {
     layout(ext, h) { leafMat.uniforms.uExt.value.copy(ext); leafMat.uniforms.uH.value = h; },
     render(t) {
       const prev = renderer.getRenderTarget();
-      leafMat.uniforms.uT.value = t;
-      mesh.material = leafMat;
-      renderer.setRenderTarget(base);
-      renderer.render(sc, cam);
+      if (leaves) leaves.renderMask(base, t);
+      else {
+        leafMat.uniforms.uT.value = t;
+        mesh.material = leafMat;
+        renderer.setRenderTarget(base);
+        renderer.render(sc, cam);
+      }
       const unitsPerTexel = 2 * leafMat.uniforms.uH.value / MASK_RES;
       mesh.material = blurMat;
       levels.forEach((l, k) => {
@@ -361,7 +366,8 @@ function createLeafMask(renderer) {
 }
 
 // ---- the sun ------------------------------------------------------------------------------------------
-export function createSun({ renderer, scene, wallMesh, shelfMeshes, sleeves }) {
+// leaves (optional): shapes that draw the leaf mask from the sun (the café's garden, scene/garden.js).
+export function createSun({ renderer, scene, wallMesh, shelfMeshes, sleeves, leaves = null }) {
   const n = sleeves.length, L = SLEEVE.size;
   const U = {
     uSunD: { value: new THREE.Vector3() }, uSunU: { value: new THREE.Vector3() }, uSunV: { value: new THREE.Vector3() },
@@ -376,7 +382,7 @@ export function createSun({ renderer, scene, wallMesh, shelfMeshes, sleeves }) {
     uSunBounce: { value: new THREE.Vector3(...BOUNCE) },
   };
   const glsl = sunGlsl(n);
-  const mask = createLeafMask(renderer);
+  const mask = createLeafMask(renderer, leaves);
   [U.uLeaf0.value, U.uLeaf1.value, U.uLeaf2.value] = mask.textures;
 
   const wallV1 = wallMesh.material;
@@ -425,6 +431,7 @@ export function createSun({ renderer, scene, wallMesh, shelfMeshes, sleeves }) {
     c.set(x, (w.y0 + w.y1) / 2, (w.z0 + w.z1) / 2);
     U.uMask.value.set((u0 + u1) / 2, (v0 + v1) / 2, h, c.dot(D) + CAFE.sun.leaves);
     mask.layout(ext, h);
+    leaves?.layout({ D, U: Uu, V, uc: (u0 + u1) / 2, vc: (v0 + v1) / 2, h });
     dirty = true;
   }
   setParams();

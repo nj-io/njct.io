@@ -32,6 +32,7 @@ export function createRoom(o) {
   const nav = document.querySelector('.room-nav');
   const prev = nav.querySelector('.rn-prev'), next = nav.querySelector('.rn-next');
   const mirrors = { editions: document.getElementById('slots'), counter: document.querySelector('.view-html[data-view="counter"]'), table: document.querySelector('.view-html[data-view="table"]') };
+  const order = document.querySelector('.vh-order');   // "Order here", laid over the board's chalk
   const fine = matchMedia('(hover: hover) and (pointer: fine)');
   const allowed = () => fine.matches && innerWidth >= 1024 && innerHeight >= 640 && innerWidth / innerHeight >= 1.2 && innerWidth / innerHeight <= 2.35;
 
@@ -81,6 +82,23 @@ export function createRoom(o) {
     document.body.classList.toggle('room-away', away());
     o.onAway(away());
     shell?.setVisible(away());
+    placeOrder();
+  }
+  // Once the Counter view has settled, the link over the board's "Order here" (it opens Get in touch).
+  const pv = new THREE.Vector3();
+  function placeOrder() {
+    if (!order) return;
+    const corners = at === 'counter' && !move && allowed() ? shell?.orderCorners : null;
+    order.hidden = !corners;
+    if (!corners) return;
+    const { W, H } = o.view();
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const c of corners) {
+      pv.copy(c).project(camera);
+      const sx = (pv.x + 1) / 2 * W, sy = (1 - pv.y) / 2 * H;
+      x0 = Math.min(x0, sx); x1 = Math.max(x1, sx); y0 = Math.min(y0, sy); y1 = Math.max(y1, sy);
+    }
+    Object.assign(order.style, { left: `${x0.toFixed(1)}px`, top: `${y0.toFixed(1)}px`, width: `${(x1 - x0).toFixed(1)}px`, height: `${(y1 - y0).toFixed(1)}px` });
   }
   function address() {
     const want = at === 'editions' ? '' : `#${at}`;

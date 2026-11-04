@@ -21,7 +21,7 @@
     document.currentScript.after(m);
   } else if (window.__editionsGL) {
     // bundle: first-view chunks, written by build/bundle.mjs
-    const first = ["/dist/main.js","/dist/chunk-LRNMDPID.js","/dist/chunk-BFLXD5RH.js","/dist/chunk-KKW47EVM.js","/dist/chunk-6PNQGI4Q.js","/dist/chunk-X4EZXVCQ.js","/dist/chunk-TH7WALPN.js","/dist/menu.js"];
+    const first = ["/dist/main.js","/dist/chunk-TH7WALPN.js","/dist/chunk-45VQ6GSZ.js","/dist/chunk-HMMI4E5K.js","/dist/chunk-6PNQGI4Q.js","/dist/chunk-AFKH3KZ4.js","/dist/chunk-ZE3YBQK6.js","/dist/menu.js"];
     // /bundle
     for (const href of first) document.head.append(Object.assign(document.createElement('link'), { rel: 'modulepreload', href }));
   }
@@ -257,6 +257,13 @@
   .rn-prev { left: var(--gutter); padding-left: 10px; }
   .rn-next { right: var(--gutter); padding-right: 10px; }
   .room-away #slots, .room-away .index { visibility: hidden; }
+  /* "Order here" on the Counter's menu board: a link the size of its chalk words, placed by room.js; the
+     board draws the words, the link carries the name, the focus ring and the click (Get in touch). */
+  .vh-order { position: fixed; z-index: 1; color: transparent; overflow: hidden; white-space: nowrap; border-radius: 10px; cursor: pointer; }
+  .vh-order[hidden] { display: none; }
+  .vh-order:hover { background: rgba(240, 196, 120, 0.12); }
+  .vh-order:focus-visible { outline: 2px solid rgba(240, 196, 120, 0.95); outline-offset: 4px; }
+  .in-details .vh-order, .in-project .vh-order { visibility: hidden; }
   .in-details .room-nav, .in-project .room-nav, .no-gl .room-nav { visibility: hidden; }
 
   .rise, .late { opacity: 0; }
@@ -304,13 +311,16 @@
   <button class="rn-turn rn-next" type="button"><span class="rn-name">Table</span><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg></button>
 </nav>
 <ul id="slots" aria-label="Projects"></ul>
-<section class="view-html sr" data-view="counter" aria-labelledby="vh-counter" inert aria-hidden="true">
-  <h2 id="vh-counter">Counter</h2>
-  <p>What I do for clients.</p>
-  <ul>
-    <li>Cross-platform content: video, images and posts made for each platform and published for you.</li>
-    <li>Community management: comments, messages and requests answered in your brand's voice.</li>
-  </ul>
+<section class="view-html" data-view="counter" aria-labelledby="vh-counter" inert aria-hidden="true">
+  <div class="sr">
+    <h2 id="vh-counter">Counter</h2>
+    <p>What I do for clients.</p>
+    <ul>
+      <li>Cross-platform content: video, images and posts made for each platform and published for you.</li>
+      <li>Community management: comments, messages and requests answered in your brand's voice.</li>
+    </ul>
+  </div>
+  <a class="vh-order" href="mailto:neil@njct.io" hidden>Order here</a>
 </section>
 <section class="view-html sr" data-view="table" aria-labelledby="vh-table" inert aria-hidden="true">
   <h2 id="vh-table">Table</h2>

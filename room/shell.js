@@ -14,6 +14,7 @@
 import * as THREE from 'three';
 import { CAFE } from '../scene/config.js';
 import { createWall } from '../scene/wall.js';
+import { drawLeaves } from '../scene/leaves.js';
 
 const R = CAFE.room, SH = CAFE.shelving, CT = CAFE.counter, TB = CAFE.table, W = CAFE.window, SF = CAFE.shopfront;
 const LAMPS = 4, OCCS = 14;
@@ -144,12 +145,23 @@ vec3 albedo(vec3 p, vec3 n) {
     vec2 g = njFace(p, n);
     float grain = njNoise2(vec2(g.x / 3.0, g.y / 70.0)) * 0.6 + njNoise2(vec2(g.x / 11.0, g.y / 240.0)) * 0.4;
     c *= 0.84 + 0.3 * grain;
-    if (uKind == 5) { float f = abs(fract(g.x / 26.0) - 0.5) * 2.0; c *= 0.74 + 0.26 * (1.0 - f * f); }
+    if (uKind == 5) {
+      float f = abs(fract(g.x / 26.0) - 0.5) * 2.0;
+      c *= 0.74 + 0.26 * (1.0 - f * f);
+      // the island's customer face, worn pale and smooth along its top by hands and bags
+      if (n.x > 0.5 && p.x > ${(CT.x1 - 30).toFixed(1)} && p.z > ${CT.z0.toFixed(1)} && p.z < ${CT.z1.toFixed(1)}) {
+        float wear = smoothstep(${(CT.top - 150).toFixed(1)}, ${(CT.top - 25).toFixed(1)}, p.y) * (0.55 + 0.45 * njNoise2(p.zy / vec2(90.0, 24.0)));
+        c = mix(c, c * 1.18 + 0.03, wear * 0.55);
+      }
+    }
   } else if (uKind == 3) {
     c *= 0.95 + 0.07 * njNoise2(p.xy / 60.0 + p.zz / 60.0) + 0.03 * njNoise2(p.xy / 9.0 + p.zx / 9.0);
   } else if (uKind == 4) {
     float v = njNoise2(p.xz / 55.0 + p.yy / 55.0 + 3.0 * njNoise2(p.xz / 160.0));
     c *= 0.94 + 0.08 * smoothstep(0.45, 0.55, v) - 0.16 * smoothstep(0.495, 0.5, v) * smoothstep(0.505, 0.5, v);
+    // the island's front edge: years of cups and elbows, faintly grey and rubbed
+    float edge = smoothstep(${(CT.x1 - 40).toFixed(1)}, ${(CT.x1 + 12).toFixed(1)}, p.x) * step(${CT.z0.toFixed(1)}, p.z) * step(p.z, ${CT.z1.toFixed(1)}) * step(${(CT.top - 30).toFixed(1)}, p.y);
+    c = mix(c, c * vec3(0.9, 0.9, 0.88), edge * (0.4 + 0.6 * njNoise2(p.xz / vec2(14.0, 60.0))) * 0.6);
   } else if (uKind == 6) {
     // hand-made glazed tiles, 10 cm square: each its own shade, the glaze pooling, pale grout
     vec2 g = njFace(p, n), t = g / 56.0, f = fract(t), id = floor(t);
@@ -269,11 +281,13 @@ void main() {
   vec3 v = normalize(vP - cameraPosition);
   float t = (${R.front.toFixed(1)} - cameraPosition.x) / v.x;
   vec3 q = cameraPosition + v * t;            // where the sight line crosses the glass
-  float hgt = clamp((vP.y - ${W.y0.toFixed(1)}) / ${(W.y1 - W.y0).toFixed(1)}, 0.0, 1.0);
-  vec3 sky = mix(vec3(1.05, 0.93, 0.76), vec3(0.95, 0.97, 1.02), smoothstep(0.1, 1.0, hgt));
-  // the far side of the soi: a soft band of shopfronts and an awning, out of focus
-  sky *= 1.0 - 0.18 * smoothstep(0.42, 0.3, hgt) * (0.6 + 0.4 * sin(vP.z / 48.0));
-  vec3 col = sky * 1.05;
+  // the far side of the soi, past the garden: hazy sky over a soft roofline of shophouses in the sun
+  float el = v.y, roof = 0.06 + 0.03 * sin(vP.z / 330.0) + 0.012 * sin(vP.z / 87.0);
+  vec3 sky = mix(vec3(1.1, 0.97, 0.8), vec3(0.88, 0.93, 1.02), smoothstep(roof, roof + 0.3, el));
+  float bld = smoothstep(roof + 0.008, roof - 0.008, el);
+  vec3 b = mix(vec3(0.95, 0.82, 0.68), vec3(0.8, 0.74, 0.68), 0.5 + 0.5 * sin(vP.z / 230.0 + 1.0));
+  b *= 0.9 + 0.1 * step(0.5, fract(vP.z / 140.0)) * step(0.45, fract(vP.y / 190.0));   // windows, softly
+  vec3 col = mix(sky, b, bld * 0.7) * 1.05;
   if (uHasLeaves > 0.5) {
     vec2 uv = (vec2(dot(q, uSunU), dot(q, uSunV)) - uMask.xy) / (2.0 * uMask.z) + 0.5;
     float clear = texture2D(uLeafSun, uv).r;
@@ -359,6 +373,57 @@ varying vec2 vUv;
 void main() { gl_FragColor = vec4(texture2D(uMap, vUv).rgb * uGain, 1.0);
   #include <colorspace_fragment>
 }`;
+// The laptop's screen: the record wall as Editions shows it (rendered live), the terminal over it, and the
+// glass faintly holding the window.
+const LAPTOP_FRAG = /* glsl */`
+uniform sampler2D uWall, uTerm;
+uniform float uHasWall, uGain;
+varying vec3 vP;
+varying vec3 vN;
+varying vec2 vUv;
+void main() {
+  vec3 wall = uHasWall > 0.5 ? texture2D(uWall, vUv).rgb : vec3(0.82, 0.79, 0.73);
+  vec4 term = texture2D(uTerm, vUv);
+  vec3 c = mix(wall, term.rgb, term.a) * uGain;
+  vec3 n = normalize(vN), v = normalize(vP - cameraPosition), r = reflect(v, n);
+  float fr = 0.04 + 0.5 * pow(1.0 - clamp(-dot(n, v), 0.0, 1.0), 5.0);
+  float win = pow(max(dot(r, normalize(${WIN_MID} - vP)), 0.0), 6.0);
+  c = c * (1.0 - fr) + vec3(1.0, 0.95, 0.85) * (fr * 0.35 + win * 0.06);
+  gl_FragColor = vec4(c, 1.0);
+  #include <colorspace_fragment>
+}`;
+// "njct.io" gilded on the inside of the glass, seen from the café: the leaf's dark back, its gold edge.
+const LETTER_FRAG = /* glsl */`
+uniform sampler2D uMap;
+varying vec2 vUv;
+void main() {
+  vec4 t = texture2D(uMap, vUv);
+  if (t.a < 0.02) discard;
+  gl_FragColor = vec4(t.rgb, t.a);
+  #include <colorspace_fragment>
+}`;
+// The Thai tea's caustic: what light gets through the glass gathers into an orange ring on the table.
+const CAUSTIC_FRAG = /* glsl */`
+uniform float uGain;
+varying vec2 vUv;
+void main() {
+  vec2 q = (vUv - 0.5) * 2.0;
+  float d = length(q * vec2(1.0, 1.35));
+  float c = exp(-pow((d - 0.55) / 0.12, 2.0)) * 0.65 + exp(-d * d / 0.16) * 0.45;
+  gl_FragColor = vec4(vec3(0.95, 0.46, 0.1) * c * smoothstep(1.0, 0.55, d) * uGain, 1.0);
+}`;
+// The menu board: its chalk lit by the brass picture light along its top, brightest under the lamp.
+const MENU_FRAG = /* glsl */`
+uniform sampler2D uMap;
+uniform float uGain;
+varying vec2 vUv;
+void main() {
+  vec3 c = texture2D(uMap, vUv).rgb;
+  float down = 1.0 - vUv.y, across = vUv.x - 0.5;
+  float pool = exp(-down * down / 0.42) * (0.72 + 0.28 * exp(-across * across / 0.16));
+  gl_FragColor = vec4(c * uGain * (0.5 + 0.62 * pool) * vec3(1.0, 0.97, 0.9), 1.0);
+  #include <colorspace_fragment>
+}`;
 
 // ---- drawn once: the menu board's chalk (copy rows C2 to C4), the laptop's screen (row C10), the leaves -----
 function canvasTexture(w, h, draw, colorSpace = THREE.SRGBColorSpace) {
@@ -373,115 +438,64 @@ function canvasTexture(w, h, draw, colorSpace = THREE.SRGBColorSpace) {
 function mulberry32(a) {
   return () => { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
 }
+// The menu board's chalk in the menu face (copy rows C2 to C5), set so its smallest line is at least 16 CSS
+// px from the Counter view at 1440 x 900. Returns where "Order here" sits, as fractions of the board, for the
+// link laid over it.
+const MENU_PX = { w: 1400, h: 1000 };
 function drawMenu(g, w, h) {
   const r = mulberry32(5);
   g.fillStyle = '#1b1f1e'; g.fillRect(0, 0, w, h);
-  for (let i = 0; i < 40; i++) { g.fillStyle = `rgba(255,255,255,${0.012 + 0.02 * r()})`; g.beginPath(); g.ellipse(r() * w, r() * h, 60 + 160 * r(), 30 + 80 * r(), r() * 3, 0, 7); g.fill(); }
-  g.fillStyle = 'rgba(244,240,230,0.94)'; g.textBaseline = 'alphabetic';
-  g.font = '600 92px "NJ Text", system-ui, sans-serif'; g.fillText('Menu', 80, 150);
-  g.fillRect(80, 178, 220, 4);
-  const item = (y, name, line) => {
-    g.font = '600 62px "NJ Text", system-ui, sans-serif'; g.fillStyle = 'rgba(244,240,230,0.94)'; g.fillText(name, 80, y);
-    g.font = '400 34px "NJ Text", system-ui, sans-serif'; g.fillStyle = 'rgba(232,226,212,0.78)';
-    const words = line.split(' '); let l = '', yy = y + 56;
-    for (const wd of words) { if (g.measureText(l + wd).width > w - 180) { g.fillText(l, 80, yy); l = ''; yy += 44; } l += wd + ' '; }
-    g.fillText(l, 80, yy);
+  for (let i = 0; i < 46; i++) { g.fillStyle = `rgba(255,255,255,${0.012 + 0.022 * r()})`; g.beginPath(); g.ellipse(r() * w, r() * h, 60 + 180 * r(), 30 + 90 * r(), r() * 3, 0, 7); g.fill(); }
+  const F = (wt, px) => `${wt} ${px}px "NJ Menu", "NJ Text", system-ui, sans-serif`;
+  const chalk = 'rgba(244,240,230,0.96)', soft = 'rgba(236,230,216,0.88)';
+  g.textBaseline = 'alphabetic';
+  g.fillStyle = chalk; g.font = F(700, 80); g.fillText('Menu', 84, 124);
+  g.fillRect(84, 146, 160, 5);
+  const wrap = (text, x, y, maxW, lh) => {
+    let l = '', yy = y;
+    for (const wd of text.split(' ')) { const t = l ? l + ' ' + wd : wd; if (l && g.measureText(t).width > maxW) { g.fillText(l, x, yy); l = wd; yy += lh; } else l = t; }
+    g.fillText(l, x, yy);
+    return yy;
   };
-  item(320, 'Cross-platform content', 'Video, images and posts made for each platform and published for you.');
-  item(560, 'Community management', "Comments, messages and requests answered in your brand's voice.");
-  g.font = '600 40px "NJ Text", system-ui, sans-serif'; g.fillStyle = 'rgba(240,196,120,0.95)'; g.fillText('Order here →', 80, h - 70);
+  const item = (y, name, line) => {
+    g.fillStyle = chalk; g.font = F(650, 86); g.fillText(name, 84, y);
+    g.fillStyle = soft; g.font = F(450, 70); return wrap(line, 84, y + 88, w - 168, 82);
+  };
+  let y = item(290, 'Cross-platform content', 'Video, images and posts made for each platform and published for you.');
+  y = item(y + 138, 'Community management', 'Comments, messages and requests answered in your brand\u2019s voice.');
+  g.fillStyle = 'rgba(240,196,120,0.98)'; g.font = F(650, 74);
+  const label = '\u2190 Order here', oy = Math.min(h - 60, y + 132), ow = g.measureText(label).width;   // the till is to its left
+  g.fillText(label, 84, oy);
+  return { x0: 70 / w, x1: (98 + ow) / w, y0: (oy - 72) / h, y1: (oy + 22) / h };
 }
-// The laptop: the record wall in the sun behind, the terminal in front (round 5 renders the wall live).
-function drawScreen(g, w, h) {
-  const bg = g.createLinearGradient(0, 0, 0, h);
-  bg.addColorStop(0, '#e9e4da'); bg.addColorStop(1, '#d8d1c3');
-  g.fillStyle = bg; g.fillRect(0, 0, w, h);
-  const sun = g.createRadialGradient(w * 0.58, h * 0.42, 10, w * 0.58, h * 0.42, w * 0.42);
-  sun.addColorStop(0, 'rgba(255,214,150,0.75)'); sun.addColorStop(1, 'rgba(255,214,150,0)');
-  g.fillStyle = sun; g.fillRect(0, 0, w, h);
-  const covers = [['#151515', '#f08a24'], ['#2f6fe8', '#bcd6ff'], ['#0f5e55', '#8fe0c8'], ['#1d3b2a', '#f3f0e6'], ['#dccdf6', '#9b7be0'],
-    ['#ffd23f', '#e2412f'], ['#f6f4ef', '#2fa35c'], ['#efe6d2', '#f07a18'], ['#1f2a44', '#f5c04a'], ['#e9e2f8', '#7a5cd6']];
-  const S = h * 0.24;
-  covers.forEach(([a, b], i) => {
-    const row = i < 5 ? 0 : 1, col = i % 5, x = w * 0.04 + col * (S + h * 0.03), y = row ? h * 0.6 : h * 0.22;
-    g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(x + 6, y + 8, S, S);
-    g.fillStyle = a; g.fillRect(x, y, S, S);
-    g.fillStyle = b; g.beginPath(); g.arc(x + S * (0.35 + 0.3 * (i % 3) / 2), y + S * 0.62, S * 0.22, 0, 7); g.fill();
-    g.fillRect(x + S * 0.1, y + S * 0.1, S * 0.5, S * 0.1);
-  });
-  g.fillStyle = '#f4f1ea'; g.fillRect(0, h * 0.22 + S + 2, w, 7); g.fillRect(0, h * 0.6 + S + 2, w, 7);
-  // the terminal, over the wall
+// The laptop's terminal (copy row C10): real lines from this repo, typed a character at a time over the
+// live record wall. shown: how many characters are typed so far (all of them when the clock stands still);
+// the cursor blinks while it waits.
+const TERM_LINES = [
+  ['#8be9a8', '~/njct.io  feat/room'], ['#d6d6d6', '$ npm run build'], ['#9a9a9a', '  dist/ matches a fresh build (15 files)'],
+  ['#d6d6d6', '$ git log --oneline -3'], ['#e8c07a', '  00c8874 Merge feat/editions into feat/room'],
+  ['#e8c07a', '  d978d3b The caf\u00e9, fixed after review'], ['#e8c07a', '  9245df6 Caf\u00e9 brief: the garden'],
+];
+const TERM_CHARS = TERM_LINES.reduce((n, [, t]) => n + t.length, 0);
+function drawTerminal(g, w, h, shown = TERM_CHARS, cursor = true) {
+  g.clearRect(0, 0, w, h);
   const tx = w * 0.4, ty = h * 0.34, tw = w * 0.56, th = h * 0.6, rr = 14;
   g.fillStyle = 'rgba(0,0,0,0.25)'; g.beginPath(); g.roundRect(tx + 8, ty + 14, tw, th, rr); g.fill();
-  g.fillStyle = '#17181b'; g.beginPath(); g.roundRect(tx, ty, tw, th, rr); g.fill();
+  g.fillStyle = 'rgba(23,24,27,0.97)'; g.beginPath(); g.roundRect(tx, ty, tw, th, rr); g.fill();
   g.fillStyle = '#25262b'; g.beginPath(); g.roundRect(tx, ty, tw, 30, [rr, rr, 0, 0]); g.fill();
   ['#ff5f57', '#febc2e', '#28c840'].forEach((c, i) => { g.fillStyle = c; g.beginPath(); g.arc(tx + 20 + i * 20, ty + 15, 6, 0, 7); g.fill(); });
-  const lines = [
-    ['#8be9a8', '~/njct.io  feat/room'], ['#d6d6d6', '$ npm run build'], ['#9a9a9a', '  dist/ matches a fresh build'],
-    ['#d6d6d6', '$ git log --oneline -3'], ['#e8c07a', '  0d72dde The sun: a plain window'], ['#e8c07a', "  490f3f2 Tagline: \"Products I've designed"],
-    ['#e8c07a', '  18a1db7 Merge feat/sun into feat/room'], ['#d6d6d6', '$ █'],
-  ];
   g.font = '500 21px ui-monospace, Menlo, Consolas, monospace';
-  lines.forEach(([c, t], i) => { g.fillStyle = c; g.fillText(t, tx + 18, ty + 62 + i * 30); });
+  let left = shown, y = ty + 62, x = tx + 18;
+  for (const [c, t] of TERM_LINES) {
+    if (left <= 0) break;
+    const part = t.slice(0, left);
+    g.fillStyle = c; g.fillText(part, x, y);
+    left -= t.length;
+    if (left < 0) { x += g.measureText(part).width; break; }
+    y += 30; x = tx + 18;
+  }
+  if (cursor) { g.fillStyle = '#d6d6d6'; g.fillRect(left >= 0 ? tx + 18 : x + 2, (left >= 0 ? y : y) - 18, 11, 22); }
 }
-// Eight leaves, white on clear, their veins and markings in shades (the plants' colour is per leaf):
-// 0 monstera, 1 pothos, 2 fiddle-leaf fig, 3 banana, 4 snake plant, 5 pilea, 6 fern, 7 a flower.
-// Each runs from its stem at the cell's foot to its tip at the top.
-function drawLeaves(g, w, h) {
-  const S = 256;
-  g.clearRect(0, 0, w, h);
-  const cell = (i, f) => { g.save(); g.translate((i % 4) * S, (i >> 2) * S); g.beginPath(); g.rect(0, 0, S, S); g.clip(); f(); g.restore(); };
-  const shape = (c, f) => { g.fillStyle = c; g.beginPath(); f(); g.fill(); };
-  const mode = (m, f) => { g.save(); g.globalCompositeOperation = m; f(); g.restore(); };
-  const line = (lw, c, pts) => { g.lineWidth = lw; g.strokeStyle = c; g.lineCap = 'round'; g.lineJoin = 'round'; g.beginPath(); g.moveTo(...pts[0]); for (let k = 1; k < pts.length; k++) g.lineTo(...pts[k]); g.stroke(); };
-  cell(0, () => {
-    shape('#d6d6d6', () => { g.moveTo(128, 226); g.bezierCurveTo(150, 252, 206, 254, 230, 210); g.bezierCurveTo(258, 156, 246, 66, 198, 32); g.bezierCurveTo(170, 12, 142, 6, 128, 6); g.bezierCurveTo(114, 6, 86, 12, 58, 32); g.bezierCurveTo(10, 66, -2, 156, 26, 210); g.bezierCurveTo(50, 254, 106, 252, 128, 226); });
-    mode('source-atop', () => { line(5, 'rgba(0,0,0,0.2)', [[128, 236], [128, 8]]); for (let k = 0; k < 6; k++) for (const s of [-1, 1]) line(3, 'rgba(0,0,0,0.14)', [[128, 214 - k * 34], [128 + s * 62, 194 - k * 36], [128 + s * 130, 160 - k * 38]]); });
-    mode('destination-out', () => {
-      for (let k = 0; k < 5; k++) for (const s of [-1, 1]) line(7 - k * 0.7, '#000', [[128 + s * 34, 198 - k * 34], [128 + s * 84, 180 - k * 36], [128 + s * 150, 146 - k * 38]]);
-      g.fillStyle = '#000'; for (let k = 0; k < 3; k++) for (const s of [-1, 1]) { g.beginPath(); g.ellipse(128 + s * 20, 178 - k * 44, 4.5, 10, s * 0.4, 0, 7); g.fill(); }
-    });
-  });
-  cell(1, () => {
-    shape('#d2d2d2', () => { g.moveTo(128, 222); g.bezierCurveTo(104, 252, 22, 246, 20, 170); g.bezierCurveTo(18, 100, 84, 44, 128, 6); g.bezierCurveTo(172, 44, 238, 100, 236, 170); g.bezierCurveTo(234, 246, 152, 252, 128, 222); });
-    mode('source-atop', () => {
-      line(4, 'rgba(0,0,0,0.18)', [[128, 230], [128, 12]]);
-      for (let k = 0; k < 4; k++) for (const s of [-1, 1]) line(2.5, 'rgba(0,0,0,0.12)', [[128, 200 - k * 40], [128 + s * 70, 168 - k * 44], [128 + s * 98, 128 - k * 46]]);
-      for (let k = 0; k < 7; k++) { g.fillStyle = 'rgba(255,255,230,0.38)'; g.beginPath(); g.ellipse(64 + k * 21, 80 + (k * 53) % 120, 4, 28, 0.7 - k * 0.2, 0, 7); g.fill(); }
-    });
-  });
-  cell(2, () => {
-    shape('#c6c6c6', () => { g.moveTo(128, 252); g.bezierCurveTo(92, 248, 66, 214, 66, 176); g.bezierCurveTo(66, 146, 36, 128, 28, 86); g.bezierCurveTo(20, 40, 70, 4, 128, 6); g.bezierCurveTo(186, 4, 236, 40, 228, 86); g.bezierCurveTo(220, 128, 190, 146, 190, 176); g.bezierCurveTo(190, 214, 164, 248, 128, 252); });
-    mode('source-atop', () => { line(5, 'rgba(255,255,225,0.5)', [[128, 252], [128, 12]]); for (let k = 0; k < 6; k++) for (const s of [-1, 1]) line(2.5, 'rgba(255,255,225,0.38)', [[128, 222 - k * 34], [128 + s * 52, 198 - k * 36], [128 + s * 94, 170 - k * 38]]); });
-  });
-  cell(3, () => {
-    shape('#cccccc', () => { g.moveTo(128, 254); g.bezierCurveTo(86, 226, 66, 140, 72, 60); g.bezierCurveTo(76, 18, 108, 2, 128, 2); g.bezierCurveTo(148, 2, 180, 18, 184, 60); g.bezierCurveTo(190, 140, 170, 226, 128, 254); });
-    mode('source-atop', () => { line(5, 'rgba(255,255,220,0.45)', [[128, 254], [128, 4]]); for (let k = 0; k < 22; k++) for (const s of [-1, 1]) line(1.2, 'rgba(0,0,0,0.12)', [[128, 240 - k * 10.5], [128 + s * 62, 226 - k * 10.5]]); });
-    mode('destination-out', () => { for (const [y, s] of [[64, 1], [150, -1], [196, 1], [110, -1]]) line(2.5, '#000', [[128 + s * 18, y], [128 + s * 72, y - 12]]); });
-  });
-  cell(4, () => {
-    const blade = () => { g.moveTo(104, 256); g.bezierCurveTo(94, 150, 104, 60, 128, 0); g.bezierCurveTo(152, 60, 162, 150, 152, 256); };
-    shape('#c8c8c8', blade);
-    mode('source-atop', () => {
-      for (let k = 0; k < 16; k++) { g.fillStyle = k % 2 ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,220,0.2)'; g.beginPath(); g.ellipse(128, 242 - k * 15, 34, 3.5 + (k % 3), 0.15 * Math.sin(k), 0, 7); g.fill(); }
-      g.strokeStyle = 'rgba(235,225,120,0.85)'; g.lineWidth = 5; g.beginPath(); blade(); g.stroke();
-    });
-  });
-  cell(5, () => {
-    shape('#cfcfcf', () => { g.arc(128, 128, 112, 0, 7); });
-    mode('source-atop', () => { for (let k = 0; k < 9; k++) { const a = k / 9 * 6.283; line(2.5, 'rgba(0,0,0,0.13)', [[128, 128], [128 + Math.cos(a) * 104, 128 + Math.sin(a) * 104]]); } });
-  });
-  cell(6, () => {
-    g.fillStyle = '#c8c8c8';
-    for (let k = 0; k < 18; k++) { const y = 246 - k * 13, len = 104 * Math.sin(Math.PI * (k + 1) / 20); for (const s of [-1, 1]) { g.beginPath(); g.ellipse(128 + s * len * 0.5, y - 6, len * 0.5, 5.5, s * -0.35, 0, 7); g.fill(); } }
-    line(3, '#c8c8c8', [[128, 256], [128, 8]]);
-  });
-  cell(7, () => {
-    for (let k = 0; k < 5; k++) { const a = k / 5 * 6.283 - 1.57; g.fillStyle = '#f4f4f4'; g.beginPath(); g.ellipse(128 + Math.cos(a) * 54, 128 + Math.sin(a) * 54, 54, 36, a, 0, 7); g.fill(); }
-    g.fillStyle = '#f0d070'; g.beginPath(); g.arc(128, 128, 22, 0, 7); g.fill();
-  });
-}
-
 // ---- the finishing pass -----------------------------------------------------------------------------
 // The room views' scene is drawn into a linear target, then graded warm, its corners softened, and
 // encoded for the screen. Its strength follows the move, so Editions is never touched.
@@ -580,7 +594,7 @@ export function createShell({ renderer, scene, lightUniforms, sun }) {
   const group = new THREE.Group();
   group.visible = false;
   scene.add(group);
-  const disposables = [];
+  const disposables = [], fontsIn = [];   // fontsIn: the faces the board and the lettering wait for
   const keep = x => (disposables.push(x), x);
   const { front: XF, back: XB, floor: YF, ceiling: YC, depth: ZD } = R;
   const V = (x, y, z) => new THREE.Vector3(x, y, z), UP = V(0, 1, 0);
@@ -870,14 +884,29 @@ export function createShell({ renderer, scene, lightUniforms, sun }) {
   const ty = W.y0 + (W.y1 - W.y0) * W.transom, zs = [W.z0 + Fw + (W.z1 - W.z0 - 2 * Fw) / 3, W.z0 + Fw + 2 * (W.z1 - W.z0 - 2 * Fw) / 3];
   bar(W.z0, ty - W.transomBar / 2, W.z1, ty + W.transomBar / 2);
   for (const z of zs) bar(z - W.bar / 2, W.y0, z + W.bar / 2, W.y1);
+  // "njct.io" gilded on the inside of the clear window's middle light (copy row C7), reversed from inside
+  const letTex = keep(canvasTexture(768, 256, () => {}));
+  const drawLettering = () => {
+    const c = letTex.image, g = c.getContext('2d');
+    g.clearRect(0, 0, c.width, c.height);
+    g.save(); g.translate(c.width, 0); g.scale(-1, 1);
+    g.font = '700 176px "NJ Lettering", Georgia, serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round';
+    g.strokeStyle = '#d9ad52'; g.lineWidth = 12; g.strokeText('njct.io', c.width / 2, c.height / 2 + 8);
+    g.fillStyle = '#1d1710'; g.fillText('njct.io', c.width / 2, c.height / 2 + 8);
+    g.restore();
+    letTex.needsUpdate = true;
+  };
+  fontsIn.push(new FontFace('NJ Lettering', `url(${new URL('../vendor/fonts/fraunces-lettering.woff2', import.meta.url).href})`, { weight: '700' }).load().then(f => { document.fonts.add(f); drawLettering(); }, drawLettering));
+  const letMat = keep(new THREE.ShaderMaterial({ uniforms: { uMap: { value: letTex } }, vertexShader: VERT, fragmentShader: LETTER_FRAG, transparent: true, depthWrite: false, toneMapped: false }));
+  special(new THREE.PlaneGeometry(168, 56), letMat, at(XF - 3, 175, (W.z0 + W.z1) / 2, -Math.PI / 2));
   // the street beyond the glass
   const leafSun = sun?.uniforms.uLeaf0.value || null;
   const street = keep(new THREE.ShaderMaterial({
     uniforms: { uLeafSun: { value: leafSun }, uSunU: sun ? sun.uniforms.uSunU : { value: V(1, 0, 0) }, uSunV: sun ? sun.uniforms.uSunV : { value: V(0, 1, 0) },
-      uMask: sun ? sun.uniforms.uMask : { value: new THREE.Vector4() }, uHasLeaves: { value: leafSun ? 1 : 0 } },
+      uMask: sun ? sun.uniforms.uMask : { value: new THREE.Vector4() }, uHasLeaves: { value: 0 } },
     vertexShader: VERT, fragmentShader: STREET_FRAG, toneMapped: false,
   }));
-  special(new THREE.PlaneGeometry(SF.z1 - SF.z0 + 200, SF.y1 - SF.y0 + 200), street, at(XF + 60, (SF.y0 + SF.y1) / 2, (SF.z0 + SF.z1) / 2, -Math.PI / 2));
+  special(new THREE.PlaneGeometry(6400, 3600), street, at(XF + 1900, 700, -400, -Math.PI / 2));
   // the reeded panes around the clear window
   const reeded = keep(new THREE.ShaderMaterial({ uniforms: { ...street.uniforms, uLeafSun: { value: sun?.uniforms.uLeaf2.value || null } },
     vertexShader: VERT, fragmentShader: REEDED_FRAG, toneMapped: false }));
@@ -934,27 +963,85 @@ export function createShell({ renderer, scene, lightUniforms, sun }) {
       else if (k === 'bags') { for (let j = 0; j < 3; j++) bag(x, y, z + j * 82, 50, 150 - j * 12, 74, BAGS[j + 1], LABELS[j], null, 'x'); z += 260; }
     }
   }
+  // three order slips on a steel rail under the shelf by the pick-up end (the drafts in copy row C6)
+  rod('chrome', C.chrome, V(XB + 196, BK.top + 392, 130), V(XB + 196, BK.top + 392, 370), 3.5);   // in view past the grinders
+  const slips = ['Tell me about your brand', 'I set up and run your channels', 'A monthly report on what worked'];
+  const slipTex = [], slipPivots = [];
+  slips.forEach((line, k) => {
+    const tex = keep(canvasTexture(240, 360, (g, w, h) => {
+      g.fillStyle = '#f3eee2'; g.fillRect(0, 0, w, h);
+      g.fillStyle = 'rgba(0,0,0,0.06)'; for (let yy = 110; yy < h - 20; yy += 34) g.fillRect(18, yy, w - 36, 2);
+      g.fillStyle = '#2a2622'; g.font = '700 64px "NJ Text", system-ui, sans-serif'; g.fillText(String(k + 1), 22, 76);
+      g.font = '500 30px "NJ Text", system-ui, sans-serif';
+      let l = '', yy = 136;
+      for (const wd of line.split(' ')) { const t = l ? l + ' ' + wd : wd; if (l && g.measureText(t).width > w - 44) { g.fillText(l, 22, yy); l = wd; yy += 34; } else l = t; }
+      g.fillText(l, 22, yy);
+    }));
+    slipTex.push(tex);
+    const mat = keep(new THREE.ShaderMaterial({ uniforms: { uMap: { value: tex }, uGain: { value: 0.78 } }, vertexShader: VERT, fragmentShader: TEX_FRAG, toneMapped: false, side: THREE.DoubleSide }));
+    // hung by its clip, so it can stir in the fan's air; first to third reading left to right from the room
+    const z = 324 - k * 72, pivot = new THREE.Group();
+    pivot.position.set(XB + 199, BK.top + 388, z);
+    pivot.rotation.set(0, Math.PI / 2 + (k - 1) * 0.06, (k - 1) * 0.04, 'YXZ');
+    pivot.add(new THREE.Mesh(keep(new THREE.PlaneGeometry(64, 96).translate(0, -48, 0)), mat));
+    group.add(pivot);
+    slipPivots.push(pivot);
+    bx('chrome', C.chrome, XB + 194, BK.top + 384, z - 6, XB + 200, BK.top + 394, z + 6);
+  });
+
   // the menu board, and shelves either side above, with plants trailing and coffee to sell
-  bx('plain', C.slate, XB + 1, 600, 800, XB + 14, 1240, 1800);
-  const menuTex = keep(canvasTexture(1400, 900, drawMenu));
-  const menuMat = keep(new THREE.ShaderMaterial({ uniforms: { uMap: { value: menuTex }, uGain: { value: 0.92 } }, vertexShader: VERT, fragmentShader: TEX_FRAG, toneMapped: false }));
-  special(new THREE.PlaneGeometry(990, 636), menuMat, at(XB + 16, 920, 1300, Math.PI / 2));
-  bx('wood', C.oak, XB + 1, 584, 784, XB + 18, 1256, 800); bx('wood', C.oak, XB + 1, 584, 1800, XB + 18, 1256, 1816);
+  // The menu board (1.77 m by 1.27 m), in its oak frame, under a brass picture light.
+  const MB = { y: 885, z: 1300, w: 1000, h: 714 };
+  let orderAt = null;
+  const menuTex = keep(canvasTexture(MENU_PX.w, MENU_PX.h, (g, w, h) => { orderAt = drawMenu(g, w, h); }));
+  const menuFace = new FontFace('NJ Menu', `url(${new URL('../vendor/fonts/bricolage-grotesque-menu.woff2', import.meta.url).href})`, { weight: '400 700' });
+  fontsIn.push(menuFace.load().then(f => {
+    document.fonts.add(f);
+    orderAt = drawMenu(menuTex.image.getContext('2d'), MENU_PX.w, MENU_PX.h);
+    menuTex.needsUpdate = true;
+  }, () => {}));
+  const menuMat = keep(new THREE.ShaderMaterial({ uniforms: { uMap: { value: menuTex }, uGain: { value: 0.95 } }, vertexShader: VERT, fragmentShader: MENU_FRAG, toneMapped: false }));
+  bx('plain', C.slate, XB + 1, MB.y - MB.h / 2 - 4, MB.z - MB.w / 2 - 10, XB + 14, MB.y + MB.h / 2 + 4, MB.z + MB.w / 2 + 10);
+  special(new THREE.PlaneGeometry(MB.w, MB.h), menuMat, at(XB + 16, MB.y, MB.z, Math.PI / 2));
+  for (const z of [MB.z - MB.w / 2 - 26, MB.z + MB.w / 2 + 10]) bx('wood', C.oak, XB + 1, MB.y - MB.h / 2 - 20, z, XB + 20, MB.y + MB.h / 2 + 20, z + 16);
+  for (const y of [MB.y - MB.h / 2 - 20, MB.y + MB.h / 2 + 4]) bx('wood', C.oak, XB + 1, y, MB.z - MB.w / 2 - 26, XB + 20, y + 16, MB.z + MB.w / 2 + 26);
+  // the picture light: a brass bar on two arms, its tube glowing on the underside
+  for (const z of [MB.z - 300, MB.z + 300]) rod('chrome', C.brass, V(XB + 20, MB.y + MB.h / 2 + 30, z), V(XB + 110, MB.y + MB.h / 2 + 70, z), 4);
+  cy('chrome', C.brass, 0, -380, 0, 16, 760, at(XB + 112, MB.y + MB.h / 2 + 70, MB.z, 0, Math.PI / 2), 16, 16);
+  bx('emit', [1.0, 0.86, 0.62], XB + 104, MB.y + MB.h / 2 + 56, MB.z - 370, XB + 120, MB.y + MB.h / 2 + 58, MB.z + 370);
+  // where "Order here" is on the board, in the room (for the link over it)
+  const boardAt = (u, v) => V(XB + 16, MB.y + MB.h / 2 - v * MB.h, MB.z + MB.w / 2 - u * MB.w);
   for (const [z0, z1] of [[80, 700], [1900, 2360]]) {
     for (const y of [700, 960]) bx('wood', C.oak, XB, y, z0, XB + 170, y + 20, z1);
     const r = mulberry32(z0 + 9);
     shelfPlant(XB + 85, 720, z0 + 90, V(1, 0, 0.1), z0 + 1, 40, 56, C.terra);
     for (let j = 0; j < 4; j++) bag(XB + 85, 720, z0 + 210 + j * 82, 56, 140 + 20 * r(), 70, BAGS[(j + z0) % BAGS.length], LABELS[j % LABELS.length], null, 'x');
     shelfPlant(XB + 85, 980, z1 - 110, V(1, 0, -0.1), z0 + 2, 44, 60, C.cream);
-    for (let j = 0; j < 3; j++) cy('satin', j % 2 ? C.sage : C.cream, XB + 85, 980, z0 + 80 + j * 80, 30, 70 + j * 20, null, 26, 20);
+    // a speaker on the high shelf, its grille to the room
+    const sz = z0 + 190;
+    bx('wood', C.walnut, XB + 14, 980, sz - 78, XB + 160, 1206, sz + 78);
+    bx('fabric', [0.07, 0.07, 0.075], XB + 160, 994, sz - 66, XB + 163, 1192, sz + 66);
+    for (const [yy, rr] of [[1150, 17], [1060, 46]]) cy('satin', [0.03, 0.03, 0.035], 0, -2, 0, rr, 4, at(XB + 165, yy, sz, 0, 0, Math.PI / 2), rr * 0.8, 24);
   }
   // On the back counter, from the record wall: the sink, the brew bar (two pour-overs on scales), a batch
   // brewer, the Thai tea (an urn and its cloth filter), a blender, the syrups, takeaway cups.
   {
     const y = BK.top, x = (BK.x0 + BK.x1) / 2;
-    rod('chrome', C.chrome, V(XB + 60, y, 360), V(XB + 60, y + 150, 360), 7); rod('chrome', C.chrome, V(XB + 60, y + 150, 360), V(XB + 150, y + 120, 360), 6);
-    bx('plain', C.ink, x - 70, y, 150, x + 90, y + 10, 300);
-    for (let i = 0; i < 2; i++) for (let j = 0; j < 3; j++) cy('satin', C.cream, x - 30 + i * 70, y + 10, 180 + j * 50, 22, 30, null, 26, 16);
+    // the turntable: a walnut plinth, the platter and its record (turned by the ambient clock), the tonearm
+    bx('wood', C.walnut, x - 140, y, 200, x + 120, y + 80, 580);
+    bx('plain', C.ink, x - 140, y + 4, 200, x + 120, y + 12, 580);
+    cy('chrome', [0.4, 0.4, 0.42], x + 96, y + 80, 230, 12, 10, null, 12, 16);
+    cy('chrome', [0.4, 0.4, 0.42], x + 96, y + 80, 270, 12, 10, null, 12, 16);
+    const TT = { x: x - 20, y: y + 80, z: 380 };
+    rod('chrome', C.chrome, V(x + 80, y + 104, 550), V(x - 10, y + 104, 470), 3.2);
+    rod('chrome', C.chrome, V(x - 10, y + 104, 470), V(TT.x + 40, y + 102, TT.z + 52), 3);
+    cy('chrome', C.chrome, x + 80, y + 80, 550, 14, 26, null, 14, 16);
+    bx('plain', C.ink, TT.x + 28, y + 96, TT.z + 40, TT.x + 52, y + 104, TT.z + 64);
+    // a crate of records beside it, and the sleeve of the one that's playing, leaning on the tiles
+    bx('wood', C.oak, x - 150, y, 40, x + 110, y + 150, 180);
+    for (let k = 0; k < 14; k++) bx('satin', BAGS[k % BAGS.length].map(v => v * 0.8), x - 140, y + 10, 52 + k * 9, x + 100, y + 170 - (k % 3) * 6, 58 + k * 9);
+    bx('satin', [0.86, 0.5, 0.18], XB + 6, y, 600, XB + 14, y + 177, 777);
+    el('satin', [0.12, 0.1, 0.09], XB + 15, y + 100, 690, 1, 52, 52, null, 24);
     // the pour-over stand
     bx('wood', C.walnut, x - 70, y, 600, x + 70, y + 14, 1000);
     for (const z of [610, 990]) bx('wood', C.walnut, x - 10, y + 14, z - 8, x + 10, y + 190, z + 8);
@@ -1022,8 +1109,11 @@ export function createShell({ renderer, scene, lightUniforms, sun }) {
     bx('satin', C.mint, x0, y + 18, z0, x1, y + 240, z1);
     bx('chrome', C.chrome, x0 - 4, y + 240, z0 - 4, x1 + 4, y + 250, z1 + 4);
     for (const z of [z0 - 2, z1 + 2]) bx('chrome', C.chrome, x0, y + 250, z - 3, x1, y + 272, z + 3);
-    for (const yy of [90, 200]) bx('satin', C.chrome, x1, y + yy, z0 + 16, x1 + 3, y + yy + 10, z1 - 16);
-    bx('satin', [0.25, 0.4, 0.33], x1, y + 30, (z0 + z1) / 2 - 2, x1 + 2, y + 236, (z0 + z1) / 2 + 2);
+    // its back, to the customers: a brushed steel panel in the mint frame, a dark oval badge
+    bx('satin', C.stainless, x1, y + 40, z0 + 26, x1 + 4, y + 222, z1 - 26);
+    for (const zz of [(z0 + z1) / 2 - 1.5]) bx('satin', [0.3, 0.31, 0.32], x1 + 4, y + 40, zz, x1 + 5, y + 222, zz + 3);
+    el('satin', C.ink, x1 + 5, y + 150, (z0 + z1) / 2, 1.5, 20, 64, null, 24);
+    bx('satin', [0.85, 0.78, 0.6], x1 + 6.5, y + 147, (z0 + z1) / 2 - 36, x1 + 7, y + 153, (z0 + z1) / 2 + 36);
     for (let i = 0; i < 2; i++) for (let j = 0; j < 5; j++) cy('satin', j % 3 === 1 ? C.clay : C.cream, x0 + 70 + i * 120, y + 250, z0 + 50 + j * ((z1 - z0 - 100) / 4), 26, 34, null, 21, 18);
     for (const z of [z0 + (z1 - z0) * 0.32, z0 + (z1 - z0) * 0.68]) {
       bx('chrome', C.chrome, x0 - 50, y + 120, z - 46, x0, y + 196, z + 46);
@@ -1092,7 +1182,9 @@ export function createShell({ renderer, scene, lightUniforms, sun }) {
     rod('plain', C.ink, V(p.x, p.y + 80, p.z), V(p.x, YC, p.z), 2.5);
     lathe('satin', C.enamel, [[100, 0], [96, 24], [72, 64], [30, 86], [12, 94], [0, 96]], p.x, p.y - 10, p.z, null, 32);
     lathe('emit', [0.95, 0.82, 0.62], [[0, 92], [12, 90], [30, 82], [72, 60], [94, 22], [98, 0]], p.x, p.y - 10, p.z, null, 32);
-    el('emit', C.glow, p.x, p.y + 14, p.z, 26, 30, 26);
+    el('glass', [0.95, 0.85, 0.7], p.x, p.y + 6, p.z, 30, 36, 30, null, 20);
+    for (let k = 0; k < 5; k++) { const a = k / 5 * 6.283; rod('emit', [1.0, 0.7, 0.34], V(p.x + Math.cos(a) * 5, p.y - 10, p.z + Math.sin(a) * 5), V(p.x + Math.cos(a) * 11, p.y + 22, p.z + Math.sin(a) * 11), 1.6, null, 5); }
+    el('emit', [1.0, 0.82, 0.55], p.x, p.y + 4, p.z, 9, 14, 9, null, 10);
   }
   // Shelving along the record wall at the bar's end: stock on the barista's side, coffee to sell on the
   // customers', a plant on top.
@@ -1156,8 +1248,17 @@ export function createShell({ renderer, scene, lightUniforms, sun }) {
   chair(630, 1430, 0.06);    // the other place, pushed in, clear of the screen from the Table view
   // On the table, as Neil left it: the laptop open toward his chair, the Thai tea, a notebook and pen, his
   // phone, an espresso by the other place, a carafe of water, a small plant by the window.
-  const screenTex = keep(canvasTexture(900, 576, drawScreen));
-  const screenMat = keep(new THREE.ShaderMaterial({ uniforms: { uMap: { value: screenTex }, uGain: { value: 1.0 } }, vertexShader: VERT, fragmentShader: TEX_FRAG, toneMapped: false }));
+  // The laptop's screen: Editions rendered into a small target at up to 15 Hz while the laptop is in view,
+  // by a camera standing where v1's does at 1440 x 900, with the terminal typed over it.
+  const screenTex = keep(canvasTexture(900, 576, (g, w, h) => drawTerminal(g, w, h)));
+  screenTex.generateMipmaps = false; screenTex.minFilter = THREE.LinearFilter;   // redrawn as it types; never shrunk far
+  const wallRT = keep(new THREE.WebGLRenderTarget(640, 400, { type: THREE.HalfFloatType, samples: 2, depthBuffer: true }));
+  const edCam = new THREE.PerspectiveCamera(2 * Math.atan(470 / 2556) * 180 / Math.PI, 640 / 400, 100, 2556 * 2);
+  edCam.position.set(0, 0, 2556);
+  edCam.updateMatrixWorld();
+  const screenMat = keep(new THREE.ShaderMaterial({ uniforms: { uWall: { value: wallRT.texture }, uTerm: { value: screenTex }, uHasWall: { value: 0 }, uGain: { value: 0.92 } },
+    vertexShader: VERT, fragmentShader: LAPTOP_FRAG, toneMapped: false }));
+  let screenDue = true, typed = TERM_CHARS, blink = true, tickN = 0;
   {
     const y = TB.top, LP = at(860, y, 1640, 0.22);
     bx('satin', [0.64, 0.65, 0.67], -62, 0, -88, 62, 8, 88, LP);
@@ -1175,6 +1276,9 @@ export function createShell({ renderer, scene, lightUniforms, sun }) {
     for (const [dx, dz, dy] of [[-8, 5, 66], [9, -6, 70], [2, 10, 75]]) bx('glass', [0.9, 0.95, 1.0], tx + dx - 8, y + dy, tz + dz - 8, tx + dx + 8, y + dy + 14, tz + dz + 8);
     lathe('glass', C.clear, [[0, 0], [22, 0], [24, 4], [27, 92], [25.5, 92], [22.5, 6], [0, 6]], tx, y + 4, tz, null, 28);
     rod('satin', [0.95, 0.95, 0.92], V(tx + 6, y + 30, tz - 4), V(tx + 22, y + 136, tz - 14), 3.2);
+    // its caustic on the table, on the room's side of the glass
+    special(new THREE.PlaneGeometry(130, 88), keep(new THREE.ShaderMaterial({ uniforms: { uGain: { value: 0.22 } }, vertexShader: VERT, fragmentShader: CAUSTIC_FRAG,
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false })), at(tx - 58, y + 0.8, tz + 6, 0, -Math.PI / 2));
     // the notebook and pen, the phone
     const NB = at(800, y, 1430, -0.3);
     bx('plain', [0.55, 0.42, 0.28], -42, 0, -60, 42, 7, 60, NB);
@@ -1205,6 +1309,20 @@ export function createShell({ renderer, scene, lightUniforms, sun }) {
   bx('plain', [0.82, 0.48, 0.22], XF - 16, 260, 1720, XF - 15, 480, 1900);
   el('plain', [0.18, 0.3, 0.42], XF - 16.5, 340, 1810, 1, 70, 70, null, 24);
 
+  // The record on the turntable, its own mesh so the ambient clock can turn it (33 1/3 rpm).
+  const recordGeo = new THREE.CylinderGeometry(150, 150, 4, 64);
+  put('satin', recordGeo, null, [0.035, 0.035, 0.04]);
+  batches.get('satin').pop();
+  const labelGeo = new THREE.CylinderGeometry(50, 50, 4.6, 32).translate(0, 0, 0);
+  put('plain', labelGeo, null, [0.86, 0.5, 0.18]);
+  batches.get('plain').pop();
+  const record = new THREE.Group();
+  record.position.set(-2240 - 20, CT.backTop + 82, 380);
+  const recMesh = new THREE.Mesh(keep(recordGeo), MAT.satin), labMesh = new THREE.Mesh(keep(labelGeo), MAT.plain);
+  record.add(recMesh, labMesh);
+  for (let k = 0; k < 3; k++) { const gg = new THREE.BoxGeometry(12, 1, 2).translate(26, 2.6, 0).rotateY(k * 2.1); put('plain', gg, null, [0.95, 0.9, 0.8]); batches.get('plain').pop(); record.add(new THREE.Mesh(keep(gg), MAT.plain)); }
+  group.add(record);
+
   // ---- the batches, merged: one draw per material --------------------------------------------------------
   for (const [key, geos] of batches) {
     const g = keep(merge(geos));
@@ -1224,24 +1342,57 @@ export function createShell({ renderer, scene, lightUniforms, sun }) {
 
   const finish = createFinish(renderer);
   disposables.push(finish);
-  const textures = [leafTex, menuTex, screenTex];
+  const textures = [leafTex, menuTex, screenTex, letTex, ...slipTex];
   return {
     group,
     fan,
     finish,
+    // Where "Order here" sits on the board, four corners in the room, for the link laid over it.
+    get orderCorners() { return orderAt ? [[orderAt.x0, orderAt.y0], [orderAt.x1, orderAt.y0], [orderAt.x1, orderAt.y1], [orderAt.x0, orderAt.y1]].map(([u, v]) => boardAt(u, v)) : null; },
+    // The ambient clock: the record turns; returns whether anything moved.
+    tick(t) {
+      record.rotation.y = -t * (100 / 3) / 60 * Math.PI * 2;
+      // the laptop: its wall every other tick (15 Hz), the terminal typing 16 characters a second, then
+      // waiting 7 s with the cursor blinking before it types again
+      if (++tickN % 2 === 0) screenDue = true;
+      const cycle = TERM_CHARS / 16 + 7, at = t % cycle, n = Math.min(TERM_CHARS, Math.floor(at * 16)), b = n < TERM_CHARS || Math.floor(at * 2) % 2 === 0;
+      if (n !== typed || b !== blink) { typed = n; blink = b; drawTerminal(screenTex.image.getContext('2d'), screenTex.image.width, screenTex.image.height, n, b); screenTex.needsUpdate = true; }
+      // the slips lift away from the wall in the fan's air, each on its own beat
+      slipPivots.forEach((p, k) => { p.rotation.x = 0.05 + 0.035 * Math.sin(t * 1.27 + k * 1.9) + 0.02 * Math.sin(t * 3.1 + k * 0.7); });
+      return true;
+    },
+    // Off Editions, each frame: the laptop's wall when due (and the laptop can be seen), then the room.
+    render(scn, camera, amount, laptop) {
+      if (laptop && screenDue) {
+        screenDue = false;
+        group.visible = false;
+        const was = renderer.getRenderTarget();
+        renderer.setRenderTarget(wallRT);
+        renderer.render(scn, edCam);
+        renderer.setRenderTarget(was);
+        group.visible = true;
+        screenMat.uniforms.uHasWall.value = 1;
+      }
+      finish.render(scn, camera, amount);
+    },
     // Out of sight before the first move: build every program for the room's own (linear) target and the
     // finishing quad's for the screen, upload the drawn textures, and allocate the target.
-    async warm(camera) {
+    // also: other groups drawn only off Editions (the garden), compiled with it; more: their textures.
+    async warm(camera, also = [], more = []) {
       group.visible = true;
+      for (const g of also) g.visible = true;
       const was = renderer.getRenderTarget();
       renderer.setRenderTarget(finish.target);
       const p = renderer.compileAsync ? renderer.compileAsync(scene, camera) : (renderer.compile(scene, camera), null);
       renderer.setRenderTarget(was);
       group.visible = false;
+      for (const g of also) g.visible = false;
       if (p) await p;
-      for (const t of textures) renderer.initTexture(t);
+      await Promise.allSettled(fontsIn);   // the board and the lettering are drawn in their faces before upload
+      for (const t of [...textures, ...more]) renderer.initTexture(t);
       finish.compile();
       ext.bake();   // allocates the record wall extension's bake target too
+      renderer.setRenderTarget(wallRT); renderer.clear(); renderer.setRenderTarget(was);   // and the laptop's
     },
     // Re-light the record wall's extension when the studio bake does (sleeves moved).
     bake() { ext.bake(); },

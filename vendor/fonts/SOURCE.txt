@@ -52,3 +52,17 @@ jetbrains-mono-medium-cover.woff2 — NJ Mono, back covers: the stack line
   Licence: OFL-1.1 (https://github.com/JetBrains/JetBrainsMono)
 
 The fronts load the first four with the UI face; the last two load with the first back.
+
+bricolage-grotesque-menu.woff2 — NJ Menu, the café's menu board (room/shell.js; loaded with the café, never in the first view)
+  Bricolage Grotesque (Mathieu Triay), gstatic v9, opsz 36, wght 400 to 700 (variable)
+  glyphs: " ,-.CMOVabcdefghilmnopqrstuvwy’←" (from the menu board's lines, copy rows C2 to C5)
+  css2?family=Bricolage+Grotesque:opsz,wght@36,400..700&text=%20%2C-.CMOVabcdefghilmnopqrstuvwy%E2%80%99%E2%86%90
+  7352 bytes, sha256 efe39eed0db3fb1902dad2423f1a7f92c6d93a979142ca334c51dab44cc896e0
+  Licence: OFL-1.1 (https://github.com/ateliertriay/bricolage)
+
+fraunces-lettering.woff2 — NJ Lettering, "njct.io" gilded on the café's window (room/shell.js; loaded with the café)
+  Fraunces (Undercase Type), gstatic, opsz 144 · wght 700 · SOFT 0 · WONK 1
+  glyphs: ".cijnot" (copy row C7, "njct.io")
+  css2?family=Fraunces:opsz,wght,SOFT,WONK@144,700,0,1&text=.cijnot
+  1544 bytes, sha256 f7e51ba73499170720a92a6d2265cced792fb8d8888e82ed8b64a1c71b966814
+  Licence: OFL-1.1 (https://github.com/undercasetype/Fraunces)
