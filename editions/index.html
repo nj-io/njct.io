@@ -21,7 +21,7 @@
     document.currentScript.after(m);
   } else if (window.__editionsGL) {
     // bundle: first-view chunks, written by build/bundle.mjs
-    const first = ["/editions/dist/main.js","/editions/dist/chunk-CBEJLKG4.js","/editions/dist/chunk-U3AZOSC6.js","/editions/dist/chunk-OOBDN6GE.js","/editions/dist/menu.js"];
+    const first = ["/editions/dist/main.js","/editions/dist/chunk-JJX2UVK5.js","/editions/dist/chunk-DOTNV5NQ.js","/editions/dist/chunk-OOBDN6GE.js","/editions/dist/chunk-U3AZOSC6.js","/editions/dist/menu.js"];
     // /bundle
     for (const href of first) document.head.append(Object.assign(document.createElement('link'), { rel: 'modulepreload', href }));
   }
@@ -179,6 +179,7 @@
   .crate-rail span { position: absolute; left: 0; top: 0; width: 3px; height: 24px; border-radius: 2px; background: #000; }
   .crate.in-details .crate-rail { opacity: 0 !important; transition: opacity 0.2s; }
   .crate canvas { touch-action: none; }
+  canvas { touch-action: pinch-zoom; }   /* a sideways swipe reaches the page (room/room.js turns) */
 
   /* Touch: every control is at least 44 px each way. */
   @media (pointer: coarse) {
@@ -190,6 +191,52 @@
     .slot button { height: 44px; line-height: 44px; border-radius: 22px; }
     .d-open { height: 44px; line-height: 44px; border-radius: 22px; }
   }
+
+
+  /* The room (room/room.js): turn buttons at the screen's edges, each named for the wall it turns to, and
+     the room map (from above: wall 1 at the top, the cone points at the wall in front). While the view is
+     away from wall 1 (or turning), the shelf's own controls are hidden. */
+  .room-nav { position: fixed; inset: 0; z-index: 2; pointer-events: none; }
+  .rn-turn {
+    position: absolute; top: 50%; translate: 0 -50%; height: 40px; padding: 0 14px; border: 0; border-radius: 20px;
+    display: flex; align-items: center; gap: 6px; background: rgba(255, 255, 255, 0.7); color: var(--ink);
+    line-height: 40px; white-space: nowrap; cursor: pointer; pointer-events: auto;
+  }
+  .rn-turn svg { width: 16px; height: 16px; display: block; flex: none; }
+  .rn-prev { left: var(--gutter); padding-left: 10px; }
+  .rn-next { right: var(--gutter); padding-right: 10px; }
+  .room-map { position: absolute; right: var(--gutter); top: 113px; width: 56px; height: 56px; border-radius: 6px; background: rgba(255, 255, 255, 0.3); pointer-events: auto; }
+  .rm-wall { position: absolute; inset: 0; margin: 0; padding: 0; border: 0; background: transparent; cursor: pointer; }
+  .rm-wall::before { content: ''; position: absolute; background: rgba(0, 0, 0, 0.22); }
+  .rm-wall[aria-current="true"]::before { background: #000; }
+  .rm-wall:focus-visible { outline: none; background: rgba(0, 0, 0, 0.1); }
+  @media (hover: hover) { .rm-wall:hover::before { background: rgba(0, 0, 0, 0.55); } .rm-wall[aria-current="true"]:hover::before { background: #000; } }
+  .rm-n { clip-path: polygon(0 0, 100% 0, 50% 50%); }
+  .rm-e { clip-path: polygon(100% 0, 100% 100%, 50% 50%); }
+  .rm-s { clip-path: polygon(0 100%, 100% 100%, 50% 50%); }
+  .rm-w { clip-path: polygon(0 0, 0 100%, 50% 50%); }
+  .rm-n::before { left: 6px; right: 6px; top: 6px; height: 4px; }
+  .rm-e::before { top: 6px; bottom: 6px; right: 6px; width: 4px; }
+  .rm-s::before { left: 6px; right: 6px; bottom: 6px; height: 4px; }
+  .rm-w::before { top: 6px; bottom: 6px; left: 6px; width: 4px; }
+  .rm-cone { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  .rm-cone path { fill: rgba(0, 0, 0, 0.16); }
+  .rm-cone circle { fill: #000; }
+  /* A phone: the turn buttons sit beside the crate's back strips, the arrow over the wall's name. */
+  @media (max-width: 599px) {
+    .rn-turn { top: 25%; height: auto; min-width: 48px; padding: 6px 4px; flex-direction: column; gap: 2px; font-size: 11px; line-height: 14px; border-radius: 12px; }
+    .rn-prev { left: 6px; padding-left: 4px; }
+    .rn-next { right: 6px; padding-right: 4px; flex-direction: column-reverse; }
+  }
+  @media (pointer: coarse) {
+    .rn-turn { min-height: 44px; }
+    @media (min-width: 600px) { .rn-turn { height: 44px; line-height: 44px; border-radius: 22px; } }
+    .room-map { width: 88px; height: 88px; top: 110px; }   /* each wall's target is as large as a 44 px square */
+    .rm-n::before, .rm-s::before { left: 10px; right: 10px; } .rm-e::before, .rm-w::before { top: 10px; bottom: 10px; }
+  }
+  .room-away #slots, .room-away .index, .room-away .crate-bar, .room-away .crate-rail { visibility: hidden; }
+  .in-details .room-nav, .in-project .room-nav { visibility: hidden; }
+  .no-gl .room-nav { display: none !important; }
 
   .rise, .late { opacity: 0; }
 
@@ -231,7 +278,21 @@
     </svg>
   </button>
 </header>
+<nav class="room-nav late" aria-label="Room">
+  <button class="rn-turn rn-prev" type="button"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 4l-4 4 4 4"/></svg><span class="rn-name">Wall 4</span></button>
+  <button class="rn-turn rn-next" type="button"><span class="rn-name">Wall 2</span><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg></button>
+  <div class="room-map" role="group" aria-label="Room map">
+    <button class="rm-wall rm-n" type="button" aria-current="true"></button>
+    <button class="rm-wall rm-e" type="button"></button>
+    <button class="rm-wall rm-s" type="button"></button>
+    <button class="rm-wall rm-w" type="button"></button>
+    <svg class="rm-cone" viewBox="0 0 56 56" aria-hidden="true"><path d="M28 28L19 13h18z"/><circle cx="28" cy="28" r="3"/></svg>
+  </div>
+</nav>
 <ul id="slots" aria-label="Projects"></ul>
+<section class="wall-html sr" data-wall="2" aria-labelledby="wh-2" inert aria-hidden="true"><h2 id="wh-2">Wall 2</h2><p>A wall of the room, still to be dressed.</p></section>
+<section class="wall-html sr" data-wall="3" aria-labelledby="wh-3" inert aria-hidden="true"><h2 id="wh-3">Wall 3</h2><p>A wall of the room, still to be dressed.</p></section>
+<section class="wall-html sr" data-wall="4" aria-labelledby="wh-4" inert aria-hidden="true"><h2 id="wh-4">Wall 4</h2><p>A wall of the room, still to be dressed.</p></section>
 <div class="index late" aria-hidden="true"><ol id="index"></ol></div>
 <div class="crate-bar late" id="crate-bar">
   <p class="cb-label" aria-hidden="true"><span class="cb-year"></span><span class="cb-name"></span></p>

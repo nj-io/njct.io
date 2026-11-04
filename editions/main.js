@@ -12,6 +12,7 @@ import { introPose, appearTime, stepHover, fallPose, HOVER_DELAY, bezier, lerpPo
 import { createPost } from './scene/post.js';
 import { createSticker } from './scene/sticker.js';
 import { createCrate, createCrateShadow, CRATE } from './scene/crate.js';
+import { createRoom, wallOfSlug } from './room/room.js';
 
 const entries = LINEUP;
 
@@ -68,6 +69,22 @@ camera.position.set(0, 0, CAMZ);
 const crate = createCrate(sleeves.length);
 const crateShadow = createCrateShadow();
 scene.add(crateShadow.mesh);
+
+// The room (room/room.js): wall 1 is this shelf; left and right turn the camera to the other walls.
+// While the camera is away from wall 1 (or turning), the shelf's pills, index and crate controls are
+// hidden and inert, and nothing on the shelf answers the pointer.
+const room = createRoom({
+  renderer, scene, camera, uniforms,
+  canTurn: () => !det && inProject < 0 && !glLost && hooks.firstFrameAt !== null,
+  onAway(away) {
+    if (away) { pointerHit = -1; setHovered(-1); }
+    slotsEl.inert = away;
+    cbBar.inert = away;
+  },
+  wake: () => wake(),
+  announce: t => announce(t),
+  play: (n, o) => play(n, o),
+});
 
 // ---- covers -------------------------------------------------------------------------------------
 // Covers come only through createCover (editions/covers/): a 1024 front (Details shows it at about 830
@@ -128,6 +145,7 @@ function warmBacks() {
   backsWarm = true;
   const idle = window.requestIdleCallback || (f => setTimeout(f, 200));
   idle(() => {
+    room.warm();   // walls 2 and 4, at idle once the intro is over
     if (!det) covers[0].detailBack(1024).catch(() => {});
     idle(() => loadView().then(v => v.warm()).then(w => { if (w) { worldWarm = w; wake(); } })
       .catch(e => console.warn(`world warm-up: ${e?.message || e}`)), { timeout: 3000 });
@@ -297,6 +315,10 @@ function layout() {
   post.resize(dbSize.x, dbSize.y);
   const sw = crateMode ? viewScale(W, H) : S, rw = W / 2 / sw * 1.02, rh = H / 2 / sw * 1.02, sy = shiftY / S;
   wall.resize(-hw * 1.02, -hh * 1.02 + sy, hw * 1.02, hh * 1.02 + sy, Math.ceil(W / 2), Math.ceil(H / 2), crateMode ? [-rw, -rh, rw, rh] : null);
+  // The room's other walls: the same scale and light mapping (the crate's close view keeps the shelf
+  // view's light, stretched as on wall 1).
+  room.layout({ camZ: CAMZ, S, hw, hh, sy, kx: crateMode ? rw / (hw * 1.02) : 1, ky: crateMode ? rh / (hh * 1.02) : 1,
+    gain: crateMode ? CRATE.groundGain : 1 });
   bakeDirty = bgDirty = true;
   // Details: the sleeve's size and centre on screen, then the depth and height that give them.
   detSize = crateMode ? CRATE.details.size * W : DETAILS.size * S;
@@ -460,7 +482,7 @@ function frame(now) {
   if (inProject >= 0) { last = 0; return; }   // a page is open: the shelf holds still and draws nothing
   const dt = last ? Math.min(0.05, (now - last) / 1000) : 0;
   last = now;
-  let active = false;
+  let active = room.step(now);
   const ti = sleevesStart === null ? -1 : now - sleevesStart;
   const crateWas = crateBusy;
   const crateMoving = crateMode && crate.step(dt);
@@ -600,6 +622,7 @@ let pointerHit = -1;   // keyboard focus moves the hover too; the pointer takes 
 window.addEventListener('pointermove', e => {
   if (e.pointerType === 'touch' || crateMode) return;
   pointer.x = e.clientX; pointer.y = e.clientY;
+  if (room.away) return;
   if (det) { syncHot(); return; }
   const hit = e.target.closest?.('.pm') ? -1 : hitAt(e.clientX, e.clientY);   // the open Projects menu covers the sleeves under it
   if (hit !== pointerHit) { pointerHit = hit; setHovered(hit); }
@@ -611,7 +634,7 @@ window.addEventListener('resize', layout);
 // A click on a sleeve opens its Details; in Details, a click on the sleeve flips it and a click on the
 // ground puts it back.
 canvas.addEventListener('click', e => {
-  if (crateMode) return;   // the crate's own pointer handling below takes taps
+  if (crateMode || room.away) return;   // the crate's own pointer handling below takes taps
   pointer.x = e.clientX; pointer.y = e.clientY;
   if (det) { if (det.exit) return; if (overFocus()) flip(); else closeDetails(); return; }
   const hit = hitAt(e.clientX, e.clientY);
@@ -663,7 +686,7 @@ function crateHit(x, y) {
 // beside it puts it back.
 let press = null;
 canvas.addEventListener('pointerdown', e => {
-  if (!crateMode || inProject >= 0 || !e.isPrimary) return;
+  if (!crateMode || inProject >= 0 || !e.isPrimary || room.away) return;
   press = { x: e.clientX, y: e.clientY, id: e.pointerId };
   canvas.setPointerCapture(e.pointerId);
   if (!det) { crate.begin(e.clientY, e.timeStamp); wake(); }
@@ -680,6 +703,7 @@ const endPress = cancel => e => {
   press = null;
   const travel = Math.hypot(e.clientX - x, e.clientY - y);
   if (cancel) { crate.cancel(); wake(); return; }
+  if (!det && isSwipe(e.clientX - x, e.clientY - y)) { crate.cancel(); wake(); room.turn(e.clientX < x ? 1 : -1); return; }
   if (!det) crate.end(e.timeStamp);
   wake();
   if (travel >= 8) return;
@@ -703,6 +727,23 @@ window.addEventListener('wheel', e => {
   wake();
 }, { passive: false });
 cbBar.querySelector('.cb-back').addEventListener('click', () => closeDetails());
+
+// A swipe turns the room: a finger moving sideways at least 60 px, twice as far as it moves up or down.
+// A swipe to the left brings the wall on the right into view. The crate (wall 1 on a phone) takes the
+// swipe in its own handler above; elsewhere this one does.
+const isSwipe = (dx, dy) => Math.abs(dx) >= 60 && Math.abs(dx) >= 2 * Math.abs(dy);
+let swipe = null;
+canvas.addEventListener('pointerdown', e => {
+  if (e.pointerType === 'mouse' || !e.isPrimary || (crateMode && !room.away)) return;
+  swipe = { x: e.clientX, y: e.clientY, id: e.pointerId };
+});
+canvas.addEventListener('pointerup', e => {
+  if (!swipe || e.pointerId !== swipe.id) return;
+  const dx = e.clientX - swipe.x, dy = e.clientY - swipe.y;
+  swipe = null;
+  if (!det && isSwipe(dx, dy)) room.turn(dx < 0 ? 1 : -1);
+});
+canvas.addEventListener('pointercancel', () => { swipe = null; });
 
 // ---- Details --------------------------------------------------------------------------------------
 function openDetails(i) {
@@ -806,6 +847,7 @@ async function route() {
   if (glLost) return;   // the fallback routes from here on
   const slug = decodeURIComponent(location.hash.slice(1));
   const i = entries.findIndex(e => slugOf(e) === slug);
+  const w = wallOfSlug(slug);   // #wall-2 ... #wall-4: face that wall; no hash: the record wall
   if (i >= 0) {
     if (i === inProject) return;
     const v = await loadView();
@@ -829,9 +871,10 @@ async function route() {
     layout();
     if (crateMode) { crate.jump(i0); for (const s of sleeves) if (settled[s.i]) { s.pose = crate.pose(s); applyPose(s); } syncCrate(true); }
     bakeDirty = bgDirty = true;
-    slots[i0].querySelector('[data-action="open"]').focus({ preventScroll: true });
+    if (w < 0 && room.facing === 0) slots[i0].querySelector('[data-action="open"]').focus({ preventScroll: true });
     wake();
   }
+  if (i < 0) room.face(w < 0 ? 0 : w);
 }
 // Back, Escape and the wordmark: the browser's Back when the page was opened from the shelf, else the
 // shelf's own address (a deep link has no shelf behind it).
@@ -883,6 +926,13 @@ window.addEventListener('keydown', e => {
     else if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); if (!e.repeat) flip(); }
     return;
   }
+  // Left and right turn the room, except on the shelf list, where they keep moving between sleeves.
+  if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !e.target.closest?.('.pm') && (room.away || slotOf(document.activeElement) < 0)) {
+    e.preventDefault();
+    if (!e.repeat) room.turn(e.key === 'ArrowLeft' ? -1 : 1);
+    return;
+  }
+  if (room.away) return;
   if (crateMode) {
     // The crate: arrows step through it; focus, if it is on the list, moves with the front sleeve.
     const step = { ArrowLeft: -1, ArrowUp: -1, ArrowRight: 1, ArrowDown: 1 }[e.key];
@@ -919,6 +969,7 @@ rm.addEventListener?.('change', e => { setReducedMotion(e.matches); crate.setRed
 // ---- test hooks -----------------------------------------------------------------------------------
 const hooks = {
   count: sleeves.length,
+  get room() { return room.state; },
   firstFrameAt: null,
   ready: firstFrame.ready,
   covers: coversReady,
@@ -961,5 +1012,7 @@ for (const s of sleeves) applyPose(s);
 sticker.mesh.visible = false;
 bgDirty = true;
 
-// A deep link (#mirra) opens straight into its page once the shelf has drawn its first frame.
+// A deep link (#mirra) opens straight into its page once the shelf has drawn its first frame; a wall's
+// (#wall-2) loads the room's walls at once, beside the first frame, and turns there once it is drawn.
+if (wallOfSlug(decodeURIComponent(location.hash.slice(1))) > 0) room.load();
 firstFrame.ready.then(() => { if (location.hash) route(); });
