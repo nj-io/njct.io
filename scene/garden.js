@@ -105,7 +105,8 @@ void main() {
   col = mix(col, mix(vec3(grey), col, 1.35) * 0.62, touch);
   // and the air: what stands further out is softer, toward the haze of the soi
   col = mix(col, vec3(1.05, 0.97, 0.86), (1.0 - exp(-gap / 2600.0)) * 0.32);
-  gl_FragColor = vec4(col, cover);
+  // outside in the sun: brighter than anything in the room, as a camera exposed for the room sees it
+  gl_FragColor = vec4(col * ${CAFE.finish.outside.toFixed(3)}, cover);
   #include <colorspace_fragment>
 }`;
 

@@ -126,4 +126,10 @@ export const CAFE = {
   // coverGain: the sun on a cover against its fitted light, by slug; a pale cover takes less, so its title
   // keeps at least 85% of its contrast in the patch (About Neil's gold on cream).
   sun: { az: 38, el: 13, power: 1.3, leaves: 500, fadeIn: 1200, ambientHz: 30, coverGain: { default: 0.85, about: 0.34 } },
+  // The room views as a camera exposed for the room sees them (round 3): what is outside the window is brighter
+  // than anything inside (outside: the gain on the garden and the street, which then match the window's light in
+  // the room; reeded: on the reeded panes), and the bulbs are too. The finishing pass rolls the brightest off
+  // toward white from knee, spreads what is over threshold (bloom: its share) and fringes its edges warm
+  // (halation: its share, as light that crosses a film and comes back off its base reaches the red layer).
+  finish: { outside: 2.2, reeded: 1.15, knee: 0.9, threshold: 1.0, soft: 0.5, bloom: 0.1, halation: 0.2 },
 };

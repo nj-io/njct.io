@@ -293,7 +293,7 @@ void main() {
     float clear = texture2D(uLeafSun, uv).r;
     col = mix(vec3(0.26, 0.36, 0.1) * 1.4, col, clear);   // leaves lit from behind: yellow-green
   }
-  gl_FragColor = vec4(col * 0.97, 1.0);
+  gl_FragColor = vec4(col * ${(0.97 * CAFE.finish.outside).toFixed(3)}, 1.0);   // outside: brighter than the room
   #include <colorspace_fragment>
 }`;
 
@@ -307,14 +307,16 @@ uniform float uHasLeaves;
 varying vec3 vP;
 varying vec3 vN;
 void main() {
-  float rib = 0.5 + 0.5 * sin(vP.z / 4.2 * 3.14159);
+  // each reed a little lens: bright across its face, a fine darker line where two meet (low enough to survive the
+  // highlights' roll-off)
+  float rib = 0.5 + 0.5 * sin(vP.z / 4.2 * 3.14159), seam = pow(0.5 + 0.5 * cos(vP.z / 4.2 * 3.14159), 7.0);
   float hgt = clamp((vP.y - ${SF.y0.toFixed(1)}) / ${(SF.y1 - SF.y0).toFixed(1)}, 0.0, 1.0);
-  vec3 col = mix(vec3(0.98, 0.9, 0.77), vec3(0.9, 0.92, 0.95), hgt) * (0.9 + 0.08 * rib);
+  vec3 col = mix(vec3(0.98, 0.9, 0.77), vec3(0.9, 0.92, 0.95), hgt) * (0.94 + 0.06 * rib) * (1.0 - 0.27 * seam);
   if (uHasLeaves > 0.5) {
     vec2 uv = (vec2(dot(vP, uSunU), dot(vP, uSunV)) - uMask.xy) / (2.0 * uMask.z) + 0.5;
     col *= 0.86 + 0.14 * texture2D(uLeafSun, uv).r;
   }
-  gl_FragColor = vec4(col, 1.0);
+  gl_FragColor = vec4(col * ${CAFE.finish.reeded.toFixed(3)}, 1.0);
   #include <colorspace_fragment>
 }`;
 
@@ -506,15 +508,32 @@ function drawTerminal(g, w, h, shown = TERM_CHARS, cursor = true) {
   if (cursor) { g.fillStyle = '#d6d6d6'; g.fillRect(left >= 0 ? tx + 18 : x + 2, (left >= 0 ? y : y) - 18, 11, 22); }
 }
 // ---- the finishing pass -----------------------------------------------------------------------------
-// The room views' scene is drawn into a linear target, then graded warm, its corners softened, and
-// encoded for the screen. Its strength follows the move, so Editions is never touched.
+// The room views' scene is drawn into a linear target, the window and the bulbs in it brighter than the room's white
+// (CAFE.finish), as a camera exposed for the room sees them. Then what is over the threshold spreads (bloom: halved
+// six times and summed back up) and fringes its edges warm (halation), the highlights roll off toward white, and the
+// whole is graded warm, its corners softened, and encoded for the screen. Its strength follows the move, so Editions
+// is never touched.
+const FX = CAFE.finish, BLOOM_LEVELS = 6;
+const PASS_VERT = 'varying vec2 vUv; void main() { vUv = position.xy * 0.5 + 0.5; gl_Position = vec4(position.xy, 0.0, 1.0); }';
 const FINISH_FRAG = /* glsl */`
-uniform sampler2D uSrc;
-uniform float uAmount;
+uniform sampler2D uSrc, uBloom, uHalo;
+uniform float uAmount, uGlow;
 varying vec2 vUv;
+// the highlights, from the knee toward 1: their hue kept while they are a little over, going white as they climb
+float njRollOne(float x) { return x <= ${FX.knee.toFixed(3)} ? x : ${FX.knee.toFixed(3)} + ${(1 - FX.knee).toFixed(3)} * (1.0 - exp(-(x - ${FX.knee.toFixed(3)}) / ${(1 - FX.knee).toFixed(3)})); }
+vec3 njRoll(vec3 c) {
+  float pk = max(c.r, max(c.g, c.b));
+  if (pk <= ${FX.knee.toFixed(3)}) return c;
+  vec3 hue = c * (njRollOne(pk) / pk), each = vec3(njRollOne(c.r), njRollOne(c.g), njRollOne(c.b));
+  return mix(hue, max(hue, each), smoothstep(1.3, 4.0, pk));
+}
 void main() {
-  vec3 c = texture2D(uSrc, vUv).rgb;
-  vec3 g = c * vec3(1.07, 0.99, 0.86);
+  vec3 c = texture2D(uSrc, vUv).rgb, h = c;
+  if (uGlow > 0.0) {
+    vec3 b = texture2D(uBloom, vUv).rgb / ${BLOOM_LEVELS.toFixed(1)}, f = texture2D(uHalo, vUv).rgb;
+    h += uGlow * (${FX.bloom.toFixed(3)} * b + ${FX.halation.toFixed(3)} * vec3(1.0, 0.34, 0.12) * dot(f, vec3(0.3, 0.59, 0.11)));
+  }
+  vec3 g = njRoll(h) * vec3(1.07, 0.99, 0.86);
   g = mix(g, g * g * (3.0 - 2.0 * g), 0.18);                 // a little more contrast
   vec2 q = vUv - 0.5;
   g *= 1.0 - 0.22 * dot(q, q) * 2.2;                          // the corners fall off
@@ -522,18 +541,67 @@ void main() {
   #include <colorspace_fragment>
   gl_FragColor.rgb += (fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715)))) - 0.5) / 255.0;
 }`;
+// What is over the threshold, softly (a knee of FX.soft below it), each of four taps weighted against its own
+// brightness so one hot pixel does not flare; the source halved on the way (each tap a bilinear 2 x 2).
+const BRIGHT_FRAG = /* glsl */`
+uniform sampler2D uSrc;
+uniform vec2 uTexel;
+varying vec2 vUv;
+vec3 njOver(vec3 c) {
+  float pk = max(c.r, max(c.g, c.b));
+  float s = clamp(pk - ${(FX.threshold - FX.soft).toFixed(3)}, 0.0, ${(2 * FX.soft).toFixed(3)});
+  s = s * s / ${(4 * FX.soft).toFixed(3)};
+  return c * (max(s, pk - ${FX.threshold.toFixed(3)}) / max(pk, 1e-4));
+}
+void main() {
+  vec3 a = njOver(texture2D(uSrc, vUv + uTexel * vec2(-1.0, -1.0)).rgb), b = njOver(texture2D(uSrc, vUv + uTexel * vec2(1.0, -1.0)).rgb);
+  vec3 c = njOver(texture2D(uSrc, vUv + uTexel * vec2(-1.0, 1.0)).rgb), d = njOver(texture2D(uSrc, vUv + uTexel * vec2(1.0, 1.0)).rgb);
+  vec4 w = 1.0 / (1.0 + vec4(max(a.r, max(a.g, a.b)), max(b.r, max(b.g, b.b)), max(c.r, max(c.g, c.b)), max(d.r, max(d.g, d.b))));
+  gl_FragColor = vec4((a * w.x + b * w.y + c * w.z + d * w.w) / (w.x + w.y + w.z + w.w), 1.0);
+}`;
+// Halving: the centre and four diagonal taps (a dual filter's down step).
+const DOWN_FRAG = /* glsl */`
+uniform sampler2D uSrc;
+uniform vec2 uTexel;
+varying vec2 vUv;
+void main() {
+  vec3 s = texture2D(uSrc, vUv).rgb * 4.0;
+  s += texture2D(uSrc, vUv + uTexel * vec2(-1.0, -1.0)).rgb + texture2D(uSrc, vUv + uTexel * vec2(1.0, -1.0)).rgb;
+  s += texture2D(uSrc, vUv + uTexel * vec2(-1.0, 1.0)).rgb + texture2D(uSrc, vUv + uTexel * vec2(1.0, 1.0)).rgb;
+  gl_FragColor = vec4(s / 8.0, 1.0);
+}`;
+// Doubling back up: a tent of eight taps over the smaller level, plus this level's own.
+const UP_FRAG = /* glsl */`
+uniform sampler2D uSrc, uHere;
+uniform vec2 uTexel;
+varying vec2 vUv;
+void main() {
+  vec3 s = texture2D(uSrc, vUv + uTexel * vec2(-2.0, 0.0)).rgb + texture2D(uSrc, vUv + uTexel * vec2(2.0, 0.0)).rgb;
+  s += texture2D(uSrc, vUv + uTexel * vec2(0.0, -2.0)).rgb + texture2D(uSrc, vUv + uTexel * vec2(0.0, 2.0)).rgb;
+  s += 2.0 * (texture2D(uSrc, vUv + uTexel * vec2(-1.0, -1.0)).rgb + texture2D(uSrc, vUv + uTexel * vec2(1.0, -1.0)).rgb);
+  s += 2.0 * (texture2D(uSrc, vUv + uTexel * vec2(-1.0, 1.0)).rgb + texture2D(uSrc, vUv + uTexel * vec2(1.0, 1.0)).rgb);
+  gl_FragColor = vec4(s / 12.0 + texture2D(uHere, vUv).rgb, 1.0);
+}`;
 // The target follows the drawing buffer, capped at 1.5 CSS pixels to the pixel until the cost is measured on
-// real GPUs, with 4 samples, or 2 past 4 million pixels.
+// real GPUs, with 4 samples, or 2 past 4 million pixels. The glow's chain runs at half that and below.
 const FINISH_MAX_RATIO = 1.5, FINISH_BIG = 4e6;
 function createFinish(renderer) {
   let rt = new THREE.WebGLRenderTarget(4, 4, { type: THREE.HalfFloatType, samples: 4, depthBuffer: true });
-  const mat = new THREE.ShaderMaterial({ uniforms: { uSrc: { value: rt.texture }, uAmount: { value: 0 } },
-    vertexShader: 'varying vec2 vUv; void main() { vUv = position.xy * 0.5 + 0.5; gl_Position = vec4(position.xy, 0.0, 1.0); }',
-    fragmentShader: FINISH_FRAG, depthTest: false, depthWrite: false, toneMapped: false });
+  const level = () => new THREE.WebGLRenderTarget(2, 2, { type: THREE.HalfFloatType, depthBuffer: false, generateMipmaps: false, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter });
+  const down = Array.from({ length: BLOOM_LEVELS }, level), up = Array.from({ length: BLOOM_LEVELS - 1 }, level);
+  const pm = (frag, u = {}) => new THREE.ShaderMaterial({ uniforms: { uSrc: { value: null }, uTexel: { value: new THREE.Vector2() }, ...u },
+    vertexShader: PASS_VERT, fragmentShader: frag, depthTest: false, depthWrite: false, toneMapped: false });
+  const bright = pm(BRIGHT_FRAG), halve = pm(DOWN_FRAG), double = pm(UP_FRAG, { uHere: { value: null } });
+  const mat = pm(FINISH_FRAG, { uBloom: { value: up[0].texture }, uHalo: { value: down[1].texture }, uAmount: { value: 0 }, uGlow: { value: 0 } });
+  mat.uniforms.uSrc.value = rt.texture;
   const tri = new THREE.BufferGeometry();
   tri.setAttribute('position', new THREE.Float32BufferAttribute([-1, -1, 0, 3, -1, 0, -1, 3, 0], 3));
   const quad = new THREE.Mesh(tri, mat); quad.frustumCulled = false;
   const sc = new THREE.Scene(), cam = new THREE.Camera(); sc.add(quad);
+  const pass = (m, src, texel, target) => {
+    m.uniforms.uSrc.value = src.texture; m.uniforms.uTexel.value.set(1 / src.width, 1 / src.height).multiplyScalar(texel);
+    quad.material = m; renderer.setRenderTarget(target); renderer.render(sc, cam);
+  };
   const size = new THREE.Vector2();
   function fit() {
     renderer.getDrawingBufferSize(size);
@@ -541,20 +609,42 @@ function createFinish(renderer) {
     const w = Math.max(1, Math.round(size.x * k)), h = Math.max(1, Math.round(size.y * k)), samples = w * h > FINISH_BIG ? 2 : 4;
     if (rt.samples !== samples) { rt.dispose(); rt = new THREE.WebGLRenderTarget(w, h, { type: THREE.HalfFloatType, samples, depthBuffer: true }); mat.uniforms.uSrc.value = rt.texture; }
     else if (rt.width !== w || rt.height !== h) rt.setSize(w, h);
+    let lw = w, lh = h;
+    for (let i = 0; i < BLOOM_LEVELS; i++) {
+      lw = Math.max(1, Math.ceil(lw / 2)); lh = Math.max(1, Math.ceil(lh / 2));
+      if (down[i].width !== lw || down[i].height !== lh) { down[i].setSize(lw, lh); if (i < BLOOM_LEVELS - 1) up[i].setSize(lw, lh); }
+    }
+  }
+  // the glow: what is over the threshold, halved six times, then summed back up level by level into up[0]
+  function glow() {
+    pass(bright, rt, 1, down[0]);                    // taps a source texel out: each a bilinear 2 x 2
+    for (let i = 1; i < BLOOM_LEVELS; i++) pass(halve, down[i - 1], 1, down[i]);
+    for (let i = BLOOM_LEVELS - 2; i >= 0; i--) {
+      double.uniforms.uHere.value = down[i].texture;
+      pass(double, i === BLOOM_LEVELS - 2 ? down[i + 1] : up[i + 1], 0.5, up[i]);
+    }
   }
   return {
     get target() { fit(); return rt; },
-    // The finishing quad's program, for the screen, built before the first move needs it.
-    compile() { renderer.compile(sc, cam); },
+    // The finishing quad's programs, for the screen and the glow's levels, built before the first move needs them.
+    compile() {
+      for (const m of [bright, halve, double]) { quad.material = m; renderer.setRenderTarget(down[0]); renderer.compile(sc, cam); }
+      quad.material = mat; renderer.setRenderTarget(null); renderer.compile(sc, cam);
+    },
     render(scene, camera, amount) {
       fit();
       renderer.setRenderTarget(rt);
       renderer.render(scene, camera);
-      renderer.setRenderTarget(null);
+      const g = amount > 0.002 ? amount : 0;
+      if (g) glow();
+      quad.material = mat;
+      mat.uniforms.uSrc.value = rt.texture;
       mat.uniforms.uAmount.value = amount;
+      mat.uniforms.uGlow.value = g;
+      renderer.setRenderTarget(null);
       renderer.render(sc, cam);
     },
-    dispose() { rt.dispose(); mat.dispose(); tri.dispose(); },
+    dispose() { rt.dispose(); for (const t of [...down, ...up]) t.dispose(); for (const m of [mat, bright, halve, double]) m.dispose(); tri.dispose(); },
   };
 }
 
@@ -614,6 +704,8 @@ const C = {
   soil: [0.1, 0.07, 0.045], beans: [0.18, 0.1, 0.05], coffee: [0.09, 0.045, 0.02], tea: [0.95, 0.4, 0.09], milk: [0.95, 0.9, 0.8], crust: [0.72, 0.42, 0.15],
   cane: [0.62, 0.46, 0.27], oat: [0.74, 0.66, 0.54], rust: [0.56, 0.24, 0.12], indigo: [0.08, 0.12, 0.27], olive: [0.3, 0.32, 0.16], clear: [0.85, 0.9, 0.88],
 };
+// A light's colour as it glows, k times the room's white (the finishing pass rolls it off and spreads it).
+const hot = (c, k) => c.map(v => v * k);
 const BAGS = [[0.62, 0.36, 0.22], [0.85, 0.8, 0.7], [0.16, 0.2, 0.19], [0.72, 0.52, 0.3], [0.3, 0.44, 0.4], [0.82, 0.62, 0.48], [0.14, 0.16, 0.28]];
 const LABELS = [[0.95, 0.92, 0.85], [0.9, 0.55, 0.25], [0.2, 0.2, 0.2], [0.85, 0.75, 0.3]];
 
@@ -1047,7 +1139,7 @@ export function createShell({ renderer, scene, lightUniforms, sun }) {
   // the picture light: a brass bar on two arms, its tube glowing on the underside
   for (const z of [MB.z - 300, MB.z + 300]) rod('chrome', C.brass, V(XB + 20, MB.y + MB.h / 2 + 30, z), V(XB + 110, MB.y + MB.h / 2 + 70, z), 4);
   cy('chrome', C.brass, 0, -380, 0, 16, 760, at(XB + 112, MB.y + MB.h / 2 + 70, MB.z, 0, Math.PI / 2), 16, 16);
-  bx('emit', [1.0, 0.86, 0.62], XB + 104, MB.y + MB.h / 2 + 56, MB.z - 370, XB + 120, MB.y + MB.h / 2 + 58, MB.z + 370);
+  bx('emit', hot([1.0, 0.86, 0.62], 2.4), XB + 104, MB.y + MB.h / 2 + 56, MB.z - 370, XB + 120, MB.y + MB.h / 2 + 58, MB.z + 370);
   // where "Order here" is on the board, in the room (for the link over it)
   const boardAt = (u, v) => V(XB + 16, MB.y + MB.h / 2 - v * MB.h, MB.z + MB.w / 2 - u * MB.w);
   for (const [z0, z1] of [[80, 700], [1900, 2360]]) {
@@ -1097,7 +1189,7 @@ export function createShell({ renderer, scene, lightUniforms, sun }) {
     bx('satin', C.stainless, x - 30, y + 250, 1120, x + 100, y + 330, 1280);
     bx('plain', C.ink, x - 20, y + 236, 1150, x + 70, y + 250, 1250);
     bx('satin', C.stainless, x - 30, y, 1120, x + 100, y + 14, 1280);
-    bx('emit', [0.25, 0.5, 0.42], x + 100, y + 296, 1180, x + 102, y + 316, 1220);
+    bx('emit', hot([0.25, 0.5, 0.42], 2.0), x + 100, y + 296, 1180, x + 102, y + 316, 1220);
     lathe('glass', C.clear, [[0, 0], [54, 0], [58, 64], [36, 110], [32, 120], [0, 120]], x + 34, y + 14, 1200);
     cy('plain', C.coffee, x + 34, y + 16, 1200, 52, 54, null, 56, 20);
     // Thai tea: the urn, the cloth filter on its stand over a pot, a stack of glasses
@@ -1122,7 +1214,7 @@ export function createShell({ renderer, scene, lightUniforms, sun }) {
     bx('satin', C.ink, x0, top - 70, z0, x1, top, z1);
     bx('satin', C.ink, x0, YF + 90, z0, x1, top - 70, z0 + tk);
     bx('satin', C.ink, x0, YF + 90, z1 - tk, x1, top - 70, z1);
-    quad('emit', [0.96, 1.0, 1.04], z1 - z0 - 2 * tk, top - 70 - YF - 90, at(x0 + 4, (top - 70 + YF + 90) / 2, (z0 + z1) / 2, Math.PI / 2));
+    quad('emit', hot([0.96, 1.0, 1.04], 1.35), z1 - z0 - 2 * tk, top - 70 - YF - 90, at(x0 + 4, (top - 70 + YF + 90) / 2, (z0 + z1) / 2, Math.PI / 2));
     const bottles = [[0.3, 0.14, 0.05], [0.95, 0.42, 0.1], [0.92, 0.9, 0.85], [0.25, 0.4, 0.15], [0.62, 0.32, 0.1]];
     for (let s = 0; s < 4; s++) {
       const y = YF + 100 + s * 245;
@@ -1135,7 +1227,7 @@ export function createShell({ renderer, scene, lightUniforms, sun }) {
     }
     quad('glass', C.clear, z1 - z0 - 2 * tk, top - 70 - YF - 90, at(x1 - 6, (top - 70 + YF + 90) / 2, (z0 + z1) / 2, Math.PI / 2));
     bx('chrome', C.chrome, x1 - 4, YF + 200, z1 - 40, x1 + 14, top - 200, z1 - 30);
-    bx('emit', [0.95, 0.92, 0.85], x1 - 1, top - 50, z0 + 30, x1 + 1, top - 20, z1 - 30);
+    bx('emit', hot([0.95, 0.92, 0.85], 1.8), x1 - 1, top - 50, z0 + 30, x1 + 1, top - 20, z1 - 30);
   }
   // The island: fluted oak to the customers, a marble top, a black kick; open at both ends.
   bx('plain', C.ink, ISL.x0 + 20, YF, ISL.z0 + 20, ISL.x1 - 20, YF + 50, ISL.z1 - 20);
@@ -1220,10 +1312,10 @@ export function createShell({ renderer, scene, lightUniforms, sun }) {
   for (const p of lamps) {
     rod('plain', C.ink, V(p.x, p.y + 80, p.z), V(p.x, YC, p.z), 2.5);
     lathe('satin', C.enamel, [[100, 0], [96, 24], [72, 64], [30, 86], [12, 94], [0, 96]], p.x, p.y - 10, p.z, null, 32);
-    lathe('emit', [0.95, 0.82, 0.62], [[0, 92], [12, 90], [30, 82], [72, 60], [94, 22], [98, 0]], p.x, p.y - 10, p.z, null, 32);
+    lathe('emit', hot([0.95, 0.82, 0.62], 1.7), [[0, 92], [12, 90], [30, 82], [72, 60], [94, 22], [98, 0]], p.x, p.y - 10, p.z, null, 32);
     el('glass', [0.95, 0.85, 0.7], p.x, p.y + 6, p.z, 30, 36, 30, null, 20);
-    for (let k = 0; k < 5; k++) { const a = k / 5 * 6.283; rod('emit', [1.0, 0.7, 0.34], V(p.x + Math.cos(a) * 5, p.y - 10, p.z + Math.sin(a) * 5), V(p.x + Math.cos(a) * 11, p.y + 22, p.z + Math.sin(a) * 11), 1.6, null, 5); }
-    el('emit', [1.0, 0.82, 0.55], p.x, p.y + 4, p.z, 9, 14, 9, null, 10);
+    for (let k = 0; k < 5; k++) { const a = k / 5 * 6.283; rod('emit', hot([1.0, 0.7, 0.34], 6.0), V(p.x + Math.cos(a) * 5, p.y - 10, p.z + Math.sin(a) * 5), V(p.x + Math.cos(a) * 11, p.y + 22, p.z + Math.sin(a) * 11), 1.6, null, 5); }
+    el('emit', hot([1.0, 0.82, 0.55], 4.5), p.x, p.y + 4, p.z, 9, 14, 9, null, 10);
   }
   // Shelving along the record wall at the bar's end: stock on the barista's side, coffee to sell on the
   // customers', a plant on top.
@@ -1333,7 +1425,7 @@ export function createShell({ renderer, scene, lightUniforms, sun }) {
   }
   // a globe pendant over the table, and a pothos hanging by the window
   rod('plain', C.ink, V(tableLamp.x, tableLamp.y + 60, tableLamp.z), V(tableLamp.x, YC, tableLamp.z), 2.5);
-  el('emit', [1.0, 0.88, 0.7], tableLamp.x, tableLamp.y, tableLamp.z, 64, 60, 64, null, 24);
+  el('emit', hot([1.0, 0.88, 0.7], 1.45), tableLamp.x, tableLamp.y, tableLamp.z, 64, 60, 64, null, 24);
   {
     const p = V(1060, 620, 1470);
     for (let k = 0; k < 3; k++) { const a = k * 2.094; rod('plain', [0.6, 0.52, 0.4], V(p.x + Math.cos(a) * 44, p.y + 60, p.z + Math.sin(a) * 44), V(p.x, YC - 200, p.z), 1.5); }
