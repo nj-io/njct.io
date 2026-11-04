@@ -37,7 +37,7 @@
   "year": "2026",
   "tag": "The copy layer for your codebase",
   "blurb": "Every sentence your product says — site copy, emails, SEO fields — managed as typed keys your team edits without a deploy, with a full copy committed in your repo.",
-  "url": "https://getstet.github.io/",
+  "url": "https://getstet.xyz",
   "video": { "src": "/media/stet-ten-720.mp4", "poster": "/media/stet-ten-poster.jpg", "band": 0.28 },
   "stack": "TypeScript · Postgres · Cloudflare · Astro · MCP",
   "figs": [
@@ -160,7 +160,8 @@
   "tag": "A video studio on open video models",
   "video": { "src": "/media/topshine-preview-v4-720.mp4", "poster": "/media/topshine-preview-v4-poster.jpg", "band": 0.3, "start": 1 },
   "blurb": "Make a whole ad campaign, music video or film on open video models: every variant in one run, with a price before every run.",
-  "url": null,
+  "url": "https://topshine-waitlist-staging.neilasjoseph.workers.dev",
+  "urlText": "Topshine waitlist",
   "stack": "Python · FastAPI · Postgres · rented RTX 5090s",
   "figs": [],
   "accent": {
