@@ -44,7 +44,13 @@ export function start(entries = LINEUP) {
     }).catch(() => {});
   };
 
-  const place = () => { nav.style.left = `${Math.round(wordmark.getBoundingClientRect().right + GAP)}px`; };
+  // A project page's header opens the menu from its project name (project.js sends pm:toggle with the name's
+  // button): there it opens under that name; on the shelf, under its trigger beside the wordmark.
+  let anchor = null;
+  const onPage = () => document.documentElement.classList.contains('in-project') && anchor?.isConnected;
+  const place = () => {
+    nav.style.left = `${Math.round(onPage() ? anchor.getBoundingClientRect().left : wordmark.getBoundingClientRect().right + GAP)}px`;
+  };
   place();
   document.fonts?.ready.then(place);
   addEventListener('resize', place);
@@ -56,11 +62,13 @@ export function start(entries = LINEUP) {
     if (on) icons();
     nav.classList.toggle('open', on);
     btn.setAttribute('aria-expanded', String(on));
+    anchor?.setAttribute('aria-expanded', String(on && onPage()));
     list.inert = !on;
-    if (!on && focus) btn.focus({ preventScroll: true });
+    if (!on && focus) (onPage() ? anchor : btn).focus({ preventScroll: true });
   }
   list.inert = true;
   btn.addEventListener('click', () => set(!open));
+  addEventListener('pm:toggle', e => { anchor = e.detail || null; place(); set(!open); });
   const move = (to) => { items[(to + items.length) % items.length].focus({ preventScroll: true }); };
   // Keys inside the menu stay in it: the shelf's own arrow and Escape keys never see them.
   nav.addEventListener('keydown', e => {
@@ -76,8 +84,8 @@ export function start(entries = LINEUP) {
   });
   // Escape closes it wherever the focus is, before the shelf's own Escape (Details) sees the key.
   addEventListener('keydown', e => { if (open && e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); set(false, { focus: true }); } }, true);
-  document.addEventListener('pointerdown', e => { if (open && !nav.contains(e.target)) set(false); }, true);
+  document.addEventListener('pointerdown', e => { if (open && !nav.contains(e.target) && !(onPage() && anchor.contains(e.target))) set(false); }, true);
   nav.addEventListener('focusout', e => { if (open && e.relatedTarget && !nav.contains(e.relatedTarget)) set(false); });
   list.addEventListener('click', e => { if (e.target.closest('.pm-item')) set(false); });
-  addEventListener('hashchange', () => set(false));
+  addEventListener('hashchange', () => { set(false); anchor = null; place(); });
 }

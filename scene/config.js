@@ -83,17 +83,6 @@ export const INTRO = {
   late: { at: 1830, tau: 110 },                  // tagline, sound toggle, index fade in last
 };
 
-// Open (ms). The reference cuts from the shelf to the edition's world when its page arrives (1.27 s after
-// the click, network bound); ours cuts once the project's data is in, at least OPEN.cut after the click.
-// After the cut, as measured on the reference: the world starts growing, the accent panel slides in from
-// the left, and the giant title types itself in while the panel lands.
-export const OPEN = {
-  cut: 300,
-  seed: 700,
-  panel: { at: 1453, dur: 1050, ease: [0.8, 0, 0.15, 1] },
-  title: { at: 1983, dur: 170 },
-};
-
 // The café (v2): the room around the record wall, its window and the late sun through it. World units as
 // above, so one unit is about 1.77 mm on the wall (a 177-unit sleeve is a 31.4 cm LP). The record wall is
 // the plane z = 0; the street front, with the window, is the plane x = room.front to its right; the floor

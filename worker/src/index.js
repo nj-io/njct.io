@@ -63,8 +63,15 @@ export default {
     if (!v) return json(400, { error: "invalid" }, allowed);
 
     const ip = request.headers.get("cf-connecting-ip") || "";
+    // Two limits: the binding caps bursts exactly (5 a minute, its largest window); the KV counter
+    // holds the hourly rule (5 an hour, first send starts the window). A KV write can fail (a key
+    // accepts one write a second); then the send still goes out — the binding has already capped it.
     const { success } = await env.CONTACT_LIMITER.limit({ key: ip });
     if (!success) return json(429, { error: "rate" }, allowed);
+    const k = `hour:${ip}`;
+    const count = Number((await env.CONTACT.get(k)) || 0);
+    if (count >= 5) return json(429, { error: "rate" }, allowed);
+    await env.CONTACT.put(k, String(count + 1), { expirationTtl: 3600 }).catch(() => {});
 
     const mail = new MimeText();
     mail.setHeader("From", env.EMAIL_FROM);

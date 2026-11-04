@@ -360,7 +360,7 @@ void main() { gl_FragColor = vec4(texture2D(uMap, vUv).rgb * uGain, 1.0);
   #include <colorspace_fragment>
 }`;
 
-// ---- drawn once: the menu board's chalk (copy rows 67 to 69), the laptop's screen (row 75), the leaves -----
+// ---- drawn once: the menu board's chalk (copy rows C2 to C4), the laptop's screen (row C10), the leaves -----
 function canvasTexture(w, h, draw, colorSpace = THREE.SRGBColorSpace) {
   const c = document.createElement('canvas');
   c.width = w; c.height = h;

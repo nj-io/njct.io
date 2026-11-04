@@ -17,20 +17,28 @@ const NEUTRAL = '#d9d6d0'; // flat front for entries without an accent
 
 // Sleeve materials tone-map in their own shader (see tonemap.js). With mapBias (a uniform holder), the
 // map is sampled with that mip bias: negative values pick sharper mip levels for the cover's type.
-export function neutral(mat, mapBias = null) {
+// With fade (a cover front), the map is mixed over uThumb by uFade: the cover's thumb fading out under
+// the full cover as it lands. uFade stays 1 otherwise, so the map shows alone.
+export function neutral(mat, mapBias = null, fade = null) {
   mat.onBeforeCompile = sh => {
     sh.fragmentShader = sh.fragmentShader
-      .replace('void main() {', `${NEUTRAL_GLSL}\n${mapBias ? 'uniform float uMapBias;\n' : ''}void main() {`)
+      .replace('void main() {', `${NEUTRAL_GLSL}\n${mapBias ? 'uniform float uMapBias;\n' : ''}${fade ? 'uniform sampler2D uThumb;\nuniform float uFade;\n' : ''}void main() {`)
       .replace('#include <tonemapping_fragment>', 'gl_FragColor.rgb = njNeutral(gl_FragColor.rgb);');
     if (mapBias) {
       sh.uniforms.uMapBias = mapBias;
+      const read = fade ? 'mix( texture2D( uThumb, vMapUv, uMapBias ), texture2D( map, vMapUv, uMapBias ), uFade )'
+        : 'texture2D( map, vMapUv, uMapBias )';
+      if (fade) Object.assign(sh.uniforms, fade);
       sh.fragmentShader = sh.fragmentShader.replace('#include <map_fragment>',
-        THREE.ShaderChunk.map_fragment.replace('texture2D( map, vMapUv )', 'texture2D( map, vMapUv, uMapBias )'));
+        THREE.ShaderChunk.map_fragment.replace('texture2D( map, vMapUv )', read));
     }
   };
-  mat.customProgramCacheKey = () => (mapBias ? 'nj-neutral-bias' : 'nj-neutral');
+  mat.customProgramCacheKey = () => (mapBias ? (fade ? 'nj-neutral-bias-fade' : 'nj-neutral-bias') : 'nj-neutral');
   return mat;
 }
+// A white texel for uThumb before a thumb is in (never seen: uFade is 1 then).
+const WHITE = new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1);
+WHITE.needsUpdate = true;
 // Mip bias on the cover fronts (shared by every sleeve).
 export const COVER_BIAS = { value: 0 };
 
@@ -41,13 +49,14 @@ export function createSleeves(entries) {
     const edge = neutral(new THREE.MeshStandardMaterial({ color: 0xf1efea, roughness: 0.8 }));
     const col = i % SLEEVE.cols, row = Math.floor(i / SLEEVE.cols);
     const onRow = Math.min(SLEEVE.cols, entries.length - row * SLEEVE.cols);
-    const front = neutral(new THREE.MeshStandardMaterial({ color: new THREE.Color(entry.accent?.light || NEUTRAL), roughness: 0.8 }), COVER_BIAS);
+    const fade = { uThumb: { value: WHITE }, uFade: { value: 1 } };
+    const front = neutral(new THREE.MeshStandardMaterial({ color: new THREE.Color(entry.accent?.light || NEUTRAL), roughness: 0.8 }), COVER_BIAS, fade);
     const back = neutral(new THREE.MeshStandardMaterial({ color: 0xe9e6e0, roughness: 0.7 }));
     const mats = [edge, edge, edge, edge, front, back];   // +x -x +y -y +z(front) -z(back)
     const mesh = new THREE.Mesh(geo, mats);
     mesh.matrixAutoUpdate = false;
     const s = {
-      i, row, col, mesh, front, back, mats, entry,
+      i, row, col, mesh, front, back, mats, entry, fade, thumb: null, hasCover: false,
       x: (col - (onRow - 1) / 2) * SLEEVE.pitch,
       shelfY: SHELF.tops[row],
       pose: { ...restPose(), opacity: 0 },
@@ -102,7 +111,21 @@ export function writeOccluders(sleeves, u, none = false) {
   }
 }
 
+// The thumb shows on the front until the full cover lands (and never after it).
+export function setThumb(s, tex) {
+  s.thumb = tex;
+  if (s.hasCover) return;
+  s.front.map = tex; s.front.color.set(0xffffff); s.front.needsUpdate = true;
+}
+// Returns true when the cover lands over a showing thumb: the caller then runs fade.uFade from 0 to 1.
 export function setCover(s, frontTex, backTex) {
-  if (frontTex) { s.front.map = frontTex; s.front.color.set(0xffffff); s.front.needsUpdate = true; }
+  let fading = false;
+  if (frontTex) {
+    fading = !s.hasCover && !!s.thumb && s.front.map === s.thumb;
+    if (fading) { s.fade.uThumb.value = s.thumb; s.fade.uFade.value = 0; }
+    s.hasCover = true;
+    s.front.map = frontTex; s.front.color.set(0xffffff); s.front.needsUpdate = true;
+  }
   if (backTex) { s.back.map = backTex; s.back.color.set(0xffffff); s.back.needsUpdate = true; }
+  return fading;
 }

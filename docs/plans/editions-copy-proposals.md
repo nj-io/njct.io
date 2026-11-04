@@ -69,21 +69,27 @@ Every string here waits for operator approval before it ships. Approved copy alr
 | 63 | Projects menu: one item per sleeve, in shelf order | the project's mark, its name (approved) over its tag (approved), e.g. "Mirra" over "Real-time X→Telegram mirror and digest"; About Neil: "About Neil" over "Hi, I’m Neil." (about[0], approved). Alternative for the second line: the year, as the shelf's index shows it | Ruling 11; the reference's Editions menu (season over edition name) |
 | 64 | Projects menu: accessible names | the list is named by its trigger, "Projects"; the marks are decorative (empty alt) | Ruling 11 |
 | 65 | Accessible name of Open (the shelf pill, the Details button, the crate bar) on a project with a live site, a link that opens it in a new tab (replaces rows 19 and 41 for these projects; Topshine, Scorecard and About Neil keep "Open: <name>") | Open: <project name> site, new tab, e.g. "Open: Mirra site, new tab". Alternative: "Open <host> in a new tab", e.g. "Open mirra.to in a new tab" (row 4 host format) | Operator's request: Open opens the product's live site |
-| 66 | Header tagline (replaces row 5) | Products I've designed and built. | Operator, 4 Nov 2026 (approved) |
-| 67 | Café counter, the menu board: the services | Cross-platform content; Community management | Operator, 4 Nov 2026 (approved names) |
-| 68 | Menu board: the line under each service | Cross-platform content: "Video, images and posts made for each platform and published for you." Community management: "Comments, messages and requests answered in your brand's voice." | Drafted from the operator's description ("exposure across multiple social platforms", "brand representation (ie answering user requests)") |
-| 69 | Menu board heading | Menu (alternative: What I make) | Café brief, 4 Nov 2026 |
-| 70 | Counter, at the till: opens the Get in touch form (the header's contact form modal) | Order here (the header keeps Get in touch, row 6) | Café brief, 4 Nov 2026 |
-| 71 | Order slips on the rail above the counter (three) | steps pending from the operator; drafts: 1. Tell me about your brand; 2. I set up and run your channels; 3. A monthly report on what worked | Operator kept the slips, 4 Nov 2026; the steps are not given yet |
-| 72 | Window glass, seen reversed from inside (Table view) | njct.io | Operator, 4 Nov 2026 (approved) |
-| 73 | The edge buttons: each view's name | Counter; Editions; Table (alternative: Services; Projects; About) | Café brief, 4 Nov 2026; research: give each view a visible name |
-| 74 | Edge buttons: accessible names | Turn to <view name> | Café brief, 4 Nov 2026 |
-| 75 | Laptop screen, the terminal window | real output from this repo (the build, git log), typed slowly | Café brief, 4 Nov 2026 |
-| 76 | The Thai tea glass on the table | Neil, written on the glass | Café brief, 4 Nov 2026 |
-| 77 | The café's edge buttons, by view: Editions shows "Counter" and "Table"; Counter shows "Editions"; Table shows "Editions" | Counter; Editions; Table (row 73's names) | Round 2, 4 Nov 2026 |
-| 78 | The café's navigation: accessible name | The café | Round 2, 4 Nov 2026 |
-| 79 | The Counter view's HTML (screen readers and search) | Heading "Counter"; "What I do for clients."; the two services with row 68's lines | Round 2, 4 Nov 2026 |
-| 80 | The Table view's HTML (screen readers and search) | Heading "Table"; "My table by the window, where I work: the laptop open on the record wall, a Thai tea beside it." | Round 2, 4 Nov 2026 |
+| 66 | Project page: the live-site links (hero box, under the overview, foot), opening in a new tab | Hero box: "Visit the site ↗"; under the overview and in the foot: "Visit <host> ↗" (row 4 format, e.g. "Visit mirra.to"); accessible name adds "(opens in a new tab)". No link when the project has no url | Page redesign, 2026-11-04 |
+| 67 | Project page: the overview's steps heading | How it works (the steps are the dossier narration's numbered items, approved) | Page redesign, 2026-11-04 |
+| 68 | Project page: the technical detail's toggle | Closed: "Read the technical detail"; open: "Hide the technical detail" | Page redesign, 2026-11-04 |
+| 69 | Project page foot: contact link | Get in touch (row 6) | Page redesign, 2026-11-04 |
+| C1 | Header tagline (replaces row 5) | Products I've designed and built. | Operator, 4 Nov 2026 (approved) |
+| C2 | Café counter, the menu board: the services | Cross-platform content; Community management | Operator, 4 Nov 2026 (approved names) |
+| C3 | Menu board: the line under each service | Cross-platform content: "Video, images and posts made for each platform and published for you." Community management: "Comments, messages and requests answered in your brand's voice." | Drafted from the operator's description ("exposure across multiple social platforms", "brand representation (ie answering user requests)") |
+| C4 | Menu board heading | Menu (alternative: What I make) | Café brief, 4 Nov 2026 |
+| C5 | Counter, at the till: opens the Get in touch form (the header's contact form modal) | Order here (the header keeps Get in touch, row 6) | Café brief, 4 Nov 2026 |
+| C6 | Order slips on the rail above the counter (three) | steps pending from the operator; drafts: 1. Tell me about your brand; 2. I set up and run your channels; 3. A monthly report on what worked | Operator kept the slips, 4 Nov 2026; the steps are not given yet |
+| C7 | Window glass, seen reversed from inside (Table view) | njct.io | Operator, 4 Nov 2026 (approved) |
+| C8 | The edge buttons: each view's name | Counter; Editions; Table (alternative: Services; Projects; About) | Café brief, 4 Nov 2026; research: give each view a visible name |
+| C9 | Edge buttons: accessible names | Turn to <view name> | Café brief, 4 Nov 2026 |
+| C10 | Laptop screen, the terminal window | real output from this repo (the build, git log), typed slowly | Café brief, 4 Nov 2026 |
+| C11 | The Thai tea glass on the table | Neil, written on the glass | Café brief, 4 Nov 2026 |
+| C12 | The café's edge buttons, by view: Editions shows "Counter" and "Table"; Counter shows "Editions"; Table shows "Editions" | Counter; Editions; Table (row C8's names) | Round 2, 4 Nov 2026 |
+| C13 | The café's navigation: accessible name | The café | Round 2, 4 Nov 2026 |
+| C14 | The Counter view's HTML (screen readers and search) | Heading "Counter"; "What I do for clients."; the two services with row C3's lines | Round 2, 4 Nov 2026 |
+| C15 | The Table view's HTML (screen readers and search) | Heading "Table"; "My table by the window, where I work: the laptop open on the record wall, a Thai tea beside it." | Round 2, 4 Nov 2026 |
+
+Rows C1 to C15 are the café's (Editions v2, built on `feat/room`), numbered in their own series so that rows added on either branch never collide.
 
 ## Row 33: Topshine dossier (proposal)
 
@@ -859,3 +865,46 @@ Proposed Mirra figures, to match the brief-led wording: "Daily or weekly · a br
 
 ## Open: align the one-pagers with the brand engine (set for 2026-11-05)
 The 2026-10-29 one-pagers carry newer product wording than the brand engine (`~/dev/_brand`: each project's `assets/brand.json` and the brand studio). Bring the brand engine up to the one-pager content.
+
+## Round 3: the cover backs' figures (proposal, 2026-11-04)
+
+The backs' three figures today are mostly build metrics ("sub-60s mirror latency", "~90% gross margin", "Apache-2.0", "60 fps sustained"). A client reading a back wants three things: what it does for them, what it costs or how to get it, and one fact that makes it believable. Each back below follows that order, in plain words, as [value, label]. The current figures move to the project page, where the Overview's figure rows carry the numbers.
+
+Sources: the one-pagers (`v3-current-editions.json`, Neil, November 2026) for Mirra, stet, esca (Social Hook), LikeWiki, Topshine and Chairtax: only their client-facing parts (headline, sub, stats, product, model, status). Their ICP, market, unit maths, spend and asks are internal and stay off the site. Clauded, Stellar Explorer, Scorecard and Stats have no one-pager; their rows come from their dossiers.
+
+### What each product is
+
+| Product | In one line | Price and status |
+|---|---|---|
+| Mirra | Reads every post from the X accounts you choose and sends a brief per account, daily or weekly, plus a Monday summary of your whole list. It pulls out each account's market calls and scores them at 7, 30 and 90 days, so you can see whose calls held up. | Free for 1 account; Premium $16 a month ($12 yearly) for 10. Live. |
+| stet | A package a developer installs once; then owners, editors, clients and AI agents change every word a site says (pages, emails, SEO fields) in a live preview, and it goes live in seconds with no deploy. Every version is kept. | Free and open source to self-host; Cloud $19, $39 or $149 a month. Live on npm (0.8.0), 679 downloads in 30 days; Mirra runs on it. |
+| esca (Social Hook) | Watches your commits, decides what is worth posting, drafts it in your voice for each platform, and publishes once you approve it (Telegram, web or CLI) or on its own. | Free and open source (MIT, on PyPI); a hosted version for teams is coming. Runs the marketing for Chairtax and stet. |
+| LikeWiki | Every night it turns your X likes and bookmarks into a wiki: a page per post, and topic pages where every claim links to the post it came from, checked by a second model. Ask it questions, read a daily digest, or let AI agents read it. | Working for Neil, not yet a product; a personal plan at about $9 a month is proposed. |
+| Topshine | An AI video studio: it plans every shot with several takes, renders them all in one batch on rented GPUs running open video models, lets you pick the best take per shot, then finishes the film in a full editor. | Up to 85% cheaper than closed video APIs, with a capped quote on every job. Launching end of October 2026. |
+| Chairtax | A Mac app that covers your screen on a schedule and gives it back only when the webcam counts your squats or one of five other movements, on the Mac itself. Bearly the bear keeps you company. | $29.99 once, no subscription, on the Mac App Store (v1.1.0). |
+| Clauded | Runs Claude Code inside a Docker sandbox, so it can work without permission prompts while your clipboard, sound, Chrome, git and tools still reach it. | Free and open source (MIT), one-command install. |
+| Stellar Explorer | A 3D map of the night sky in the browser: fly between 117,000 stars and open any of them, with sound that follows the journey. | Free, in the browser. |
+| Scorecard | Works out how any website gets its traffic (ads, search, links, social mentions) with a source and date on every figure, and compares up to ten sites side by side. | Internal tool, not public. |
+| Stats | One dashboard for every product site: visitors, where they came from, and which post, email or ad led to each sale, with a Telegram summary every morning. | Internal tool; the live board is public at stats.njct.io. |
+
+### Proposed backs (withdrawn)
+
+Withdrawn (Neil, 2026-11-04): too long, and the lines did not read naturally (Chairtax's worst). The backs are to be redone, a few at a time. The what-each-product-is table above stays as the reference.
+
+### Rulings (Neil, 2026-11-04)
+
+- Social Hook keeps its name for now.
+- stet links to https://getstet.xyz (applied; the back reads getstet.xyz).
+- Topshine has not launched: it links to the temporary waitlist, https://topshine-waitlist-staging.neilasjoseph.workers.dev, shown as "Topshine waitlist" (applied; row 80). Open now goes there, and More detail to its page.
+- Mirra's tag changes (new wording to be proposed).
+
+### Asked before the rulings
+
+- **Social Hook or esca?** The one-pager calls it esca; the shelf, cover and site still say Social Hook.
+- **Links:** stet is getstet.xyz in the one-pager (the shelf links getstet.github.io); Topshine is topshine.ai (the shelf has no link: has it launched?); LikeWiki is "coming soon" (the shelf links likewiki.njct.io).
+- **Mirra's tag** still reads "Real-time X→Telegram mirror and digest"; the product is now briefs and call scores, by email and on the web.
+- **Off the site:** Mirra's back shows "~90% gross margin" today; margins, unit maths and the one-pagers' asks stay internal.
+
+| # | Where | Proposed text | Source |
+|---|---|---|---|
+| 80 | Topshine: the link's text (back, Visit button, foot) | Topshine waitlist (the staging address is too long for the back; until launch) | Ruling, 2026-11-04 |

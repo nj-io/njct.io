@@ -21,7 +21,7 @@
     document.currentScript.after(m);
   } else if (window.__editionsGL) {
     // bundle: first-view chunks, written by build/bundle.mjs
-    const first = ["/dist/main.js","/dist/chunk-TH7WALPN.js","/dist/chunk-PGS23HJD.js","/dist/chunk-D5HKBPVU.js","/dist/chunk-GSSTSC5W.js","/dist/chunk-NBWD5ZMU.js","/dist/chunk-LMS2BM6O.js","/dist/menu.js"];
+    const first = ["/dist/main.js","/dist/chunk-LRNMDPID.js","/dist/chunk-BFLXD5RH.js","/dist/chunk-KKW47EVM.js","/dist/chunk-6PNQGI4Q.js","/dist/chunk-X4EZXVCQ.js","/dist/chunk-TH7WALPN.js","/dist/menu.js"];
     // /bundle
     for (const href of first) document.head.append(Object.assign(document.createElement('link'), { rel: 'modulepreload', href }));
   }
@@ -102,7 +102,7 @@
   .pm-icon img { display: block; width: 24px; height: 24px; object-fit: contain; }
   .pm-text { display: flex; flex-direction: column; }
   .pm-name { font-size: 14px; line-height: 16.8px; }
-  .pm-sub { font-size: 12px; line-height: 12px; color: rgb(140 140 140); }
+  .pm-sub { max-width: 36ch; font-size: 12px; line-height: 15px; color: rgb(120 120 120); text-wrap: pretty; }
   /* A phone: the list is a sheet from the bottom of the screen. */
   @media (max-width: 599px) {
     .pm-list {
@@ -152,13 +152,19 @@
 
   /* Details: the title and tagline at left, Open under the sleeve (positions set by main.js). */
   .details { position: fixed; inset: 0; pointer-events: none; outline: none; }
-  .d-title { position: absolute; left: calc(var(--gutter) + 20px); margin: 0; font-size: 24px; line-height: 28px; font-weight: 400; opacity: 0; }
-  .d-tag { position: absolute; left: calc(var(--gutter) + 20px); margin: 0; max-width: 300px; line-height: 18px; opacity: 0; }
+  .d-title { position: absolute; left: calc(var(--gutter) + 20px); margin: 0; font-size: 30px; line-height: 34px; font-weight: 600; letter-spacing: -0.01em; opacity: 0; }
+  /* The side line: what the product is, large enough to read at a glance, about 26 characters to a line
+     and balanced so its lines come out even. */
+  .d-tag { position: absolute; left: calc(var(--gutter) + 20px); margin: 0; max-width: 26ch; font-size: 21px; line-height: 28px; font-weight: 500; letter-spacing: -0.005em; text-wrap: balance; opacity: 0; }
   .d-open {
     position: fixed; left: 50%; transform: translateX(-50%); height: 40px; padding: 0 15.25px; border: 0; border-radius: 20px;
     background: #000; color: #ececec; line-height: 40px; cursor: pointer; opacity: 0; text-decoration: none; white-space: nowrap;
   }
   .d-open[inert] { pointer-events: none; }
+  /* More detail beside Open, 10 px apart, the pair centred under the sleeve; More detail in white. */
+  .d-open.paired { transform: translateX(5px); }
+  .d-open.d-more { transform: translateX(calc(-100% - 5px)); background: #fff; color: #000; }
+  .d-open.d-more[hidden] { display: none; }
   /* Get in touch (editions/contact.js): the modal grows out of the pill; contact.js animates the panel's box. */
   dialog.ct { position: fixed; inset: 0; width: 100%; height: 100%; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; background: transparent; overflow: hidden; }
   dialog.ct::backdrop { background: transparent; }
@@ -213,6 +219,8 @@
   .crate-bar :is(button, a) { box-sizing: border-box; text-decoration: none; height: 44px; padding: 0 16px; border: 0; border-radius: 22px; cursor: pointer; line-height: 44px; white-space: nowrap; }
   .cb-back, .cb-details { background: rgba(255, 255, 255, 0.7); color: var(--ink); }
   .cb-open { background: #000; color: #fff; }
+  .cb-more { display: none; background: rgba(255, 255, 255, 0.7); color: var(--ink); }
+  .crate.in-details .cb-more:not([hidden]) { display: block; }
   .cb-back { display: none; margin-right: auto; }
   .crate.in-details .cb-back { display: block; }
   .crate.in-details .cb-label, .crate.in-details .cb-details { display: none; }
@@ -313,6 +321,7 @@
   <p class="cb-label" aria-hidden="true"><span class="cb-year"></span><span class="cb-name"></span></p>
   <button class="cb-back" type="button">Back</button>
   <button class="cb-details" type="button" data-action="details">Details</button>
+  <a class="cb-more" data-action="more" hidden>More detail</a>
   <a class="cb-open" data-action="open">Open</a>
 </div>
 <div class="crate-rail late" aria-hidden="true"><span></span></div>
@@ -325,6 +334,7 @@
 <div class="film-shade" id="film-shade"></div>
 <div class="film-frame" id="film-frame"><video muted loop playsinline preload="auto"></video></div>
 <button class="d-close" id="d-close" type="button" aria-label="Close the film" hidden>&#x2715;</button>
+<a class="d-open d-more" id="d-more" data-action="more" inert hidden>More detail</a>
 <a class="d-open" id="d-open" data-action="open" inert>Open</a>
 <script type="module">
   // Without WebGL 2 (or if the scene fails to start) the shelf is plain cards.

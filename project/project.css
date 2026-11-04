@@ -1,30 +1,37 @@
-/* A project's page: the world (hero) then its dossier. Loaded with the project module, never in the
-   first view. The page scrolls the document; the shelf's fixed layers are hidden while it is open. */
+/* A project's page: the chapter rail and the dossier, in full from its first frame (a gap holds the hero's
+   place for now). Loaded with the project module, never in the first view. The page scrolls the document;
+   the shelf's canvas and fixed layers are hidden while it is open, so the shelf never shows behind it. */
 @font-face {
   font-family: 'NJ Page Mono';
   src: url('/vendor/fonts/ui/jetbrains-mono-500-page.woff2') format('woff2');
   font-weight: 500; font-style: normal; font-display: swap;
 }
 /* overflow-x: clip keeps sideways scrolling off without making html or body a scroll container,
-   which would stop the hero and the rail from sticking. */
+   which would stop the rail from sticking. */
 html.in-project, html.in-project body { height: auto; overflow: visible; }
 html.in-project { overflow-x: clip; }
 html.in-project body { background: var(--pj-ground); }
-html.in-project .masthead, html.in-project #slots, html.in-project .index,
-html.in-project .details, html.in-project #d-open { display: none; }
+html.in-project #slots, html.in-project .index,
+html.in-project .details, html.in-project #d-open, html.in-project #d-more, html.in-project #c { display: none; }
+/* Of the shelf's masthead only the Projects menu stays: it opens under the page's project name (menu.js),
+   its panel at the foot of the page's header. */
+html.in-project .masthead { z-index: 6; }
+html.in-project .masthead > :not(.pm), html.in-project .pm-btn { display: none; }
+html.in-project .pm { top: 42px; }   /* the panel 8 px below, at the foot of the 50 px header */
 
 /* The page is one band in the project's colour (project.js colours()): --acc the band, --pj-ink its ink,
    --pj-soft the ink for copy and labels, --pj-card the cards' ground, --pj-btn the buttons' tone. */
 .pj {
   --pj-ground: var(--acc); --pj-rule: rgb(var(--fg) / 0.1);
-  --pj-head: 50px; --pj-panel: clamp(340px, 30.3vw, 520px); --pj-frame: 10px;
+  --pj-head: 50px;
   --mono: 'NJ Page Mono', ui-monospace, Menlo, monospace;
   /* the reference's grid: 16 columns, 16 px gutters and edges, at most 1680 px wide; the page's text
      runs over columns 3-14 */
   --pj-vw: min(100vw, 1680px); --pj-colw: calc((var(--pj-vw) - 272px) / 16);
   --pj-edge: calc((100vw - var(--pj-vw)) / 2 + 16px);
   --pj-left: calc(var(--pj-edge) + 2 * var(--pj-colw) + 32px); --pj-span: calc(12 * var(--pj-colw) + 176px);
-  position: relative; color: var(--pj-ink); padding-top: var(--pj-head);
+  position: relative; min-height: 100vh; min-height: 100svh; box-sizing: border-box;
+  background: var(--acc); color: var(--pj-ink); padding-top: var(--pj-head);
 }
 :root { --pj-ground: #ececea; }
 
@@ -35,74 +42,49 @@ html.in-project .details, html.in-project #d-open { display: none; }
   background: var(--acc); color: rgb(var(--fg)); border-bottom: 1px solid rgb(var(--fg) / 0.16);
 }
 .pj-head .pj-mark { color: rgb(var(--fg)); font-weight: 500; text-decoration: none; }
-.pj-head .pj-name { color: rgb(var(--fg) / 0.62); }
+/* The project's name: the Projects menu's trigger on this page. */
+.pj-head .pj-name {
+  display: inline-flex; align-items: center; gap: 4px; height: 34px; padding: 0 8px; margin-left: -2px; border: 0; border-radius: 4px;
+  background: transparent; color: rgb(var(--fg) / 0.62); font: inherit; cursor: pointer;
+}
+.pj-head .pj-name:hover, .pj-head .pj-name[aria-expanded="true"] { background: rgb(var(--fg) / 0.14); color: rgb(var(--fg)); }
+.pj-head .pj-name svg { flex: none; width: 16px; height: 16px; }
+.pj-head .pj-name[aria-expanded="true"] svg { transform: rotate(180deg); }
 .pj-head .pj-sp { flex: 1; }
 .pj-head .pj-back { height: 34px; padding: 0 14px; border: 0; border-radius: 17px; background: transparent; color: rgb(var(--fg)); cursor: pointer; }
 .pj-head .pj-back:hover { background: rgb(var(--fg) / 0.14); }
 .pj-head .pj-cta { height: 34px; padding: 0 14px; border-radius: 17px; background: rgb(var(--fg)); color: rgb(var(--fg-inv)); line-height: 34px; text-decoration: none; }
 .pj :focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
-.pj-title:focus { outline: none; }
+.pj > h1:focus { outline: none; }
 
-/* ---- hero: the world, the panel with the giant title ---- */
-.pj-hero { position: sticky; top: var(--pj-head); height: calc(100vh - var(--pj-head)); height: calc(100svh - var(--pj-head)); z-index: 0; overflow: hidden; }
-.pj-hero::before, .pj-hero::after { content: ''; position: absolute; left: 0; right: 0; height: var(--pj-frame); background: var(--acc); z-index: 1; }
-.pj-hero::before { top: 0; }
-.pj-hero::after { bottom: 0; }
-.pj-window { position: absolute; top: var(--pj-frame); bottom: var(--pj-frame); left: var(--pj-panel); right: 0; }
-.pj-panel {
-  position: absolute; top: 0; bottom: 0; left: 0; width: var(--pj-panel); z-index: 2; box-sizing: border-box;
-  background: var(--acc); color: rgb(var(--fg)); display: grid; grid-template-columns: 39.5% 1fr; transform: translateX(-100%);
-  will-change: transform;
-}
-.pj-titlecol { position: relative; border-right: 1px solid rgb(var(--fg) / 0.16); overflow: hidden; }
-.pj-title {
-  position: absolute; left: 10px; bottom: var(--pj-frame); margin: 0; font-weight: 500; line-height: 0.8; letter-spacing: -0.02em;
-  writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; color: rgb(var(--fg));
-}
-.pj-sub {
-  position: absolute; right: 12px; top: calc(var(--pj-frame) + 10px); margin: 0; font: 500 12px/1 var(--mono);
-  writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; color: var(--pj-soft);
-}
-.pj-col { padding: calc(var(--pj-frame) + 10px) 10px var(--pj-frame) 11px; display: flex; flex-direction: column; gap: 11px; overflow: hidden; }
-.pj-box { border: 1px solid rgb(var(--fg) / 0.24); padding: 8px 8px 10px; font: 500 13px/1.38 var(--mono); }
-.pj-index ol { list-style: none; margin: 0; padding: 0; }
-.pj-index button {
-  all: unset; box-sizing: border-box; display: flex; justify-content: space-between; gap: 12px; width: 100%; cursor: pointer; color: rgb(var(--fg));
-}
-.pj-index button span:last-child { color: var(--pj-soft); }
-.pj-index button:hover span:first-child { text-decoration: underline; text-underline-offset: 3px; }
-.pj-fig .k { display: block; color: var(--pj-soft); font-size: 11.5px; margin-bottom: 6px; }
-.pj-fig .v { display: block; font-size: 14px; }
+/* Where the hero will stand: for now only its gap. */
+.pj-gap { height: clamp(32px, 8vh, 96px); }
 
 /* ---- the page: the band, full bleed, as the reference's sections ---- */
 .pj-body {
-  position: relative; z-index: 3; background: var(--acc); display: grid;
+  position: relative; display: grid;
   grid-template-columns: var(--pj-left) minmax(0, var(--pj-span)) minmax(0, 1fr);
 }
 .pj-rail { position: sticky; top: calc(50vh + var(--pj-head) / 2 - 36px); top: calc(50svh + var(--pj-head) / 2 - 36px); align-self: start; padding-left: var(--pj-edge); }
 .pj-rail ol { list-style: none; margin: 0; padding: 0; font: 500 12px/24px var(--mono); }
 .pj-rail button { all: unset; cursor: pointer; display: flex; justify-content: space-between; width: 112px; color: var(--pj-soft); }
 .pj-rail button::after { content: '\25CB'; font-size: 8px; }
+.pj-rail button:hover { color: var(--pj-ink); }
 .pj-rail button[aria-current="true"] { color: var(--pj-ink); }
 .pj-rail button[aria-current="true"]::after { content: '\25CF'; }
 .pj-main { min-width: 0; }
-/* The hero's runway, as the reference's: after the hero the first section waits 0.93 of the screen's
-   height less 171 px per 900 px of screen above 900 (at least 171) and 112 px (554 px at 900 tall). */
-@media (min-width: 900px) {
-  .pj-body { --pj-rw: max(1px, 100vh / 900); --pj-rw: max(1px, 100svh / 900);
-    margin-top: max(0px, 0.93 * 100vh - 171 * var(--pj-rw) - 112px); margin-top: max(0px, 0.93 * 100svh - 171 * var(--pj-rw) - 112px); }
-}
-/* A section off screen skips layout and paint until project.js lays it out (pj-laid), one section a frame
-   after the body, so no frame of the Open lays out the whole dossier; its height is remembered once drawn. */
+/* A section off screen skips layout and paint until project.js lays it out (pj-laid), one section a frame,
+   so no frame of the Open lays out the whole dossier; its height is remembered once drawn. */
 .pj-sec { padding-bottom: clamp(64px, 47.0986px + 4.50704vw, 112px); content-visibility: auto; contain-intrinsic-size: auto 2400px; }
 .pj-sec.pj-laid { content-visibility: visible; }
-.pj-cold .pj-body { content-visibility: hidden; }
 /* The section's head, as the reference's: at least 53% of the screen tall, the title on the grid's
    middle row (two parts of the free space above it, one below). */
 .pj-sh {
   box-sizing: border-box; min-height: 53vh; min-height: 53svh; display: grid; grid-template-rows: 2fr auto 1fr;
   padding: clamp(48px, 36.7324px + 3.0047vw, 80px) 0 clamp(24px, 18.3662px + 1.50235vw, 40px);
 }
+/* The first chapter starts at the top of the page, under the gap: its head is only as tall as its title. */
+.pj-main > .pj-sec:first-child .pj-sh { min-height: 0; padding-top: 0; }
 .pj-num { align-self: end; margin: 0 0 18px; font: 500 12px/16px var(--mono); color: var(--pj-soft); }
 .pj-sec h2 { grid-row: 2; margin: 0; font-size: clamp(64px, 11.2vw - 41.28px, 120px); line-height: 1; font-weight: 500; letter-spacing: -0.035em; }
 /* The title's reveal (project.js signalTitles): desktop only, as on the reference. Its box reaches a
@@ -117,7 +99,7 @@ html.in-project .details, html.in-project #d-open { display: none; }
 }
 .pj-h3 { margin: 0; padding: clamp(48px, 36.7324px + 3.0047vw, 80px) 0 40px; font-size: clamp(24px, 8.96px + 1.6vw, 32px); line-height: 1.25; font-weight: 500; letter-spacing: 0.01em; }
 .pj-part { scroll-margin-top: var(--pj-head); }
-.pj-lead { max-width: 30ch; margin: 0 0 48px; font-size: clamp(24px, 8.96px + 1.6vw, 32px); line-height: 1.25; letter-spacing: 0.01em; }
+.pj-lead { max-width: 30ch; margin: 0 0 32px; font-size: clamp(24px, 8.96px + 1.6vw, 32px); line-height: 1.25; letter-spacing: 0.01em; }
 .pj-text { max-width: 68ch; font-size: 18px; line-height: 1.5; letter-spacing: 0.01em; color: var(--pj-soft); }
 .pj-text p, .pj-text ul, .pj-text ol, .pj-text table { margin: 0 0 1.1em; }
 .pj-text ul, .pj-text ol { padding-left: 1.2em; }
@@ -130,12 +112,36 @@ html.in-project .details, html.in-project #d-open { display: none; }
 .pj-main a { color: inherit; text-decoration: underline; text-decoration-thickness: 0.05em; text-underline-offset: 0.08em; }
 /* The figures: the reference's rows of short items, four to a row (each three columns wide), a rule
    over each row, a small square before each item. */
-.pj-items { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 48px 16px; margin: 0 0 96px; }
+.pj-items { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 48px 16px; margin: 56px 0 0; }
 .pj-items > div { position: relative; padding: 48px 0 0 12px; }
 .pj-items > div:nth-child(4n + 1)::before { content: ''; position: absolute; top: 0; left: 0; width: calc(400% + 48px); border-top: 1px solid var(--pj-rule); }
 .pj-items > div::after { content: ''; position: absolute; left: 0; top: 54px; width: 2px; height: 2px; border: 1px solid var(--pj-ink); }
 .pj-items dt { font: 500 12px/16px var(--mono); color: var(--pj-soft); margin: 0 0 4px; }
 .pj-items dd { margin: 0; font-size: 14px; line-height: 18px; letter-spacing: 0.01em; }
+/* How it works: the narration's steps as cards, as many to a row as fit at 240 px. */
+.pj-steps { list-style: none; margin: 0 0 56px; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.pj-steps li { display: flex; flex-direction: column; gap: 12px; padding: 24px 24px 28px; background: var(--pj-card); border: 1px solid var(--pj-rule); }
+.pj-step-n { font: 500 12px/16px var(--mono); color: var(--pj-soft); }
+.pj-steps h4 { margin: 0; font-size: clamp(22px, 14.4px + 0.8vw, 28px); line-height: 1.15; font-weight: 500; letter-spacing: -0.01em; }
+.pj-steps p { margin: 0; font-size: 16px; line-height: 1.5; letter-spacing: 0.01em; color: var(--pj-soft); }
+.pj-steps strong { color: var(--pj-ink); font-weight: 600; }
+/* The live site, under the overview's lead; the technical detail's toggle after the overview. */
+.pj-actions { margin: 0; }
+.pj-main a.pj-visit, .pj-more > summary {
+  display: inline-flex; align-items: center; gap: 8px; box-sizing: border-box; height: 48px; padding: 0 22px; border-radius: 24px;
+  font-size: 16px; text-decoration: none; cursor: pointer;
+}
+.pj-main a.pj-visit { background: var(--pj-btn); color: var(--pj-btn-ink); }
+.pj-main a.pj-visit:hover { filter: brightness(1.15); }
+.pj-sec:has(#pj-overview) { padding-bottom: 24px; }   /* the toggle follows the overview closely */
+.pj-more { margin: 0 0 clamp(64px, 47.0986px + 4.50704vw, 112px); }
+.pj-more > summary { list-style: none; border: 1px solid var(--pj-line); color: var(--pj-ink); }
+.pj-more > summary::-webkit-details-marker { display: none; }
+.pj-more > summary:hover { background: rgb(var(--fg) / 0.08); }
+.pj-more > summary::after { content: '+'; font-size: 20px; line-height: 1; }
+.pj-more[open] > summary::after { content: '\2212'; }
+.pj-more-close, .pj-more[open] .pj-more-open { display: none; }
+.pj-more[open] .pj-more-close { display: inline; }
 /* The diagram on a card, as the reference's figures: the ink at 8% over the band, a 1 px rule. */
 .pj-figure { margin: 0 0 48px; }
 .pj-diagram { overflow-x: auto; overscroll-behavior-x: contain; background: var(--pj-card); border: 1px solid var(--pj-rule); padding: 24px 24px 16px; box-sizing: border-box; }
@@ -164,7 +170,7 @@ html.in-project .details, html.in-project #d-open { display: none; }
 .pj-foot button { height: 24px; padding: 0 12px; border: 0; border-radius: 8px; background: var(--pj-btn); color: var(--pj-btn-ink); font: inherit; cursor: pointer; }
 .pj-fail { padding: 160px 0; font-size: 18px; }
 
-/* ---- phone and narrow windows: the title across the top, the world in a framed box below ---- */
+/* ---- phone and narrow windows: one column, no rail ---- */
 @media (max-width: 899px) {
   .pj { --pj-head: 56px; --pj-frame: 16px; }
   .pj-head { padding: 0 16px; }
@@ -174,17 +180,6 @@ html.in-project .details, html.in-project #d-open { display: none; }
   .pj-head .pj-back, .pj-head .pj-cta { flex: none; }
   .pj-head .pj-cta { position: relative; padding: 0 12px; }
   .pj-head .pj-cta::before { content: ''; position: absolute; inset: -5px 0; }
-  /* The hero's pieces each carry the accent so the world's box stays a hole onto the canvas. */
-  .pj-hero { position: relative; top: 0; height: auto; overflow: visible; display: flex; flex-direction: column; color: rgb(var(--fg)); }
-  .pj-hero::before, .pj-hero::after { display: none; }
-  .pj-panel { display: contents; }
-  /* overflow-x: clip keeps the title's scrambled letters (wider than the settled ones) from widening the page */
-  .pj-titlecol { order: 1; border: 0; overflow: visible; overflow-x: clip; background: var(--acc); padding: 8px 16px 0; }
-  .pj-window { order: 2; box-shadow: inset 0 0 0 16px var(--acc); }
-  .pj-col { order: 3; background: var(--acc); padding: 0 16px 16px; }
-  .pj-title { position: static; writing-mode: horizontal-tb; transform: none; line-height: 0.9; }
-  .pj-sub { position: static; writing-mode: horizontal-tb; transform: none; text-align: right; margin: 8px 0 0; padding-bottom: 14px; white-space: normal; }
-  .pj-window { position: relative; left: auto; top: auto; bottom: auto; height: 62svh; margin: 0; }
   .pj-body { display: block; padding: 0 16px; }
   .pj-rail { display: none; }
   /* the reference's phone head: 360 px tall, the title halfway down its free space */
@@ -193,23 +188,14 @@ html.in-project .details, html.in-project #d-open { display: none; }
   .pj-text { font-size: 14px; }
   .pj-main .pj-list a { font-size: 14px; }
   /* one item to a row, a rule over each, no square (as the reference's phone rows) */
-  .pj-items { grid-template-columns: minmax(0, 1fr); gap: 24px; margin-bottom: 64px; }
+  .pj-items { grid-template-columns: minmax(0, 1fr); gap: 24px; margin-top: 40px; }
   .pj-items > div { padding: 24px 25px 0; border-top: 1px solid var(--pj-rule); }
   .pj-items > div::before, .pj-items > div::after { display: none; }
+  .pj-steps { grid-template-columns: minmax(0, 1fr); }
+  .pj-steps p { font-size: 15px; }
   .pj-diagram { padding: 16px; margin: 0 -16px; border-left: 0; border-right: 0; }
   .pj-main .pj-list a { grid-template-columns: 1fr; gap: 2px; }
   .pj-foot { padding: 12px 0 20px; }
   .pj-foot button, .pj-main .pj-foot a { position: relative; }
   .pj-foot button::before, .pj-main .pj-foot a::before { content: ''; position: absolute; inset: -10px 0; }   /* 44 px touch areas */
 }
-
-/* No WebGL: the world's window holds the accent's light instead. */
-.pj-noworld .pj-window { background: radial-gradient(120% 90% at 30% 35%, color-mix(in srgb, var(--acc) 60%, #000) 0%, #0b0b0d 72%); }
-
-/* A project's mascot (Chairtax: Bearly) stands on the world window's bottom edge at the panel's side,
-   pointing into the world; he steps in once the panel has landed. */
-.pj-mascot { position: absolute; left: 3%; bottom: 0; height: 44%; width: auto; opacity: 0; transform: translateY(14px);
-  transition: opacity 0.45s ease, transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); pointer-events: none; }
-.pj-mascot.in { opacity: 1; transform: none; }
-@media (max-width: 899px) { .pj-mascot { left: 22px; bottom: 16px; height: 40%; } }
-@media (prefers-reduced-motion: reduce) { .pj-mascot { transition: opacity 0.12s linear; transform: none; } }

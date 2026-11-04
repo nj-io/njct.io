@@ -195,7 +195,7 @@ Each round is build, capture, measure, critique and fix, as in v1. Units: one sc
 
 ## Rules
 - **Copy:** visible strings are proposals until the operator approves them. Rows 66 onward of `docs/plans/editions-copy-proposals.md` hold this brief's strings.
-- **The terminal's text** is curated at build time (commit subjects and the build table, with no trailers or URLs) and approved as copy row 75.
+- **The terminal's text** is curated at build time (commit subjects and the build table, with no trailers or URLs) and approved as copy row C10.
 - **The record wall:** v1's camera, layout and behaviour stay exactly as built, and only the light changes. Prove it as in round 1.
 - **Budgets:**
   - **Frame rate:** 60 fps while turning, on a machine with a GPU.

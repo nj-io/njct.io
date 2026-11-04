@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cover thumbs</title>
+<script type="importmap">{ "imports": { "three": "/vendor/three-0.181.0/three.module.min.js" } }</script>
+</head>
+<body>
+<script type="module">
+// Each shelf cover's front at rest, drawn by the cover module itself at full size and scaled down to a
+// small WebP: the sleeve shows it from its first frame until the full cover lands. Driven by
+// build/covers/thumbs.mjs, which reads window.thumbs.
+//   ?size=1024   the front's drawn size (the scene's)
+//   ?thumb=128   the thumb's side
+//   ?q=0.75      WebP quality
+import * as THREE from 'three';
+import { LINEUP, slugOf } from '/scene/config.js';
+import { createCover } from '/covers/covers.js';
+
+const P = new URLSearchParams(location.search);
+const SIZE = +(P.get('size') || 1024), THUMB = +(P.get('thumb') || 128), Q = +(P.get('q') || 0.75);
+const renderer = new THREE.WebGLRenderer({ canvas: document.createElement('canvas') });
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.NoToneMapping;
+
+window.thumbs = (async () => {
+  const out = [];
+  for (const [i, entry] of LINEUP.entries()) {
+    try {
+      const c = await createCover(renderer, entry, i, { size: SIZE, backSize: 0 });
+      const rt = c.front.renderTarget, px = new Uint8Array(SIZE * SIZE * 4);
+      renderer.readRenderTargetPixels(rt, 0, 0, SIZE, SIZE, px);   // the stored (sRGB) bytes, bottom row first
+      const full = new OffscreenCanvas(SIZE, SIZE), fx = full.getContext('2d');
+      const img = fx.createImageData(SIZE, SIZE), row = SIZE * 4;
+      for (let y = 0; y < SIZE; y++) img.data.set(px.subarray((SIZE - 1 - y) * row, (SIZE - y) * row), y * row);
+      fx.putImageData(img, 0, 0);
+      // Halve until one step from the thumb, then the last step: each halving averages its pixels.
+      let src = full, s = SIZE;
+      while (s / 2 >= THUMB * 1.5) {
+        const h = new OffscreenCanvas(s / 2, s / 2), hx = h.getContext('2d');
+        hx.imageSmoothingQuality = 'high';
+        hx.drawImage(src, 0, 0, s / 2, s / 2);
+        src = h; s /= 2;
+      }
+      const t = new OffscreenCanvas(THUMB, THUMB), tx = t.getContext('2d');
+      tx.imageSmoothingQuality = 'high';
+      tx.drawImage(src, 0, 0, THUMB, THUMB);
+      const blob = await t.convertToBlob({ type: 'image/webp', quality: Q });
+      const bytes = new Uint8Array(await blob.arrayBuffer());
+      let bin = '';
+      for (let k = 0; k < bytes.length; k += 0x8000) bin += String.fromCharCode(...bytes.subarray(k, k + 0x8000));
+      out.push({ slug: slugOf(entry), webp: btoa(bin) });
+      c.dispose?.();
+    } catch (e) {
+      out.push({ slug: slugOf(entry), error: String(e?.message || e) });
+    }
+  }
+  return out;
+})();
+</script>
+</body>
+</html>
