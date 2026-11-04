@@ -10,14 +10,19 @@ workers_dev = false
 # The Pages site serves njct.io; this route takes the /api/contact path from it.
 routes = [{ pattern = "njct.io/api/contact", zone_name = "njct.io" }]
 
-# 5 sends per IP per hour (brief § Rate limit). namespace_id is any integer unique to the account;
-# change it if the dashboard reports a clash.
+# Rate limit: the binding's window can only be 10 or 60 s (wrangler rejects 3600), so the exact
+# 5-per-minute cap rides the binding and the 5-per-hour rule is a KV counter set by the deploy
+# (CONTACT namespace). namespace_id is any integer unique to the account.
 [[ratelimits]]
 name = "CONTACT_LIMITER"
 namespace_id = "3001"
   [ratelimits.simple]
   limit = 5
-  period = 3600
+  period = 60
+
+[[kv_namespaces]]
+binding = "CONTACT"
+id = "CONTACT_KV_ID"   # replaced by `wrangler kv namespace create CONTACT` at first deploy
 
 # Cloudflare Email Routing send_email binding: no API key, delivers only to the verified
 # destination address below.
