@@ -7,7 +7,7 @@ import { CAMERA_Z, REF_H, SHELF, SLEEVE, INTRO, DETAILS, OPEN, LINEUP, viewScale
 import { createLightUniforms, applyLights } from './scene/lighting.js';
 import { createWall } from './scene/wall.js';
 import { createShelves } from './scene/shelves.js';
-import { createSleeves, applyPose, writeOccluders, setCover, restPose, hoverPose, COVER_BIAS } from './scene/sleeves.js';
+import { createSleeves, applyPose, writeOccluders, setCover, setThumb, restPose, hoverPose, COVER_BIAS } from './scene/sleeves.js';
 import { introPose, appearTime, stepHover, fallPose, HOVER_DELAY, bezier, lerpPose, clamp01, dur, delay, setReducedMotion, reduced } from './scene/motion.js';
 import { createPost } from './scene/post.js';
 import { createSticker } from './scene/sticker.js';
@@ -76,15 +76,20 @@ scene.add(crateShadow.mesh);
 // ---- covers -------------------------------------------------------------------------------------
 // Covers come only through createCover (editions/covers/): a 1024 front (Details shows it at about 830
 // device px) and no shelf back (backs face the wall); the back renders at 1024 when its sleeve enters
-// Details. A cover that fails to build leaves its sleeve a flat fill (introShift below).
+// Details. A cover that fails to build leaves its sleeve its thumb, or a flat fill (introShift below).
 // The cover module loads after the first frame, so its bytes and its work stay off the first frame's
 // path on a slow phone (the shelf's first frame needs only the scene). Covers are then created (and
 // their programs compiled) in shelf order, COVER_LANES at a time, so sleeve i's cover is in by its
-// appearance in the intro (INTRO.appear.at + stagger * i). A sleeve never shows without its cover: the
-// intro holds a sleeve whose cover is late (introShift below) and never waits on the others.
+// appearance in the intro (INTRO.appear.at + stagger * i). Until then a sleeve shows its cover's thumb
+// (covers/thumbs/, 128 px, drawn from the same cover by build/covers/thumbs.mjs), which loads with the
+// first view; the full cover fades in over it as it lands (COVER_FADE). A sleeve never shows bare: the
+// intro holds a sleeve with neither thumb nor cover in (introShift below) and never waits on the others.
 const covers = sleeves.map(() => null);
 const coverReadyAt = sleeves.map(() => null);   // ms after the first frame (test hook)
 const coverIn = sleeves.map(() => null);        // intro ms when the cover landed (or failed)
+const thumbIn = sleeves.map(() => null);        // intro ms when the thumb landed
+const COVER_FADE = 320;
+const fades = [];                                // { s, at }: covers fading in over their thumbs
 const COVER_LANES = 1;
 let coversM = null;
 const coversMod = new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))).then(() => import('./covers/covers.js'))
@@ -106,13 +111,28 @@ function buildNext() {
   };
   return build(s, i, { size: 1024, backSize: 0 })
     .then(c => {
-      const land = () => { covers[i] = c; setCover(s, c.front, null); landed(); };
+      const land = () => {
+        covers[i] = c;
+        if (setCover(s, c.front, null)) fades.push({ s, at: performance.now() });
+        landed();
+      };
       if (coverLate[i] == null) land();
       else setTimeout(land, Math.max(0, schedAppear(i) + coverLate[i] - introMs()));
     }, e => { console.warn(`cover ${s.entry.name}: flat sleeve (${e?.message || e})`); landed(); })
     .then(buildNext);
 }
 const coversReady = coversMod.then(() => Promise.all(Array.from({ length: COVER_LANES }, buildNext)));
+// The thumbs: requested at once, a few KB each. A missing one leaves its sleeve to the cover alone.
+const thumbLoader = new THREE.TextureLoader();
+for (const s of sleeves) {
+  thumbLoader.load(new URL(`./covers/thumbs/${slugOf(s.entry)}.webp`, import.meta.url).href, tex => {
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    setThumb(s, tex);
+    thumbIn[s.i] = introMs();
+    wake();
+  }, undefined, () => {});
+}
 // The cover module keeps the last two Details backs and renders an evicted one again on request, so the
 // sleeve asks on every entry, and gives its back up (to the placeholder) when it leaves Details.
 function backFor(i) {
@@ -126,26 +146,25 @@ function backFor(i) {
 // The back's faces load (and its first back renders) at idle once the intro is over, so a Details back
 // is a single render job when Details opens and never lands in a flip. The covers module loads the back
 // faces only on a back request, so this asks for the first sleeve's back once.
-// The page module, its stylesheet and the world's programs load at idle after that, so Open's cut neither
-// fetches nor compiles; the world's first draws run in a shelf frame (worldWarm), under the shelf.
-let backsWarm = false, worldWarm = null;
+// The page module and its stylesheet load at idle after that, so Open's cut fetches nothing.
+let backsWarm = false;
 function warmBacks() {
   if (backsWarm || !covers[0] || settled.some(v => !v)) return;
   backsWarm = true;
   const idle = window.requestIdleCallback || (f => setTimeout(f, 200));
   idle(() => {
     if (!det) covers[0].detailBack(1024).catch(() => {});
-    idle(() => loadView().then(v => v.warm()).then(w => { if (w) { worldWarm = w; wake(); } })
-      .catch(e => console.warn(`world warm-up: ${e?.message || e}`)), { timeout: 3000 });
+    idle(() => loadView().then(v => v.warm())
+      .catch(e => console.warn(`page warm-up: ${e?.message || e}`)), { timeout: 3000 });
   }, { timeout: 2000 });
 }
 const BACK_PLAIN = 0xe9e6e0;   // the back's card colour in sleeves.js
 
-// The intro holds each sleeve until its cover is in. Sleeve i appears at its scheduled time, or when its
-// cover lands if that is later, and never sooner after the sleeve before it than the schedule spaces
-// them (76 ms), so the stagger stays even behind a held sleeve; its whole intro runs that much later. A
-// cover still missing COVER_WAIT ms after the scheduled time, or one that failed, lets its sleeve appear
-// with the cover's ground colour as a flat fill, until the cover lands.
+// The intro holds each sleeve until its thumb or its cover is in. Sleeve i appears at its scheduled time,
+// or when the first of them lands if that is later, and never sooner after the sleeve before it than the
+// schedule spaces them (76 ms), so the stagger stays even behind a held sleeve; its whole intro runs that
+// much later. With neither in COVER_WAIT ms after the scheduled time (or a failed cover and no thumb),
+// its sleeve appears with the cover's ground colour as a flat fill, until one lands.
 const COVER_WAIT = 600;
 const appearAt = sleeves.map(() => null), shiftOf = sleeves.map(() => 0);   // intro ms; decided once
 const schedAppear = i => (crateMode ? delay(INTRO.appear.at + INTRO.appear.stagger * i) : appearTime(i));
@@ -154,11 +173,12 @@ function introShift(i, ti) {
     if (i > 0 && appearAt[i - 1] === null) return null;
     const sched = schedAppear(i);
     const earliest = i > 0 ? Math.max(sched, appearAt[i - 1] + sched - schedAppear(i - 1)) : sched;
-    const ready = coverIn[i] ?? (ti >= sched + COVER_WAIT ? sched + COVER_WAIT : null);
+    const inAt = coverIn[i] ?? thumbIn[i];
+    const ready = inAt ?? (ti >= sched + COVER_WAIT ? sched + COVER_WAIT : null);
     if (ready === null || ti < Math.max(earliest, ready)) return null;
     appearAt[i] = Math.max(earliest, ready);
     shiftOf[i] = appearAt[i] - sched;
-    if (!covers[i]) flatFill(sleeves[i]);
+    if (!covers[i] && thumbIn[i] === null) flatFill(sleeves[i]);
   }
   return shiftOf[i];
 }
@@ -552,6 +572,13 @@ function frame(now) {
   }
   const alive = aliveIdx >= 0 || now < aliveUntil;
   if (alive && !window.__editionsTest?.stillCovers) for (const c of covers) c?.update(dt);   // a test can hold the covers still
+  // Covers fading in over their thumbs (smoothstep); the Details background redraws under them.
+  for (let k = fades.length - 1; k >= 0; k--) {
+    const f = fades[k], u = clamp01((performance.now() - f.at) / dur(COVER_FADE));
+    f.s.fade.uFade.value = u * u * (3 - 2 * u);
+    if (!det || det.i !== f.s.i) bgDirty = true;
+    if (u >= 1) fades.splice(k, 1);
+  }
 
   if (det) {
     const s = sleeves[det.i];
@@ -570,7 +597,6 @@ function frame(now) {
     renderer.autoClear = true;
     camera.layers.set(0);
   } else {
-    if (worldWarm) { worldWarm.draw(); worldWarm = null; }   // drawn over at once by the shelf
     renderer.render(scene, camera);
   }
 
@@ -582,7 +608,7 @@ function frame(now) {
     active = true;
   }
   if (!backsWarm && !active) warmBacks();
-  if (active || waiting || alive || crateMoving) wake(); else last = 0;
+  if (active || waiting || alive || crateMoving || fades.length) wake(); else last = 0;
 }
 
 // ---- intro: canvas fade, header rise, late fade ---------------------------------------------------
