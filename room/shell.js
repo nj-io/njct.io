@@ -18,6 +18,9 @@ import { drawLeaves } from '../scene/leaves.js';
 
 const R = CAFE.room, SH = CAFE.shelving, CT = CAFE.counter, TB = CAFE.table, W = CAFE.window, SF = CAFE.shopfront;
 const LAMPS = 4, OCCS = 14;
+// The room probe (round 3): the café seen from near its middle, once, into a cube, prefiltered by roughness (PMREM);
+// read box-projected (along the ray to the room's walls) so what a surface reflects lines up with where it stands.
+const PROBE = { size: 128, x: -500, y: 120, z: 1400 };
 const WIN_MID = `vec3(${R.front.toFixed(1)}, ${((W.y0 + W.y1) / 2).toFixed(1)}, ${((W.z0 + W.z1) / 2).toFixed(1)})`;
 
 // ---- light shared by every room surface ---------------------------------------------------------------
@@ -31,6 +34,29 @@ uniform vec3 uLampCol;
 uniform float uAmbient;
 uniform vec4 uOcc[${OCCS}];      // boxes that shade what is near them: centre xz, half size xz (y below uOccTop)
 uniform float uOccTop[${OCCS}];
+// the probe: all of it (for what surfaces reflect), and without the window's outside and the lamps (the bounce: those
+// are the direct light's); uBounce: how much of the second the room's surfaces take
+#define ENVMAP_TYPE_CUBE_UV
+#define CUBEUV_TEXEL_WIDTH ${(1 / (3 * Math.max(PROBE.size, 112))).toFixed(9)}
+#define CUBEUV_TEXEL_HEIGHT ${(1 / (4 * PROBE.size)).toFixed(9)}
+#define CUBEUV_MAX_MIP ${(Math.log2(4 * PROBE.size) - 2).toFixed(1)}
+#include <cube_uv_reflection_fragment>
+uniform sampler2D uProbe, uProbeD;
+uniform float uHasProbe, uBounce;
+// From p along r to the room's walls, as the probe sees that point.
+vec3 njBox(vec3 p, vec3 r) {
+  vec3 a = (vec3(${R.back.toFixed(1)}, ${R.floor.toFixed(1)}, 0.0) - p) / r, b = (vec3(${R.front.toFixed(1)}, ${R.ceiling.toFixed(1)}, ${R.depth.toFixed(1)}) - p) / r;
+  vec3 f = max(a, b);
+  return p + r * max(min(min(f.x, f.y), f.z), 0.0) - vec3(${PROBE.x.toFixed(1)}, ${PROBE.y.toFixed(1)}, ${PROBE.z.toFixed(1)});
+}
+// The light the room's own surfaces send to p (a second bounce, from where it stands), or the flat fill before the
+// probe is made.
+vec3 njBounce(vec3 p, vec3 n) {
+  if (uHasProbe < 0.5) return vec3(uAmbient);
+  return uBounce * textureCubeUV(uProbeD, njBox(p, n), 1.0).rgb + vec3(uAmbient * 0.25);
+}
+// What a surface of roughness ro reflects along r, from the probe (its dominant direction leaning to n as it roughens).
+vec3 njEnv(vec3 p, vec3 r, vec3 n, float ro) { return textureCubeUV(uProbe, njBox(p, normalize(mix(r, n, ro * ro))), ro).rgb; }
 // Lambert's formula: the share of the hemisphere above n that a quad covers, cosine-weighted.
 float njQuad(vec3 p, vec3 n, vec3 q0, vec3 q1, vec3 q2, vec3 q3) {
   vec3 a = normalize(q0 - p), b = normalize(q1 - p), c = normalize(q2 - p), d = normalize(q3 - p);
@@ -82,7 +108,7 @@ vec3 njRoomLight(vec3 p, vec3 n) {
   vec3 e = uSkyCol * njQuad(p, n, uWinQ[0], uWinQ[1], uWinQ[2], uWinQ[3])
          + uPatchCol * njQuad(p, n, uPatchQ[0], uPatchQ[1], uPatchQ[2], uPatchQ[3])
          + uWallCol * njQuad(p, n, uWallQ[0], uWallQ[1], uWallQ[2], uWallQ[3])
-         + njLamps(p, n) + vec3(uAmbient);
+         + njLamps(p, n) + njBounce(p, n);
   return e * njAO(p, n);
 }
 // Rolled off toward white so the brightest things (the street, a lamp's bulb) never clip.
@@ -122,7 +148,7 @@ void main() {
 // 9 translucent (lit from behind too: the tea, a curtain).
 const SURFACE_FRAG = /* glsl */`
 uniform int uKind;
-uniform float uGloss;
+uniform vec3 uSpec;   // the reflection: F0, roughness, metal (1: its colour tints what it reflects, little diffuse)
 varying vec3 vP;
 varying vec3 vN;
 varying vec3 vCol;
@@ -186,12 +212,15 @@ void main() {
   vec3 n = normalize(vN);
   vec3 e = njRoomLight(vP, n);
   if (uKind == 9) e += 0.7 * njBackLight(vP, -n) * vec3(1.0, 0.82, 0.6);
-  vec3 col = albedo(vP, n) * e;
-  // a soft sheen on gloss: the window seen in it
-  if (uGloss > 0.0) {
+  vec3 a = albedo(vP, n), col = a * e;
+  // what it reflects: the probe by Fresnel (Schlick's, held down as it roughens), dimmed where the room shades it
+  if (uSpec.x > 0.0) {
     vec3 v = normalize(vP - cameraPosition), r = reflect(v, n);
-    vec3 w = ${WIN_MID} - vP;
-    col += uGloss * uSkyCol * pow(max(dot(r, normalize(w)), 0.0), 18.0) * njAO(vP, n);
+    float c = clamp(-dot(n, v), 0.0, 1.0), ro = uSpec.y;
+    float fr = uSpec.x + (max(1.0 - ro, uSpec.x) - uSpec.x) * pow(1.0 - c, 5.0);
+    vec3 env = uHasProbe > 0.5 ? njEnv(vP, r, n, ro) : uSkyCol * 0.5 * pow(max(dot(r, normalize(${WIN_MID} - vP)), 0.0), 18.0);
+    vec3 tint = mix(vec3(1.0), a / max(max(a.r, max(a.g, a.b)), 1e-3), uSpec.z);
+    col = col * mix(1.0 - fr, 0.15, uSpec.z) + env * fr * tint * njAO(vP, n);
   }
   gl_FragColor = vec4(njShoulder(col), 1.0);
   #include <colorspace_fragment>
@@ -335,6 +364,8 @@ void main() {
   float spec = pow(max(dot(r, normalize(${WIN_MID} - vP)), 0.0), 40.0);
   vec3 env = mix(vec3(0.3, 0.27, 0.23), uSkyCol * 0.45, smoothstep(-0.2, 0.7, r.x));
   vec3 refl = env + uSkyCol * spec * 1.6;
+  // the room and the window as they stand, the window's brightest part (past what the probe holds) still a glint
+  if (uHasProbe > 0.5) refl = njEnv(vP, r, n, 0.03) + uSkyCol * spec * 1.2;
   vec3 tint = vCol * njRoomLight(vP, n);
   float a = clamp(fr * 0.9 + uAlpha + spec * 0.5, 0.0, 0.94);
   gl_FragColor = vec4(njShoulder((refl * fr * 0.9 + refl * spec * 0.5 + tint * uAlpha) / max(a, 1e-3)), a);
@@ -706,6 +737,8 @@ const C = {
 };
 // A light's colour as it glows, k times the room's white (the finishing pass rolls it off and spreads it).
 const hot = (c, k) => c.map(v => v * k);
+const BLACK = new THREE.DataTexture(new Uint8Array([0, 0, 0, 255]), 1, 1);   // the probe until it is made
+BLACK.needsUpdate = true;
 const BAGS = [[0.62, 0.36, 0.22], [0.85, 0.8, 0.7], [0.16, 0.2, 0.19], [0.72, 0.52, 0.3], [0.3, 0.44, 0.4], [0.82, 0.62, 0.48], [0.14, 0.16, 0.28]];
 const LABELS = [[0.95, 0.92, 0.85], [0.9, 0.55, 0.25], [0.2, 0.2, 0.2], [0.85, 0.75, 0.3]];
 
@@ -740,6 +773,7 @@ export function createShell({ renderer, scene, lightUniforms, sun }) {
     uLampP: { value: [...lamps.map(p => new THREE.Vector4(p.x, p.y, p.z, 1)), new THREE.Vector4(tableLamp.x, tableLamp.y, tableLamp.z, 0)] },
     uLampCol: { value: V(0.95, 0.6, 0.28) },
     uAmbient: { value: 0.065 },
+    uProbe: { value: BLACK }, uProbeD: { value: BLACK }, uHasProbe: { value: 0 }, uBounce: { value: 0.8 },
     uOcc: { value: Array.from({ length: OCCS }, () => new THREE.Vector4(0, 0, 0, 0)) },
     uOccTop: { value: new Array(OCCS).fill(-1e4) },
   };
@@ -782,10 +816,13 @@ export function createShell({ renderer, scene, lightUniforms, sun }) {
   // ---- materials ------------------------------------------------------------------------------------------
   const leafTex = keep(canvasTexture(1024, 512, drawLeaves, THREE.NoColorSpace));
   const shaderMat = (frag, uniforms = {}, extra = {}) => keep(new THREE.ShaderMaterial({ uniforms: { ...L, ...uniforms }, vertexShader: VERT, fragmentShader: frag, toneMapped: false, ...extra }));
-  const surf = (kind, gloss = 0) => shaderMat(SURFACE_FRAG, { uKind: { value: kind }, uGloss: { value: gloss } });
+  // spec: F0, roughness, metal. Lacquered wood and sealed cement tiles a soft sheen; honed marble and glazed tiles
+  // clearer; chrome a mirror that takes its colour, brushed steel a blurred one.
+  const surf = (kind, spec = [0, 0, 0]) => shaderMat(SURFACE_FRAG, { uKind: { value: kind }, uSpec: { value: V(...spec) } });
   const MAT = {
-    plain: surf(0), satin: surf(0, 0.3), chrome: surf(0, 0.9), wood: surf(2, 0.04), flute: surf(5, 0.04), plaster: surf(3),
-    marble: surf(4, 0.25), tile: surf(1, 0.04), glazed: surf(6, 0.5), fabric: surf(7), cane: surf(8), thru: surf(9, 0.2),
+    plain: surf(0), satin: surf(0, [0.04, 0.4, 0]), chrome: surf(0, [0.65, 0.14, 1]), brushed: surf(0, [0.56, 0.38, 1]), wood: surf(2, [0.035, 0.42, 0]),
+    flute: surf(5, [0.03, 0.55, 0]), plaster: surf(3), marble: surf(4, [0.045, 0.14, 0]), tile: surf(1, [0.035, 0.4, 0]),
+    glazed: surf(6, [0.05, 0.07, 0]), fabric: surf(7), cane: surf(8), thru: surf(9, [0.035, 0.3, 0]),
     emit: shaderMat(EMISSIVE_FRAG),
     leaf: shaderMat(LEAF_FRAG, { uAtlas: { value: leafTex } }, { side: THREE.DoubleSide, alphaToCoverage: true }),
     glass: shaderMat(GLASS_FRAG, { uAlpha: { value: 0.05 } }, { transparent: true, depthWrite: false, side: THREE.DoubleSide }),
@@ -949,11 +986,11 @@ export function createShell({ renderer, scene, lightUniforms, sun }) {
     else bx('plain', label, x + w / 2, y + h * 0.3, z - d / 2 + 8, x + w / 2 + 1.5, y + h * 0.66, z + d / 2 - 8, F);
   };
   function kettle(x, y, z, col = C.ink, F = null, turn = 0) {
-    const K = at(x, y, z, turn, 0, 0, F);
-    lathe('satin', col, [[0, 0], [44, 0], [46, 50], [36, 78], [12, 84], [8, 92], [0, 94]], 0, 0, 0, K, 24);
-    rod('satin', col, V(30, 16, 0), V(72, 92, 0), 4, K);
-    rod('satin', col, V(72, 92, 0), V(96, 84, 0), 3.4, K);
-    ring('satin', col, 32, 5, at(-40, 52, 0, 0, 0, Math.PI / 2, K), Math.PI, 16);
+    const K = at(x, y, z, turn, 0, 0, F), key = col === C.stainless ? 'brushed' : 'satin';
+    lathe(key, col, [[0, 0], [44, 0], [46, 50], [36, 78], [12, 84], [8, 92], [0, 94]], 0, 0, 0, K, 24);
+    rod(key, col, V(30, 16, 0), V(72, 92, 0), 4, K);
+    rod(key, col, V(72, 92, 0), V(96, 84, 0), 3.4, K);
+    ring(key, col, 32, 5, at(-40, 52, 0, 0, 0, Math.PI / 2, K), Math.PI, 16);
   }
 
   // ---- the room ----------------------------------------------------------------------------------------------
@@ -1036,11 +1073,11 @@ export function createShell({ renderer, scene, lightUniforms, sun }) {
       uMask: sun ? sun.uniforms.uMask : { value: new THREE.Vector4() }, uHasLeaves: { value: 0 } },
     vertexShader: VERT, fragmentShader: STREET_FRAG, toneMapped: false,
   }));
-  special(new THREE.PlaneGeometry(6400, 3600), street, at(XF + 1900, 700, -400, -Math.PI / 2));
+  const outside = [special(new THREE.PlaneGeometry(6400, 3600), street, at(XF + 1900, 700, -400, -Math.PI / 2))];
   // the reeded panes around the clear window
   const reeded = keep(new THREE.ShaderMaterial({ uniforms: { ...street.uniforms, uLeafSun: { value: sun?.uniforms.uLeaf2.value || null } },
     vertexShader: VERT, fragmentShader: REEDED_FRAG, toneMapped: false }));
-  const pane = (z0, y0, z1, y1) => special(new THREE.PlaneGeometry(z1 - z0, y1 - y0), reeded, at(XF + 6, (y0 + y1) / 2, (z0 + z1) / 2, -Math.PI / 2));
+  const pane = (z0, y0, z1, y1) => outside.push(special(new THREE.PlaneGeometry(z1 - z0, y1 - y0), reeded, at(XF + 6, (y0 + y1) / 2, (z0 + z1) / 2, -Math.PI / 2)));
   pane(SF.z0, SF.y0, W.z0, SF.y1); pane(W.z1, SF.y0, SF.z1, SF.y1);
   pane(W.z0, SF.y0, W.z1, W.y0); pane(W.z0, W.y1, W.z1, SF.y1);
   quad('glass', [0.84, 0.92, 0.88], W.z1 - W.z0, W.y1 - W.y0, at(XF + 3, (W.y0 + W.y1) / 2, (W.z0 + W.z1) / 2, -Math.PI / 2));
@@ -1185,21 +1222,21 @@ export function createShell({ renderer, scene, lightUniforms, sun }) {
     }
     kettle(x + 70, y, 1045, C.ink, null, 0);
     // the batch brewer: its tower at the back, the brew basket over its carafe on the hot plate in front
-    bx('satin', C.stainless, x - 150, y, 1110, x - 30, y + 400, 1290);
-    bx('satin', C.stainless, x - 30, y + 250, 1120, x + 100, y + 330, 1280);
+    bx('brushed', C.stainless, x - 150, y, 1110, x - 30, y + 400, 1290);
+    bx('brushed', C.stainless, x - 30, y + 250, 1120, x + 100, y + 330, 1280);
     bx('plain', C.ink, x - 20, y + 236, 1150, x + 70, y + 250, 1250);
-    bx('satin', C.stainless, x - 30, y, 1120, x + 100, y + 14, 1280);
+    bx('brushed', C.stainless, x - 30, y, 1120, x + 100, y + 14, 1280);
     bx('emit', hot([0.25, 0.5, 0.42], 2.0), x + 100, y + 296, 1180, x + 102, y + 316, 1220);
     lathe('glass', C.clear, [[0, 0], [54, 0], [58, 64], [36, 110], [32, 120], [0, 120]], x + 34, y + 14, 1200);
     cy('plain', C.coffee, x + 34, y + 16, 1200, 52, 54, null, 56, 20);
     // Thai tea: the urn, the cloth filter on its stand over a pot, a stack of glasses
-    cy('satin', C.stainless, x - 20, y, 1420, 74, 250, null, 70, 28);
+    cy('brushed', C.stainless, x - 20, y, 1420, 74, 250, null, 70, 28);
     cy('satin', C.ink, x - 20, y + 250, 1420, 50, 30, null, 30, 20);
     rod('chrome', C.chrome, V(x + 60, y, 1580), V(x + 60, y + 260, 1580), 4);
     ring('chrome', C.chrome, 44, 3, at(x + 20, y + 260, 1580, 0, Math.PI / 2));
     rod('chrome', C.chrome, V(x + 60, y + 260, 1580), V(x + 64, y + 260, 1580), 4);
     lathe('thru', [0.78, 0.56, 0.36], [[2, 0], [10, 0], [40, 110], [44, 116], [0, 116]], x + 20, y + 150, 1580);
-    cy('satin', C.stainless, x + 20, y, 1580, 54, 90, null, 52, 24);
+    cy('brushed', C.stainless, x + 20, y, 1580, 54, 90, null, 52, 24);
     // the blender, the syrups, takeaway cups
     bx('satin', C.ink, x - 45, y, 1700, x + 45, y + 110, 1790);
     lathe('glass', C.clear, [[0, 0], [40, 0], [52, 150], [50, 160], [0, 160]], x, y + 110, 1745);
@@ -1241,7 +1278,7 @@ export function createShell({ renderer, scene, lightUniforms, sun }) {
     bx('chrome', C.chrome, x0 - 4, y + 240, z0 - 4, x1 + 4, y + 250, z1 + 4);
     for (const z of [z0 - 2, z1 + 2]) bx('chrome', C.chrome, x0, y + 250, z - 3, x1, y + 272, z + 3);
     // its back, to the customers: a brushed steel panel in the mint frame, a dark oval badge
-    bx('satin', C.stainless, x1, y + 40, z0 + 26, x1 + 4, y + 222, z1 - 26);
+    bx('brushed', C.stainless, x1, y + 40, z0 + 26, x1 + 4, y + 222, z1 - 26);
     for (const zz of [(z0 + z1) / 2 - 1.5]) bx('satin', [0.3, 0.31, 0.32], x1 + 4, y + 40, zz, x1 + 5, y + 222, zz + 3);
     el('satin', C.ink, x1 + 5, y + 150, (z0 + z1) / 2, 1.5, 20, 64, null, 24);
     bx('satin', [0.85, 0.78, 0.6], x1 + 6.5, y + 147, (z0 + z1) / 2 - 36, x1 + 7, y + 153, (z0 + z1) / 2 + 36);
@@ -1473,6 +1510,7 @@ export function createShell({ renderer, scene, lightUniforms, sun }) {
     const g = keep(merge(geos));
     for (const x of geos) x.dispose();
     const m = new THREE.Mesh(g, MAT[key]);
+    if (key === 'emit') outside.push(m);   // the lamps' light is the direct light's: the bounce does not see them
     if (key === 'glass') m.renderOrder = 2;
     if (key === 'contact') m.renderOrder = 1;
     group.add(m);
@@ -1488,6 +1526,28 @@ export function createShell({ renderer, scene, lightUniforms, sun }) {
 
   const finish = createFinish(renderer);
   disposables.push(finish);
+  // The probe, made once the room is built and lit: the café from near its middle into a cube, twice (all of it; then
+  // without the window's outside and the lamps, for the bounce), each prefiltered by roughness.
+  const probeRT = keep(new THREE.WebGLCubeRenderTarget(PROBE.size, { type: THREE.HalfFloatType, generateMipmaps: false }));
+  const probeCam = new THREE.CubeCamera(20, 40000, probeRT);
+  probeCam.position.set(PROBE.x, PROBE.y, PROBE.z);
+  let probes = null;
+  function makeProbes(also) {
+    const pmrem = new THREE.PMREMGenerator(renderer), was = new THREE.Color(), alpha = renderer.getClearAlpha();
+    renderer.getClearColor(was);
+    renderer.setClearColor(0x000000, 1);
+    probeCam.update(renderer, scene);
+    const all = pmrem.fromCubemap(probeRT.texture);
+    const hide = [...outside, ...also];
+    for (const m of hide) m.visible = false;
+    probeCam.update(renderer, scene);
+    const room = pmrem.fromCubemap(probeRT.texture);
+    for (const m of hide) m.visible = true;
+    renderer.setClearColor(was, alpha);
+    pmrem.dispose();
+    probes = [all, room];
+    L.uProbe.value = all.texture; L.uProbeD.value = room.texture; L.uHasProbe.value = 1;
+  }
   const textures = [leafTex, menuTex, screenTex, letTex, ...slipTex];
   return {
     group,
@@ -1538,11 +1598,18 @@ export function createShell({ renderer, scene, lightUniforms, sun }) {
       for (const t of [...textures, ...more]) renderer.initTexture(t);
       finish.compile();
       ext.bake();   // allocates the record wall extension's bake target too
+      if (!probes) {   // the room probe, out of sight, with the garden in place beyond the glass
+        group.visible = true;
+        for (const g of also) g.visible = true;
+        makeProbes(also);
+        group.visible = false;
+        for (const g of also) g.visible = false;
+      }
       renderer.setRenderTarget(wallRT); renderer.clear(); renderer.setRenderTarget(was);   // and the laptop's
     },
     // Re-light the record wall's extension when the studio bake does (sleeves moved).
     bake() { ext.bake(); },
     setVisible(v) { if (group.visible !== v) { group.visible = v; if (v) ext.bake(); } },
-    dispose() { scene.remove(group); ext.dispose(); for (const d of disposables) d.dispose?.(); },
+    dispose() { scene.remove(group); ext.dispose(); for (const d of disposables) d.dispose?.(); for (const p of probes || []) p.dispose(); },
   };
 }
