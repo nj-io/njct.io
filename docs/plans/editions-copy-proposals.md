@@ -870,24 +870,24 @@ Sources: the one-pagers (`v3-current-editions.json`, Neil, November 2026) for Mi
 | Scorecard | Works out how any website gets its traffic (ads, search, links, social mentions) with a source and date on every figure, and compares up to ten sites side by side. | Internal tool, not public. |
 | Stats | One dashboard for every product site: visitors, where they came from, and which post, email or ad led to each sale, with a Telegram summary every morning. | Internal tool; the live board is public at stats.njct.io. |
 
-### Proposed backs
+### Proposed backs (withdrawn)
 
-| # | Product | Figure 1: what it does | Figure 2: cost or access | Figure 3: why believe it |
-|---|---|---|---|---|
-| 70 | Mirra | Every post · from the X accounts you choose, in one brief | Free · to start; Premium $16 a month for 10 accounts | Calls scored · see whose predictions held up after 7, 30 and 90 days |
-| 71 | stet | Every word · pages, emails and SEO, edited without a deploy | Free · open source to self-host; Cloud from $19 a month | In seconds · from edit to live, with a preview first |
-| 72 | esca (Social Hook) | From your commits · it finds what's worth posting | Free · open source; a hosted version for teams is coming | Your voice · drafts for each platform, approved from your phone |
-| 73 | LikeWiki | Your X likes · turned into a wiki every night | Coming soon · a personal plan is planned | Every claim · links to the post it came from, checked by a second model |
-| 74 | Topshine | Every take · of every shot, rendered in one batch | Up to 85% · cheaper than closed video tools | Capped · a price before every job, and you pay only for clips made |
-| 75 | Chairtax | Move to unlock · your screen stays covered until you do your reps | $29.99 once · no subscription, on the Mac App Store | On your Mac · the webcam counts reps; video never leaves it |
-| 76 | Clauded | No prompts · Claude Code works freely inside a sandbox | Free · open source, one-command install | Still connected · clipboard, sound, Chrome and git keep working |
-| 77 | Stellar Explorer | 117,000 stars · fly between them in your browser | Free · nothing to install | Open any star · with sound that follows your journey |
-| 78 | Scorecard | Any website · see where its traffic comes from | Internal · built for this portfolio's research | Sourced · every figure carries its source and date |
-| 79 | Stats | Every sale · traced to the post, email or ad that brought the buyer | One place · every product site on one board | Every morning · a summary in Telegram |
+Withdrawn (Neil, 2026-11-04): too long, and the lines did not read naturally (Chairtax's worst). The backs are to be redone, a few at a time. The what-each-product-is table above stays as the reference.
 
-### For Neil to confirm before these ship
+### Rulings (Neil, 2026-11-04)
+
+- Social Hook keeps its name for now.
+- stet links to https://getstet.xyz (applied; the back reads getstet.xyz).
+- Topshine has not launched: it links to the temporary waitlist, https://topshine-waitlist-staging.neilasjoseph.workers.dev, shown as "Topshine waitlist" (applied; row 80). Open now goes there, and More detail to its page.
+- Mirra's tag changes (new wording to be proposed).
+
+### Asked before the rulings
 
 - **Social Hook or esca?** The one-pager calls it esca; the shelf, cover and site still say Social Hook.
 - **Links:** stet is getstet.xyz in the one-pager (the shelf links getstet.github.io); Topshine is topshine.ai (the shelf has no link: has it launched?); LikeWiki is "coming soon" (the shelf links likewiki.njct.io).
 - **Mirra's tag** still reads "Real-time X→Telegram mirror and digest"; the product is now briefs and call scores, by email and on the web.
 - **Off the site:** Mirra's back shows "~90% gross margin" today; margins, unit maths and the one-pagers' asks stay internal.
+
+| # | Where | Proposed text | Source |
+|---|---|---|---|
+| 80 | Topshine: the link's text (back, Visit button, foot) | Topshine waitlist (the staging address is too long for the back; until launch) | Ruling, 2026-11-04 |

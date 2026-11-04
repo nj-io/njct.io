@@ -21,7 +21,7 @@
     document.currentScript.after(m);
   } else if (window.__editionsGL) {
     // bundle: first-view chunks, written by build/bundle.mjs
-    const first = ["/dist/main.js","/dist/chunk-QESZHFER.js","/dist/chunk-TH7WALPN.js","/dist/chunk-GBXN2TGX.js","/dist/menu.js"];
+    const first = ["/dist/main.js","/dist/chunk-FUDJ63SP.js","/dist/chunk-XNEAHEVZ.js","/dist/chunk-J6LD4VBD.js","/dist/chunk-TH7WALPN.js","/dist/menu.js"];
     // /bundle
     for (const href of first) document.head.append(Object.assign(document.createElement('link'), { rel: 'modulepreload', href }));
   }
@@ -102,7 +102,7 @@
   .pm-icon img { display: block; width: 24px; height: 24px; object-fit: contain; }
   .pm-text { display: flex; flex-direction: column; }
   .pm-name { font-size: 14px; line-height: 16.8px; }
-  .pm-sub { font-size: 12px; line-height: 12px; color: rgb(140 140 140); }
+  .pm-sub { max-width: 36ch; font-size: 12px; line-height: 15px; color: rgb(120 120 120); text-wrap: pretty; }
   /* A phone: the list is a sheet from the bottom of the screen. */
   @media (max-width: 599px) {
     .pm-list {
@@ -152,8 +152,12 @@
 
   /* Details: the title and tagline at left, Open under the sleeve (positions set by main.js). */
   .details { position: fixed; inset: 0; pointer-events: none; outline: none; }
-  .d-title { position: absolute; left: calc(var(--gutter) + 20px); margin: 0; font-size: 24px; line-height: 28px; font-weight: 400; opacity: 0; }
-  .d-tag { position: absolute; left: calc(var(--gutter) + 20px); margin: 0; max-width: 300px; line-height: 18px; opacity: 0; }
+  .d-title { position: absolute; left: calc(var(--gutter) + 20px); margin: 0; font-size: 30px; line-height: 34px; font-weight: 600; letter-spacing: -0.01em; opacity: 0; }
+  /* The side line: what the product is, large enough to read at a glance, about 26 characters to a line
+     and balanced so its lines come out even. */
+  .d-tag { position: absolute; left: calc(var(--gutter) + 20px); margin: 0; max-width: 26ch; font-size: 21px; line-height: 28px; font-weight: 500; letter-spacing: -0.005em; text-wrap: balance; opacity: 0; }
+  /* Over a dark cover in the blurred shelf the ink keeps a soft halo of the wall's light, so it never sinks. */
+  .d-title, .d-tag { text-shadow: 0 0 1px rgb(234 234 232), 0 0 4px rgb(234 234 232), 0 0 8px rgb(234 234 232), 0 0 16px rgb(234 234 232), 0 0 28px rgb(234 234 232 / 0.85); }
   .d-open {
     position: fixed; left: 50%; transform: translateX(-50%); height: 40px; padding: 0 15.25px; border: 0; border-radius: 20px;
     background: #000; color: #ececec; line-height: 40px; cursor: pointer; opacity: 0; text-decoration: none; white-space: nowrap;
@@ -263,7 +267,7 @@
 <canvas id="c" aria-hidden="true"></canvas>
 <header class="masthead">
   <a class="wordmark rise" href="/">njct.io</a>
-  <h1 class="tagline late">Systems I've designed and built.</h1>
+  <h1 class="tagline late">Products I've designed and built.</h1>
   <nav class="pm">
     <button class="pm-btn rise" id="pm-btn" type="button" aria-expanded="false" aria-controls="pm-list">Projects<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></button>
     <ul class="pm-list" id="pm-list" aria-labelledby="pm-btn"></ul>
