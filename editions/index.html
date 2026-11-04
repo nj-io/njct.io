@@ -159,6 +159,11 @@
     background: #000; color: #ececec; line-height: 40px; cursor: pointer; opacity: 0; text-decoration: none; white-space: nowrap;
   }
   .d-open[inert] { pointer-events: none; }
+  /* Details film: muted and looping in the text column, 16:9; a click plays it full screen with sound. */
+  .d-video { position: fixed; padding: 0; border: 0; border-radius: 6px; overflow: hidden; background: #000; cursor: zoom-in; opacity: 0; aspect-ratio: 16 / 9; }
+  .d-video[inert] { pointer-events: none; }
+  .d-video video { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .d-video video:fullscreen { object-fit: contain; }
 
   /* The phone crate: the list stays for screen readers and the keyboard; the bar and rail are its controls. */
   .crate-bar, .crate-rail { display: none; }
@@ -196,7 +201,7 @@
 
   /* Without WebGL: the shelf as cards (editions/fallback.js). */
   .no-gl, .no-gl body { height: auto; overflow: auto; }
-  .no-gl canvas, .no-gl #slots, .no-gl .index, .no-gl .crate-bar, .no-gl .crate-rail, .no-gl .details, .no-gl .d-open, .no-gl .sound { display: none !important; }
+  .no-gl canvas, .no-gl #slots, .no-gl .index, .no-gl .crate-bar, .no-gl .crate-rail, .no-gl .details, .no-gl .d-open, .no-gl .d-video, .no-gl .sound { display: none !important; }
   .no-gl .rise, .no-gl .late { opacity: 1; }
   .no-gl .masthead { position: absolute; }
   .fb { padding: 120px var(--gutter) 64px; }
@@ -246,6 +251,7 @@
   <h2 class="d-title"></h2>
   <p class="d-tag"></p>
 </section>
+<button class="d-video" id="d-video" type="button" aria-label="Play the film full screen" inert hidden><video muted loop playsinline preload="none"></video></button>
 <a class="d-open" id="d-open" data-action="open" inert>Open</a>
 <script type="module">
   // Without WebGL 2 (or if the scene fails to start) the shelf is plain cards.

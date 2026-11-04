@@ -805,3 +805,6 @@ Shows who visited each product site, where they came from and which post, email 
 - **The by-product split** is planned for Mirra's adoption and has no plan document; the only source is the memory note's ruling.
 - **"Their bidding learns from it"** paraphrases the purpose of conversion uploads; the README says only "Tells ad platforms about sales".
 - **Left out as speculative:** links made in Social Hook sharing the same tags (the memory note calls it "an open question for later"), the engine published as a public tool, and the attribution article.
+
+## Details film (proposal, 2026-11-04)
+- Film button label (screen readers): "Play the film full screen"

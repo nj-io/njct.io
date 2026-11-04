@@ -37,6 +37,7 @@
   "tag": "The copy layer for your codebase",
   "blurb": "Every sentence your product says — site copy, emails, SEO fields — managed as typed keys your team edits without a deploy, with a full copy committed in your repo.",
   "url": "https://getstet.github.io/",
+  "video": { "src": "/editions/media/stet-ten-720.mp4", "poster": "/editions/media/stet-ten-poster.jpg" },
   "stack": "TypeScript · Postgres · Cloudflare · Astro · MCP",
   "figs": [
    [

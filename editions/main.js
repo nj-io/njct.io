@@ -268,6 +268,7 @@ const detailsEl = document.getElementById('details');
 const dTitle = detailsEl.querySelector('.d-title');
 const dTag = detailsEl.querySelector('.d-tag');
 const dOpen = document.getElementById('d-open');
+const dVideo = document.getElementById('d-video'), dFilm = dVideo.querySelector('video');
 
 // Opacity fades that start from wherever the element is now.
 function fade(el, to, at, ms) {
@@ -395,7 +396,30 @@ function placeDetails() {
   dTitle.style.top = `${snap(cy - 54.2)}px`;
   dTag.style.top = `${snap(cy - 13.6)}px`;
   dOpen.style.top = `${snap(cy + detSize / 2 + 16)}px`;
+  // The film sits under the tagline where the column beside the sleeve is wide enough, else under Open.
+  const col = W / 2 - detSize / 2 - 2 * 40;
+  const w = col >= 240 ? Math.min(400, col) : Math.min(W - 32, 480);
+  Object.assign(dVideo.style, col >= 240
+    ? { left: 'calc(var(--gutter) + 20px)', top: `${snap(cy + 40)}px`, width: `${w}px`, transform: '' }
+    : { left: '50%', top: `${snap(cy + detSize / 2 + (crateMode ? 12 : 72))}px`, width: `${w}px`, transform: 'translateX(-50%)' });
 }
+dVideo.addEventListener('click', () => {
+  dFilm.muted = false; dFilm.controls = true; dFilm.currentTime = 0; dFilm.play().catch(() => {});
+  (dFilm.requestFullscreen || dFilm.webkitEnterFullscreen)?.call(dFilm);
+});
+document.addEventListener('fullscreenchange', () => {
+  if (document.fullscreenElement !== dFilm) { dFilm.muted = true; dFilm.controls = false; }
+});
+function showFilm(entry, D) {
+  const v = entry.video;
+  dVideo.hidden = !v;
+  if (!v) return;
+  if (dFilm.getAttribute('src') !== v.src) { dFilm.poster = v.poster; dFilm.src = v.src; }
+  dFilm.muted = true; dVideo.inert = false;
+  if (!reduced()) dFilm.play().catch(() => {});
+  fade(dVideo, 1, D.open.at, D.open.dur);
+}
+function hideFilm() { dVideo.inert = true; dFilm.pause(); }
 
 // ---- state ----------------------------------------------------------------------------------------
 let raf = 0, last = 0, bakeDirty = true, bgDirty = true, introStart = null, sleevesStart = null;
@@ -752,6 +776,7 @@ function openDetails(i) {
   fade(tagline, 0, D.headerOut.at, D.headerOut.dur);
   for (const el of [dTitle, dTag]) fade(el, 1, D.title.at, D.title.dur);
   fade(dOpen, 1, D.open.at, D.open.dur);
+  showFilm(s.entry, D);
   detailsEl.focus({ preventScroll: true });   // Tab reaches Open; Space stays the flip
   play('details', { pan: panOf(i) });
   announce(s.entry.tag ? `Details: ${s.entry.name}. ${s.entry.tag}` : `Details: ${s.entry.name}`);
@@ -778,7 +803,8 @@ function closeDetails() {
   const yawTo = TURN * (det.dir > 0 ? Math.ceil(k - 0.5 - 1e-6) : Math.floor(k + 0.5 + 1e-6));
   const lag = Math.abs(yawTo - s.pose.yaw) < 1e-3 ? 0 : dur(DETAILS.flip.dur) * (1 - TURN_OVERLAP);
   det.exit = { t0: now, from: { ...s.pose }, yawTo, lag, blur: det.blur };
-  for (const el of [dTitle, dTag, dOpen]) fade(el, 0, X.at, X.textOut);
+  for (const el of [dTitle, dTag, dOpen, dVideo]) fade(el, 0, X.at, X.textOut);
+  hideFilm();
   fade(tagline, 1, X.headerIn.at, X.headerIn.dur);
   detailsEl.inert = true; dOpen.inert = true;
   play('close', { pan: panOf(det.i) });
@@ -877,7 +903,8 @@ window.addEventListener('hashchange', () => { if (!location.hash) openedFromShel
 // the context is lost. The tagline comes straight back (its intro fade, cancelled by Details, held it).
 function dropDetails(opening = false) {
   const s = sleeves[det.i];
-  for (const el of [dTitle, dTag, dOpen]) for (const a of el.getAnimations()) a.cancel();
+  for (const el of [dTitle, dTag, dOpen, dVideo]) for (const a of el.getAnimations()) a.cancel();
+  hideFilm();
   fade(tagline, 1, 0, 1);
   detailsEl.inert = true; dOpen.inert = true;
   endDetails(s, performance.now(), opening);
