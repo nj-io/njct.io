@@ -100,7 +100,19 @@ const onBand = svg => svg.replace(/<style>[\s\S]*?<\/style>|style="[^"]*"/g, css
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 const host = url => url.replace(/^https?:\/\//, '').replace(/\/$/, '');
-const SECTIONS = [['overview', 'Overview'], ['under-the-hood', 'Under the hood'], ['build-process', 'Build process']];
+// The project's live site, in a new tab (Decision 16): in the hero, under the overview and in the foot.
+// The hero's box says "Visit the site" (a long host would wrap in its narrow column); the others name the host.
+const visitLink = (entry, cls, label = `Visit ${entry.urlText || host(entry.url)}`) =>
+  `<a class="${cls}" href="${esc(entry.url)}" target="_blank" rel="noopener">${esc(label)}<span aria-hidden="true">↗</span><span class="sr"> (opens in a new tab)</span></a>`;
+// The overview's steps: the narration's numbered list, each item's bold lead as the step's name.
+function stepsHTML(archHi) {
+  const items = [...(archHi || '').matchAll(/<li>([\s\S]*?)<\/li>/g)].map(m => m[1]);
+  if (!items.length) return '';
+  return `<h3 class="pj-h3">How it works</h3><ol class="pj-steps">${items.map((s, k) => {
+    const m = s.match(/^\s*<strong>([\s\S]*?)\.?<\/strong>\s*([\s\S]*)$/);
+    return `<li><span class="pj-step-n">${String(k + 1).padStart(2, '0')}</span>${m ? `<h4>${m[1]}</h4><p>${m[2]}</p>` : `<p>${s}</p>`}</li>`;
+  }).join('')}</ol>`;
+}
 
 function pageHTML(entry, data, slugOf, entries) {
   const about = entry.kind === 'about';
@@ -114,17 +126,19 @@ function pageHTML(entry, data, slugOf, entries) {
       `<p class="pj-lead">${esc(a[1])}</p><div class="pj-text"><p>${esc(a[2])}</p><p>${esc(a[3])}</p></div><ul class="pj-list">${list}</ul>`);
   }
   if (!data) return '<p class="pj-fail">This page did not load.</p>';
-  // The figures as the reference's rows of short items: four to a row on desktop, a rule over each row.
-  const glance = data.glance?.length
-    ? `<dl class="pj-items">${data.glance.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>` : '';
   const diagram = data.diagram
     ? `<figure class="pj-figure"><div class="pj-diagram" tabindex="0" role="region" aria-label="${esc(data.loCap || 'Architecture diagram')}">${onBand(data.diagram)}</div>${data.loCap ? `<figcaption>${data.loCap}</figcaption>` : ''}</figure>` : '';
-  // As on the live site: Overview is the lead, the figures and the narration; Under the hood is the
-  // diagram and the spec sheet, with Build process as its second part (never under Overview).
+  // The page opens on the Overview alone: the lead, then the narration's steps as cards (a narration
+  // without steps shows as its text). The figures are the hero's cards. Under the hood (the diagram, the
+  // narration's other paragraphs, the spec sheet) and Build process wait behind the technical detail.
+  const steps = stepsHTML(data.archHi);
+  const narration = steps ? (data.archHi || '').replace(/<ol>[\s\S]*?<\/ol>/g, '').trim() : '';
   return [
-    sec('overview', '01', 'Overview', `<p class="pj-lead">${data.what}</p>${glance}${data.archHi ? `<div class="pj-text">${data.archHi}</div>` : ''}`),
-    sec('under-the-hood', '02', 'Under the hood', `${diagram}<div class="pj-text">${data.arch}</div></div>
-      <div class="pj-part" id="pj-build-process" data-sec="build-process"><h3 class="pj-h3">Build process</h3><div class="pj-text">${data.proc}</div>`),
+    sec('overview', '01', 'Overview', `<p class="pj-lead">${data.what}</p>${steps || (data.archHi ? `<div class="pj-text">${data.archHi}</div>` : '')}
+      ${entry.url ? `<p class="pj-actions">${visitLink(entry, 'pj-visit')}</p>` : ''}`),
+    `<details class="pj-more"><summary><span class="pj-more-open">Read the technical detail</span><span class="pj-more-close">Hide the technical detail</span></summary>
+      ${sec('under-the-hood', '02', 'Under the hood', `${diagram}${narration ? `<div class="pj-text">${narration}</div>` : ''}<div class="pj-text">${data.arch}</div></div>
+      <div class="pj-part" id="pj-build-process" data-sec="build-process"><h3 class="pj-h3">Build process</h3><div class="pj-text">${data.proc}</div>`)}</details>`,
   ].join('');
 }
 
@@ -174,16 +188,24 @@ function signalTitles(root) {
   return () => { io.disconnect(); for (const r of runs) cancelAnimationFrame(r.raf); runs.clear(); };
 }
 
+// The hero's window: the project's cover art (covers/hero/, 512 px, from build/covers/thumbs.mjs) blurred
+// and dimmed as its ground, and over it the project's logo as an app-icon tile, or the cover itself when
+// the project has no logo (Stellar Explorer, Scorecard, About Neil).
+function windowHTML(entry, slug) {
+  const art = new URL(`../covers/hero/${slug}.webp`, import.meta.url).href;
+  const logo = entry.logo?.svg || (entry.logo?.png ? `<img src="${esc(entry.logo.png)}" alt="" decoding="async">` : '');
+  return `<div class="pj-art" style="background-image: url('${art}')"></div>
+    <div class="pj-emblem${logo ? '' : ' pj-emblem-cover'}">${logo || `<img src="${art}" alt="" decoding="async">`}</div>`;
+}
+
 function heroColumn(entry, data, slugOf, entries) {
   if (entry.kind === 'about') {
     const rows = entries.filter(e => e.kind !== 'about').map((e, k) =>
       `<li><button type="button" data-go="#${slugOf(e)}"><span>${esc(e.name)}</span><span>${String(k + 1).padStart(2, '0')}</span></button></li>`).join('');
     return `<nav class="pj-box pj-index" aria-label="Projects"><ol>${rows}</ol></nav>`;
   }
-  const rows = SECTIONS.map(([id, label], k) =>
-    `<li><button type="button" data-sec="${id}"><span>${label}</span><span>${String(k + 1).padStart(2, '0')}</span></button></li>`).join('');
   const figs = (data?.glance || []).map(([k, v]) => `<div class="pj-box pj-fig"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('');
-  return `<nav class="pj-box pj-index" aria-label="Sections"><ol>${rows}</ol></nav>${figs}`;
+  return `${entry.url ? visitLink(entry, 'pj-box pj-visit-box', 'Visit the site') : ''}${figs}`;
 }
 
 // The giant title's size: as long as the panel's title column is tall (desktop) or the screen is wide
@@ -252,15 +274,16 @@ export function createProjectView({ entries, slugOf, onBack }) {
           <div class="pj-titlecol"><h1 class="pj-title" tabindex="-1" aria-label="${esc(entry.name)}"><span aria-hidden="true"></span></h1>${sub ? `<p class="pj-sub">${esc(sub)}</p>` : ''}</div>
           <div class="pj-col">${heroColumn(entry, data, slugOf, entries)}</div>
         </div>
-        <div class="pj-window" aria-hidden="true">${data?.mascot ? `<img class="pj-mascot" src="${esc(data.mascot.src)}" width="${data.mascot.w}" height="${data.mascot.h}" alt="" decoding="async">` : ''}</div>
+        <div class="pj-window" aria-hidden="true">${windowHTML(entry, slugOf(entry))}${data?.mascot ? `<img class="pj-mascot" src="${esc(data.mascot.src)}" width="${data.mascot.w}" height="${data.mascot.h}" alt="" decoding="async">` : ''}</div>
       </section>
       <div class="pj-body">
-        ${entry.kind === 'about' || !data ? '<div></div>' : `<nav class="pj-rail" aria-label="Sections"><ol>${SECTIONS.map(([id, label]) => `<li><button type="button" data-sec="${id}">${label}</button></li>`).join('')}</ol></nav>`}
+        <div></div>
         <div class="pj-main">
           ${pageHTML(entry, data, slugOf, entries).replace('<p class="pj-lead">', `${proposal}<p class="pj-lead">`)}
           <footer class="pj-foot">
             <button type="button" data-back>Back to the shelf</button>
-            ${entry.url ? `<a href="${esc(entry.url)}" rel="noopener">${esc(entry.urlText || host(entry.url))}</a>` : ''}
+            ${entry.url ? visitLink(entry, '') : ''}
+            <a href="${CONTACT}">Get in touch</a>
           </footer>
         </div>
       </div>`;
@@ -298,17 +321,10 @@ export function createProjectView({ entries, slugOf, onBack }) {
       else if (b.dataset.sec) root.querySelector(`#pj-${b.dataset.sec}`)?.scrollIntoView({ behavior: reduced() ? 'auto' : 'smooth' });
       else location.hash = b.dataset.go;
     });
-    const rail = [...root.querySelectorAll('.pj-rail button')];
-    const io = new IntersectionObserver(es => {
-      for (const e of es) if (e.isIntersecting) rail.forEach(b => b.setAttribute('aria-current', String(b.dataset.sec === e.target.dataset.sec)));
-    }, { rootMargin: '-45% 0px -50% 0px' });
-    root.querySelectorAll('.pj-part').forEach(s => io.observe(s));
     const sig = signalTitles(root);
 
-    // The window holds the accent's light (project.css, .pj-noworld): the page has no living culture.
-    root.classList.add('pj-noworld');
     const cut = performance.now();
-    st = { i, root, io, sig, raf: 0, cut, frames: 0, panelDone: !vertical(), titleDone: false, fit };
+    st = { i, root, sig, raf: 0, cut, frames: 0, panelDone: !vertical(), titleDone: false, fit };
     const warmBody = () => root.classList.remove('pj-cold');
     // After the body, each section is laid out in full in a frame of its own (pj-laid), so every heading and
     // its content are in the accessibility tree wherever the page is scrolled (a section that
@@ -355,7 +371,7 @@ export function createProjectView({ entries, slugOf, onBack }) {
     const s = st;
     st = null;
     if (s.raf) cancelAnimationFrame(s.raf);
-    s.off(); s.io.disconnect(); s.sig();
+    s.off(); s.sig();
     s.root.remove();
     document.documentElement.classList.remove('in-project');
     document.documentElement.style.removeProperty('--pj-ground');

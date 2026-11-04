@@ -1,4 +1,4 @@
-/* A project's page: the world (hero) then its dossier. Loaded with the project module, never in the
+/* A project's page: the hero (its art and logo) then its dossier. Loaded with the project module, never in the
    first view. The page scrolls the document; the shelf's fixed layers are hidden while it is open. */
 @font-face {
   font-family: 'NJ Page Mono';
@@ -43,7 +43,7 @@ html.in-project .details, html.in-project #d-open { display: none; }
 .pj :focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 .pj-title:focus { outline: none; }
 
-/* ---- hero: the world, the panel with the giant title ---- */
+/* ---- hero: the window (art and logo), the panel with the giant title ---- */
 .pj-hero { position: sticky; top: var(--pj-head); height: calc(100vh - var(--pj-head)); height: calc(100svh - var(--pj-head)); z-index: 0; overflow: hidden; }
 .pj-hero::before, .pj-hero::after { content: ''; position: absolute; left: 0; right: 0; height: var(--pj-frame); background: var(--acc); z-index: 1; }
 .pj-hero::before { top: 0; }
@@ -73,18 +73,16 @@ html.in-project .details, html.in-project #d-open { display: none; }
 .pj-index button:hover span:first-child { text-decoration: underline; text-underline-offset: 3px; }
 .pj-fig .k { display: block; color: var(--pj-soft); font-size: 11.5px; margin-bottom: 6px; }
 .pj-fig .v { display: block; font-size: 14px; }
+/* The live site, first in the hero's column: the panel's one filled box. */
+.pj-col a.pj-visit-box { display: flex; justify-content: space-between; gap: 12px; background: rgb(var(--fg)); color: rgb(var(--fg-inv));
+  border-color: transparent; text-decoration: none; }
+.pj-col a.pj-visit-box:hover { background: rgb(var(--fg) / 0.86); }
 
 /* ---- the page: the band, full bleed, as the reference's sections ---- */
 .pj-body {
   position: relative; z-index: 3; background: var(--acc); display: grid;
   grid-template-columns: var(--pj-left) minmax(0, var(--pj-span)) minmax(0, 1fr);
 }
-.pj-rail { position: sticky; top: calc(50vh + var(--pj-head) / 2 - 36px); top: calc(50svh + var(--pj-head) / 2 - 36px); align-self: start; padding-left: var(--pj-edge); }
-.pj-rail ol { list-style: none; margin: 0; padding: 0; font: 500 12px/24px var(--mono); }
-.pj-rail button { all: unset; cursor: pointer; display: flex; justify-content: space-between; width: 112px; color: var(--pj-soft); }
-.pj-rail button::after { content: '\25CB'; font-size: 8px; }
-.pj-rail button[aria-current="true"] { color: var(--pj-ink); }
-.pj-rail button[aria-current="true"]::after { content: '\25CF'; }
 .pj-main { min-width: 0; }
 /* The hero's runway, as the reference's: after the hero the first section waits 0.93 of the screen's
    height less 171 px per 900 px of screen above 900 (at least 171) and 112 px (554 px at 900 tall). */
@@ -128,14 +126,30 @@ html.in-project .details, html.in-project #d-open { display: none; }
 .pj-text th, .pj-text td { text-align: left; vertical-align: top; padding: 9px 18px 9px 0; border-bottom: 1px solid var(--pj-rule); }
 .pj-text th { font: 500 12px/16px var(--mono); }
 .pj-main a { color: inherit; text-decoration: underline; text-decoration-thickness: 0.05em; text-underline-offset: 0.08em; }
-/* The figures: the reference's rows of short items, four to a row (each three columns wide), a rule
-   over each row, a small square before each item. */
-.pj-items { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 48px 16px; margin: 0 0 96px; }
-.pj-items > div { position: relative; padding: 48px 0 0 12px; }
-.pj-items > div:nth-child(4n + 1)::before { content: ''; position: absolute; top: 0; left: 0; width: calc(400% + 48px); border-top: 1px solid var(--pj-rule); }
-.pj-items > div::after { content: ''; position: absolute; left: 0; top: 54px; width: 2px; height: 2px; border: 1px solid var(--pj-ink); }
-.pj-items dt { font: 500 12px/16px var(--mono); color: var(--pj-soft); margin: 0 0 4px; }
-.pj-items dd { margin: 0; font-size: 14px; line-height: 18px; letter-spacing: 0.01em; }
+/* How it works: the narration's steps as cards, as many to a row as fit at 240 px. */
+.pj-steps { list-style: none; margin: 0 0 56px; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.pj-steps li { display: flex; flex-direction: column; gap: 12px; padding: 24px 24px 28px; background: var(--pj-card); border: 1px solid var(--pj-rule); }
+.pj-step-n { font: 500 12px/16px var(--mono); color: var(--pj-soft); }
+.pj-steps h4 { margin: 0; font-size: clamp(22px, 14.4px + 0.8vw, 28px); line-height: 1.15; font-weight: 500; letter-spacing: -0.01em; }
+.pj-steps p { margin: 0; font-size: 16px; line-height: 1.5; letter-spacing: 0.01em; color: var(--pj-soft); }
+.pj-steps strong { color: var(--pj-ink); font-weight: 600; }
+/* The live site, under the overview; the technical detail's toggle below it. */
+.pj-actions { margin: 0; }
+.pj-main a.pj-visit, .pj-more > summary {
+  display: inline-flex; align-items: center; gap: 8px; box-sizing: border-box; height: 48px; padding: 0 22px; border-radius: 24px;
+  font-size: 16px; text-decoration: none; cursor: pointer;
+}
+.pj-main a.pj-visit { background: var(--pj-btn); color: var(--pj-btn-ink); }
+.pj-main a.pj-visit:hover { filter: brightness(1.15); }
+.pj-sec:has(#pj-overview) { padding-bottom: 24px; }   /* the toggle follows the overview closely */
+.pj-more { margin: 0 0 clamp(64px, 47.0986px + 4.50704vw, 112px); }
+.pj-more > summary { list-style: none; border: 1px solid var(--pj-line); color: var(--pj-ink); }
+.pj-more > summary::-webkit-details-marker { display: none; }
+.pj-more > summary:hover { background: rgb(var(--fg) / 0.08); }
+.pj-more > summary::after { content: '+'; font-size: 20px; line-height: 1; }
+.pj-more[open] > summary::after { content: '\2212'; }
+.pj-more-close, .pj-more[open] .pj-more-open { display: none; }
+.pj-more[open] .pj-more-close { display: inline; }
 /* The diagram on a card, as the reference's figures: the ink at 8% over the band, a 1 px rule. */
 .pj-figure { margin: 0 0 48px; }
 .pj-diagram { overflow-x: auto; overscroll-behavior-x: contain; background: var(--pj-card); border: 1px solid var(--pj-rule); padding: 24px 24px 16px; box-sizing: border-box; }
@@ -184,18 +198,15 @@ html.in-project .details, html.in-project #d-open { display: none; }
   .pj-col { order: 3; background: var(--acc); padding: 0 16px 16px; }
   .pj-title { position: static; writing-mode: horizontal-tb; transform: none; line-height: 0.9; }
   .pj-sub { position: static; writing-mode: horizontal-tb; transform: none; text-align: right; margin: 8px 0 0; padding-bottom: 14px; white-space: normal; }
-  .pj-window { position: relative; left: auto; top: auto; bottom: auto; height: 62svh; margin: 0; }
+  .pj-window { position: relative; left: auto; top: auto; bottom: auto; height: 52svh; margin: 0; }
   .pj-body { display: block; padding: 0 16px; }
-  .pj-rail { display: none; }
   /* the reference's phone head: 360 px tall, the title halfway down its free space */
   .pj-sh { min-height: 360px; grid-template-rows: 1fr auto 1fr; }
   .pj-sec h2 { font-size: clamp(39px, 13.8889vw - 5.44444px, 64px); }
   .pj-text { font-size: 14px; }
   .pj-main .pj-list a { font-size: 14px; }
-  /* one item to a row, a rule over each, no square (as the reference's phone rows) */
-  .pj-items { grid-template-columns: minmax(0, 1fr); gap: 24px; margin-bottom: 64px; }
-  .pj-items > div { padding: 24px 25px 0; border-top: 1px solid var(--pj-rule); }
-  .pj-items > div::before, .pj-items > div::after { display: none; }
+  .pj-steps { grid-template-columns: minmax(0, 1fr); }
+  .pj-steps p { font-size: 15px; }
   .pj-diagram { padding: 16px; margin: 0 -16px; border-left: 0; border-right: 0; }
   .pj-main .pj-list a { grid-template-columns: 1fr; gap: 2px; }
   .pj-foot { padding: 12px 0 20px; }
@@ -203,11 +214,20 @@ html.in-project .details, html.in-project #d-open { display: none; }
   .pj-foot button::before, .pj-main .pj-foot a::before { content: ''; position: absolute; inset: -10px 0; }   /* 44 px touch areas */
 }
 
-/* No WebGL: the world's window holds the accent's light instead. */
-.pj-noworld .pj-window { background: radial-gradient(120% 90% at 30% 35%, color-mix(in srgb, var(--acc) 60%, #000) 0%, #0b0b0d 72%); }
+/* The window: the cover art blurred and dimmed, the logo (or the cover) centred over it as a tile. */
+.pj-window { overflow: hidden; display: grid; place-items: center; background: #0b0b0d; }
+.pj-art { position: absolute; inset: -12%; background: center / cover no-repeat; filter: blur(56px) saturate(1.35) brightness(0.62); }
+.pj-emblem { position: relative; width: clamp(128px, 15vw, 216px); aspect-ratio: 1; filter: drop-shadow(0 28px 56px rgb(0 0 0 / 0.5));
+  animation: pj-emblem 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) 0.25s backwards; }
+.pj-emblem > img, .pj-emblem > svg { display: block; width: 100%; height: 100%; }
+.pj-emblem > img { border-radius: 22%; }   /* the PNG marks are app icons; the SVG marks draw their own shape */
+.pj-emblem-cover { width: clamp(220px, 30vw, 420px); }
+.pj-emblem-cover > img { border-radius: 2px; }
+@keyframes pj-emblem { from { opacity: 0; transform: translateY(16px) scale(0.96); } }
+@media (prefers-reduced-motion: reduce) { .pj-emblem { animation-duration: 0.12s; animation-delay: 0s; } }
 
-/* A project's mascot (Chairtax: Bearly) stands on the world window's bottom edge at the panel's side,
-   pointing into the world; he steps in once the panel has landed. */
+/* A project's mascot (Chairtax: Bearly) stands on the window's bottom edge at the panel's side,
+   pointing at the logo; he steps in once the panel has landed. */
 .pj-mascot { position: absolute; left: 3%; bottom: 0; height: 44%; width: auto; opacity: 0; transform: translateY(14px);
   transition: opacity 0.45s ease, transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); pointer-events: none; }
 .pj-mascot.in { opacity: 1; transform: none; }

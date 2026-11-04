@@ -69,6 +69,10 @@ Every string here waits for operator approval before it ships. Approved copy alr
 | 63 | Projects menu: one item per sleeve, in shelf order | the project's mark, its name (approved) over its tag (approved), e.g. "Mirra" over "Real-time X→Telegram mirror and digest"; About Neil: "About Neil" over "Hi, I’m Neil." (about[0], approved). Alternative for the second line: the year, as the shelf's index shows it | Ruling 11; the reference's Editions menu (season over edition name) |
 | 64 | Projects menu: accessible names | the list is named by its trigger, "Projects"; the marks are decorative (empty alt) | Ruling 11 |
 | 65 | Accessible name of Open (the shelf pill, the Details button, the crate bar) on a project with a live site, a link that opens it in a new tab (replaces rows 19 and 41 for these projects; Topshine, Scorecard and About Neil keep "Open: <name>") | Open: <project name> site, new tab, e.g. "Open: Mirra site, new tab". Alternative: "Open <host> in a new tab", e.g. "Open mirra.to in a new tab" (row 4 host format) | Operator's request: Open opens the product's live site |
+| 66 | Project page: the live-site links (hero box, under the overview, foot), opening in a new tab | Hero box: "Visit the site ↗"; under the overview and in the foot: "Visit <host> ↗" (row 4 format, e.g. "Visit mirra.to"); accessible name adds "(opens in a new tab)". No link when the project has no url | Page redesign, 2026-11-04 |
+| 67 | Project page: the overview's steps heading | How it works (the steps are the dossier narration's numbered items, approved) | Page redesign, 2026-11-04 |
+| 68 | Project page: the technical detail's toggle | Closed: "Read the technical detail"; open: "Hide the technical detail" | Page redesign, 2026-11-04 |
+| 69 | Project page foot: contact link | Get in touch (row 6) | Page redesign, 2026-11-04 |
 
 ## Row 33: Topshine dossier (proposal)
 

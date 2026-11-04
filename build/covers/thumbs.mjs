@@ -2,7 +2,8 @@
 // (build/covers/thumbs.html) and saved as covers/thumbs/<slug>.webp. The sleeves show them from the
 // first frame until the full covers land. Run again whenever a cover's design or the lineup changes.
 //
-//   node build/covers/thumbs.mjs [--thumb 128] [--q 0.75]
+//   node build/covers/thumbs.mjs [--thumb 128] [--q 0.75] [--out covers/thumbs]
+//   node build/covers/thumbs.mjs --thumb 512 --q 0.8 --out covers/hero    (the project pages' hero art)
 //
 // Serves the repo itself on a free loopback port. Uses Playwright's Chromium when `playwright` resolves
 // (a cloud machine); otherwise puppeteer-core with build/pptr.json's Chrome (the operator's Mac).
@@ -14,9 +15,9 @@ import { createRequire } from 'module';
 import { fileURLToPath } from 'url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const OUT = path.join(ROOT, 'covers/thumbs');
 const args = process.argv.slice(2);
 const arg = (k, d) => { const i = args.indexOf(`--${k}`); return i >= 0 ? args[i + 1] : d; };
+const OUT = path.join(ROOT, arg('out', 'covers/thumbs'));
 const thumb = +arg('thumb', 128), q = +arg('q', 0.75);
 
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.json': 'application/json',
