@@ -93,3 +93,19 @@ export const OPEN = {
   panel: { at: 1453, dur: 1050, ease: [0.8, 0, 0.15, 1] },
   title: { at: 1983, dur: 170 },
 };
+
+// The café (v2): the room around the record wall, its window and the late sun through it. World units as
+// above, so one unit is about 1.77 mm on the wall (a 177-unit sleeve is a 31.4 cm LP). The record wall is
+// the plane z = 0; the street front, with the window, is the plane x = room.front to its right; the floor
+// is at y = room.floor. Round 1 settles these numbers from the operator's sun study.
+export const CAFE = {
+  room: { front: 1200, floor: -620 },
+  // The window in the street front: its opening (z measured out from the record wall, y), the steel frame,
+  // the two glazing bars of the three lower lights, the transom at a share of the height, and the
+  // fanlight above it: a sunburst of rays from the transom's middle, crossed by an arc.
+  window: { z0: 500, z1: 1140, y0: -60, y1: 620, frame: 14, bar: 7, transom: 0.7, transomBar: 10, rays: 7, arc: 0.58 },
+  // The sun, in degrees: azimuth from the street front's normal toward the record wall, and elevation.
+  // power: its light on a wall square to it, in the wall's linear units; leaves: how far beyond the
+  // window's centre the foliage hangs, along the sun.
+  sun: { az: 38, el: 13, power: 1.3, leaves: 500, fadeIn: 1200, ambientHz: 30 },
+};
