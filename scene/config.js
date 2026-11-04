@@ -83,3 +83,20 @@ export const INTRO = {
   late: { at: 1830, tau: 110 },                  // tagline, sound toggle, index fade in last
 };
 
+// The café (v2): the room around the record wall, its window and the late sun through it. World units as
+// above, so one unit is about 1.77 mm on the wall (a 177-unit sleeve is a 31.4 cm LP). The record wall is
+// the plane z = 0; the street front, with the window, is the plane x = room.front to its right; the floor
+// is at y = room.floor. Round 1 settles these numbers from the operator's sun study.
+export const CAFE = {
+  room: { front: 1200, floor: -620 },
+  // The window in the street front: its opening (z measured out from the record wall, y), the steel frame,
+  // two glazing bars running its full height, and the transom at a share of the height: three lights
+  // below it and three above.
+  window: { z0: 500, z1: 1140, y0: -60, y1: 620, frame: 14, bar: 7, transom: 0.7, transomBar: 10 },
+  // The sun, in degrees: azimuth from the street front's normal toward the record wall, and elevation.
+  // power: its light on a wall square to it, in the wall's linear units; leaves: how far beyond the
+  // window's centre the foliage hangs, along the sun.
+  // coverGain: the sun on a cover against its fitted light, by slug; a pale cover takes less, so its title
+  // keeps at least 85% of its contrast in the patch (About Neil's gold on cream).
+  sun: { az: 38, el: 13, power: 1.3, leaves: 500, fadeIn: 1200, ambientHz: 30, coverGain: { default: 0.85, about: 0.34 } },
+};
