@@ -198,10 +198,11 @@ function stepSun(now) {
   if (sunTickDue) { sunTickDue = false; if (sunM.tick(ambientT()) && det) bgDirty = true; }
   return f < 1;
 }
-// The ambient clock asks for the next frame of leaves.
+// The ambient clock asks for the next frame of leaves, and of the covers' motion (covers.js coverMotion) on the same tick.
 function ambient() {
-  if (ambientTimer || !sunOn || crateMode || det || inProject >= 0 || document.hidden || reduced() || SUN_TEST?.t != null) return;
-  ambientTimer = setTimeout(() => { ambientTimer = 0; sunTickDue = true; wake(); }, 1000 / CAFE.sun.ambientHz);
+  const sun = sunOn && !crateMode && !det && !reduced() && SUN_TEST?.t == null, moving = !!coversM?.coverMotion.wantsFrame();
+  if (ambientTimer || inProject >= 0 || document.hidden || (!sun && !moving)) return;
+  ambientTimer = setTimeout(() => { ambientTimer = 0; if (sun) sunTickDue = true; wake(); }, 1000 / CAFE.sun.ambientHz);
 }
 document.addEventListener('visibilitychange', () => { if (!document.hidden) { sunTickDue = true; wake(); } });
 
@@ -243,12 +244,12 @@ function setAlive(i) {
   aliveIdx = i;
   if (i >= 0) covers[i]?.setAlive(true);
 }
-// Ambient cover motion (prototype, covers.js coverMotion): at rest the covers move slowly, each drawn a few times a second
-// and staggered; the frame loop asks it before every draw, and it wakes the loop when a cover is next due (at most 30 times a
-// second: a clock of its own, to share with the sun's ambient clock at merge). It waits for the intro, holds the shelf in
-// Details, and stops on a page, in a hidden tab and under reduced motion. Off unless __editionsTest.coverMotion asks for it.
+// Cover motion (covers.js coverMotion): at rest the covers move, each drawn into a 512² frame of its own, staggered; the
+// cover in focus keeps moving at 1024 while the others ease to a stop. The frame loop asks it before every draw, and it
+// runs on the ambient clock above (shared with the sun). It waits for the intro, holds the shelf in Details, and stops on a
+// page, in a hidden tab and under reduced motion. ?motion=off turns it off (v1 exactly); ?motion=glacial|slow|steady sets the pace.
 coversMod.then(m => {
-  m.coverMotion.attach({ wake, reduced, test: window.__editionsTest?.coverMotion });
+  m.coverMotion.attach({ wake, reduced, test: window.__editionsTest?.coverMotion, show: (i, tex) => setCover(sleeves[i], tex, null), clock: true });
   if (window.__editions) window.__editions.coverMotion = m.coverMotion;
 });
 const stepCovers = now => !window.__editionsTest?.stillCovers && coversM?.coverMotion.step(now,

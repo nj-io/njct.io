@@ -136,6 +136,9 @@ uniform float uMotion, uCycle;
 bool mOn(float k) { return abs(uMotion - k) < 0.5; }
 // uV1: the motion is off, so the cover in focus plays v1's own hover motion, exactly as v1 did
 uniform float uV1;
+// uLod: how many levels smaller than the 1024 front this target is (a 512² motion frame: 1), so blurs read off the type
+// mask's levels keep their width
+uniform float uLod;
 float mRise(float u, float a, float b) { return ease(sat((u - a) / (b - a))); }
 float mBump(float u, float a, float b) { float x = sat((u - a) / (b - a)); return 0.5 - 0.5 * cos(TAU * x); }
 
@@ -337,7 +340,8 @@ const vec3 DOTC = vec3(0.816, 0.480, 0.112);   // the stet mark's dots: the back
 float box(vec2 x, vec4 b, float s) { return smoothstep(b.x - s, b.x, x.x) * smoothstep(b.z + s, b.z, x.x) * smoothstep(b.y - s, b.y, x.y) * smoothstep(b.w + s, b.w, x.y); }
 float nearType(vec2 c, vec2 rb) {
   vec2 o = vec2(rb.x, 0.0);
-  vec4 m = texture2D(uText, c + o.xy, rb.y) + texture2D(uText, c - o.xy, rb.y) + texture2D(uText, c + o.yx, rb.y) + texture2D(uText, c - o.yx, rb.y);
+  float lb = rb.y - uLod;
+  vec4 m = texture2D(uText, c + o.xy, lb) + texture2D(uText, c - o.xy, lb) + texture2D(uText, c + o.yx, lb) + texture2D(uText, c - o.yx, lb);
   return sat(0.25 * (m.r + m.g + m.b));
 }
 vec3 motif(vec2 p, float t) {
@@ -1306,6 +1310,7 @@ const vec3 HALO = vec3(0.056, 0.021, 0.0), POOL = vec3(0.033, 0.010, 0.0);
 // the type mask blurred on its coarse levels, four taps r apart
 vec4 blurText(vec2 c, float r, float bias) {
   vec2 o = vec2(r, 0.0);
+  bias -= uLod;
   return 0.25 * (texture2D(uText, c + o.xy, bias) + texture2D(uText, c - o.xy, bias) + texture2D(uText, c + o.yx, bias) + texture2D(uText, c - o.yx, bias));
 }
 vec3 motif(vec2 p, float t) {
@@ -2319,13 +2324,15 @@ const MOTIONS = {
 // Details (but the sleeve in focus), on a page (main.js draws nothing there), in a hidden tab or under reduced motion; a
 // cover that stops goes back to its still frame. Off (the default), each cover animates only in focus, as v1 did.
 // Prototype: window.__editionsTest.coverMotion = { mirra: 'b', ..., mode, pace, hover } (coverMotion.configure).
-const AMBIENT = { hz: 30, coverHz: { all: 8, relay: 30 }, perFrame: 3, ease: 0.6, start: 700, gap: 1200, fade: 1.2 };
+// size: the target a moving cover at rest is drawn into (the shelf samples at most about that); stop: how fast the others
+// ease to a stop while a cover is selected (time constant, s; about 0.4 s to a hold)
+const AMBIENT = { hz: 30, coverHz: { all: 15, relay: 30 }, perFrame: 6, ease: 0.6, stop: 0.13, start: 700, gap: 1200, fade: 1.2, size: 512 };
 const PACES = { glacial: 0.3, slow: 0.5, steady: 0.75 };          // the clock's rate at rest
 const HOVER = { faster: 2, same: 1, rest: 0 };                     // the clock's rate in focus, as a share of the pace
 // relay order: one lane hops across both shelves; two lanes take one shelf each (sleeves 0-5 on top, 6-10 below)
 const RELAY = { relay: [[0, 8, 3, 10, 5, 7, 1, 9, 4, 6, 2]], relay2: [[0, 3, 5, 1, 4, 2], [8, 10, 7, 9, 6]] };
-const amb = { list: [], cfg: { mode: 'off', pace: 'slow', hover: 'faster', picks: {} }, wake: null, reduced: () => false,
-  running: false, last: -1, began: 0, timer: 0, timerAt: 0, lanes: null, frames: 0, draws: 0 };
+const amb = { list: [], cfg: { mode: 'off', pace: 'slow', hover: 'same', picks: {} }, wake: null, reduced: () => false,
+  running: false, last: -1, began: 0, timer: 0, timerAt: 0, lanes: null, frames: 0, draws: 0, show: null, shared: false, wants: false };
 const coverKey = name => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 // a pick ('a' | 'b' | 'c', an option's key, 'off') as an option number (0: still)
 function optionFor(h) {
@@ -2369,19 +2376,23 @@ function plan(now, crate) {
   }
 }
 
-// The operator's picks (round 2, "a and c together" playing a for now), which ?motion plays.
+// The operator's picks (round 2; Topshine, Chairtax and Scorecard play their a and c together as option a), which the motion plays.
 const PICKS = { mirra: 'c', stet: 'a', 'social-hook': 'a', clauded: 'c', likewiki: 'b', topshine: 'a', 'stellar-explorer': 'a', chairtax: 'a',
   scorecard: 'a', stats: 'b', about: 'c' };
 
 export const coverMotion = {
-  // main.js: its wake() and reduced(), and the test hook's choices. For local testing, ?motion turns the motion on (all at
-  // once, the operator's picks, the hovered cover keeping its pace) at the Slow pace, ?motion=glacial|slow|steady at that
-  // pace; the test hook, when set, wins. Without either the motion stays off, as v1.
-  attach({ wake, reduced, test } = {}) {
+  // main.js: its wake() and reduced(), and the test hook's choices. The motion is on: all the covers at once, the
+  // operator's picks, at the Slow pace (?motion=glacial|slow|steady picks the pace), the cover in focus keeping its own;
+  // ?motion=off turns it off (v1 exactly). The test hook, when set, wins.
+  // show(i, texture): put that texture on sleeve i's front (the 512² motion frame or the 1024 front); clock: main.js runs the
+  // ambient clock (ambient(), shared with the sun) and asks wantsFrame() for the covers, so no timer of their own runs here
+  attach({ wake, reduced, test, show, clock } = {}) {
     amb.wake = wake || null;
+    amb.show = show || null;
+    amb.shared = !!clock;
     if (reduced) amb.reduced = reduced;
-    const url = new URLSearchParams(location.search);
-    if (!test && url.has('motion')) test = { ...PICKS, mode: 'all', hover: 'same', pace: PACES[url.get('motion')] ? url.get('motion') : 'slow' };
+    const sw = new URLSearchParams(location.search).get('motion');
+    if (!test && sw !== 'off') test = { ...PICKS, mode: 'all', hover: 'same', pace: PACES[sw] ? sw : 'slow' };
     document.addEventListener('visibilitychange', () => { if (!document.hidden && amb.running) { amb.last = -1; amb.wake?.(); } });
     if (test) this.configure({ mode: 'all', ...test });
   },
@@ -2418,7 +2429,10 @@ export const coverMotion = {
     amb.frames++;
     const pace = paceOf(), fast = amb.cfg.mode !== 'all' || crate >= 0, hz = AMBIENT.coverHz[fast ? 'relay' : 'all'];
     if (!details) plan(now, crate);
-    const k = 1 - Math.exp(-dt / AMBIENT.ease), due = [];
+    // a cover in focus (hovered, keyboard-focused or in Details, front facing) keeps moving at its pace; the others ease to
+    // a stop and hold the frame they reached, and carry on from it when the focus ends
+    const k = 1 - Math.exp(-dt / AMBIENT.ease), kStop = 1 - Math.exp(-dt / AMBIENT.stop), due = [];
+    const sel = amb.list.some(h => h && h.mo.focus);
     let busy = false, changed = false;
     for (const h of amb.list) {
       if (!h || !h.mo.opt) continue;
@@ -2430,8 +2444,10 @@ export const coverMotion = {
       else if (m.state === 'moving' || (rest && m.state === 'ending')) m.state = !o.cycle || rest ? 'fading' : 'ending';
       if (m.state === 'still') continue;
       if (m.state === 'fading') h.restFrame();
-      const target = m.state === 'fading' ? 0 : m.focus ? pace * HOVER[amb.cfg.hover] : pace;
-      m.rate += (target - m.rate) * k;
+      const held = sel && !m.focus && m.state === 'moving';
+      const target = m.state === 'fading' || held ? 0 : m.focus ? pace * HOVER[amb.cfg.hover] : pace;
+      m.rate += (target - m.rate) * (held ? kStop : k);
+      if (held && m.rate < 0.03 * pace) m.rate = 0;   // stopped (about 0.45 s at 60 frames a second)
       if (m.state === 'fading' && m.rate < 0.01) m.rate = 0;
       const was = m.mix;
       m.mix = m.state === 'fading' ? Math.min(1, m.mix + dt / AMBIENT.fade) : Math.max(0, m.mix - dt / AMBIENT.fade);
@@ -2449,22 +2465,29 @@ export const coverMotion = {
         m.lane = null;
         continue;
       }
-      busy = true;
+      // the phone crate's one moving cover is seen close up: the 1024 front, as v1 drew it
+      const big = m.focus || crate >= 0;
+      if (!big) h.dropBig();
+      if (!(held && m.rate === 0)) busy = true;
       if (!m.dirty) continue;
-      // in focus, or just out of it and still faster than the pace: every frame, at two samples
-      if (m.focus || m.rate > pace * 1.15) { h.drawMotion(h.aliveSamples); m.drawnAt = now; changed = true; amb.draws++; }
+      // in focus: the 1024 front, every frame, at two samples; just out of focus and still faster than the pace: the 512²
+      // frame every frame; else the 512² frame when it is due
+      if (m.focus) { h.drawMotion(h.aliveSamples); m.drawnAt = now; changed = true; amb.draws++; }
+      else if (m.rate > pace * 1.15) { if (big) h.drawMotion(1); else h.drawSmall(1); m.drawnAt = now; changed = true; amb.draws++; }
       else if (now - m.drawnAt >= 1000 / hz - 4) due.push(h);
     }
     // the most overdue first; while a cover is in focus (drawn every frame) at most one other, to keep the frame rate
     due.sort((a, b) => a.mo.drawnAt - b.mo.drawnAt);
     const cap = amb.list.some(h => h && h.mo.focus) ? 1 : AMBIENT.perFrame;
-    for (const h of due.slice(0, cap)) { h.drawMotion(1); h.mo.drawnAt = now; changed = true; amb.draws++; }
+    for (const h of due.slice(0, cap)) { if (crate >= 0) h.drawMotion(1); else h.drawSmall(1); h.mo.drawnAt = now; changed = true; amb.draws++; }
     // the next ambient frame: soon while a cover moves, else when the next one is due to start
     let at = busy ? now : Infinity;
     if (!details && amb.cfg.mode === 'all' && crate < 0) {
       RELAY.relay[0].forEach((i, n) => { const h = amb.list[i]; if (h && h.mo.opt && h.mo.state === 'still') at = Math.min(at, amb.began + n * AMBIENT.start); });
     } else if (!details && amb.lanes) for (const lane of amb.lanes) if (lane.cur < 0) at = Math.min(at, lane.at);
     at = Math.max(now + 1000 / AMBIENT.hz, at);
+    amb.wants = at < Infinity;
+    if (amb.shared) return changed;                     // main.js's ambient clock asks wantsFrame()
     if (amb.timer && at < amb.timerAt - 4) { clearTimeout(amb.timer); amb.timer = 0; }   // due sooner than the wake set
     if (at < Infinity && !amb.timer && !document.hidden) {
       amb.timerAt = at;
@@ -2472,12 +2495,14 @@ export const coverMotion = {
     }
     return changed;
   },
+  // the shared ambient clock: whether the covers want its next tick
+  wantsFrame() { return amb.running && amb.wants && !document.hidden; },
   // probes: the choices, and each cover's option, state and clock
   state() {
     return { ...amb.cfg, picks: { ...amb.cfg.picks }, running: amb.running, frames: amb.frames, draws: amb.draws,
       lanes: amb.lanes && amb.lanes.map(l => ({ cover: amb.list[l.cur]?.name ?? null, next: l.cur < 0 ? Math.round(l.at - amb.last) : null })),
       covers: amb.list.map(h => h && { name: h.name, option: h.mo.opt ? h.opts[h.mo.opt - 1].key : 'off', state: h.mo.state,
-        clock: +h.mo.clock.toFixed(3), rate: +h.mo.rate.toFixed(3), focus: h.mo.focus, mix: +h.mo.mix.toFixed(3) }) };
+        clock: +h.mo.clock.toFixed(3), rate: +h.mo.rate.toFixed(3), focus: h.mo.focus, mix: +h.mo.mix.toFixed(3), shown: h.shownSize() }) };
   },
   options: MOTIONS,
 };
@@ -2542,6 +2567,7 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
     uMotion: { value: 0 },
     uCycle: { value: 1 },
     uV1: { value: 0 },
+    uLod: { value: 0 },
   };
   // a motif's colour keys (stet, Topshine), as a float texture the shader reads with texelFetch: key i at column
   // i % KW in row pair i / KW (row 2k: x, y, sigma; row 2k + 1: r, g, b), KW = min(keys, 2048)
@@ -2597,6 +2623,7 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
     compiled,
     lettersReady,
   ]);
+  const markAmb = await markAt(AMBIENT.size);   // the mark at the motion frames' size
   if (art) {
     const { width: w, height: h } = art.image;
     renderer.initTexture(art);
@@ -2633,11 +2660,13 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
     return { text, over, dispose() { text.dispose(); if (over !== BLANK) over.dispose(); } };
   };
   const frontLayers = (mark = true) => layersAt(size, mark ? markImg : null);
-  const draw = (rt, mode, layers, ss, level = 0, rect = null) => {
+  // mip: the level whose rules the motif follows (a 512² motion frame is drawn as the 1024 front's level 1 would be)
+  const draw = (rt, mode, layers, ss, level = 0, rect = null, mip = level) => {
     const prev = renderer.getRenderTarget();
     const s = rt.width >> level;
     uniforms.uMode.value = mode;
-    uniforms.uMip.value = level;
+    uniforms.uMip.value = mip;
+    uniforms.uLod.value = mip - level;
     uniforms.uRes.value.set(s, s);
     uniforms.uText.value = layers.text;
     uniforms.uOver.value = layers.over || BLANK;
@@ -2747,7 +2776,35 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
     renderFront(alive, ss, o?.rect || null);
     mo.dirty = false;
     mo.pristine = ss >= samples && mo.clock === 0 && mo.mix === 0;
+    show(frontRT.texture);
   };
+  // Frames at rest go to a 512² target of their own, drawn with layers made at that size (the 1024 front, drawn only for the
+  // cover in focus, keeps the still frame otherwise); the sleeve shows whichever was drawn last (amb.show).
+  let ambRT = null, ambLayers = null, ambStill = false, shown = frontRT.texture;
+  const show = tex => { if (tex !== shown) { shown = tex; amb.show?.(index, tex); } };
+  const drawSmall = ss => {
+    const o = optOf(), A = AMBIENT.size;
+    if (!ambRT) { ambRT = target(A); ambRT.texture.name = `${entry.name} motion ${A}`; ambStill = false; }
+    if (!ambLayers) ambLayers = layersAt(A, markAmb);
+    uniforms.uCycle.value = o?.cycle || 1;
+    uniforms.uV1.value = 0;
+    if (!ambStill) {
+      // the part of the cover the motion never changes: the still frame, once
+      uniforms.uMotion.value = 0; uniforms.uTime.value = d.t0; uniforms.uRestMix.value = 0; uniforms.uRest.value = BLANK;
+      draw(ambRT, 0, ambLayers, aliveSamples, 0, null, 1);
+      ambStill = true;
+    }
+    uniforms.uMotion.value = mo.opt;
+    uniforms.uTime.value = d.t0 + mo.clock;
+    uniforms.uRestMix.value = mo.mix > 0 && restRT ? ease(mo.mix) : 0;
+    uniforms.uRest.value = mo.mix > 0 && restRT ? restRT.texture : BLANK;
+    draw(ambRT, 0, ambLayers, ss, 0, o?.rect || null, 1);
+    mo.dirty = false;
+    mo.pristine = false;
+    show(ambRT.texture);
+  };
+  // out of focus: the 1024 front's layers are given up (the next focus makes them again)
+  const dropBig = () => { if (alive && amb.running && !restRT) { alive.dispose(); alive = null; } };
   // the still frame the cover fades back to (a motion that never comes back to it, or the hover choice 'rest')
   const restFrame = () => {
     if (restRT) return;
@@ -2761,6 +2818,7 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
   const settle = () => {
     mo.clock = 0; mo.rate = 0; mo.mix = 0; mo.turn = 0; mo.state = 'still'; mo.dirty = false;
     if (!mo.pristine && !disposed) drawMotion(samples);
+    show(frontRT.texture);
     if (alive) { alive.dispose(); alive = null; }
     if (restRT) { restRT.dispose(); restRT = null; }
     uniforms.uTime.value = d.t0; uniforms.uRestMix.value = 0; uniforms.uRest.value = BLANK;
@@ -2802,7 +2860,7 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
     setAlive(on) {
       if (disposed) return;
       mo.focus = !!on;
-      if (amb.running) return;
+      if (amb.running || amb.cfg.mode !== 'off') return;   // the motion on (reduced motion: nothing moves at all)
       want = on ? 1 : 0;
       if (!on || !mo.opt) return;
       if (aliveCover && aliveCover !== cover) aliveCover._stop();
@@ -2811,7 +2869,7 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
       restFrame();
     },
     update(dt) {
-      if (amb.running || !alive || !restRT) return;
+      if (amb.running || amb.cfg.mode !== 'off' || !alive || !restRT) return;
       dt = Math.min(Math.max(dt, 0), 0.1);
       speed += (want - speed) * (1 - Math.exp(-dt * 2.5));
       restMix = want ? Math.max(0, restMix - dt * 2.5) : Math.min(1, restMix + dt / 1.2);
@@ -2827,11 +2885,13 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
       if (detail) detail.evict();
       if (form) { form.tex.dispose(); if (form.col) form.col.dispose(); }
       if (keysTex) keysTex.dispose();
+      if (ambRT) ambRT.dispose();
+      if (ambLayers) ambLayers.dispose();
     },
     // resident GPU bytes (preview diagnostics): mipmapped RGBA8 targets, half-float form fields
     gpuBytes() {
       const rt = (t, mips) => t ? t.width * t.height * 4 * (mips ? 4 / 3 : 1) : 0;
-      let n = rt(frontRT, true) + rt(backRT, true) + rt(detail?.rt, true) + rt(restRT, false);
+      let n = rt(frontRT, true) + rt(backRT, true) + rt(detail?.rt, true) + rt(restRT, false) + rt(ambRT, true);
       if (form) n += form.tex.image.width ** 2 * 8 + (form.col ? form.col.image.width ** 2 * 4 : 0);
       if (art) n += art.image.width * art.image.height * 4 * 4 / 3;
       return n;
@@ -2853,7 +2913,8 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
     _stop: stop,
   };
   // the scheduler's handle on this cover, playing the option picked for it (covers land after the picks are set)
-  const handle = { cover, mo, opts, name: entry.name, tick, drawMotion, restFrame, settle, samples, aliveSamples, optOf };
+  const handle = { cover, mo, opts, name: entry.name, tick, drawMotion, drawSmall, dropBig, restFrame, settle, samples, aliveSamples, optOf,
+    shownSize: () => (shown === frontRT.texture ? frontRT.width : ambRT ? ambRT.width : 0) };
   if (opts.length) mo.opt = optionFor(handle);
   amb.list[index] = handle;
   return cover;
