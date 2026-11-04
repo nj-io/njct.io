@@ -159,6 +159,10 @@
     background: #000; color: #ececec; line-height: 40px; cursor: pointer; opacity: 0; text-decoration: none; white-space: nowrap;
   }
   .d-open[inert] { pointer-events: none; }
+  /* More detail beside Open, 10 px apart, the pair centred under the sleeve; More detail in white. */
+  .d-open.paired { transform: translateX(5px); }
+  .d-open.d-more { transform: translateX(calc(-100% - 5px)); background: #fff; color: #000; }
+  .d-open.d-more[hidden] { display: none; }
   /* Get in touch (editions/contact.js): the modal grows out of the pill; contact.js animates the panel's box. */
   dialog.ct { position: fixed; inset: 0; width: 100%; height: 100%; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; background: transparent; overflow: hidden; }
   dialog.ct::backdrop { background: transparent; }
@@ -213,6 +217,8 @@
   .crate-bar :is(button, a) { box-sizing: border-box; text-decoration: none; height: 44px; padding: 0 16px; border: 0; border-radius: 22px; cursor: pointer; line-height: 44px; white-space: nowrap; }
   .cb-back, .cb-details { background: rgba(255, 255, 255, 0.7); color: var(--ink); }
   .cb-open { background: #000; color: #fff; }
+  .cb-more { display: none; background: rgba(255, 255, 255, 0.7); color: var(--ink); }
+  .crate.in-details .cb-more:not([hidden]) { display: block; }
   .cb-back { display: none; margin-right: auto; }
   .crate.in-details .cb-back { display: block; }
   .crate.in-details .cb-label, .crate.in-details .cb-details { display: none; }
@@ -278,6 +284,7 @@
   <p class="cb-label" aria-hidden="true"><span class="cb-year"></span><span class="cb-name"></span></p>
   <button class="cb-back" type="button">Back</button>
   <button class="cb-details" type="button" data-action="details">Details</button>
+  <a class="cb-more" data-action="more" hidden>More detail</a>
   <a class="cb-open" data-action="open">Open</a>
 </div>
 <div class="crate-rail late" aria-hidden="true"><span></span></div>
@@ -290,6 +297,7 @@
 <div class="film-shade" id="film-shade"></div>
 <div class="film-frame" id="film-frame"><video muted loop playsinline preload="auto"></video></div>
 <button class="d-close" id="d-close" type="button" aria-label="Close the film" hidden>&#x2715;</button>
+<a class="d-open d-more" id="d-more" data-action="more" inert hidden>More detail</a>
 <a class="d-open" id="d-open" data-action="open" inert>Open</a>
 <script type="module">
   // Without WebGL 2 (or if the scene fails to start) the shelf is plain cards.

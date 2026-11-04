@@ -266,6 +266,13 @@ const slots = sleeves.map(s => {
 });
 // Open is a link: to the product's live site in a new tab, or, for an entry without one (and About
 // Neil), to its page here by its hash route (a plain click runs Open's cut; see the click handler).
+function setMore(a, i) {
+  const e = entries[i];
+  a.dataset.index = String(i);
+  a.href = `#${slugOf(e)}`;
+  a.hidden = !e.url;
+  a.setAttribute('aria-label', `More detail: ${e.name}`);
+}
 function setOpen(a, i) {
   const e = entries[i];
   a.dataset.index = String(i);
@@ -276,7 +283,7 @@ function setOpen(a, i) {
 // The crate's bottom bar (the front sleeve's year and name, Details and Open; Back in Details) and rail.
 const cbBar = document.getElementById('crate-bar');
 const cbYear = cbBar.querySelector('.cb-year'), cbName = cbBar.querySelector('.cb-name');
-const cbDetails = cbBar.querySelector('.cb-details'), cbOpen = cbBar.querySelector('.cb-open');
+const cbDetails = cbBar.querySelector('.cb-details'), cbOpen = cbBar.querySelector('.cb-open'), cbMore = cbBar.querySelector('.cb-more');
 const railThumb = document.querySelector('.crate-rail span');
 const announcer = document.getElementById('announce');
 function announce(text) { announcer.textContent = ''; requestAnimationFrame(() => { announcer.textContent = text; }); }
@@ -292,6 +299,9 @@ const detailsEl = document.getElementById('details');
 const dTitle = detailsEl.querySelector('.d-title');
 const dTag = detailsEl.querySelector('.d-tag');
 const dOpen = document.getElementById('d-open');
+// More detail, beside Open in Details: the project's page here. Shown only where Open goes to a live site
+// (a project without one opens its page from Open already).
+const dMore = document.getElementById('d-more');
 
 // Opacity fades that start from wherever the element is now.
 function fade(el, to, at, ms) {
@@ -418,7 +428,7 @@ function placeDetails() {
   // Title cap top 386.5 and baseline 404, tagline first baseline 436, at 1440x900 (Inter's line boxes).
   dTitle.style.top = `${snap(cy - 54.2)}px`;
   dTag.style.top = `${snap(cy - 13.6)}px`;
-  dOpen.style.top = `${snap(cy + detSize / 2 + 16)}px`;
+  dOpen.style.top = dMore.style.top = `${snap(cy + detSize / 2 + 16)}px`;
 }
 
 // ---- state ----------------------------------------------------------------------------------------
@@ -702,6 +712,7 @@ function syncCrate(force = false) {
   cbDetails.dataset.index = String(c);
   cbDetails.setAttribute('aria-label', `Details: ${e.name}`);
   setOpen(cbOpen, c);
+  setMore(cbMore, c);
 }
 function crateRest() {
   const c = crate.current;
@@ -782,12 +793,14 @@ function openDetails(i) {
   dTitle.textContent = s.entry.name;
   dTag.textContent = s.entry.tag;
   setOpen(dOpen, i);
-  detailsEl.inert = false; dOpen.inert = false; slotsEl.inert = true;
+  setMore(dMore, i);
+  dOpen.classList.toggle('paired', !dMore.hidden);
+  detailsEl.inert = false; dOpen.inert = false; dMore.inert = false; slotsEl.inert = true;
   document.body.classList.add('in-details');
   const D = DETAILS;
   fade(tagline, 0, D.headerOut.at, D.headerOut.dur);
   for (const el of [dTitle, dTag]) fade(el, 1, D.title.at, D.title.dur);
-  fade(dOpen, 1, D.open.at, D.open.dur);
+  for (const el of [dOpen, dMore]) fade(el, 1, D.open.at, D.open.dur);
   film.attach(s);
   detailsEl.focus({ preventScroll: true });   // Tab reaches Open; Space stays the flip
   play('details', { pan: panOf(i) });
@@ -815,10 +828,10 @@ function closeDetails() {
   const yawTo = TURN * (det.dir > 0 ? Math.ceil(k - 0.5 - 1e-6) : Math.floor(k + 0.5 + 1e-6));
   const lag = Math.abs(yawTo - s.pose.yaw) < 1e-3 ? 0 : dur(DETAILS.flip.dur) * (1 - TURN_OVERLAP);
   det.exit = { t0: now, from: { ...s.pose }, yawTo, lag, blur: det.blur };
-  for (const el of [dTitle, dTag, dOpen]) fade(el, 0, X.at, X.textOut);
+  for (const el of [dTitle, dTag, dOpen, dMore]) fade(el, 0, X.at, X.textOut);
   film.unzoom(true);
   fade(tagline, 1, X.headerIn.at, X.headerIn.dur);
-  detailsEl.inert = true; dOpen.inert = true;
+  detailsEl.inert = true; dOpen.inert = true; dMore.inert = true;
   play('close', { pan: panOf(det.i) });
   announce('Back to the shelf');
   wake();
@@ -915,23 +928,23 @@ window.addEventListener('hashchange', () => { if (!location.hash) openedFromShel
 // the context is lost. The tagline comes straight back (its intro fade, cancelled by Details, held it).
 function dropDetails(opening = false) {
   const s = sleeves[det.i];
-  for (const el of [dTitle, dTag, dOpen]) for (const a of el.getAnimations()) a.cancel();
+  for (const el of [dTitle, dTag, dOpen, dMore]) for (const a of el.getAnimations()) a.cancel();
   film.detach();
   fade(tagline, 1, 0, 1);
-  detailsEl.inert = true; dOpen.inert = true;
+  detailsEl.inert = true; dOpen.inert = true; dMore.inert = true;
   endDetails(s, performance.now(), opening);
   s.fall = null;
   lifted = -1;
 }
 
-// Open on a live site is left to the browser (a new tab); Open on a page here runs Open's cut, unless the
-// click asks for a new tab or window of the page's address.
+// Open on a live site is left to the browser (a new tab); Open on a page here, and More detail, open the
+// project's page, unless the click asks for a new tab or window of the page's address.
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-action][data-index]');
   if (!b) return;
   const i = +b.dataset.index;
   if (b.dataset.action === 'details') { openDetails(i); return; }
-  if (entries[i].url || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  if ((b.dataset.action === 'open' && entries[i].url) || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
   e.preventDefault();
   openProject(i);
 });
