@@ -9,7 +9,7 @@
   "url": "https://topshine-waitlist-staging.neilasjoseph.workers.dev",
   "urlText": "Topshine waitlist",
   "stack": "Python · FastAPI · Postgres · rented RTX 5090s",
-  "figs": [["Up to 85%", "cheaper than closed AI video tools"], ["Every take", "of every shot, rendered in one batch"], ["Capped", "a price before every job, and you only pay for clips that get made"]],
+  "figs": [["Up to 90%", "cheaper than closed AI video tools"], ["Every take", "of every shot, rendered in one batch"], ["Capped", "a price before every job, and you only pay for clips that get made"]],
   "accent": {
    "light": "#6c44f0",
    "dark": "#9384fa"
