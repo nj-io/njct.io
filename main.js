@@ -471,9 +471,9 @@ function detailsPose(s) {
 }
 function placeDetails() {
   const cy = detCY;
-  // Title cap top 386.5 and baseline 404, tagline first baseline 436, at 1440x900 (Inter's line boxes).
-  dTitle.style.top = `${snap(cy - 54.2)}px`;
-  dTag.style.top = `${snap(cy - 13.6)}px`;
+  // The title (30 px) sits 64 px above the sleeve's centre and the side line (21 px) starts 18 px above it.
+  dTitle.style.top = `${snap(cy - 64)}px`;
+  dTag.style.top = `${snap(cy - 18)}px`;
   dOpen.style.top = dMore.style.top = `${snap(cy + detSize / 2 + 16)}px`;
 }
 

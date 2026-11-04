@@ -220,7 +220,8 @@ export function createProjectView({ entries, slugOf, onBack }) {
       : `<nav class="pj-rail" aria-label="Chapters"><ol>${CHAPTERS.map(([id, label]) => `<li><button type="button" data-sec="${id}">${label}</button></li>`).join('')}</ol></nav>`;
     root.innerHTML = `
       <header class="pj-head">
-        <a class="pj-mark" href="./" data-back>njct.io</a><span class="pj-name">${esc(entry.name)}</span>
+        <a class="pj-mark" href="./" data-back>njct.io</a>
+        <button class="pj-name" type="button" data-menu aria-haspopup="true" aria-expanded="false" aria-controls="pm-list">${esc(entry.name)}<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></button>
         <span class="pj-sp"></span>
         <button class="pj-back" type="button" data-back>Back</button>
         <a class="pj-cta" href="${CONTACT}">Get in touch</a>
@@ -252,8 +253,10 @@ export function createProjectView({ entries, slugOf, onBack }) {
 
     // A chapter inside the technical detail opens it before the page scrolls there.
     root.addEventListener('click', e => {
-      const b = e.target.closest('[data-back], [data-sec], [data-go]');
+      const b = e.target.closest('[data-back], [data-sec], [data-go], [data-menu]');
       if (!b) return;
+      // The project's name in the header opens the Projects menu under it (menu.js).
+      if (b.matches('[data-menu]')) { dispatchEvent(new CustomEvent('pm:toggle', { detail: b })); return; }
       if (b.matches('[data-back]')) { e.preventDefault(); onBack(); return; }
       if (!b.dataset.sec) { location.hash = b.dataset.go; return; }
       const to = root.querySelector(`#pj-${b.dataset.sec}`), more = to?.closest('details');

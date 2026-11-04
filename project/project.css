@@ -11,8 +11,13 @@
 html.in-project, html.in-project body { height: auto; overflow: visible; }
 html.in-project { overflow-x: clip; }
 html.in-project body { background: var(--pj-ground); }
-html.in-project .masthead, html.in-project #slots, html.in-project .index,
-html.in-project .details, html.in-project #d-open, html.in-project #c { display: none; }
+html.in-project #slots, html.in-project .index,
+html.in-project .details, html.in-project #d-open, html.in-project #d-more, html.in-project #c { display: none; }
+/* Of the shelf's masthead only the Projects menu stays: it opens under the page's project name (menu.js),
+   its panel at the foot of the page's header. */
+html.in-project .masthead { z-index: 6; }
+html.in-project .masthead > :not(.pm), html.in-project .pm-btn { display: none; }
+html.in-project .pm { top: 42px; }   /* the panel 8 px below, at the foot of the 50 px header */
 
 /* The page is one band in the project's colour (project.js colours()): --acc the band, --pj-ink its ink,
    --pj-soft the ink for copy and labels, --pj-card the cards' ground, --pj-btn the buttons' tone. */
@@ -37,7 +42,14 @@ html.in-project .details, html.in-project #d-open, html.in-project #c { display:
   background: var(--acc); color: rgb(var(--fg)); border-bottom: 1px solid rgb(var(--fg) / 0.16);
 }
 .pj-head .pj-mark { color: rgb(var(--fg)); font-weight: 500; text-decoration: none; }
-.pj-head .pj-name { color: rgb(var(--fg) / 0.62); }
+/* The project's name: the Projects menu's trigger on this page. */
+.pj-head .pj-name {
+  display: inline-flex; align-items: center; gap: 4px; height: 34px; padding: 0 8px; margin-left: -2px; border: 0; border-radius: 4px;
+  background: transparent; color: rgb(var(--fg) / 0.62); font: inherit; cursor: pointer;
+}
+.pj-head .pj-name:hover, .pj-head .pj-name[aria-expanded="true"] { background: rgb(var(--fg) / 0.14); color: rgb(var(--fg)); }
+.pj-head .pj-name svg { flex: none; width: 16px; height: 16px; }
+.pj-head .pj-name[aria-expanded="true"] svg { transform: rotate(180deg); }
 .pj-head .pj-sp { flex: 1; }
 .pj-head .pj-back { height: 34px; padding: 0 14px; border: 0; border-radius: 17px; background: transparent; color: rgb(var(--fg)); cursor: pointer; }
 .pj-head .pj-back:hover { background: rgb(var(--fg) / 0.14); }
