@@ -394,10 +394,20 @@ float turned(vec2 p, int L, out float d, out float h) {
 // the concept's folds are drawn crisp: a light line on one side and a dark one on the other (gain at d, gain at d,
 // tile px), fading where the fold does
 const vec4 CREASE[4] = vec4[4](vec4(0.0, 0.0, 0.0, 0.0), vec4(0.0), vec4(0.03, -1.1, -0.22, 0.9), vec4(0.035, -0.8, -0.08, 1.2));
+// each letter's middle and half-size (cover units), from its faces' keys: the s, the first t, the e, the last t
+const vec4 LETTER[4] = vec4[4](vec4(0.188, 0.495, 0.147, 0.207), vec4(0.427, 0.549, 0.051, 0.257), vec4(0.667, 0.496, 0.143, 0.206), vec4(0.911, 0.557, 0.066, 0.267));
 vec3 stetFill(vec2 p, float t, int L) {
-  // motion a: the keys drift round a small circle; the stipple jitters where the blend is read
-  float ta = mOn(1.0) ? t * TAU / uCycle : 0.0;
-  vec2 q = p + 0.010 * vec2(sin(ta), cos(ta) - 1.0) + (h22(FC * 0.731 + 3.0) - 0.5) * 0.016;
+  // motion a, never repeating: each letter's colours turn round inside it, about the letter's middle and stretched to its
+  // shape, each letter on its own clock (the t's the other way round), breathing in and out as they turn; the stipple
+  // jitters where the blend is read
+  vec2 q = p;
+  if (mOn(1.0) && t > 0.0) {
+    vec4 c = LETTER[L];
+    float per = L == 0 ? 22.0 : L == 1 ? -17.0 : L == 2 ? 26.0 : -19.0, k = 1.0 + 0.18 * sin(TAU * t / (11.0 + 2.0 * float(L)));
+    // kept inside the letter's own keys: beyond them the colour field has nothing to blend
+    q = c.xy + clamp(rot(TAU * t / per) * ((p - c.xy) / c.zw) * k, -0.97, 0.97) * c.zw;
+  }
+  q += (h22(FC * 0.731 + 3.0) - 0.5) * 0.016;
   ivec2 F = FACES[L];
   float d = 1e3, h = 0.0;
   float b = F.y < 0 ? 0.0 : turned(p, L, d, h);
@@ -463,10 +473,26 @@ const vec3 K_TRI[6] = vec3[](vec3(0.0071, 0.0850, 0.7454), vec3(0.0040, 0.0086, 
 float sdLeft(vec2 q, vec2 o, float k) { return -((q.x - o.x) * -k + (q.y - o.y)) / sqrt(k * k + 1.0); }
 vec3 motif(vec2 p, float t) {
   vec2 q = vec2(p.x, 1.0 - p.y), w = q - 0.5;   // concept coordinates, y down
-  // motion a: the discs drift a few pixels and the band of light breathes
-  float ta = mOn(1.0) ? t * TAU / uCycle : 0.0, u = t / uCycle;
-  float dr = 0.006 * sin(ta), br = 1.0 + 0.25 * sin(2.0 * ta);
-  vec2 X = vec2(0.47626, 0.77821);
+  float u = t / uCycle;
+  // motion a, never repeating: every shape on its own clock, the periods (clock s) unequal so the whole never comes round
+  // again: the split disc turns round and round and breathes, the other discs travel and grow and shrink against one
+  // another, the crossing wanders and the diagonals swing with it, the band of light breathes
+  vec2 X = vec2(0.47626, 0.77821), c1 = vec2(0.65799, 0.33545), cD = vec2(0.59558, 0.43873), cP = vec2(0.02461, 1.04655);
+  float r1 = 0.35365, rD = 0.16549, rP = 0.51214, br = 1.0;
+  vec2 q4 = q, w4 = w, w1 = w, wP = w;
+  if (mOn(1.0) && t > 0.0) {
+    vec4 s = sin(TAU * t / vec4(9.0, 11.0, 13.0, 14.0)), s2 = sin(TAU * t / vec4(15.0, 17.0, 19.0, 21.0)), s3 = sin(TAU * t / vec4(23.0, 25.0, 27.0, 29.0));
+    br += 0.25 * s.x;
+    X += vec2(0.07 * s2.w, 0.04 * s3.z);
+    r1 *= 1.0 + 0.22 * s.y;  c1 += vec2(0.03 * s2.y, 0.03 * s3.y);
+    rD *= 1.0 + 0.35 * s.z;  cD += vec2(0.06 * s2.z, 0.04 * s2.x);
+    rP *= 1.0 - 0.18 * s.w;  cP += vec2(0.05 * s3.x, -0.04 * s3.w);
+    w1 = w - (c1 - vec2(0.65799, 0.33545)); wP = w - (cP - vec2(0.02461, 1.04655));
+    // the split disc turns about its middle, a full turn every 18 clock s, breathing as it turns
+    vec2 C4 = vec2(0.795, 0.77);
+    q4 = C4 + rot(-TAU * t / 18.0) * (q - C4) / (1.0 + 0.14 * sin(TAU * t / 16.0));
+    w4 = q4 - 0.5;
+  }
   float dL = sdLeft(q, X, -0.98364), dA = sdLeft(q, X, -1.01603);
   float dB = -sdLeft(q, X, 1.05718);   // positive below the triangle's right edge
   float dl = abs(q.y < X.y ? dL : dA);
@@ -484,24 +510,23 @@ vec3 motif(vec2 p, float t) {
   float m = sat((q.y - 0.54851) / 0.19798 + 0.5);
   if (m > 0.0) col = mix(col, POLY(K_M, w) + BAND(K_M, e), m);
   // the pale corner beyond the dark disc at the top right
-  vec2 c1 = vec2(0.65799, 0.33545);
-  if (q.x > c1.x && q.y < c1.y) col = mix(col, POLY(K_TR, w), cover(0.35365 - length(q - c1)));
+  if (q.x > c1.x && q.y < c1.y) col = mix(col, POLY(K_TR, w1), cover(r1 - length(q - c1)));
   // the dark disc under "Hook": the top field's own blue
-  col = mix(col, G, cover(length(q - vec2(0.59558 + dr, 0.43873)) - 0.16549));
+  col = mix(col, G, cover(length(q - cD) - rD));
   // the pale disc from the lower left, under the line of the triangle's right edge
-  float a = cover(length(q - rz - vec2(0.02461 - dr, 1.04655)) - 0.51214) * cover(-dB);
-  if (a > 0.0) { vec2 wz = w - rz; col = mix(col, POLY(K_C3, wz) + BAND(K_C3, e), a); }
+  float a = cover(length(q - rz - cP) - rP) * cover(-dB);
+  if (a > 0.0) { vec2 wz = wP - rz; col = mix(col, POLY(K_C3, wz) + BAND(K_C3, e), a); }
   // beyond the diagonal: the light field above the triangle's right edge
   float right = cover(max(dL, dA));
   float b = right * cover(dB);
   if (b > 0.0) col = mix(col, POLY(K_LF, w) + BAND(K_LF, e), b);
   // the split disc, light on the left of the split (its own circle), deep on the right (half-ellipses)
-  float xs = 0.77971 - dr * 0.8;
-  b = cover(length(q - vec2(0.7876 - dr * 0.8, 0.78558)) - 0.24415) * cover(q.x - xs);
-  if (b > 0.0) col = mix(col, POLY(K_C4L, w) + BAND(K_C4L, e), b);
-  vec2 o4 = q - vec2(0.80816 - dr * 0.8, 0.75084);
-  b = cover(sdEllipse(o4, vec2(o4.x < 0.0 ? 0.26661 : 0.20003, 0.21656))) * cover(xs - q.x);
-  if (b > 0.0) col = mix(col, POLY(K_C4R, w), b);
+  float xs = 0.77971;
+  b = cover(length(q4 - vec2(0.7876, 0.78558)) - 0.24415) * cover(q4.x - xs);
+  if (b > 0.0) col = mix(col, POLY(K_C4L, w4) + BAND(K_C4L, e), b);
+  vec2 o4 = q4 - vec2(0.80816, 0.75084);
+  b = cover(sdEllipse(o4, vec2(o4.x < 0.0 ? 0.26661 : 0.20003, 0.21656))) * cover(xs - q4.x);
+  if (b > 0.0) col = mix(col, POLY(K_C4R, w4), b);
   // the deep triangle below the crossing, over the disc's foot
   b = right * cover(-dB);
   if (b > 0.0) col = mix(col, POLY(K_TRI, w), b);
@@ -621,22 +646,29 @@ vec3 motif(vec2 p, float t) {
   vec2 q = vec2(p.x, 1.0 - p.y);
   // motion a: the discs drift
   float dr = 0.008 * sin((mOn(1.0) ? t : 0.0) * 0.3), u = t / uCycle;
-  // motion b: the discs swell one after another, like pages compiled into the wiki; motion c: all of them beat twice
-  // together, like a like landing
-  float G[7] = float[7](0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-  if (mOn(2.0)) for (int i = 0; i < 7; i++) G[i] = 0.03 * mBump(u, 0.03 + 0.075 * float(i), 0.33 + 0.075 * float(i));
+  // motion b, never repeating: every disc travels on a slow path of its own (each axis two periods, all unequal) and
+  // grows and shrinks as it goes, never in step with the others; motion c: all of them beat twice together, like a like
+  // landing
+  float G[7] = float[7](0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0), S[7] = float[7](1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0);
+  vec2 D[7] = vec2[7](vec2(0.0), vec2(0.0), vec2(0.0), vec2(0.0), vec2(0.0), vec2(0.0), vec2(0.0));
+  if (mOn(2.0) && t > 0.0) for (int i = 0; i < 7; i++) {
+    float f = float(i), sg = i % 2 == 0 ? 1.0 : -1.0;
+    D[i] = vec2(0.07 * sin(TAU * t / (17.0 + 3.1 * f)) + 0.03 * sg * sin(TAU * t / (7.3 + 1.7 * f)),
+                0.05 * sg * sin(TAU * t / (13.0 + 2.3 * f)) + 0.025 * sin(TAU * t / (9.1 + 1.3 * f)));
+    S[i] = 1.0 + 0.3 * sg * sin(TAU * t / (11.0 + 2.9 * f));
+  }
   if (mOn(3.0)) { float h = 0.016 * (mBump(u, 0.03, 0.11) + 0.65 * mBump(u, 0.13, 0.21)); for (int i = 0; i < 7; i++) G[i] = h; }
   float top = cover(q.y - FOLD), bot = 1.0 - top;
   vec3 col = vec3(0.0);
   col = field(col, q, vec3(0.8879, 0.8796, 0.7991), vec3(0.8228, 0.7913, 0.7157), vec2(1, -0.01), top);   // #F2F1E7 .. #EAE6DC
   col = field(col, q, vec3(0.0116, 0.0423, 0.0319), vec3(0.0103, 0.0395, 0.0284), vec2(1, -0.002), bot);   // #1C3A32 .. #1A382F
-  col = disc(col, q, vec2(0.2263 + dr, -0.0418), vec2(0.2715, 0.2715) + G[0], vec3(0.2542, 0.3968, 0.3419), vec3(0.2502, 0.4508, 0.314), vec2(0.0028, 1), top);   // #8AA99E .. #89B398
-  col = disc(col, q, vec2(1.0273, 0.5805), vec2(0.1596, 0.1596) + G[1], vec3(0.0595, 0.1845, 0.1119), vec3(0.1329, 0.2789, 0.1912), vec2(0.0028, 1), top);   // #45775E .. #669079
-  col = disc(col, q, vec2(0.2766, 0.5296), vec2(0.0695, 0.0695) + G[2], vec3(0.2664, 0.4621, 0.3419), vec3(0.159, 0.3231, 0.2346), vec2(0.0008, 1), top);   // #8DB59E .. #6F9A85
-  col = disc(col, q, vec2(-0.1446, 0.5953), vec2(0.2337, 0.2337) + G[3], vec3(0.0319, 0.0865, 0.0648), vec3(0.0232, 0.0666, 0.0423), vec2(1, 0.004), bot);   // #325348 .. #2A493A
-  col = disc(col, q, vec2(0.5118, 0.3866 + dr), vec2(0.17, 0.17) + G[4], vec3(0.3419, 0.521, 0.4072), vec3(0.1022, 0.2462, 0.162), vec2(1, 0.001), bot);   // #9EBFAB .. #5A8870
-  col = disc(col, q, vec2(0.7234 - dr, 0.4285), vec2(0.1966, 0.1966) + G[5], vec3(0.1779, 0.402, 0.2664), vec3(0.0437, 0.1529, 0.0976), vec2(1, -0.003), bot);   // #75AA8D .. #3B6D58
-  col = disc(col, q, vec2(0.5783 - dr, 1.1004), vec2(0.3118, 0.2655) + G[6], vec3(0.3813, 0.6795, 0.4969), vec3(0.0, 0.1274, 0.0666), vec2(0.9999, -0.015), bot);   // #A6D7BB .. #006449
+  col = disc(col, q, vec2(0.2263 + dr, -0.0418) + D[0], (vec2(0.2715, 0.2715) + G[0]) * S[0], vec3(0.2542, 0.3968, 0.3419), vec3(0.2502, 0.4508, 0.314), vec2(0.0028, 1), top);   // #8AA99E .. #89B398
+  col = disc(col, q, vec2(1.0273, 0.5805) + D[1], (vec2(0.1596, 0.1596) + G[1]) * S[1], vec3(0.0595, 0.1845, 0.1119), vec3(0.1329, 0.2789, 0.1912), vec2(0.0028, 1), top);   // #45775E .. #669079
+  col = disc(col, q, vec2(0.2766, 0.5296) + D[2], (vec2(0.0695, 0.0695) + G[2]) * S[2], vec3(0.2664, 0.4621, 0.3419), vec3(0.159, 0.3231, 0.2346), vec2(0.0008, 1), top);   // #8DB59E .. #6F9A85
+  col = disc(col, q, vec2(-0.1446, 0.5953) + D[3], (vec2(0.2337, 0.2337) + G[3]) * S[3], vec3(0.0319, 0.0865, 0.0648), vec3(0.0232, 0.0666, 0.0423), vec2(1, 0.004), bot);   // #325348 .. #2A493A
+  col = disc(col, q, vec2(0.5118, 0.3866 + dr) + D[4], (vec2(0.17, 0.17) + G[4]) * S[4], vec3(0.3419, 0.521, 0.4072), vec3(0.1022, 0.2462, 0.162), vec2(1, 0.001), bot);   // #9EBFAB .. #5A8870
+  col = disc(col, q, vec2(0.7234 - dr, 0.4285) + D[5], (vec2(0.1966, 0.1966) + G[5]) * S[5], vec3(0.1779, 0.402, 0.2664), vec3(0.0437, 0.1529, 0.0976), vec2(1, -0.003), bot);   // #75AA8D .. #3B6D58
+  col = disc(col, q, vec2(0.5783 - dr, 1.1004) + D[6], (vec2(0.3118, 0.2655) + G[6]) * S[6], vec3(0.3813, 0.6795, 0.4969), vec3(0.0, 0.1274, 0.0666), vec2(0.9999, -0.015), bot);   // #A6D7BB .. #006449
   return col;
 }`;
 
@@ -2180,12 +2212,12 @@ const MOTIONS = {
     { key: 'ripple', cycle: 12, move: 0.86, rect: [0, 0, 1, 0.26] },
   ],
   stet: [
-    { key: 'drift', cycle: 17, move: 1, rect: [0, 0.24, 1, 0.87] },
+    { key: 'drift', cycle: 0, move: 1, turn: 24, rect: [0, 0.24, 1, 0.87] },
     { key: 'proof', cycle: 9, move: 0.64, rect: [0, 0.24, 1, 0.87] },
     { key: 'mark', cycle: 10, move: 0.84, rect: [0.102, 0.15, 0.898, 0.22] },
   ],
   'Social Hook': [
-    { key: 'drift', cycle: 24, move: 1, rect: [0, 0, 1, 0.76] },
+    { key: 'travel', cycle: 0, move: 1, turn: 24, rect: null },
     { key: 'rise', cycle: 12, move: 0.94, rect: [0, 0, 0.56, 0.56] },
     { key: 'signal', cycle: 8, move: 0.7, rect: [0, 0, 1, 0.76] },
   ],
@@ -2196,7 +2228,7 @@ const MOTIONS = {
   ],
   LikeWiki: [
     { key: 'drift', cycle: TAU_S / 0.3, move: 1, rect: null },
-    { key: 'compile', cycle: 14, move: 0.78, rect: null },
+    { key: 'compile', cycle: 0, move: 1, turn: 24, rect: null },
     { key: 'heartbeat', cycle: 7, move: 0.21, turn: 14, rect: null },
   ],
   Topshine: [
