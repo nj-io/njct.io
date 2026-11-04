@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { SLEEVE } from './config.js';
 
 const ASPECT = 16 / 9;
+const HOLD = 500;   // ms the film holds on its first frame once the sleeve has turned, before it plays
 
 export function createFilm({ camera, layer, wake, dur, els }) {
   const { frame, video, play, close, shade } = els;
@@ -17,7 +18,10 @@ export function createFilm({ camera, layer, wake, dur, els }) {
   plane.layers.set(layer);
   plane.visible = false;
   const L = SLEEVE.size, v3 = new THREE.Vector3();
-  let on = false, zoomed = false, rect = null;
+  let on = false, zoomed = false, rect = null, started = false, holdTimer = 0;
+  // A paused film draws no new frames by itself: the band takes its first frame once it has loaded.
+  for (const ev of ['loadeddata', 'seeked']) video.addEventListener(ev, () => { tex.needsUpdate = true; wake(); });
+  const start = () => { clearTimeout(holdTimer); if (on && !started) { started = true; video.play().then(wake, () => {}); } };
 
   const project = (x, y) => {
     v3.set(x, y, 0); plane.localToWorld(v3); v3.project(camera);
@@ -42,7 +46,7 @@ export function createFilm({ camera, layer, wake, dur, els }) {
     zoomed = true;
     play.hidden = true;
     frame.classList.add('on'); shade.classList.add('on'); close.hidden = false;
-    video.muted = false; video.play().catch(() => {});
+    video.muted = false; start();
     move(rect, target(), 560).then(() => { if (zoomed) { video.controls = true; close.focus({ preventScroll: true }); } });
   }
   function unzoom(instant = false) {
@@ -73,14 +77,14 @@ export function createFilm({ camera, layer, wake, dur, els }) {
       tex.repeat.set(1, k); tex.offset.set(0, (1 - k) / 2);
       s.mesh.add(plane);
       if (video.getAttribute('src') !== f.src) { video.poster = f.poster; video.src = f.src; }
-      video.muted = true; video.currentTime = 0; video.play().catch(() => {});
-      on = true;
+      video.muted = true; video.pause(); video.currentTime = 0;
+      on = true; started = false;
       return true;
     },
     detach() {
       if (!on) return;
       unzoom(true);
-      on = false; rect = null;
+      on = false; rect = null; clearTimeout(holdTimer);
       video.pause();
       plane.removeFromParent(); plane.visible = false; mat.opacity = 0;
       play.hidden = true;
@@ -97,6 +101,7 @@ export function createFilm({ camera, layer, wake, dur, els }) {
         play.style.left = `${c.x}px`; play.style.top = `${c.y}px`;
         if (!frame.classList.contains('on')) Object.assign(frame.style, px(rect));
       }
+      if (resting && !started && !holdTimer) holdTimer = setTimeout(() => { holdTimer = 0; start(); }, HOLD);
       if (!zoomed) play.hidden = !resting;
       if (plane.visible && !video.paused) wake();
       return plane.visible;
