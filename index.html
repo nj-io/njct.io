@@ -144,7 +144,8 @@
 
   .index { position: fixed; left: var(--gutter); right: var(--gutter); bottom: 0; height: 90px; box-sizing: border-box; border-top: 1px solid rgba(0, 0, 0, 0.1); pointer-events: none; }
   .index ol { position: absolute; left: 0; right: 0; bottom: 26.5px; margin: 0; padding: 0; list-style: none; display: flex; justify-content: center; gap: 44px; }
-  .index li { font-size: 11px; line-height: 14px; white-space: nowrap; }
+  .index li { font-size: 11px; line-height: 14px; white-space: nowrap; pointer-events: auto; cursor: pointer; }
+  .index li:hover .n { text-decoration: underline; text-underline-offset: 3px; }
   .index .y { display: block; color: var(--ink-soft); min-height: 14px; }
   .index .n { display: block; margin-top: 1.5px; color: var(--ink); }
   /* Narrower screens: the index spreads across the width and long names end in an ellipsis; short

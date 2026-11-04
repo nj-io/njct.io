@@ -364,13 +364,32 @@ const cbDetails = cbBar.querySelector('.cb-details'), cbOpen = cbBar.querySelect
 const railThumb = document.querySelector('.crate-rail span');
 const announcer = document.getElementById('announce');
 function announce(text) { announcer.textContent = ''; requestAnimationFrame(() => { announcer.textContent = text; }); }
-document.getElementById('index').append(...entries.map(e => {
+// The index at the shelf's foot, one line per cover in shelf order. A line's click opens that cover's
+// Details, the same open as a click on the sleeve itself; while Details is open, a click on another line
+// puts the open cover back and then opens the new one (queuedOpen carries it through the exit). Screen
+// readers and the keyboard reach the same covers through the slots list, so the rail keeps its
+// aria-hidden and the lines stay out of the tab order.
+const indexEl = document.getElementById('index');
+const indexLines = entries.map(e => {
   const li = document.createElement('li');
   const y = document.createElement('span'); y.className = 'y'; y.textContent = e.year || '';
   const n = document.createElement('span'); n.className = 'n'; n.textContent = e.name;
   li.append(y, n);
   return li;
-}));
+});
+indexEl.append(...indexLines);
+indexEl.addEventListener('click', e => {
+  const li = e.target.closest?.('li');
+  const i = li ? indexLines.indexOf(li) : -1;
+  if (i < 0 || inProject >= 0 || crateMode) return;
+  if (det) {
+    if (det.exit) return;
+    if (det.i === i) closeDetails();
+    else { queuedOpen = i; closeDetails(); }
+    return;
+  }
+  openDetails(i);
+});
 const tagline = document.querySelector('.tagline');
 const detailsEl = document.getElementById('details');
 const dTitle = detailsEl.querySelector('.d-title');
@@ -512,7 +531,7 @@ function placeDetails() {
 
 // ---- state ----------------------------------------------------------------------------------------
 let raf = 0, last = 0, bakeDirty = true, bgDirty = true, introStart = null, sleevesStart = null;
-let hovered = -1, lifted = -1, hoverAt = 0, det = null, lastSigma = -1, crateBusy = false;
+let hovered = -1, lifted = -1, hoverAt = 0, det = null, lastSigma = -1, crateBusy = false, queuedOpen = -1;
 const settled = sleeves.map(() => false);  // intro finished for this sleeve
 const pointer = { x: -1, y: -1 };
 const firstFrame = {};
@@ -932,6 +951,7 @@ function closeDetails() {
 // opening: a page is opening over the shelf, so focus stays off the shelf and nothing lifts (or sounds).
 function endDetails(s, now, opening = false) {
   const { i } = det, ret = opening ? null : det.ret;
+  if (opening) queuedOpen = -1;   // a page is opening over the shelf; a queued index click is moot
   det = null;
   releaseBack(s);
   s.pose = crateMode ? crate.pose(s) : hoverPose();
@@ -956,6 +976,8 @@ function endDetails(s, now, opening = false) {
   if (lifted !== i) s.fall = { from: hoverPose(), t0: now };
   placeSlot(s);
   syncHot();
+  // A line in the foot index asked for another cover while this one was open: open it now the exit is done.
+  if (queuedOpen >= 0) { const q = queuedOpen; queuedOpen = -1; openDetails(q); }
 }
 
 // ---- Open: a project's page, by hash route (#mirra, #social-hook, #about) -------------------------
