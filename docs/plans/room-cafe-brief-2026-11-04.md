@@ -36,6 +36,9 @@ The record wall becomes one wall of a café in Bangkok where Neil works. Two mor
   - It comes through a window on the right wall, at golden hour.
   - Its shape is the window frame with leaf shadows moving inside it ("frame and leaves").
   - It falls across the record wall from the upper right, the side v1's key light already comes from, so the sleeves' shading stays consistent.
+- **The garden outside the window** (operator, 4 November 2026):
+  - A garden, highly detailed, seen only in part through the glass, with a gap in its canopy where the sun comes through, so the patch keeps its bright core.
+  - Its plants and trees are real shapes in the scene that move with the wind, and they cast the record wall's leaf shadows: the shadows on the wall, the sleeves and the covers are those plants, met along the sun, moving with them. Some licence in placing them is fine.
 - **Covers outside the patch** may warm slightly with the sun's bounce light: a mean ΔE of at most 2 from v1, measured with `build/compare/deltae.py` (operator ruling, 4 November 2026). Inside the patch they take the sun fully.
 - **Table:**
   - **A MacBook Pro.** Its screen is a live render of the record wall, with a terminal window on top typing curated lines from this repo; the lid's logo faces away from the camera.
@@ -152,7 +155,15 @@ Each round is build, capture, measure, critique and fix, as in v1. Units: one sc
   - It glows when backlit, with a milk swirl and ice.
   - Condensation forms only below the liquid line and glints in the sun; a drop runs down about every 30 s.
   - The glass throws an orange caustic on the table.
-- **The window:** the same leaf cards seen through it, translucent against an overexposed street. The lettering is dark from inside, gold at its edges.
+- **The garden** (the operator's decision above; it may move earlier, as a round of its own, since it changes the shadows on Editions):
+  - **What's there:** a frangipani or tamarind whose canopy hangs over the upper window, banana and monstera low on the left, climbers on the neighbour's wall, a planted bed and pots, and the soi's hazy far side beyond. A gap in the canopy along the sun's path.
+  - **Built in code:** trunks and branches as tapered tubes, leaves as instanced cards from the leaf atlas (holes, torn tips, veins), no image files.
+  - **Wind:** sway in the vertex shader (trunks bend, branches swing, leaves flutter only in gusts, gusts arriving from the window side), on the sun's ambient clock, so a test can hold it still.
+  - **The shadows come from it.** Round 1's sun-space leaf mask is rendered from these plants along the sun (an orthographic view, the leaves alpha-tested into one channel) on the ambient clock, then blurred by the sun's disc at three distances as now. Round 1's drawn shapes retire. Every dapple on the wall is then a gap in a canopy you can see through the window.
+  - **Seen from inside:** the leaves lit from behind, yellow-green; trunks and branches dark; the far side soft with haze.
+  - **Checks:** Editions with the sun off stays v1 exactly; the garden is outside every Editions frame; the patch's legibility and ΔE checks rerun; the mask render's cost is measured on the Mac Mini.
+  - **feat/sun** keeps round 1's mask for `main` until the café merges, unless the operator wants the garden's shadows on the live site sooner.
+- **The window:** the garden seen through it, translucent leaves against an overexposed street. The lettering is dark from inside, gold at its edges.
 - **Plants** in code: holes, torn tips, and translucency masked by their veins.
 
 ### 6. Life and sound
