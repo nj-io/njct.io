@@ -23,7 +23,7 @@ const portArg = process.argv.indexOf('--port');
 const PORT = portArg >= 0 ? process.argv[portArg + 1] : '8750';
 const SITES = {
   theirs: { url: 'https://www.shopify.com/editions', openUrl: 'https://www.shopify.com/editions/fall2026' },
-  ours: { url: `http://127.0.0.1:${PORT}/editions/`, openUrl: `http://127.0.0.1:${PORT}/editions/#mirra` },
+  ours: { url: `http://127.0.0.1:${PORT}/`, openUrl: `http://127.0.0.1:${PORT}/#mirra` },
 };
 const PHONE_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1';
 const THEIR_CENTRES = { 0: { x: 275, y: 290 }, 2: { x: 720, y: 290 } };

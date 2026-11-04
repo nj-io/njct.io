@@ -32,7 +32,7 @@ try {
       await pg.bringToFront();
       await pg.emulate({ viewport: { width: w, height: h, deviceScaleFactor: 1, isMobile: mobile, hasTouch: mobile }, userAgent: mobile ? PHONE_UA : await browser.userAgent() });
       await pg.evaluateOnNewDocument(b => { window.__editionsTest = { noSleeves: true, noShelves: b }; }, bare);
-      await pg.goto('http://127.0.0.1:8750/editions/', { waitUntil: 'domcontentloaded' });
+      await pg.goto('http://127.0.0.1:8750/', { waitUntil: 'domcontentloaded' });
       await pg.waitForFunction(() => window.__editions?.firstFrameAt != null, { timeout: 60000 });
       await sleep(2500);
       await pg.addStyleTag({ content: '.masthead, .index, .crate-bar, .crate-rail, #slots { visibility: hidden !important; }' });

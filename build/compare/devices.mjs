@@ -17,7 +17,7 @@ const ROOT = path.resolve(HERE, '../..');
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const SITES = {
   theirs: { url: 'https://www.shopify.com/editions' },
-  ours: { url: 'http://127.0.0.1:8750/editions/' },
+  ours: { url: 'http://127.0.0.1:8750/' },
 };
 const PHONE_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1';
 const TABLET_UA = 'Mozilla/5.0 (iPad; CPU OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1';
