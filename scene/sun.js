@@ -16,7 +16,7 @@ import { CAFE, SHELF, SLEEVE, slugOf } from './config.js';
 import { SHELF_VERT, SHELF_FRAG } from './shelves.js';
 
 const DEG = Math.PI / 180;
-const LEAF_R = [7, 12, 18];          // blur radius of each leaf mask level, in wall units
+const LEAF_R = [5, 11, 18];          // blur radius of each leaf mask level, in wall units
 const MASK_RES = 512;
 const SHELF_GAIN = 1.1;
 const RELIEF = 6.0;                   // the plaster's slope, as the sun sees it
@@ -324,12 +324,29 @@ void main() {
   gl_FragColor = vec4(vec3(acc / 48.0), 1.0);
 }`;
 
+// Half the mask: a box over the source's texels around each of this level's, so every blur below reads a
+// source as fine as itself (fine leaves would otherwise alias into grain under its wide discs).
+const HALF_FRAG = /* glsl */`
+precision highp float;
+varying vec2 vUv;
+uniform sampler2D uSrc;
+uniform vec2 uTexel;    // the source's texel
+void main() {
+  float a = texture2D(uSrc, vUv + vec2(-0.5, -0.5) * uTexel).r + texture2D(uSrc, vUv + vec2(0.5, -0.5) * uTexel).r
+          + texture2D(uSrc, vUv + vec2(-0.5, 0.5) * uTexel).r + texture2D(uSrc, vUv + vec2(0.5, 0.5) * uTexel).r;
+  gl_FragColor = vec4(vec3(a * 0.25), 1.0);
+}`;
+
 // leaves: a source that draws the mask itself from shapes in the scene (the café's garden), else the
-// drawn foliage below.
+// drawn foliage below. The mask is drawn at twice the finest level's size and halved down to each level
+// before that level's blur.
 function createLeafMask(renderer, leaves = null) {
   const opts = { type: THREE.UnsignedByteType, format: THREE.RGBAFormat, depthBuffer: false, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, generateMipmaps: false };
-  const base = new THREE.WebGLRenderTarget(MASK_RES, MASK_RES, opts);
-  const levels = [MASK_RES, MASK_RES / 2, MASK_RES / 4].map(n => new THREE.WebGLRenderTarget(n, n, opts));
+  const sizes = [MASK_RES, MASK_RES / 2, MASK_RES / 4];
+  const base = new THREE.WebGLRenderTarget(MASK_RES * 2, MASK_RES * 2, opts);
+  const halves = sizes.map(n => new THREE.WebGLRenderTarget(n, n, opts));
+  const levels = sizes.map(n => new THREE.WebGLRenderTarget(n, n, opts));
+  const halfMat = new THREE.ShaderMaterial({ uniforms: { uSrc: { value: null }, uTexel: { value: new THREE.Vector2() } }, vertexShader: FS_VERT, fragmentShader: HALF_FRAG, depthTest: false, depthWrite: false });
   const tri = new THREE.BufferGeometry();
   tri.setAttribute('position', new THREE.Float32BufferAttribute([-1, -1, 0, 3, -1, 0, -1, 3, 0], 3));
   const leafMat = new THREE.ShaderMaterial({ uniforms: { uT: { value: 0 }, uExt: { value: new THREE.Vector2(1, 1) }, uH: { value: 1 } },
@@ -352,16 +369,25 @@ function createLeafMask(renderer, leaves = null) {
         renderer.setRenderTarget(base);
         renderer.render(sc, cam);
       }
-      const unitsPerTexel = 2 * leafMat.uniforms.uH.value / MASK_RES;
+      mesh.material = halfMat;
+      let src = base, res = MASK_RES * 2;
+      for (const hv of halves) {
+        halfMat.uniforms.uSrc.value = src.texture; halfMat.uniforms.uTexel.value.set(1 / res, 1 / res);
+        renderer.setRenderTarget(hv); renderer.render(sc, cam);
+        src = hv; res /= 2;
+      }
       mesh.material = blurMat;
       levels.forEach((l, k) => {
+        const n = sizes[k], unitsPerTexel = 2 * leafMat.uniforms.uH.value / n;
+        blurMat.uniforms.uSrc.value = halves[k].texture;
+        blurMat.uniforms.uTexel.value.set(1 / n, 1 / n);
         blurMat.uniforms.uR.value = LEAF_R[k] / unitsPerTexel;
         renderer.setRenderTarget(l);
         renderer.render(sc, cam);
       });
       renderer.setRenderTarget(prev);
     },
-    dispose() { base.dispose(); levels.forEach(l => l.dispose()); leafMat.dispose(); blurMat.dispose(); tri.dispose(); },
+    dispose() { base.dispose(); halves.forEach(l => l.dispose()); levels.forEach(l => l.dispose()); leafMat.dispose(); blurMat.dispose(); halfMat.dispose(); tri.dispose(); },
   };
 }
 

@@ -22,13 +22,13 @@ function mulberry32(a) {
 const WIND_GLSL = /* glsl */`
 uniform float uT;
 attribute vec2 aWind;
-float njGust(float t) { return smoothstep(0.5, 0.95, 0.5 + 0.5 * sin(t * 0.131) * sin(t * 0.0713 + 1.3)); }
+float njGust(float t) { return smoothstep(0.35, 0.9, 0.5 + 0.5 * sin(t * 0.23) * sin(t * 0.113 + 1.3)); }
 vec3 njWind(vec2 w) {
   float g = njGust(uT), f = w.y * w.y;
-  float sway = 0.6 * sin(uT * 0.41 + w.x) + 0.4 * sin(uT * 0.263 + w.x * 1.7);
-  float flutter = sin(uT * 5.1 + w.x * 9.0) * g;
+  float sway = 0.6 * sin(uT * 0.55 + w.x) + 0.4 * sin(uT * 0.37 + w.x * 1.7);
+  float flutter = sin(uT * 5.6 + w.x * 9.0) * (0.25 + g);       // leaves never quite still; more in a gust
   vec3 dir = normalize(vec3(-0.3, 0.0, 1.0));
-  return dir * (w.y * (11.0 * sway + 14.0 * g * (0.6 + 0.4 * sin(uT * 1.7 + w.x))) + f * 5.0 * flutter) + vec3(0.0, f * 6.0 * flutter, 0.0);
+  return dir * (w.y * (22.0 * sway + 30.0 * g * (0.6 + 0.4 * sin(uT * 2.1 + w.x))) + f * 10.0 * flutter) + vec3(0.0, f * 12.0 * flutter, 0.0);
 }`;
 
 const VIEW_VERT = /* glsl */`
@@ -59,14 +59,28 @@ varying vec3 vP;
 varying vec3 vN;
 varying vec3 vCol;
 varying vec2 vUv;
+// The sun's own softness: a shadow's edge widens with the distance from what casts it to where it falls,
+// by the sun's angular radius (0.27 degrees). Find how far the casters stand (the mean of those nearer
+// the sun around this point), then look across that width, each look filtered between texels.
+const vec2 NJ_PD[12] = vec2[12](vec2(-0.326, -0.406), vec2(-0.84, -0.074), vec2(-0.696, 0.457), vec2(-0.203, 0.621), vec2(0.962, -0.195), vec2(0.473, -0.48),
+                                 vec2(0.519, 0.767), vec2(0.185, -0.893), vec2(0.507, 0.064), vec2(0.896, 0.412), vec2(-0.322, -0.933), vec2(-0.792, -0.598));
+float njShadeTap(vec2 uv, float d) {
+  float n = 1.0 / uShadeAt.w;
+  vec2 st = uv * n - 0.5, f = fract(st), t = (floor(st) + 0.5) / n, o = vec2(uShadeAt.w, 0.0);
+  float a = step(texture2D(uShade, t).r, d), b = step(texture2D(uShade, t + o).r, d);
+  float c = step(texture2D(uShade, t + o.yx).r, d), e = step(texture2D(uShade, t + o.xx).r, d);
+  return mix(mix(a, b, f.x), mix(c, e, f.x), f.y);
+}
 float njLit(vec3 p) {
   vec2 uv = (vec2(dot(p, uSunU), dot(p, uSunV)) - uShadeAt.xy) / (2.0 * uShadeAt.z) + 0.5;
-  float d = dot(p, uSunD) + 10.0, lit = 0.0;
-  for (int i = 0; i < 4; i++) {
-    vec2 o = vec2(i == 1 ? 1.0 : i == 3 ? -1.0 : 0.0, i == 0 ? 1.0 : i == 2 ? -1.0 : 0.0) * uShadeAt.w * 1.2;
-    lit += step(texture2D(uShade, uv + o).g, d);
-  }
-  return lit * 0.25;
+  float d = dot(p, uSunD) + 10.0, sum = 0.0, k = 0.0;
+  for (int i = 0; i < 12; i++) { float z = texture2D(uShade, uv + NJ_PD[i] * uShadeAt.w * 9.0).r; if (z > d) { sum += z; k += 1.0; } }
+  if (k < 0.5) return 1.0;
+  float units = 2.0 * uShadeAt.z * uShadeAt.w;                         // world units per texel
+  float rad = clamp((sum / k - d) * 0.0047 / units, 1.2, 10.0) * uShadeAt.w;
+  float lit = 0.0;
+  for (int i = 0; i < 12; i++) lit += njShadeTap(uv + NJ_PD[i] * rad, d);
+  return lit / 12.0;
 }
 void main() {
   vec4 t = uSolid > 0.5 ? vec4(1.0) : texture2D(uAtlas, vUv);
@@ -97,12 +111,12 @@ void main() {
 }`;
 const MASK_FRAG = /* glsl */`
 uniform sampler2D uAtlas;
-uniform float uSolid;
+uniform float uSolid, uDepthOut;
 varying vec2 vUv;
 varying float vDepth;
 void main() {
   if (uSolid < 0.5 && texture2D(uAtlas, vUv).a < 0.5) discard;
-  gl_FragColor = vec4(0.0, vDepth, 0.0, 1.0);
+  gl_FragColor = uDepthOut > 0.5 ? vec4(vDepth, 0.0, 0.0, 1.0) : vec4(0.0, 0.0, 0.0, 1.0);
 }`;
 
 // Geometry gathered into two meshes, leaves and wood, with each vertex's colour and wind.
@@ -199,12 +213,12 @@ export function createGarden({ renderer }) {
       const mid = crotch.clone().lerp(q, 0.55).add(V(0, 120 + 80 * r(), 0));
       limb(bark, crotch, mid, 15, 10, phase, 0.04, 0.3, 6);
       limb(bark, mid, q, 10, 5, phase, 0.3, 0.55, 5);
-      const n = 7 + Math.floor(r() * 6);
+      const n = 5 + Math.floor(r() * 4);
       for (let m = 0; m < n; m++) {
         const a = r() * Math.PI * 2, el = -0.4 + r() * 0.9, out = V(Math.cos(a) * Math.cos(el), Math.sin(el), Math.sin(a) * Math.cos(el));
         const at = q.clone().addScaledVector(out, 30 + 90 * r());
         if (inBeamCore(at, 95)) continue;
-        leaf(6, jit(leafC, r), at, out.clone().add(V(0, -0.45, 0)).normalize(), 95 + 40 * r(), 160 + 80 * r(), 0.14, r() * 3, phase + r() * 0.5, 0.6 + 0.3 * r());
+        leaf(6, jit(leafC, r), at, out.clone().add(V(0, -0.45, 0)).normalize(), 130 + 50 * r(), 230 + 100 * r(), 0.14, r() * 3, phase + r() * 0.5, 0.6 + 0.3 * r());
       }
     }
   }
@@ -228,7 +242,7 @@ export function createGarden({ renderer }) {
         grow(e, nd, len * (0.72 + r() * 0.15), rad * 0.72, depth - 1, phase + r() * 0.9, flex + 0.18);
       }
     };
-    for (const [dx, dy, dz] of [[-0.45, 0.75, 0.3], [-0.2, 0.85, 0.55], [0.2, 0.8, 0.45]]) grow(fork, V(dx, dy, dz).normalize(), 300, 22, 2, r() * 6, 0.05);
+    for (const [dx, dy, dz, len] of [[-0.45, 0.75, 0.3, 300], [-0.2, 0.85, 0.55, 300], [-0.42, 0.42, 0.8, 420]]) grow(fork, V(dx, dy, dz).normalize(), len, 22, 2, r() * 6, 0.05);
     for (const t of tips) {
       const n = 10 + Math.floor(r() * 5);
       for (let k = 0; k < n; k++) {
@@ -281,7 +295,8 @@ export function createGarden({ renderer }) {
 
   // ---- materials, the meshes, and the sun's two views of them -------------------------------------------
   const atlas = (() => { const c = document.createElement('canvas'); c.width = ATLAS.w; c.height = ATLAS.h; drawLeaves(c.getContext('2d'), c.width, c.height); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.NoColorSpace; t.anisotropy = 4; return t; })();
-  const shadeRT = new THREE.WebGLRenderTarget(1024, 1024, { type: THREE.HalfFloatType, depthBuffer: true, minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter, generateMipmaps: false });
+  const SHADE_RES = 2048;
+  const shadeRT = new THREE.WebGLRenderTarget(SHADE_RES, SHADE_RES, { type: THREE.HalfFloatType, format: THREE.RedFormat, depthBuffer: true, minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter, generateMipmaps: false });
   const shadeAt = new THREE.Vector4();
   const common = {
     uT: { value: 0 }, uAtlas: { value: atlas }, uShade: { value: shadeRT.texture }, uShadeAt: { value: shadeAt },
@@ -289,7 +304,8 @@ export function createGarden({ renderer }) {
     uSunCol: { value: new THREE.Vector3(2.3, 1.75, 1.05) }, uSkyCol: { value: new THREE.Vector3(0.62, 0.68, 0.8) },
   };
   const viewMat = solid => new THREE.ShaderMaterial({ uniforms: { ...common, uSolid: { value: solid } }, vertexShader: VIEW_VERT, fragmentShader: VIEW_FRAG, side: THREE.DoubleSide, alphaToCoverage: !solid, toneMapped: false });
-  const maskMat = solid => new THREE.ShaderMaterial({ uniforms: { ...common, uSolid: { value: solid } }, vertexShader: MASK_VERT, fragmentShader: MASK_FRAG, side: THREE.DoubleSide, toneMapped: false });
+  const depthOut = { value: 0 };
+  const maskMat = solid => new THREE.ShaderMaterial({ uniforms: { ...common, uSolid: { value: solid }, uDepthOut: depthOut }, vertexShader: MASK_VERT, fragmentShader: MASK_FRAG, side: THREE.DoubleSide, toneMapped: false });
   const mats = { leafV: viewMat(0), woodV: viewMat(1), leafM: maskMat(0), woodM: maskMat(1) };
   const leafGeo = leaves.build(), woodGeo = wood.build();
   const group = new THREE.Group();
@@ -312,7 +328,7 @@ export function createGarden({ renderer }) {
     return cam;
   }
   let maskCam = null, shadeCam = null;
-  const white = new THREE.Color(1, -60000, 0), was = new THREE.Color();
+  const white = new THREE.Color(1, 1, 1), far = new THREE.Color(-60000, 0, 0), was = new THREE.Color();
 
   return {
     group,
@@ -329,7 +345,7 @@ export function createGarden({ renderer }) {
         u0 = Math.min(u0, pu); u1 = Math.max(u1, pu); v0 = Math.min(v0, pv); v1 = Math.max(v1, pv);
       }
       const gh = Math.max(u1 - u0, v1 - v0) / 2;
-      shadeAt.set((u0 + u1) / 2, (v0 + v1) / 2, gh, 1 / 1024);
+      shadeAt.set((u0 + u1) / 2, (v0 + v1) / 2, gh, 1 / SHADE_RES);
       shadeCam = sunCamera(shadeAt.x, shadeAt.y, gh);
     },
     // The ambient clock: the wind moves on; draw the garden's sun view, then the record wall's mask into
@@ -339,8 +355,9 @@ export function createGarden({ renderer }) {
       if (!maskCam) return;
       const prev = renderer.getRenderTarget(), alpha = renderer.getClearAlpha();
       renderer.getClearColor(was);
-      renderer.setClearColor(white, 1);
+      depthOut.value = 1; renderer.setClearColor(far, 1);
       renderer.setRenderTarget(shadeRT); renderer.clear(); renderer.render(maskScene, shadeCam);
+      depthOut.value = 0; renderer.setClearColor(white, 1);
       renderer.setRenderTarget(target); renderer.clear(); renderer.render(maskScene, maskCam);
       renderer.setRenderTarget(prev);
       renderer.setClearColor(was, alpha);
