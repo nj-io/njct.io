@@ -42,23 +42,10 @@
   "kind": "project",
   "year": "2026",
   "tag": "Automated marketing that turns your work into posts and publishes them across every platform at once",
-  "blurb": "Watches your development, drafts what’s post-worthy in your voice, and publishes where your audience lives — with approval gates or fully autonomous.",
+  "blurb": "Your code ships daily, and now your marketing does too: Social Hook turns your work into posts in your voice and publishes them everywhere at once.",
   "url": "https://nj-io.github.io/social-hook/",
   "stack": "Python · FastAPI · GitHub Actions",
-  "figs": [
-   [
-    "12k+",
-    "posts published"
-   ],
-   [
-    "X + LinkedIn",
-    "live channels"
-   ],
-   [
-    "fully",
-    "autonomous mode"
-   ]
-  ],
+  "figs": [["20+ platforms", "posts everywhere your audience is"], ["Your voice", "drafts from your real work, approved from your phone"], ["Every result", "how each post did, read back at a day, three days and a week"]],
   "accent": {
    "light": "#2563EB",
    "dark": "#5B8DEF"
@@ -72,24 +59,11 @@
   "kind": "project",
   "year": "2026",
   "tag": "One dashboard for every site you run: edit the words, fix the SEO, send the emails, no code needed",
-  "blurb": "Every sentence your product says — site copy, emails, SEO fields — managed as typed keys your team edits without a deploy, with a full copy committed in your repo.",
+  "blurb": "See every change you and your AI agents make to your sites, run your customer emails and contacts from the same place, and publish in seconds without a deploy.",
   "url": "https://getstet.xyz",
   "video": { "src": "/media/stet-ten-720.mp4", "poster": "/media/stet-ten-poster.jpg", "band": 0.28 },
   "stack": "TypeScript · Postgres · Cloudflare · Astro · MCP",
-  "figs": [
-   [
-    "Apache-2.0",
-    "open source, no CLA"
-   ],
-   [
-    "MCP",
-    "agents edit under your rules"
-   ],
-   [
-    "Every surface",
-    "copy, email, SEO, agents"
-   ]
-  ],
+  "figs": [["Every word", "on every site, changed in seconds, no deploy"], ["See and undo", "every change you and your AI agents make"], ["Free", "open source to self-host; Cloud from $19 a month"]],
   "accent": {
    "light": "#0E6B74",
    "dark": "#6FBAC4"
@@ -104,23 +78,10 @@
   "year": "2025",
   "tag": "Track what the people you follow are talking about, and the topics you care about, without the doomscroll",
   "video": { "src": "/media/mirra-promo-720.mp4", "poster": "/media/mirra-promo-poster.jpg", "band": 0.3 },
-  "blurb": "Never miss a post from the accounts you care about — mirrored to Telegram in real time, then distilled into a digest of their posts and shifting sentiment.",
+  "blurb": "Follow the voices and topics that matter without living on X: Mirra reads every post, sends you a short brief, and keeps track of who's been right.",
   "url": "https://mirra.to",
   "stack": "Next.js · Python · MTProto · Supabase",
-  "figs": [
-   [
-    "2,400+",
-    "accounts mirrored"
-   ],
-   [
-    "sub-60s",
-    "mirror latency"
-   ],
-   [
-    "~90%",
-    "gross margin"
-   ]
-  ],
+  "figs": [["Every post", "from the accounts you follow, in one brief"], ["Tracked", "trending topics, the story behind them, and whose calls held up"], ["Free", "to start; Premium $16 a month"]],
   "accent": {
    "light": "#2C7AC2",
    "dark": "#9EC7EA"
@@ -135,23 +96,10 @@
   "kind": "project",
   "year": "2026",
   "tag": "Your X likes, turned into a searchable wiki",
-  "blurb": "A personal knowledge base compiled from X likes — an LLM incrementally builds and maintains a persistent, cited wiki from the raw sources.",
+  "blurb": "Your X likes, turned into a wiki you can search and ask, with every claim linked to its source post.",
   "url": "https://likewiki.njct.io",
   "stack": "Python · MCP · SQLite",
-  "figs": [
-   [
-    "1,400+",
-    "concept pages"
-   ],
-   [
-    "12k+",
-    "cited sources"
-   ],
-   [
-    "nightly",
-    "self-maintaining"
-   ]
-  ],
+  "figs": [["Every night", "your X likes become wiki pages"], ["Every claim", "linked to its source post, and checked"], ["Ask it", "and get answers with sources"]],
   "accent": {
    "light": "#2f5d50",
    "dark": "#7fbfa9"
@@ -165,23 +113,10 @@
   "kind": "project",
   "year": "2026",
   "tag": "Use Claude Code on your machine, safely",
-  "blurb": "Runs Claude Code in a Docker sandbox with full feature parity — skip permission prompts safely while clipboard, sound, Chrome, git and MCP all bridge back to the Mac.",
+  "blurb": "Use Claude Code on your machine, safely: it runs in a sealed sandbox with no permission prompts, and your clipboard, browser and git still work.",
   "url": "https://github.com/nj-io/clauded",
   "stack": "Docker · Bash · Node 22 · Python 3",
-  "figs": [
-   [
-    "10k+",
-    "sandboxed sessions"
-   ],
-   [
-    "5",
-    "host bridges"
-   ],
-   [
-    "MIT",
-    "open source"
-   ]
-  ],
+  "figs": [["No prompts", "Claude Code works without stopping to ask"], ["Still connected", "clipboard, sound, Chrome and git keep working"], ["Free", "open source, one-command install"]],
   "accent": {
    "light": "#0E8A90",
    "dark": "#46D4D8"
@@ -196,23 +131,10 @@
   "kind": "project",
   "year": "2026",
   "tag": "Fly through 117,000 stars in your browser",
-  "blurb": "Renders nearby stars in an explorable 3D scene with expandable detail views and spatial audio.",
+  "blurb": "Fly through 117,000 real stars in your browser, open any of them, and hear the journey as you go.",
   "url": "https://njct.io/stellar-explorer",
   "stack": "Three.js · WebAudio",
-  "figs": [
-   [
-    "117k",
-    "stars rendered"
-   ],
-   [
-    "60 fps",
-    "sustained"
-   ],
-   [
-    "spatial",
-    "audio scene"
-   ]
-  ],
+  "figs": [["117,000 stars", "fly between them in your browser"], ["Open any star", "and see what it is"], ["Free", "nothing to install"]],
   "accent": null,
   "logo": null
  },
@@ -221,15 +143,10 @@
   "kind": "project",
   "year": "2026",
   "tag": "See where any website's visitors come from",
-  "blurb": "A dashboard comparing how websites win traffic: their sources, links, social footprint and apps, every number with its source and date.",
+  "blurb": "An internal research tool for the njct portfolio: it shows where any website's visitors come from, so each product's marketing starts from what already works.",
   "url": null,
   "stack": "Python · D3 · DataForSEO",
-  "figs": [
-   [
-    "Free first",
-    "paid data only where free routes fail"
-   ]
-  ],
+  "figs": [["Internal", "research behind every njct product's marketing"], ["Any website", "see where its visitors come from"], ["Sourced", "every number with its source and date"]],
   "accent": null,
   "logo": null
  },
@@ -239,24 +156,11 @@
   "year": "2026",
   "newest": true,
   "tag": "See which post made each sale",
-  "blurb": "A private dashboard for this portfolio's product sites: who visited, where they came from and what they bought, with a summary in Telegram every morning.",
+  "blurb": "The njct portfolio's own dashboard: who visits each product site, where they came from, and which post, email or ad made each sale.",
   "url": "https://stats.njct.io/live",
   "urlText": "stats.njct.io",
   "stack": "Node.js · PostHog · HogQL · Cloudflare Tunnel · Telegram",
-  "figs": [
-   [
-    "Every sale",
-    "traced to the post, email or ad that brought the buyer"
-   ],
-   [
-    "Daily",
-    "Telegram summary at 09:00, with the week compared every Monday"
-   ],
-   [
-    "One command",
-    "sets up tracking on a new site"
-   ]
-  ],
+  "figs": [["Internal", "the dashboard behind every njct product"], ["Every sale", "traced to the post, email or ad that brought the buyer"], ["Every morning", "a summary in Telegram"]],
   "accent": {
    "light": "#3A6BD6",
    "dark": "#6E95EA"
