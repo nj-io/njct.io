@@ -77,7 +77,7 @@ export function createFilm({ camera, layer, wake, dur, els }) {
       tex.repeat.set(1, k); tex.offset.set(0, (1 - k) / 2);
       s.mesh.add(plane);
       if (video.getAttribute('src') !== f.src) { video.poster = f.poster; video.src = f.src; }
-      video.muted = true; video.pause(); video.currentTime = 0;
+      video.muted = true; video.pause(); video.currentTime = f.start || 0;   // start: seconds in, past a film's opening black
       on = true; started = false;
       return true;
     },
