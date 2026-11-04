@@ -223,19 +223,30 @@ const slots = sleeves.map(s => {
   const h = document.createElement('h2'); h.className = 'sr'; h.id = `sl-${s.i}`; h.textContent = e.name;
   art.appendChild(h);
   if (e.tag) { const t = document.createElement('p'); t.className = 'sr'; t.textContent = e.year ? `${e.tag}, ${e.year}` : e.tag; art.appendChild(t); }
-  for (const [action, label] of [['open', 'Open'], ['details', 'Details']]) {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.dataset.action = action;
-    b.dataset.index = String(s.i);
-    b.textContent = label;
-    b.setAttribute('aria-label', `${label}: ${e.name}`);
-    art.appendChild(b);
-  }
+  const open = document.createElement('a');
+  open.dataset.action = 'open';
+  open.textContent = 'Open';
+  setOpen(open, s.i);
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.dataset.action = 'details';
+  b.dataset.index = String(s.i);
+  b.textContent = 'Details';
+  b.setAttribute('aria-label', `Details: ${e.name}`);
+  art.append(open, b);
   el.appendChild(art);
   slotsEl.appendChild(el);
   return el;
 });
+// Open is a link: to the product's live site in a new tab, or, for an entry without one (and About
+// Neil), to its page here by its hash route (a plain click runs Open's cut; see the click handler).
+function setOpen(a, i) {
+  const e = entries[i];
+  a.dataset.index = String(i);
+  a.href = e.url || `#${slugOf(e)}`;
+  if (e.url) { a.target = '_blank'; a.rel = 'noopener'; } else { a.removeAttribute('target'); a.removeAttribute('rel'); }
+  a.setAttribute('aria-label', e.url ? `Open: ${e.name} site, new tab` : `Open: ${e.name}`);
+}
 // The crate's bottom bar (the front sleeve's year and name, Details and Open; Back in Details) and rail.
 const cbBar = document.getElementById('crate-bar');
 const cbYear = cbBar.querySelector('.cb-year'), cbName = cbBar.querySelector('.cb-name');
@@ -639,7 +650,9 @@ function syncCrate(force = false) {
   crateShown = c;
   cbYear.textContent = e.year || '';
   cbName.textContent = e.name;
-  for (const [b, label] of [[cbDetails, 'Details'], [cbOpen, 'Open']]) { b.dataset.index = String(c); b.setAttribute('aria-label', `${label}: ${e.name}`); }
+  cbDetails.dataset.index = String(c);
+  cbDetails.setAttribute('aria-label', `Details: ${e.name}`);
+  setOpen(cbOpen, c);
 }
 function crateRest() {
   const c = crate.current;
@@ -717,8 +730,7 @@ function openDetails(i) {
   backFor(i);
   dTitle.textContent = s.entry.name;
   dTag.textContent = s.entry.tag;
-  dOpen.dataset.index = String(i);
-  dOpen.setAttribute('aria-label', `Open: ${s.entry.name}`);
+  setOpen(dOpen, i);
   detailsEl.inert = false; dOpen.inert = false; slotsEl.inert = true;
   document.body.classList.add('in-details');
   const D = DETAILS;
@@ -853,12 +865,16 @@ function dropDetails(opening = false) {
   lifted = -1;
 }
 
+// Open on a live site is left to the browser (a new tab); Open on a page here runs Open's cut, unless the
+// click asks for a new tab or window of the page's address.
 document.addEventListener('click', e => {
-  const b = e.target.closest('button[data-action]');
+  const b = e.target.closest('[data-action][data-index]');
   if (!b) return;
   const i = +b.dataset.index;
-  if (b.dataset.action === 'details') openDetails(i);
-  else openProject(i);
+  if (b.dataset.action === 'details') { openDetails(i); return; }
+  if (entries[i].url || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  e.preventDefault();
+  openProject(i);
 });
 
 // ---- keyboard -------------------------------------------------------------------------------------

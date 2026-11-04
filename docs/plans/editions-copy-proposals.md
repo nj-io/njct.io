@@ -68,6 +68,7 @@ Every string here waits for operator approval before it ships. Approved copy alr
 | 62 | Header: the Projects menu's trigger, beside the wordmark | Projects (the operator's word) | Ruling 11 |
 | 63 | Projects menu: one item per sleeve, in shelf order | the project's mark, its name (approved) over its tag (approved), e.g. "Mirra" over "Real-time X→Telegram mirror and digest"; About Neil: "About Neil" over "Hi, I’m Neil." (about[0], approved). Alternative for the second line: the year, as the shelf's index shows it | Ruling 11; the reference's Editions menu (season over edition name) |
 | 64 | Projects menu: accessible names | the list is named by its trigger, "Projects"; the marks are decorative (empty alt) | Ruling 11 |
+| 65 | Accessible name of Open (the shelf pill, the Details button, the crate bar) on a project with a live site, a link that opens it in a new tab (replaces rows 19 and 41 for these projects; Topshine, Scorecard and About Neil keep "Open: <name>") | Open: <project name> site, new tab, e.g. "Open: Mirra site, new tab". Alternative: "Open <host> in a new tab", e.g. "Open mirra.to in a new tab" (row 4 host format) | Operator's request: Open opens the product's live site |
 
 ## Row 33: Topshine dossier (proposal)
 
