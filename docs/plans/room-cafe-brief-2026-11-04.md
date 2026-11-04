@@ -1,13 +1,16 @@
 # Editions v2: the café
 
 - **Branch:** `feat/room`. Supersedes `room-skeleton-brief-2026-11-04.md` (the four-wall room).
-- **Status:** the direction was chosen by the operator on 4 November 2026 on the Café Art Direction page (https://claude.ai/artifact/5pPJ24QXhTFdNq2BXX2oXC). v1, the record wall, lives on `feat/editions`, which other sessions keep updating.
+- **Status:**
+  - The operator chose the direction on 4 November 2026 on the Café Art Direction page (https://claude.ai/artifact/5pPJ24QXhTFdNq2BXX2oXC).
+  - The plan was reviewed the same day by a read-only agent, and the operator approved its edits.
+  - v1, the record wall, lives on `feat/editions`, which other sessions keep updating.
 - **Keeping up with `feat/editions`:**
   - This branch merges it in, never the other way. Nothing here is pushed to `feat/editions` or `main`.
-  - It was merged at `ce10c67`, which brings Details flying to the centre and then turning, films on some backs, Open going to the live site (Decision 16), and Get in touch as a contact form.
+  - Last merged at `0bed68c` ("Ship"). The site now lives at the repo root (`main.js`, `scene/`, `index.html`, `dist/`), and the old portfolio is at `/classic`.
   - Before each round, merge the latest `feat/editions`. The v1 baseline for every comparison is that head.
 - **Skeleton commit** `1950bd1` is superseded and has been reverted, so this branch's code is v1's again:
-  - **Recover from that commit in round 2:** the turn controller (`editions/room/room.js`), the edge buttons and keys, the hash routes, each view's HTML mirror, lazy loading, the guards on Details and project pages, and the reduced-motion cut.
+  - **Recover from that commit in round 2:** the turn controller (`editions/room/room.js` there, `room/room.js` now), the edge buttons and keys, the hash routes, each view's HTML mirror, lazy loading, the guards on Details and project pages, and the reduced-motion cut.
   - **Dropped:** the room map, the four placeholder walls, the yaw-only turn on the long lens, swipe, and the phone controls.
 
 ## Goal
@@ -30,96 +33,177 @@ The record wall becomes one wall of a café in Bangkok where Neil works. Two mor
   - It comes through a window on the right wall, at golden hour.
   - Its shape is the window frame with leaf shadows moving inside it ("frame and leaves").
   - It falls across the record wall from the upper right, the side v1's key light already comes from, so the sleeves' shading stays consistent.
+- **Covers outside the patch** may warm slightly with the sun's bounce light: a mean ΔE of at most 2 from v1, measured with `build/compare/deltae.py` (operator ruling, 4 November 2026). Inside the patch they take the sun fully.
 - **Table:**
-  - **A MacBook Pro.** Its screen is a live render of the record wall, with a terminal window on top typing real output from this repo; the lid's logo faces away from the camera.
+  - **A MacBook Pro.** Its screen is a live render of the record wall, with a terminal window on top typing curated lines from this repo; the lid's logo faces away from the camera.
   - **A Thai tea** (cha yen) in a glass with condensation, and plants.
 - **Counter:**
   - The menu board lists the services: **Cross-platform content** and **Community management**.
   - "Order here" opens the Get in touch form, the same modal as the header's button.
   - Order slips on a rail above the counter are kept; the operator hasn't given the three steps yet.
-- **Window lettering:** "njct.io", seen reversed from inside.
+- **Window lettering:** "njct.io", gilded on the inside of the glass, seen reversed from inside.
 - **Tagline:** "Products I've designed and built." (replaces "Systems I've designed and built.").
 - **Procedural:**
   - Shapes, materials, light and motion are drawn in code.
-  - A file loads only where code can't reach the quality: a menu-board typeface subset (about 30 KB at most), and realistic leaf shapes (about 60 KB at most) if code-drawn leaves fall short.
-  - The room code totals about 40–80 KB gzip and loads after the record wall's first frame.
-- **Desktop only:** phones keep the v1 crate, with no turning.
+  - A file loads only where code can't reach the quality: the menu face, a `text=` subset of a family already vendored (Fraunces or Bricolage Grotesque, as in `vendor/fonts/SOURCE.txt`), at most 8 KB.
+  - Leaves and the terminal's type are code.
+- **Desktop only:**
+  - Turning needs `(hover: hover) and (pointer: fine)`, a window of at least 1024×640, and an aspect of at least 1.2.
+  - Everything else keeps v1: the crate on phones, with no turning and no sun.
 
 ## Bangkok: proposals to confirm in round 2's greybox
-- **The room:** a shophouse café: a tall, narrow room with a high ceiling, a slow ceiling fan, a patterned cement-tile or terrazzo floor, and a steel-framed window with a decorative grille. The grille adds to the frame's shadow on the record wall.
-- **Outside the window:** tropical leaves (banana, monstera, frangipani) and a soi in hazy golden light, with the tangle of overhead cables Bangkok streets are known for.
+- **The room:** a shophouse café: a tall, narrow room with a high ceiling, a slow ceiling fan, a patterned cement-tile or terrazzo floor, and a steel-framed window with a decorative grille.
+  - The right wall reads as the street front, since a shophouse's side walls are shared with its neighbours.
+  - The counter is at the back.
+- **Outside the window:** tropical leaves (banana, monstera, frangipani) and a soi in hazy golden light, with air-conditioner units and the tangle of overhead cables Bangkok streets are known for.
 - **The drink:** Thai tea, its orange glow in a glass with condensation, beside the laptop (decided by the operator).
 - **The leaf shadows:** large, slow-moving and tropical.
 
 ## Rounds
-Each round is build, capture, measure, critique and fix, as in v1.
+Each round is build, capture, measure, critique and fix, as in v1. Units: one scene unit is about 1.77 mm (a 177-unit sleeve is a 31.4 cm LP).
 
 ### 1. The sun on the record wall (cloud)
-- **The window mask.** The frame and grille are worked out analytically.
-  - Each shadow's penumbra grows with its distance from the window (the sun is 0.53° across).
-  - The patch is warm against the cooler shade.
-- **The leaf shadows.**
-  - Procedural and moving slowly; a gap between leaves shows a soft image of the sun.
-  - The motion re-bakes the wall only as often as it needs to.
-- **The sleeves and shelves** receive the sun and cast sun shadows onto the wall.
-- **Files:** the sun is a term in `scene/lighting.js` (the wall bake and the shelves) and in the sleeves' shading. The covers keep their fitted colour outside the patch.
-- **The tagline** changes in this round.
+- **The plan, first.** These go into `scene/config.js` as numbers:
+  - the room's size;
+  - the window's size and position, its grille, and where the lettering sits;
+  - the sun's azimuth and elevation.
+
+  The operator chooses them from a nine-frame sun study of the real record wall. Later rounds build to them, and keep the beam's path clear unless round 1 put something in it.
+- **The window** is an exact signed-distance shape (frame, mullions, transoms, a shophouse grille), projected onto the wall along the sun.
+  - Each penumbra grows with its distance from the window (the sun is 0.53° across).
+  - The gilded "njct.io" casts faintly into the patch.
+- **Headroom.** The wall has 0.4–0.7 stop of headroom (sRGB 206–225, no tone curve), so the patch reads by hue:
+  - a warm near-white core with a soft shoulder, never clipped;
+  - a saturated amber penumbra.
+
+  Editions' shade stays v1's neutral; cool skylight belongs to the room views.
+- **The leaves.** Procedural foliage (shredded banana, holed monstera, frangipani) is drawn from the sun into a mask, then blurred with a disc the size of the sun's image at each distance. Every gap becomes an elliptical image of the sun, with a faint halo for the haze.
+  - **Wind:** slow sway, gusts entering from the window side, flutter only in gusts.
+  - **The same leaves** are seen through the window in round 5.
+- **The studio bake stays as it is.** `wall.js`'s BAKE_FRAG is unchanged and re-runs only when a sleeve moves. The sun is computed every frame in the wall's display shader, at screen resolution, from a sun-space leaf mask that updates on the ambient clock.
+- **Plaster that only the sun reveals:** a trowelled relief that changes only the sun's lighting term. With the sun off it is invisible.
+- **The sleeves and shelves** receive the sun and cast its shadows:
+  - Each sleeve's right edge catches the sun.
+  - Each sleeve's own quad is projected along the sun: sharp where it meets the wall, softer toward its foot.
+  - The shelves cast shadows as boxes.
+  - The hovered sleeve shades its neighbour.
+  - Sunlit covers tint the wall beside them, through v1's halo shape.
+- **Files:**
+  - A new `scene/sun.js` holds SUN_GLSL (the window shape, mask sampling, the sleeves' and shelves' sun shadows) and the mask builder.
+  - `wall.js`'s display pass, `shelves.js` and `neutral()` in `sleeves.js` include it behind `#ifdef NJ_SUN`, with the define in each program's cache key, so with the sun off they run v1's own programs.
+  - It loads after the first frame, compiles with `compileAsync`, draws once under the shelf, and fades in over about 1.2 s once the sleeves have landed. Its source is off-frame to the right, so the light itself invites "Table →".
+- **The tagline** changes in its own commit, after the sun-off proof.
 - **Checks:**
-  - **Sun off:** every pixel matches `feat/editions` at 1440×900, at rest and in Details. This proves only the light changed. In Details, compare a sleeve without a film, or before its film starts.
-  - **Sun on:** captures at rest and in Details, and the covers in the patch stay legible.
-  - **Timing:** not measured in the cloud, which has no GPU; it's measured on the Mac Mini.
+  - **Sun off:** the canvas matches `feat/editions` pixel for pixel at 1440×900, at rest and in Details: read from the canvas, or with page controls hidden. The DOM is compared on its own. In Details, compare a sleeve without a film, or before its film starts.
+  - **Determinism:** every ambient motion is a function of one clock that a test can set (`__editionsTest.ambientT`).
+  - **Legibility:** in the patch, each cover keeps at least 85% of its sun-off title contrast, and no cover pixel clips. Outside the patch, covers stay within a mean ΔE of 2.
+  - **Captures:** at three fixed ambient times, and 4× crops at DPR 2. Check the dapples' shape against 1/cos(incidence).
+  - **Timing:** not measured in the cloud, which has no GPU. Measure it on the Mac Mini.
 
 ### 2. The room shell, in greybox
 - **Geometry** in code: walls, floor, ceiling, window, counter, table.
-- **The camera move** from Editions into each angled view.
+- **The rest of the record wall.** Beyond the widest Editions frame and up to the ceiling: record spines and a ladder (InstancedMesh), lit by a coarser bake of the same studio light. The floor and ceiling stay outside every Editions frame from 4:3 to 21:9.
+- **The move:**
+  - For its first half, the camera dollies in as the lens widens, holding the record wall at its size, so the café opens around it. Then it turns and settles.
+  - It stays level and frames by shifting the lens (`setViewOffset`).
+  - 1.1–1.4 s. A second press retargets.
+  - Arriving at Editions, it takes `layout()`'s camera exactly.
+- **The render path:**
+  - The room views draw linear light into a half-float target.
+  - One finishing pass is the identity up to 0.9 with a shoulder above it, blooms only the energy above it, then grades and dithers.
+  - Editions keeps v1's forward path; the switch happens on a move's first frame.
+  - The room views cap the pixel ratio at 1.5 until it's measured.
 - **The two angled views,** composed like photographs.
-- **Edge buttons** replace the map.
+- **Edge buttons** replace the map. The arrow keys turn only when focus is off the sleeve list and the Projects menu (as in `1950bd1`), and the buttons' descriptions say so.
 - **Routes:** `#counter` and `#table` replace `#wall-N`.
 - **One HTML mirror per view.**
-- **Desktop only.**
+- **The device gate** under Decisions.
 
 ### 3. Light in the room
-- The sun through the window.
-- Bounce light and contact shadows baked in the browser at idle after the intro.
-- Lamps over the counter.
+- **Bounce light** from a radiosity solve in a Worker at idle, stored as small lightmaps:
+  - sources: the sun patch averaged over the leaves, the sky through the window, the lamps;
+  - three bounces;
+  - you see warm bounce from the floor on the ceiling and counter, and cool skylight on surfaces facing the window.
+- **Interior sun shadows,** baked once, in GPU tiles of at most 2 ms each.
+- **Contact shadows** by analytic box occlusion.
+- **Reflections:** a room probe from `PMREMGenerator`, so the floor reflects the window softly.
+- **Bloom and halation:** the street outside sits 2–3 stops brighter than the room.
+- **No GPU job runs during a move.**
 
 ### 4. The counter
-- The menu board: its text is HTML placed in 3D.
-- The espresso machine, the order rail and "Order here".
+- **The menu board** is drawn in the scene in the menu face, lit by the lamps.
+  - Its HTML is the transparent, positioned mirror for focus, screen readers and search, and the hit area for "Order here".
+  - Its body text, and the slips', is at least 16 CSS px at 1440×900.
+- **The hi-fi:** a turntable turning a record, with a pair of speakers above the counter.
+- **Pendant lamps** with glowing filaments and warm pools of light.
+- **The order slips** stir in the fan's air.
+- **Wear** along the counter's edge.
+- **The espresso machine.**
 
 ### 5. The table
-- The laptop: the screen render and the terminal.
-- The Thai tea, the plants, the window lettering.
+- **The laptop:**
+  - The Editions view is rendered to 640×400 at up to 15 Hz, so the same dapples move on its screen.
+  - The terminal is a canvas texture in the system monospace font, showing curated lines.
+  - The glossy screen reflects the window, and its light falls on the keys.
+- **The Thai tea:**
+  - It glows when backlit, with a milk swirl and ice.
+  - Condensation forms only below the liquid line and glints in the sun; a drop runs down about every 30 s.
+  - The glass throws an orange caustic on the table.
+- **The window:** the same leaf cards seen through it, translucent against an overexposed street. The lettering is dark from inside, gold at its edges.
+- **Plants** in code: holes, torn tips, and translucency masked by their veins.
 
 ### 6. Life and sound
-- Steam, condensation, dust in the light, the leaves, the fan.
-- Café sound.
-- The light switch easter egg: night, with the lamps and the laptop glow.
+- **The visible beam:** the window's shape extruded along the sun, sampled 8–16 times at half resolution.
+  - It shows shafts with leaf structure, and dust lit only inside them.
+  - At most 2% added brightness in Editions.
+- **Steam, condensation, the leaves, the fan.**
+- **A passer-by's soft shadow** crosses the patch every 60–120 s (to be judged in this round).
+- **Sound,** mixed by view and muted by default:
+  - a generated record (FM keys and vinyl crackle);
+  - the street through the window;
+  - the espresso machine.
+- **The light-switch easter egg:** night, with the lamps and the laptop glow.
 
 ### 7. Polish
-- Grading and depth of field.
-- Frame rate measured on the Mac Mini, and an accessibility pass.
+- **Depth of field** at half resolution, based on a physical lens, in the angled views only.
+- **A grade per view** that leaves Editions unchanged.
+- **A governor** that sets the room's pixel ratio between 1.0 and 1.5 from measured frame times.
+- **Frame rate** measured on the Mac Mini, and an accessibility pass.
 
 ## References
 - **The page:** the Café Art Direction page lists the references for A and B, with what to look at in each.
 - **For Bangkok:** its listening bars and vinyl cafés, e.g. Studio Lam on Sukhumvit 51.
+- **Techniques** the review named from memory, unchecked:
+  - Fernando 2005 (soft-shadow penumbrae);
+  - Karis 2013 (representative-point reflections);
+  - Jimenez 2014 (bloom);
+  - Quílez (analytic box occlusion).
 
 ## Rules
-- **Copy:** visible strings are proposals until the operator approves them. Rows 66 onward of `editions-copy-proposals.md` hold this brief's strings.
+- **Copy:** visible strings are proposals until the operator approves them. Rows 66 onward of `docs/plans/editions-copy-proposals.md` hold this brief's strings.
+- **The terminal's text** is curated at build time (commit subjects and the build table, with no trailers or URLs) and approved as copy row 75.
 - **The record wall:** v1's camera, layout and behaviour stay exactly as built, and only the light changes. Prove it as in round 1.
 - **Budgets:**
-  - 60 fps while turning, on a machine with a GPU.
-  - The first view grows by no more than 30 KB gzip.
-  - The no-WebGL fallback still works.
+  - **Frame rate:** 60 fps while turning, on a machine with a GPU.
+  - **First view:** grows by no more than 30 KB gzip (estimate: +4.5 KB).
+  - **Room code:** about 65 KB gzip, loaded after the record wall's first frame. Files: the menu face only, at most 8 KB.
+  - **Fallback:** the no-WebGL fallback still works.
+  - **Ambient motion:**
+    - runs on its own clock at up to 30 Hz, and at up to 10 Hz in Details;
+    - stops in hidden tabs, and under reduced motion freezes on a chosen frame;
+    - pauses during moves.
+  - **Where to measure:** frame rate and first-compile times on the Mac Mini, and on one Intel Iris Xe machine (Chrome on Windows).
 - **Git:** author `nj-io <26359601+nj-io@users.noreply.github.com>`. Make new commits only, and never push to `main` (a push to `main` deploys the live site).
 - **Paths:** keep the site free of any path containing `/.vscode/` or ending in `.orc`.
 - **Tests:** add no test files. Check with headless Chrome captures and probes. Without a GPU, use SwiftShader for correctness only, and say that timing is unmeasured.
 
 ## Done when
 - **Round 1:**
-  - With the sun off, the record wall is pixel-identical to v1 at rest and in Details.
-  - With the sun on, the frame-and-leaves patch crosses the wall and the sleeves, moving slowly.
-  - The covers stay legible.
+  - The operator has chosen the sun and window from the study.
+  - With the sun off, the canvas is pixel-identical to v1 at rest and in Details.
+  - With the sun on, the frame-and-leaves patch crosses the wall and the sleeves, moving with the wind.
+  - The legibility and ΔE checks pass.
+  - The tagline lands in its own commit.
   - `npm run check` passes.
   - A short report lists the captures and anything still open.
 - **Rounds 2 to 7:** each closes with captures of the views it touched, and the operator's sign-off before the next.
