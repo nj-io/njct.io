@@ -7,8 +7,11 @@
   - v1, the record wall, lives on `feat/editions`, which other sessions keep updating.
 - **Keeping up with `feat/editions`:**
   - This branch merges it in, never the other way. Nothing here is pushed to `feat/editions` or `main`.
-  - Last merged at `0bed68c` ("Ship"). The site now lives at the repo root (`main.js`, `scene/`, `index.html`, `dist/`), and the old portfolio is at `/classic`.
+  - Last merged at `0bed68c` ("Ship"). The site now lives at the repo root (`main.js`, `scene/`, `index.html`, `dist/`), and the old portfolio is at `/classic`. `main` is at the same commit and deploys to Cloudflare Pages on push (`.github/workflows/deploy.yml`, with the token held in GitHub's secrets).
   - Before each round, merge the latest `feat/editions`. The v1 baseline for every comparison is that head.
+- **Branches beside this one** (operator, 4 November 2026):
+  - **`feat/sun`** holds the sun alone, cut from `feat/editions` at `0bed68c`, so it can merge to `main` and deploy before the room is done. Sun work happens there first; this branch merges it in.
+  - **`feat/cover-motion`** (worktree `/home/user/wt-cover-motion`): slow, purposeful motion for the covers, each cover's direction chosen by the operator from a list. Also cut from `feat/editions`; it touches `main.js` and `covers/covers.js`, so expect a small merge with the sun's ambient clock in `main.js`.
 - **Skeleton commit** `1950bd1` is superseded and has been reverted, so this branch's code is v1's again:
   - **Recover from that commit in round 2:** the turn controller (`editions/room/room.js` there, `room/room.js` now), the edge buttons and keys, the hash routes, each view's HTML mirror, lazy loading, the guards on Details and project pages, and the reduced-motion cut.
   - **Dropped:** the room map, the four placeholder walls, the yaw-only turn on the long lens, swipe, and the phone controls.
@@ -197,8 +200,21 @@ Each round is build, capture, measure, critique and fix, as in v1. Units: one sc
 - **Paths:** keep the site free of any path containing `/.vscode/` or ending in `.orc`.
 - **Tests:** add no test files. Check with headless Chrome captures and probes. Without a GPU, use SwiftShader for correctness only, and say that timing is unmeasured.
 
+## Round 1 outcome (4 November 2026)
+- **The pick:** 13° high, 38° round (the study's middle frame, https://claude.ai/artifact/GA9kdSBmMBQpjBiV83AuZc), now `CAFE.sun` in `scene/config.js`.
+- **Built,** on `feat/sun`, as the brief describes, except:
+  - The gilded lettering's shadow is left out. At this distance the sun's disc blurs 6 cm letters into a smudge, and it fell across the Stats title. The lettering returns on the glass in round 5.
+  - The sun on the covers is set per cover (`CAFE.sun.coverGain`): 0.85 of their fitted light, and 0.34 for About Neil, whose gold title on cream lost contrast at 0.85.
+  - The tint the sunlit covers throw on the wall beside them moves to round 3, with the rest of the bounce light.
+- **Checks** (headless Chrome with SwiftShader, 1440×900):
+  - **Sun off:** pixel-identical to `feat/editions` at rest (0 of 1,296,000 differ), and in Details outside the focused sleeve (0 of 1,125,850). On the focused sleeve, v1 itself differs from run to run.
+  - **Legibility:** every cover's title keeps at least 86% of its sun-off contrast; the whole covers keep at least 87%; no pixel clips. The covers outside the patch shift by a mean ΔE of 0.67.
+  - **Motion:** on a plain load the sun starts by itself and fades in, and only the patch moves with the leaves.
+  - **Size:** the sun chunk is 7.1 KB gzip, and the first view grows by 1.2 KB.
+  - **Timing:** unmeasured, since there is no GPU here. Measure it on the Mac Mini.
+
 ## Done when
-- **Round 1:**
+- **Round 1:** done (see above), apart from the Mac Mini timing.
   - The operator has chosen the sun and window from the study.
   - With the sun off, the canvas is pixel-identical to v1 at rest and in Details.
   - With the sun on, the frame-and-leaves patch crosses the wall and the sleeves, moving with the wind.
