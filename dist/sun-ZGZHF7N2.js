@@ -1,14 +1,13 @@
-import{d as ce,e as U}from"./chunk-BK2MUJQZ.js";import{A as re,B as se,D as W,E as ue,G as ie,e as K,g as te,j as ae,n as ne,o as k,q as s,s as b,t as X,z as oe}from"./chunk-XUX7XAJI.js";import{c as le,e as F,f as j,k as u}from"./chunk-FBGYL5MD.js";var fe=Math.PI/180,O=[7,12,18],h=512,de=1.1,xe=6,we=[.035,.02,.006],ge=a=>`
+import{d as ce,e as U}from"./chunk-GMQ5IERM.js";import{A as re,B as ue,D as k,E as se,G as ie,e as K,g as te,j as ae,n as ne,o as C,q as u,s as b,t as X,z as oe}from"./chunk-XUX7XAJI.js";import{c as le,e as z,f as j,k as s}from"./chunk-ZSC7IPES.js";var fe=Math.PI/180,O=[7,12,18],d=512,he=1.1,we=6,xe=[.035,.02,.006],ge=t=>`
 uniform vec3 uSunD, uSunU, uSunV;     // toward the sun; across and up in the sun's view
 uniform float uSunPower, uSunFade;
 uniform vec4 uWin;                    // the opening: z0, y0, z1, y1 on the street front
 uniform float uWinX;                  // the street front's x
 uniform vec4 uWinBars;                // frame, glazing bar, transom height, transom bar
-uniform vec2 uWinFan;                 // the fanlight's rays, its arc as a share of the fanlight's height
 uniform vec4 uMask;                   // the leaf mask's centre (u, v), half size, the leaves' depth along the sun
 uniform sampler2D uLeaf0, uLeaf1, uLeaf2;
 uniform vec3 uLeafR;
-uniform vec4 uSlv[${a*3}];
+uniform vec4 uSlv[${t*3}];
 uniform vec4 uShelfB[2];              // x0, x1, the underside's height, depth
 uniform vec3 uSunBounce;              // the sun's light bounced off the patch, on the covers
 const float NJ_SUN_DISC = 0.00925;    // the sun's diameter in radians
@@ -19,20 +18,11 @@ float njBox(vec2 p, vec2 b) { vec2 d = abs(p) - b; return length(max(d, 0.0)) + 
 float njWindowSd(vec2 w) {
   vec2 c = 0.5 * (uWin.xy + uWin.zw), hb = 0.5 * (uWin.zw - uWin.xy) - uWinBars.x;
   float open = njBox(w - c, hb);
-  float ty = uWinBars.z;
-  float bars = abs(w.y - ty) - 0.5 * uWinBars.w;
-  if (w.y < ty) {
-    float z1 = c.x - hb.x + 2.0 * hb.x / 3.0, z2 = c.x - hb.x + 4.0 * hb.x / 3.0;
-    bars = min(bars, min(abs(w.x - z1), abs(w.x - z2)) - 0.5 * uWinBars.y);
-  } else {
-    vec2 q = w - vec2(c.x, ty);
-    float fan = c.y + hb.y - ty;
-    float sectors = uWinFan.x + 1.0;
-    float k = floor(atan(q.y, q.x) / 3.14159265 * sectors + 0.5);
-    float ak = k / sectors * 3.14159265;
-    if (k > 0.5 && k < sectors - 0.5) bars = min(bars, abs(dot(q, vec2(-sin(ak), cos(ak)))) - 0.5 * uWinBars.y);
-    bars = min(bars, abs(length(q) - uWinFan.y * fan) - 0.5 * uWinBars.y);
-  }
+  // The transom, and two glazing bars running the full height: three lights below it, three above, so the
+  // whole patch reads as one window. (A decorative fanlight may come back once it can read.)
+  float bars = abs(w.y - uWinBars.z) - 0.5 * uWinBars.w;
+  float z1 = c.x - hb.x + 2.0 * hb.x / 3.0, z2 = c.x - hb.x + 4.0 * hb.x / 3.0;
+  bars = min(bars, min(abs(w.x - z1), abs(w.x - z2)) - 0.5 * uWinBars.y);
   return max(open, -bars);
 }
 float njWindow(vec3 p) {
@@ -52,7 +42,7 @@ float njLeaves(vec3 p) {
 }
 float njSleeves(vec3 p, int self) {
   float vis = 1.0;
-  for (int i = 0; i < ${a}; i++) {
+  for (int i = 0; i < ${t}; i++) {
     if (i == self) continue;
     vec4 o = uSlv[i * 3];
     if (o.w <= 0.001) continue;
@@ -99,20 +89,20 @@ vec3 njSunAdd(vec3 c, vec3 add) {
   float np = 0.82 + 0.18 * (1.0 - exp(-(pk - 0.82) / 0.18));
   return mix(o, o * (np / pk), 1.0 - exp(-40.0 * max(add.r, max(add.g, add.b))));
 }
-`,ye=`
+`,Se=`
 varying vec2 vUv;
 varying vec3 vNjWorld;
 void main() {
   vUv = uv;
   vNjWorld = (modelMatrix * vec4(position, 1.0)).xyz;
   gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-}`,Se=a=>`
+}`,ye=t=>`
 uniform sampler2D uBake;
 uniform float uGain;
 uniform float uSunDebug;   // a test's view: 1 the window alone, 2 the leaves alone
 varying vec2 vUv;
 varying vec3 vNjWorld;
-${a}
+${t}
 float njHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float njNoise(vec2 x) {
   vec2 i = floor(x), f = fract(x);
@@ -136,7 +126,7 @@ void main() {
       vec2 pp = vNjWorld.xy;
       float h = njPlaster(pp);
       vec2 g = vec2(njPlaster(pp + vec2(1.5, 0.0)) - h, njPlaster(pp + vec2(0.0, 1.5)) - h) / 1.5;
-      float k = clamp(dot(normalize(vec3(-g * ${xe.toFixed(2)}, 1.0)), uSunD) / uSunD.z, 0.0, 1.0);
+      float k = clamp(dot(normalize(vec3(-g * ${we.toFixed(2)}, 1.0)), uSunD) / uSunD.z, 0.0, 1.0);
       c = mix(c, lit, k);
     }
   }
@@ -144,16 +134,16 @@ void main() {
   #include <colorspace_fragment>
   float n = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
   gl_FragColor.rgb += (n - 0.5) / 255.0;
-}`;function Ee(a){let i="gl_FragColor = vec4(vec3(e * uShelfAlbedo), 1.0);";if(!U.includes(i)||!U.includes("void main() {"))throw new Error("sun: shelves.js changed");return U.replace("void main() {",`${a}
+}`;function Ee(t){let i="gl_FragColor = vec4(vec3(e * uShelfAlbedo), 1.0);";if(!U.includes(i)||!U.includes("void main() {"))throw new Error("sun: shelves.js changed");return U.replace("void main() {",`${t}
 void main() {`).replace(i,`vec3 njc = vec3(e * uShelfAlbedo);
   float njnl = dot(nl, uSunD);
   if (njnl > 0.0 && uSunFade > 0.0) {
     float v = njSunVis(vPos, -1);
-    njc = njSunAdd(njc, njSunColour(v) * (uSunPower * uSunFade * njnl * v * ${de.toFixed(3)}));
+    njc = njSunAdd(njc, njSunColour(v) * (uSunPower * uSunFade * njnl * v * ${he.toFixed(3)}));
   }
-  gl_FragColor = vec4(njc, 1.0);`)}function be(a,i,f,v){a.vertexShader=a.vertexShader.replace("void main() {",`varying vec3 vNjWorld;
+  gl_FragColor = vec4(njc, 1.0);`)}function be(t,i,f,v){t.vertexShader=t.vertexShader.replace("void main() {",`varying vec3 vNjWorld;
 void main() {`).replace("#include <project_vertex>",`#include <project_vertex>
-  vNjWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;`),a.fragmentShader=a.fragmentShader.replace("void main() {",`varying vec3 vNjWorld;
+  vNjWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;`),t.fragmentShader=t.fragmentShader.replace("void main() {",`varying vec3 vNjWorld;
 uniform int uNjSelf;
 uniform float uNjGain;
 ${i}
@@ -165,7 +155,7 @@ void main() {`).replace("#include <aomap_fragment>",`#include <aomap_fragment>
       reflectedLight.directDiffuse += diffuseColor.rgb * njSunColour(njV) * (uSunPower * uSunFade * njNl * njV * uNjGain);
     }
     reflectedLight.indirectDiffuse += diffuseColor.rgb * uSunBounce * uSunFade;
-  }`),a.uniforms.uNjSelf={value:f},a.uniforms.uNjGain={value:v}}var ve=`
+  }`),t.uniforms.uNjSelf={value:f},t.uniforms.uNjGain={value:v}}var ve=`
 varying vec2 vUv;
 void main() { vUv = position.xy * 0.5 + 0.5; gl_Position = vec4(position.xy, 0.0, 1.0); }`,je=`
 precision highp float;
@@ -243,11 +233,6 @@ float rosette(vec2 p, vec2 c, float a0, float len, float wid, float sway) {
   }
   return m;
 }
-float cable(vec2 p, float y0, float slope, float sag, float w) {
-  float x = p.x / 600.0;
-  float y = y0 + slope * p.x + sag * x * x;
-  return step(abs(p.y - y) / sqrt(1.0 + pow(slope + 2.0 * sag * x / 600.0, 2.0)), w);
-}
 void main() {
   // The sun's view, turned to read as the wall does: +x toward the window's side of the patch.
   vec2 p = (vUv * 2.0 - 1.0) * uH;
@@ -269,9 +254,6 @@ void main() {
   m = max(m, step(capsule(p, mix(c1, b0, 0.4), c2, 6.5), 0.0));
   m = max(m, rosette(p, c1, 0.4, 135.0, 40.0, 0.05 * sway + 0.08 * gust * sin(t * 6.0)));
   m = max(m, rosette(p, c2, 1.9, 118.0, 36.0, 0.06 * sway + 0.08 * gust * sin(t * 6.4)));
-  // Two cables across the soi, sagging through the fanlight.
-  m = max(m, cable(p, 0.8 * uExt.y, 0.1, 36.0, 2.4));
-  m = max(m, cable(p, 0.9 * uExt.y, -0.06, 28.0, 1.8));
   gl_FragColor = vec4(vec3(1.0 - m), 1.0);
 }`,Te=`
 precision highp float;
@@ -287,4 +269,4 @@ void main() {
     acc += texture2D(uSrc, vUv + vec2(cos(a), sin(a)) * r * uTexel).r;
   }
   gl_FragColor = vec4(vec3(acc / 48.0), 1.0);
-}`;function Re(a){let i={type:te,format:ae,depthBuffer:!1,minFilter:K,magFilter:K,generateMipmaps:!1},f=new X(h,h,i),v=[h,h/2,h/4].map(r=>new X(r,r,i)),d=new re;d.setAttribute("position",new oe([-1,-1,0,3,-1,0,-1,3,0],3));let l=new W({uniforms:{uT:{value:0},uExt:{value:new k(1,1)},uH:{value:1}},vertexShader:ve,fragmentShader:je,depthTest:!1,depthWrite:!1}),p=new W({uniforms:{uSrc:{value:f.texture},uR:{value:1},uTexel:{value:new k(1/h,1/h)}},vertexShader:ve,fragmentShader:Te,depthTest:!1,depthWrite:!1}),t=new se(d,l);t.frustumCulled=!1;let x=new ie,g=new ue;return x.add(t),{textures:v.map(r=>r.texture),layout(r,y){l.uniforms.uExt.value.copy(r),l.uniforms.uH.value=y},render(r){let y=a.getRenderTarget();l.uniforms.uT.value=r,t.material=l,a.setRenderTarget(f),a.render(x,g);let z=2*l.uniforms.uH.value/h;t.material=p,v.forEach((G,D)=>{p.uniforms.uR.value=O[D]/z,a.setRenderTarget(G),a.render(x,g)}),a.setRenderTarget(y)},dispose(){f.dispose(),v.forEach(r=>r.dispose()),l.dispose(),p.dispose(),d.dispose()}}}function Fe({renderer:a,scene:i,wallMesh:f,shelfMeshes:v,sleeves:d}){let l=d.length,p=F.size,t={uSunD:{value:new s},uSunU:{value:new s},uSunV:{value:new s},uSunPower:{value:u.sun.power},uSunFade:{value:0},uWin:{value:new b},uWinX:{value:u.room.front},uWinBars:{value:new b},uWinFan:{value:new k},uMask:{value:new b},uLeaf0:{value:null},uLeaf1:{value:null},uLeaf2:{value:null},uLeafR:{value:new s(...O)},uSlv:{value:Array.from({length:l*3},()=>new b)},uShelfB:{value:j.tops.map(e=>new b(-j.width/2,j.width/2,e-j.thick,j.depth))},uSunBounce:{value:new s(...we)}},x=ge(l),g=Re(a);[t.uLeaf0.value,t.uLeaf1.value,t.uLeaf2.value]=g.textures;let r=f.material,y=new W({uniforms:{uBake:r.uniforms.uBake,uGain:r.uniforms.uGain,uSunDebug:{value:0},...t},vertexShader:ye,fragmentShader:Se(x),toneMapped:!1}),z=v.map(e=>e.material),G=z.map(e=>new W({uniforms:{...e.uniforms,...t},vertexShader:ce,fragmentShader:Ee(x),toneMapped:!1})),D=[];for(let e of d)for(let n of new Set([e.front,e.back,e.mats[0]])){let c=n.onBeforeCompile,R=n.customProgramCacheKey;n.onBeforeCompile=(m,H)=>{c.call(n,m,H),n.userData.njSun&&(Object.assign(m.uniforms,t),be(m,x,e.i,u.sun.coverGain[le(e.entry)]??u.sun.coverGain.default))},n.customProgramCacheKey=()=>R.call(n)+(n.userData.njSun?"-sun":""),D.push(n)}let w=!1,P=!0,I=0,S=new s,L=new s,q=new s,T=new s,V=new k;function Q({az:e=u.sun.az,el:n=u.sun.el,power:c=u.sun.power,debug:R=0}={}){y.uniforms.uSunDebug.value=R;let m=e*fe,H=n*fe,o=u.window,J=u.room.front;S.set(Math.cos(H)*Math.cos(m),Math.sin(H),Math.cos(H)*Math.sin(m)),L.set(-S.z,0,S.x).normalize(),q.crossVectors(L,S),t.uSunD.value.copy(S),t.uSunU.value.copy(L),t.uSunV.value.copy(q),t.uSunPower.value=c,t.uWin.value.set(o.z0,o.y0,o.z1,o.y1),t.uWinX.value=J,t.uWinBars.value.set(o.frame,o.bar,o.y0+(o.y1-o.y0)*o.transom,o.transomBar),t.uWinFan.value.set(o.rays,o.arc);let B=1/0,_=-1/0,C=1/0,A=-1/0;for(let me of[o.z0,o.z1])for(let he of[o.y0,o.y1]){T.set(J,he,me);let Z=T.dot(L),ee=T.dot(q);B=Math.min(B,Z),_=Math.max(_,Z),C=Math.min(C,ee),A=Math.max(A,ee)}V.set((_-B)/2,(A-C)/2);let Y=Math.max(V.x,V.y)+O[2]*2+24;T.set(J,(o.y0+o.y1)/2,(o.z0+o.z1)/2),t.uMask.value.set((B+_)/2,(C+A)/2,Y,T.dot(S)+u.sun.leaves),g.layout(V,Y),P=!0}Q();let E=new s,M=new s,N=new s;function pe(){for(let e of d){let n=e.mesh.matrixWorld,c=e.pose,R=ne.smoothstep(c.z,110,260),m=e.mesh.visible?c.opacity*(1-R):0;E.set(-p/2,0,F.thick).applyMatrix4(n),M.set(p/2,0,F.thick).applyMatrix4(n).sub(E),N.set(-p/2,p,F.thick).applyMatrix4(n).sub(E),t.uSlv.value[e.i*3].set(E.x,E.y,E.z,m),t.uSlv.value[e.i*3+1].set(M.x,M.y,M.z,0),t.uSlv.value[e.i*3+2].set(N.x,N.y,N.z,0)}}function $(e){w=!!e,f.material=w?y:r,v.forEach((n,c)=>{n.material=w?G[c]:z[c]});for(let n of D)!!n.userData.njSun!==w&&(n.userData.njSun=w,n.needsUpdate=!0)}return{get on(){return w},get fade(){return t.uSunFade.value},setParams:Q,setEnabled:$,setFade(e){t.uSunFade.value=e},sleevesMoved:pe,tick(e){return!P&&e===I?!1:(I=e,P=!1,g.render(I),!0)},async compile(e){let n=w;$(!0),a.compileAsync?await a.compileAsync(i,e):a.compile(i,e),$(n)},uniforms:t}}export{Fe as createSun};
+}`;function Re(t){let i={type:te,format:ae,depthBuffer:!1,minFilter:K,magFilter:K,generateMipmaps:!1},f=new X(d,d,i),v=[d,d/2,d/4].map(r=>new X(r,r,i)),h=new re;h.setAttribute("position",new oe([-1,-1,0,3,-1,0,-1,3,0],3));let l=new k({uniforms:{uT:{value:0},uExt:{value:new C(1,1)},uH:{value:1}},vertexShader:ve,fragmentShader:je,depthTest:!1,depthWrite:!1}),m=new k({uniforms:{uSrc:{value:f.texture},uR:{value:1},uTexel:{value:new C(1/d,1/d)}},vertexShader:ve,fragmentShader:Te,depthTest:!1,depthWrite:!1}),a=new ue(h,l);a.frustumCulled=!1;let w=new ie,g=new se;return w.add(a),{textures:v.map(r=>r.texture),layout(r,S){l.uniforms.uExt.value.copy(r),l.uniforms.uH.value=S},render(r){let S=t.getRenderTarget();l.uniforms.uT.value=r,a.material=l,t.setRenderTarget(f),t.render(w,g);let D=2*l.uniforms.uH.value/d;a.material=m,v.forEach((G,L)=>{m.uniforms.uR.value=O[L]/D,t.setRenderTarget(G),t.render(w,g)}),t.setRenderTarget(S)},dispose(){f.dispose(),v.forEach(r=>r.dispose()),l.dispose(),m.dispose(),h.dispose()}}}function De({renderer:t,scene:i,wallMesh:f,shelfMeshes:v,sleeves:h}){let l=h.length,m=z.size,a={uSunD:{value:new u},uSunU:{value:new u},uSunV:{value:new u},uSunPower:{value:s.sun.power},uSunFade:{value:0},uWin:{value:new b},uWinX:{value:s.room.front},uWinBars:{value:new b},uMask:{value:new b},uLeaf0:{value:null},uLeaf1:{value:null},uLeaf2:{value:null},uLeafR:{value:new u(...O)},uSlv:{value:Array.from({length:l*3},()=>new b)},uShelfB:{value:j.tops.map(e=>new b(-j.width/2,j.width/2,e-j.thick,j.depth))},uSunBounce:{value:new u(...xe)}},w=ge(l),g=Re(t);[a.uLeaf0.value,a.uLeaf1.value,a.uLeaf2.value]=g.textures;let r=f.material,S=new k({uniforms:{uBake:r.uniforms.uBake,uGain:r.uniforms.uGain,uSunDebug:{value:0},...a},vertexShader:Se,fragmentShader:ye(w),toneMapped:!1}),D=v.map(e=>e.material),G=D.map(e=>new k({uniforms:{...e.uniforms,...a},vertexShader:ce,fragmentShader:Ee(w),toneMapped:!1})),L=[];for(let e of h)for(let n of new Set([e.front,e.back,e.mats[0]])){let c=n.onBeforeCompile,R=n.customProgramCacheKey;n.onBeforeCompile=(p,H)=>{c.call(n,p,H),n.userData.njSun&&(Object.assign(p.uniforms,a),be(p,w,e.i,s.sun.coverGain[le(e.entry)]??s.sun.coverGain.default))},n.customProgramCacheKey=()=>R.call(n)+(n.userData.njSun?"-sun":""),L.push(n)}let x=!1,P=!0,I=0,y=new u,F=new u,$=new u,T=new u,V=new C;function Q({az:e=s.sun.az,el:n=s.sun.el,power:c=s.sun.power,debug:R=0}={}){S.uniforms.uSunDebug.value=R;let p=e*fe,H=n*fe,o=s.window,q=s.room.front;y.set(Math.cos(H)*Math.cos(p),Math.sin(H),Math.cos(H)*Math.sin(p)),F.set(-y.z,0,y.x).normalize(),$.crossVectors(F,y),a.uSunD.value.copy(y),a.uSunU.value.copy(F),a.uSunV.value.copy($),a.uSunPower.value=c,a.uWin.value.set(o.z0,o.y0,o.z1,o.y1),a.uWinX.value=q,a.uWinBars.value.set(o.frame,o.bar,o.y0+(o.y1-o.y0)*o.transom,o.transomBar);let N=1/0,_=-1/0,B=1/0,A=-1/0;for(let pe of[o.z0,o.z1])for(let de of[o.y0,o.y1]){T.set(q,de,pe);let Z=T.dot(F),ee=T.dot($);N=Math.min(N,Z),_=Math.max(_,Z),B=Math.min(B,ee),A=Math.max(A,ee)}V.set((_-N)/2,(A-B)/2);let Y=Math.max(V.x,V.y)+O[2]*2+24;T.set(q,(o.y0+o.y1)/2,(o.z0+o.z1)/2),a.uMask.value.set((N+_)/2,(B+A)/2,Y,T.dot(y)+s.sun.leaves),g.layout(V,Y),P=!0}Q();let E=new u,W=new u,M=new u;function me(){for(let e of h){let n=e.mesh.matrixWorld,c=e.pose,R=ne.smoothstep(c.z,110,260),p=e.mesh.visible?c.opacity*(1-R):0;E.set(-m/2,0,z.thick).applyMatrix4(n),W.set(m/2,0,z.thick).applyMatrix4(n).sub(E),M.set(-m/2,m,z.thick).applyMatrix4(n).sub(E),a.uSlv.value[e.i*3].set(E.x,E.y,E.z,p),a.uSlv.value[e.i*3+1].set(W.x,W.y,W.z,0),a.uSlv.value[e.i*3+2].set(M.x,M.y,M.z,0)}}function J(e){x=!!e,f.material=x?S:r,v.forEach((n,c)=>{n.material=x?G[c]:D[c]});for(let n of L)!!n.userData.njSun!==x&&(n.userData.njSun=x,n.needsUpdate=!0)}return{get on(){return x},get fade(){return a.uSunFade.value},setParams:Q,setEnabled:J,setFade(e){a.uSunFade.value=e},sleevesMoved:me,tick(e){return!P&&e===I?!1:(I=e,P=!1,g.render(I),!0)},async compile(e){let n=x;J(!0),t.compileAsync?await t.compileAsync(i,e):t.compile(i,e),J(n)},uniforms:a}}export{De as createSun};
