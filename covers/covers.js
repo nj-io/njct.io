@@ -31,7 +31,7 @@ const FACES = [
 ];
 // Faces only the backs use load with the first back.
 const BACK_FACES = [
-  ['NJ Display', 'bricolage-grotesque-96pt-extrabold-cover.woff2', '800'],
+  ['NJ Display', 'bricolage-grotesque-96pt-extrabold-ascii-cover.woff2', '800'],
   ['NJ Mono', 'jetbrains-mono-medium-cover.woff2', '500'],
 ];
 const loadFaces = list => Promise.all(list.map(([family, file, weight]) => {
