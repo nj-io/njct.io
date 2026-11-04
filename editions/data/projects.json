@@ -4,6 +4,7 @@
   "kind": "project",
   "year": "2025",
   "tag": "Real-time X→Telegram mirror and digest",
+  "video": { "src": "/editions/media/mirra-promo-720.mp4", "poster": "/editions/media/mirra-promo-poster.jpg", "band": 0.3 },
   "blurb": "Never miss a post from the accounts you care about — mirrored to Telegram in real time, then distilled into a digest of their posts and shifting sentiment.",
   "url": "https://mirra.to",
   "stack": "Next.js · Python · MTProto · Supabase",
