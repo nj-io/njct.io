@@ -1,5 +1,5 @@
-// A project's page, opened from the shelf: a cut to its world (the Gray-Scott culture grown from its name,
-// in its accent), the accent panel sliding in with the giant vertical title, then the dossier below:
+// A project's page, opened from the shelf: a cut to a flat window in its accent, the accent panel sliding in
+// with the giant vertical title, then the dossier below:
 // Overview, Under the hood, Build process. About Neil gets the same structure with its own text.
 // Loaded on demand with its stylesheet and the project's dossier file; disposed on Back.
 import { OPEN, CONTACT } from '../scene/config.js';
@@ -213,15 +213,13 @@ function scrambleHTML(text, u) {   // u 0..1: letters settle in reading order, e
   return out;
 }
 
-export function createProjectView({ renderer, entries, slugOf, onBack }) {
+export function createProjectView({ entries, slugOf, onBack }) {
   let st = null, token = 0;
-  // The world (three.js) loads with the view on the shelf; the no-WebGL shelf never loads it.
-  const worldP = renderer ? import('./world.js') : null;
 
   async function open(i, { cutAfter = 0 } = {}) {
     close();
     const my = ++token, t0 = performance.now(), entry = entries[i];
-    const [data, , W] = await Promise.all([entry.kind === 'about' ? null : loadDossier(slugOf(entry)), loadCss(), worldP]);
+    const [data] = await Promise.all([entry.kind === 'about' ? null : loadDossier(slugOf(entry)), loadCss()]);
     if (my !== token) return;
 
     // The page is built and parsed before the cut (hidden, so nothing is laid out yet). At the cut only the
@@ -277,7 +275,7 @@ export function createProjectView({ renderer, entries, slugOf, onBack }) {
     window.scrollTo(0, 0);
 
     const q = s => root.querySelector(s);
-    const title = q('.pj-title'), titleSpan = title.firstElementChild, panel = q('.pj-panel'), win = q('.pj-window'), body = q('.pj-body');
+    const title = q('.pj-title'), titleSpan = title.firstElementChild, panel = q('.pj-panel');
     const vertical = () => matchMedia('(min-width: 900px)').matches;
     const fit = () => {
       const tc = q('.pj-titlecol').getBoundingClientRect(), hero = q('.pj-hero').getBoundingClientRect();
@@ -307,12 +305,10 @@ export function createProjectView({ renderer, entries, slugOf, onBack }) {
     root.querySelectorAll('.pj-part').forEach(s => io.observe(s));
     const sig = signalTitles(root);
 
-    // Without WebGL (the static fallback) the window shows the accent's light in place of the world.
-    const world = renderer ? W.createWorld(renderer, entry.name, col.hue, { reduced: reduced() })
-      : { seed() {}, frame() {}, dispose() {}, still: true };
-    if (!renderer) root.classList.add('pj-noworld');
+    // The window holds the accent's light (project.css, .pj-noworld): the page has no living culture.
+    root.classList.add('pj-noworld');
     const cut = performance.now();
-    st = { i, root, world, io, sig, raf: 0, last: 0, cut, frames: 0, panelDone: !vertical(), titleDone: false, fit };
+    st = { i, root, io, sig, raf: 0, cut, frames: 0, panelDone: !vertical(), titleDone: false, fit };
     const warmBody = () => root.classList.remove('pj-cold');
     // After the body, each section is laid out in full in a frame of its own (pj-laid), so every heading and
     // its content are in the accessibility tree wherever the page is scrolled (a section that
@@ -328,19 +324,9 @@ export function createProjectView({ renderer, entries, slugOf, onBack }) {
     addEventListener('keydown', onKey);
     title.focus({ preventScroll: true });
 
-    // The world shows through its window until the page covers it; off screen, the culture stops.
-    const visibleRect = () => {
-      const r = win.getBoundingClientRect(), cover = body.getBoundingClientRect().top;
-      const top = Math.max(r.top, 0), bottom = Math.min(r.bottom, innerHeight, cover);
-      if (bottom - top < 1 || document.hidden || !renderer) return null;
-      const pr = renderer.getPixelRatio();
-      return [r.left * pr, (innerHeight - r.bottom) * pr, r.width * pr, r.height * pr];
-    };
     function frame(now) {
-      if (!st || st.world !== world) return;
+      if (!st || st.root !== root) return;
       st.raf = 0;
-      const dt = st.last ? Math.min(0.05, (now - st.last) / 1000) : 1 / 60;
-      st.last = now;
       const t = now - st.cut;
       let busy = ++st.frames < 3 || unlaid.length > 0;
       if (st.frames === 2) warmBody();
@@ -356,12 +342,7 @@ export function createProjectView({ renderer, entries, slugOf, onBack }) {
         titleSpan.innerHTML = reduced() ? (u > 0 ? esc(entry.name) : scrambleHTML(entry.name, 0)) : scrambleHTML(entry.name, u);
         st.titleDone = u >= 1; busy = true;
       }
-      if (t >= delay(OPEN.seed)) world.seed();
-      const rect = visibleRect();
-      if (rect) world.frame(dt, rect);
-      else st.last = 0;
-      // A still world (reduced motion) draws again only when the page scrolls or resizes.
-      if ((rect && !(reduced() && world.still)) || busy) st.raf = requestAnimationFrame(frame);
+      if (busy) st.raf = requestAnimationFrame(frame);
     }
     function wake() { if (st && !st.raf) st.raf = requestAnimationFrame(frame); }
     st.wake = wake;
@@ -375,7 +356,6 @@ export function createProjectView({ renderer, entries, slugOf, onBack }) {
     st = null;
     if (s.raf) cancelAnimationFrame(s.raf);
     s.off(); s.io.disconnect(); s.sig();
-    s.world.dispose();
     s.root.remove();
     document.documentElement.classList.remove('in-project');
     document.documentElement.style.removeProperty('--pj-ground');
@@ -384,11 +364,10 @@ export function createProjectView({ renderer, entries, slugOf, onBack }) {
 
   return {
     open, close,
-    // Before the first Open, at idle on the shelf: the stylesheet, and the world's programs (resolves to
-    // the warm-up's draw, for the shelf to run in one of its frames).
+    // Before the first Open, at idle on the shelf: the stylesheet and the page's font.
     warm() {
       loadCss().then(() => document.fonts.load("500 13px 'NJ Page Mono'")).catch(() => {});
-      return renderer ? worldP.then(W => W.warmWorld(renderer)) : Promise.resolve(null);
+      return Promise.resolve(null);
     },
     get index() { return st ? st.i : -1; },
     get busy() { return !!st?.raf; },
