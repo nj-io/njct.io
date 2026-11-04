@@ -178,6 +178,16 @@ function setAlive(i) {
   aliveIdx = i;
   if (i >= 0) covers[i]?.setAlive(true);
 }
+// Ambient cover motion (prototype, covers.js coverMotion): at rest the covers move slowly, each drawn a few times a second
+// and staggered; the frame loop asks it before every draw, and it wakes the loop when a cover is next due (at most 30 times a
+// second: a clock of its own, to share with the sun's ambient clock at merge). It waits for the intro, holds the shelf in
+// Details, and stops on a page, in a hidden tab and under reduced motion. Off unless __editionsTest.coverMotion asks for it.
+coversMod.then(m => {
+  m.coverMotion.attach({ wake, reduced, test: window.__editionsTest?.coverMotion });
+  if (window.__editions) window.__editions.coverMotion = m.coverMotion;
+});
+const stepCovers = now => !window.__editionsTest?.stillCovers && coversM?.coverMotion.step(now,
+  { ready: settled.every(Boolean), details: !!det, crate: crateMode ? crate.current : -1 });
 
 // ---- sound --------------------------------------------------------------------------------------
 // The sound engine loads with the visitor's first pointer move or key, which keeps it out of the first
@@ -507,6 +517,7 @@ function frame(now) {
     if (lifted >= 0) sleeves[lifted].fall = null;
   }
   setAlive(det ? (Math.cos(sleeves[det.i].pose.yaw) > 0 ? det.i : -1) : lifted);   // in Details, while its front faces
+  stepCovers(now);
   const waiting = lifted !== want;
   for (const s of sleeves) {
     let moved = false;
