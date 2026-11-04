@@ -360,6 +360,15 @@ void main() {
   #include <colorspace_fragment>
 }`;
 
+// A contact shadow: a soft dark ellipse multiplied into the surface under a small thing (strength in vCol.r).
+const CONTACT_FRAG = /* glsl */`
+varying vec3 vCol;
+varying vec2 vUv;
+void main() {
+  vec2 q = (vUv - 0.5) * 2.0;
+  float d = dot(q, q), a = vCol.r * exp(-d * 2.6) * smoothstep(1.0, 0.55, d);
+  gl_FragColor = vec4(vec3(1.0 - a), 1.0);
+}`;
 const EMISSIVE_FRAG = /* glsl */`
 varying vec3 vCol;
 void main() { gl_FragColor = vec4(vCol, 1.0);
@@ -670,6 +679,8 @@ export function createShell({ renderer, scene, lightUniforms, sun }) {
     emit: shaderMat(EMISSIVE_FRAG),
     leaf: shaderMat(LEAF_FRAG, { uAtlas: { value: leafTex } }, { side: THREE.DoubleSide, alphaToCoverage: true }),
     glass: shaderMat(GLASS_FRAG, { uAlpha: { value: 0.05 } }, { transparent: true, depthWrite: false, side: THREE.DoubleSide }),
+    contact: shaderMat(CONTACT_FRAG, {}, { transparent: true, depthWrite: false, blending: THREE.CustomBlending, blendEquation: THREE.AddEquation,
+      blendSrc: THREE.ZeroFactor, blendDst: THREE.SrcColorFactor, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }),
   };
 
   // ---- building: every part goes into its material's batch, in world space, with its colour ----------
@@ -728,7 +739,11 @@ export function createShell({ renderer, scene, lightUniforms, sun }) {
       uv.setXY(i, ((cell & 3) + u) / 4, 1 - ((cell >> 2) + 1 - v) / 2);
     }
     g.computeVertexNormals();
-    put('leaf', g, new THREE.Matrix4().makeBasis(x, y, z).setPosition(base), col);
+    g.applyMatrix4(new THREE.Matrix4().makeBasis(x, y, z).setPosition(base));
+    const q = g.attributes.position;
+    for (let i = 0; i < q.count; i++) q.setXYZ(i, Math.min(Math.max(q.getX(i), XB + 3), XF - 3), Math.min(q.getY(i), YC - 3), Math.min(Math.max(q.getZ(i), 3), ZD - 3));
+    g.computeVertexNormals();
+    put('leaf', g, null, col);
   }
   const stem = (a, b, r = 3, col = C.stem) => rod('plain', col, a, b, r, null, 5);
   function pot(x, y, z, r, h, col = C.terra, key = 'satin') {
@@ -913,6 +928,7 @@ export function createShell({ renderer, scene, lightUniforms, sun }) {
   const pane = (z0, y0, z1, y1) => special(new THREE.PlaneGeometry(z1 - z0, y1 - y0), reeded, at(XF + 6, (y0 + y1) / 2, (z0 + z1) / 2, -Math.PI / 2));
   pane(SF.z0, SF.y0, W.z0, SF.y1); pane(W.z1, SF.y0, SF.z1, SF.y1);
   pane(W.z0, SF.y0, W.z1, W.y0); pane(W.z0, W.y1, W.z1, SF.y1);
+  quad('glass', [0.84, 0.92, 0.88], W.z1 - W.z0, W.y1 - W.y0, at(XF + 3, (W.y0 + W.y1) / 2, (W.z0 + W.z1) / 2, -Math.PI / 2));
 
   // The record wall: v1's studio light carried out to the room's corners (a coarse bake of the same light,
   // behind v1's own wall plane), a low cabinet of records in the corner by the window with a plant on it,
@@ -1323,12 +1339,27 @@ export function createShell({ renderer, scene, lightUniforms, sun }) {
   for (let k = 0; k < 3; k++) { const gg = new THREE.BoxGeometry(12, 1, 2).translate(26, 2.6, 0).rotateY(k * 2.1); put('plain', gg, null, [0.95, 0.9, 0.8]); batches.get('plain').pop(); record.add(new THREE.Mesh(keep(gg), MAT.plain)); }
   group.add(record);
 
+  // Contact shadows under the small things (the furniture's own boxes shade the floor already).
+  const contact = (x, y, z, rx, rz, k = 0.3) => quad('contact', [k, 0, 0], rx * 2, rz * 2, at(x, y + 0.6, z, 0, -Math.PI / 2));
+  {
+    const ty = TB.top, iy = CT.top, by = CT.backTop;
+    for (const [x, z, rx, rz, k] of [[860, 1640, 80, 105, 0.32], [905, 1820, 34, 34, 0.38], [800, 1430, 50, 66, 0.24], [760, 1840, 26, 48, 0.28],
+      [790, 2000, 46, 46, 0.3], [1050, 1300, 50, 50, 0.34], [990, 1270, 28, 28, 0.3], [1075, 2010, 42, 42, 0.34]]) contact(x, ty, z, rx, rz, k);
+    for (const [x, z] of [[560, 1700], [630, 1430]]) contact(x, YF, z, 125, 125, 0.32);
+    for (const x of [TB.x0 + 34, TB.x1 - 34]) for (const z of [TB.z0 + 34, TB.z1 - 34]) contact(x, YF, z, 46, 46, 0.3);
+    contact(-1000, YF, 430, 135, 135, 0.4);
+    for (const [x, z, rx, rz, k] of [[-1347, 1510, 165, 225, 0.28], [-1420, 1150, 70, 66, 0.34], [-1420, 1010, 70, 66, 0.34], [-1330, 1945, 150, 160, 0.22],
+      [-1262, 2200, 36, 36, 0.36], [-1250, 815, 46, 46, 0.3], [-1250, 905, 46, 46, 0.3], [-1325, 860, 30, 30, 0.3], [-1230, 1050, 30, 30, 0.34]]) contact(x, iy, z, rx, rz, k);
+    for (const [x, z, rx, rz] of [[-2250, 390, 150, 200], [-2245, 1190, 140, 110], [-2260, 1420, 80, 80], [-2240, 1745, 56, 56]]) contact(x, by, z, rx, rz, 0.26);
+  }
+
   // ---- the batches, merged: one draw per material --------------------------------------------------------
   for (const [key, geos] of batches) {
     const g = keep(merge(geos));
     for (const x of geos) x.dispose();
     const m = new THREE.Mesh(g, MAT[key]);
     if (key === 'glass') m.renderOrder = 2;
+    if (key === 'contact') m.renderOrder = 1;
     group.add(m);
   }
   batches.clear();

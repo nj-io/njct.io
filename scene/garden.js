@@ -10,6 +10,7 @@ import { drawLeaves, atlasUV, ATLAS } from './leaves.js';
 
 const R = CAFE.room, W = CAFE.window;
 const XF = R.front + R.wall;             // the street side of the front wall
+const PANE = XF + 3;                     // the glass, as the garden meets it: nothing passes it
 const GROUND = R.floor - 70;             // the yard outside, a step down from the café's floor
 const UP = new THREE.Vector3(0, 1, 0);
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
@@ -29,6 +30,12 @@ vec3 njWind(vec2 w) {
   float flutter = sin(uT * 5.6 + w.x * 9.0) * (0.25 + g);       // leaves never quite still; more in a gust
   vec3 dir = normalize(vec3(-0.3, 0.0, 1.0));
   return dir * (w.y * (22.0 * sway + 30.0 * g * (0.6 + 0.4 * sin(uT * 2.1 + w.x))) + f * 10.0 * flutter) + vec3(0.0, f * 12.0 * flutter, 0.0);
+}
+// The street front and the neighbour's wall stop what the wind moves: a leaf pushed against the glass lies
+// flat on it. (Rigid parts, w.y 0, are built clear of both.)
+vec3 njBarrier(vec3 p, vec2 w) {
+  if (w.y <= 0.0) return p;
+  return vec3(max(p.x, ${PANE.toFixed(1)}), p.y, max(p.z, -18.0));
 }`;
 
 const VIEW_VERT = /* glsl */`
@@ -40,7 +47,7 @@ varying vec2 vUv;
 ${WIND_GLSL}
 void main() {
   vec4 w = modelMatrix * vec4(position, 1.0);
-  w.xyz += njWind(aWind);
+  w.xyz = njBarrier(w.xyz + njWind(aWind), aWind);
   vP = w.xyz;
   vN = normalize(mat3(modelMatrix) * normal);
   vCol = aCol;
@@ -91,7 +98,14 @@ void main() {
   vec3 c = vCol * t.rgb;
   vec3 light = uSkyCol * (0.32 + 0.18 * max(n.y, 0.0)) + uSunCol * lit * max(nd, 0.0);
   if (uSolid < 0.5) light += uSunCol * lit * 0.6 * max(-nd, 0.0) * vec3(0.8, 1.0, 0.35);   // through the leaf
-  gl_FragColor = vec4(c * light, cover);
+  vec3 col = c * light;
+  // a leaf pressed on the glass: no air between, so it reads darker and deeper in colour where it touches
+  float gap = max(vP.x - ${PANE.toFixed(1)}, 0.0), touch = exp(-gap / 12.0) * (1.0 - uSolid);
+  float grey = dot(col, vec3(0.3, 0.59, 0.11));
+  col = mix(col, mix(vec3(grey), col, 1.35) * 0.62, touch);
+  // and the air: what stands further out is softer, toward the haze of the soi
+  col = mix(col, vec3(1.05, 0.97, 0.86), (1.0 - exp(-gap / 2600.0)) * 0.32);
+  gl_FragColor = vec4(col, cover);
   #include <colorspace_fragment>
 }`;
 
@@ -104,7 +118,7 @@ varying float vDepth;
 ${WIND_GLSL}
 void main() {
   vec4 w = modelMatrix * vec4(position, 1.0);
-  w.xyz += njWind(aWind);
+  w.xyz = njBarrier(w.xyz + njWind(aWind), aWind);
   vUv = uv;
   vDepth = dot(w.xyz, uSunD);
   gl_Position = projectionMatrix * viewMatrix * w;
@@ -160,7 +174,10 @@ export function createGarden({ renderer }) {
   const inBeamCore = (p, r) => { const q = p.clone().sub(beamO), t = q.dot(sunD); return t > 0 && q.addScaledVector(sunD, -t).length() < r; };
 
   // A leaf card from the atlas: its stem end at `base`, along `dir`, w wide and h long; bend droops the tip.
+  const press = mulberry32(97);
   function leaf(cell, col, base, dir, w, h, bend, roll, phase, flex0) {
+    const tip = base.clone().addScaledVector(dir.clone().normalize(), h);
+    if (tip.x < PANE + 10 && !(base.x - PANE < 90 && press() < 0.35)) { dir = dir.clone(); dir.x = Math.abs(dir.x) + 0.15; }
     const y = dir.clone().normalize(), x = new THREE.Vector3().crossVectors(y, UP);
     if (x.lengthSq() < 1e-6) x.set(1, 0, 0);
     x.normalize();
