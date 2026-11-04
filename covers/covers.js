@@ -279,16 +279,15 @@ vec3 motif(vec2 p, float t) {
   if (p.y < YF) {
     float dz = YF - p.y;
     vec2 pm = vec2(p.x, 2.0 * YF - p.y);
-    // motion c: a ripple spreads across the mirror from the ring's foot, as if a post had just landed in it
-    if (mOn(3.0)) {
-      float u = t / uCycle, k = mRise(u, 0.02, 0.1) * (1.0 - mRise(u, 0.5, 0.86));
-      if (k > 0.0) {
-        vec2 w = vec2(p.x - 0.488, dz * 3.4);
-        float r = length(w), R = 0.03 + 0.95 * sat((u - 0.02) / 0.84), x = r - R;
-        float env = k * exp(-x * x / 0.009) / (1.0 + 2.5 * R), wave = sin(x * 115.0);
-        pm += vec2(w.x / max(r, 1e-3) * 0.5, -1.0) * 0.014 * env * wave;
-        col *= 1.0 + 0.2 * env * sin(x * 115.0 + 0.8);
-      }
+    // motion c, never repeating: ripples run out across the mirror from the ring's foot without end, two trains of waves
+    // on unequal periods whose strength drifts, from a source that wanders along the foot
+    if (mOn(3.0) && t > 0.0) {
+      vec2 w = vec2(p.x - 0.488 - 0.05 * sin(TAU * t / 23.0), dz * 3.4);
+      float r = length(w), g = ease(sat(t / 2.0)) / (1.0 + 2.5 * r) * smoothstep(0.0, 0.04, r);
+      float a1 = 0.6 + 0.4 * sin(TAU * t / 13.0), a2 = 0.5 + 0.5 * sin(TAU * t / 17.0 + 1.3);
+      float f1 = r * 115.0 - TAU * t / 0.9, f2 = r * 70.0 - TAU * t / 1.4 + 0.7;
+      pm += vec2(w.x / max(r, 1e-3) * 0.5, -1.0) * 0.011 * g * (a1 * sin(f1) + 0.7 * a2 * sin(f2));
+      col *= 1.0 + 0.14 * g * (a1 * cos(f1) + 0.7 * a2 * cos(f2));
     }
     vec4 fm = formAt(pm);
     float b = 0.0015 + dz * 0.10;
@@ -627,12 +626,16 @@ vec3 whale(vec4 f, vec2 p, vec2 pw, float t) {
   c += SIDELT * 1.5 * exp(-max(p.y - YF, 0.0) / 0.08) * (0.35 + 0.65 * lower) * exp(-dd / 0.03);
   // motion c: light runs through the fan of blades on its back, blade by blade, left to right: the bridges back to the
   // Mac (clipboard, sound, Chrome, git, MCP) lighting in turn
-  if (mOn(3.0)) {
+  // never repeating: two beams of light keep running round it the same way, on unequal periods, each blade lighting as
+  // a beam crosses it (below the fan a beam has nothing to light, and comes back in at the left)
+  if (mOn(3.0) && t > 0.0) {
     vec2 r = pw - FAN;
-    float u = t / uCycle, k = mRise(u, 0.0, 0.1) * (1.0 - mRise(u, 0.6, 0.74)), rl = length(r);
-    if (k > 0.0 && r.y > -0.01 && rl > 0.03 && rl < 0.27) {
-      float da = atan(r.y, r.x) - mix(2.95, 0.15, ease(sat((u - 0.04) / 0.64)));
-      c += k * exp(-da * da / 0.02) * (SIDELT * 1.1 + RIM * 0.9 * exp(-pow(dd / 0.004, 2.0)));
+    float rl = length(r);
+    if (r.y > -0.01 && rl > 0.03 && rl < 0.27) {
+      float a = atan(r.y, r.x), g = ease(sat(t / 2.0));
+      float d1 = mod(a - PI + TAU * t / 7.0 + PI, TAU) - PI, d2 = mod(a - PI + TAU * t / 11.3 - 2.1 + PI, TAU) - PI;
+      float beam = exp(-d1 * d1 / 0.02) * (0.7 + 0.3 * sin(TAU * t / 5.3)) + 0.75 * exp(-d2 * d2 / 0.03);
+      c += g * beam * (SIDELT * 1.7 + RIM * 1.3 * exp(-pow(dd / 0.004, 2.0)));
     }
   }
   return max(c, 0.0);
@@ -784,7 +787,7 @@ float streak(vec2 u, vec2 c, vec2 s, vec2 cs) {
 void weigh(vec2 p, float t, inout float w[${FO.length}], inout vec3 extra) {
   vec2 u = vec2(p.x, 1.0 - p.y);
   // motion a: a glint runs round the ring and caustics shimmer in the star, fading in and out over the cycle
-  float live = uV1 > 0.5 ? 1.0 - exp(-t * 1.2) : mOn(1.0) ? mRise(t / uCycle, 0.0, 0.12) * (1.0 - mRise(t / uCycle, 0.86, 1.0)) : 0.0;
+  float live = uV1 > 0.5 || mOn(1.0) ? 1.0 - exp(-t * 1.2) : 0.0;
   vec4 f = formAt(p);
   float cs = cover(f.r);
   vec2 uo0 = u - OFF0, uo1 = u - OFF1;
@@ -858,6 +861,12 @@ vec3 motif(vec2 p, float t) {
   // motion c: a camera dolly: the near orb (lower left) slides one way and back, the far one less the other way, the star
   // holding the middle of the frame
   if (mOn(3.0)) { float s = sin(TAU * t / uCycle); OFF1 = vec2(0.03 * s, -0.004 * s); OFF0 = vec2(-0.013 * s, 0.002 * s); }
+  // motion a, never repeating: the glint keeps running round the ring and the caustics shimmer, while the camera keeps
+  // drifting past the set: the near orb travels far on a slow path, the far orb less the other way, on unequal periods
+  if (mOn(1.0) && uV1 < 0.5 && t > 0.0) {
+    OFF1 = vec2(0.085 * sin(TAU * t / 19.0) + 0.035 * sin(TAU * t / 7.7), -0.05 * sin(TAU * t / 13.0) + 0.02 * sin(TAU * t / 5.9));
+    OFF0 = vec2(-0.05 * sin(TAU * t / 23.0) - 0.02 * sin(TAU * t / 8.3), 0.04 * sin(TAU * t / 17.0));
+  }
   vec3 col = vec3(0.0);
   for (int i = 0; i < ns; i++) {
     weigh((FC + (ns > 1 ? offs[i] : vec2(0.0))) / uRes, t, w, col);
@@ -897,8 +906,10 @@ vec3 motif(vec2 p, float t) {
   float bw = max(1.7, AAW * 566.0);   // the concept's edge, never under a pixel
   // motion a: the disc's quarters turn a step about their own split point, and rest
   vec2 S2 = vec2(275.746, 290.235);
-  float T = (mOn(1.0) ? t : 0.0) * 0.25, uc = t / uCycle;
-  float a = -0.5 * PI * (floor(T) + ease(sat((fract(T) - 0.62) / 0.38)));
+  float T = (uV1 > 0.5 ? t : 0.0) * 0.25, uc = t / uCycle;
+  float a = -0.5 * PI * (floor(T) + ease(sat((fract(T) - 0.62) / 0.38)));   // v1: a quarter at a time, resting between
+  // motion a, never repeating: the quarters keep turning the one way, surging a quarter at a time but never stopping
+  if (mOn(1.0) && uV1 < 0.5 && t > 0.0) a = -0.5 * PI * (t / 5.0 - 0.8 * sin(TAU * t / 5.0) / TAU);
   vec2 Xq = S2 + rot(-a) * (X - S2);
   float L = scCov(275.367 - X.x, bw), Tp = scCov(289.395 - X.y, bw);
   float L2 = scCov(S2.x - Xq.x, bw), T2 = scCov(S2.y - Xq.y, bw);
@@ -910,6 +921,9 @@ vec3 motif(vec2 p, float t) {
   }
   // motion c: the diagonal fields behind the disc gain and lose ground on one another, like a race for traffic
   vec3 race = mOn(3.0) ? vec3(30.0 * sin(TAU * uc), 24.0 * sin(2.0 * TAU * uc), -28.0 * sin(TAU * uc)) : vec3(0.0);
+  // ... while the fields behind it race, gaining and losing ground on unequal periods
+  if (mOn(1.0) && uV1 < 0.5 && t > 0.0) race = vec3(34.0 * sin(TAU * t / 11.0) + 10.0 * sin(TAU * t / 4.3), 28.0 * sin(TAU * t / 7.3),
+    -30.0 * sin(TAU * t / 13.7) - 8.0 * sin(TAU * t / 3.9));
   float tri = scCov(-scLine(X, vec3(0.728472, -0.685076, -104.283 + race.x)), bw);
   float dg = scCov(scLine(X, vec3(0.702087, 0.712092, 403.23 + race.y)), bw);
   float nb = scCov(scLine(X, vec3(0.694955, 0.719053, 651.874 + race.z)), bw);
@@ -1070,6 +1084,8 @@ vec3 motif(vec2 p, float t) {
   // motion a: the planets move along their orbits and the stars twinkle; b: the grid flows toward the viewer, as if
   // flying forward through the map; c: echoes ripple out from the centre star along its orbits, as sound spreads
   float ta = mOn(1.0) ? t : 0.0, u = t / uCycle;
+  // motion a: the planets travel their orbits (four times v1's speed, v1's own with the motion off), the galaxies turn
+  float to = uV1 > 0.5 ? t : 4.0 * ta, tg = uV1 > 0.5 ? 0.0 : 0.06 * ta;
   float flow = mOn(2.0) ? fract(t / 3.0) : 0.0, fly = mOn(2.0) ? mRise(u, 0.0, 0.15) * (1.0 - mRise(u, 0.82, 1.0)) : 0.0;
   float echo = mOn(3.0) ? mRise(u, 0.0, 0.06) * (1.0 - mRise(u, 0.62, 0.74)) : 0.0;
   if (de < 0.01) {
@@ -1095,8 +1111,8 @@ vec3 motif(vec2 p, float t) {
     }
     sp = mix(sp, uPal[4], ring(sdEllipse(p - S, vec2(0.25, 0.25)), 0.0007) * 0.25);
     sp = mix(sp, uPal[4], ring(p.x - 0.5, 0.0008) * 0.6 * step(S.y, p.y));
-    sp = galaxy(sp, p, ic(0.255, 0.335), 0.06, 0.5, uPal[5]);
-    sp = galaxy(sp, p, ic(0.79, 0.62), 0.085, -0.45, uPal[5]);
+    sp = galaxy(sp, p, ic(0.255, 0.335), 0.06, 0.5 + tg, uPal[5]);
+    sp = galaxy(sp, p, ic(0.79, 0.62), 0.085, -0.45 - 0.8 * tg, uPal[5]);
     // the grid: a pyramid of light falling from the star
     vec2 bl = ic(0.235, 0.925), br = ic(0.765, 0.925);
     float tri = sdTri(p, S, bl, br);
@@ -1111,16 +1127,16 @@ vec3 motif(vec2 p, float t) {
     sp = mix(sp, grid, cover(tri) * (0.55 + 0.4 * depth));
     sp += uPal[7] * 0.25 * ring(tri, 0.0012) + toLin(vec3(0.5, 0.85, 1.0)) * 0.5 * ring(p.y - bl.y, 0.0016) * cover(tri - 0.002);
     // planets
-    sp = planet(sp, p, orbitPos(S, ic(0.37, 0.355), 0.06, ta), 0.022, toLin(vec3(1.0, 0.62, 0.3)), toLin(vec3(0.75, 0.25, 0.2)), S - p);
-    sp = planet(sp, p, orbitPos(S, ic(0.165, 0.50), 0.03, ta), 0.013, toLin(vec3(1.0, 0.96, 0.9)), toLin(vec3(0.75, 0.7, 0.7)), S - p);
-    sp = planet(sp, p, orbitPos(S, ic(0.275, 0.545), 0.05, ta), 0.011, toLin(vec3(0.55, 0.72, 1.0)), toLin(vec3(0.3, 0.35, 0.8)), S - p);
-    sp = planet(sp, p, orbitPos(S, ic(0.325, 0.605), 0.05, ta), 0.012, toLin(vec3(1.0, 0.5, 0.25)), toLin(vec3(0.7, 0.2, 0.15)), S - p);
-    sp = planet(sp, p, orbitPos(S, ic(0.705, 0.545), 0.045, ta), 0.019, toLin(vec3(1.0, 0.62, 0.25)), toLin(vec3(0.85, 0.3, 0.15)), S - p);
-    sp = planet(sp, p, orbitPos(S, ic(0.845, 0.555), 0.03, ta), 0.012, toLin(vec3(1.0, 0.96, 0.88)), toLin(vec3(0.8, 0.75, 0.7)), S - p);
-    vec2 PB = orbitPos(S, ic(0.215, 0.69), 0.02, ta);
+    sp = planet(sp, p, orbitPos(S, ic(0.37, 0.355), 0.06, to), 0.022, toLin(vec3(1.0, 0.62, 0.3)), toLin(vec3(0.75, 0.25, 0.2)), S - p);
+    sp = planet(sp, p, orbitPos(S, ic(0.165, 0.50), 0.03, to), 0.013, toLin(vec3(1.0, 0.96, 0.9)), toLin(vec3(0.75, 0.7, 0.7)), S - p);
+    sp = planet(sp, p, orbitPos(S, ic(0.275, 0.545), 0.05, to), 0.011, toLin(vec3(0.55, 0.72, 1.0)), toLin(vec3(0.3, 0.35, 0.8)), S - p);
+    sp = planet(sp, p, orbitPos(S, ic(0.325, 0.605), 0.05, to), 0.012, toLin(vec3(1.0, 0.5, 0.25)), toLin(vec3(0.7, 0.2, 0.15)), S - p);
+    sp = planet(sp, p, orbitPos(S, ic(0.705, 0.545), 0.045, to), 0.019, toLin(vec3(1.0, 0.62, 0.25)), toLin(vec3(0.85, 0.3, 0.15)), S - p);
+    sp = planet(sp, p, orbitPos(S, ic(0.845, 0.555), 0.03, to), 0.012, toLin(vec3(1.0, 0.96, 0.88)), toLin(vec3(0.8, 0.75, 0.7)), S - p);
+    vec2 PB = orbitPos(S, ic(0.215, 0.69), 0.02, to);
     sp = planet(sp, p, PB, 0.063, toLin(vec3(0.95, 0.55, 0.55)), toLin(vec3(0.45, 0.28, 0.85)), vec2(0.6, 0.5));
     // a ringed planet
-    vec2 PS = orbitPos(S, ic(0.735, 0.425), 0.035, ta);
+    vec2 PS = orbitPos(S, ic(0.735, 0.425), 0.035, to);
     vec2 so = rot(0.32) * (p - PS);
     float rd = sdEllipse(so, vec2(0.058, 0.014));
     vec3 ringC = toLin(vec3(0.78, 0.74, 0.98));
@@ -1170,12 +1186,14 @@ vec3 motif(vec2 p, float t) {
   C.x += roll;
   // motion c: a sundial: the light arcs over from the right to the left and back, and the shadow turns about the
   // sphere's foot (on the floor, seen foreshortened)
-  float sun = mOn(3.0) ? 0.55 * (0.5 - 0.5 * cos(TAU * u)) : 0.0;
+  float sun = 0.0, az = mOn(3.0) && t > 0.0 ? TAU * t / 36.0 : 0.0;
+  // never turning back: the light goes all the way round the sphere (about the line of sight, so the face we see is never
+  // left unlit), a turn every 36 clock s, and the shadow turns all the way round its foot with it
   // contact shadow, cast to the left (light from the upper right), in sphere radii from its foot, y down: a
   // near-black core just under it, a warm penumbra reaching left (the gold's light on the paper), a faint wide falloff
   // (skipped where the sphere hides it and well above its foot, where every term is under 1e-5)
   vec2 s = vec2(p.x - C.x, C.y - R - p.y) / R;
-  if (sun != 0.0) { vec2 f = rot(2.4 * sun) * vec2(s.x, s.y / 0.3); s = vec2(f.x, f.y * 0.3); }
+  if (az != 0.0) { vec2 f = rot(az) * vec2(s.x, s.y / 0.3); s = vec2(f.x, f.y * 0.3); }
   vec2 q = (p - C) / R;
   float rr = dot(q, q);
   if (rr > 0.95 && s.y > -1.2) {
@@ -1191,7 +1209,7 @@ vec3 motif(vec2 p, float t) {
     // motion a: the key and its sheen swing a little about the vertical
     float sw = 0.3 * sin((mOn(1.0) ? t : 0.0) * 0.4);
     vec3 m = vec3(n.x * cos(sw) - n.z * sin(sw), n.y, n.x * sin(sw) + n.z * cos(sw));
-    if (sun != 0.0) m.xy = rot(-sun) * m.xy;
+    if (az != 0.0) m.xy = rot(-az) * m.xy;
     float key = pow(sat((dot(m, vec3(0.4419, 0.5516, 0.7074)) + 0.2885) / 1.2885), 2.9185);
     float bounce = pow(sat(dot(n, vec3(-0.3752, -0.8371, 0.3982))), 1.3779);
     float sheen = pow(sat(dot(m, vec3(0.4984, 0.6846, 0.5319))), 10.4132);
@@ -1223,7 +1241,7 @@ MOTIFS.chairtax = /* glsl */`
 float squat(float u) { return mBump(u, 0.06, 0.3) + mBump(u, 0.32, 0.56) + mBump(u, 0.58, 0.82); }
 float lift(float t) {
   if (uV1 > 0.5) return 0.004 * (0.5 - 0.5 * cos(t * 2.0));
-  if (mOn(1.0)) return 0.004 * (0.5 - 0.5 * cos(4.0 * TAU * t / uCycle));
+  if (mOn(1.0)) return 0.004 * (0.5 - 0.5 * cos(TAU * t / 3.1)) * (0.7 + 0.3 * sin(TAU * t / 7.9));
   if (mOn(2.0)) return -0.034 * squat(t / uCycle);
   return 0.0;
 }
@@ -1253,10 +1271,16 @@ float dWheels(vec2 q) { return min(length(q - vec2(0.80, 0.043)), length(q - vec
 vec3 chair(vec3 col, vec2 p, float t) {
   // rolled out to the corner; motion a: it rolls a few pixels and back; motion c: it rolls away out of the frame for the
   // break, waits, and rolls back
-  float ta = mOn(1.0) ? t * TAU / uCycle : 0.0, u = t / uCycle;
-  float roll = 0.008 * sin(2.0 * ta) * (0.6 + 0.4 * cos(ta));
+  float u = t / uCycle, roll = 0.0;
+  if (uV1 > 0.5) roll = 0.008 * sin(t * 0.9) * (0.6 + 0.4 * cos(t * 0.45));   // v1: it rolls a few pixels and back
   if (mOn(3.0)) roll = 0.24 * mRise(u, 0.05, 0.36) * (1.0 - mRise(u, 0.58, 0.92));
-  vec2 q = p - vec2(roll, 0.0);
+  vec2 q = p;
+  // motion a, never repeating: the chair keeps wandering, out of the frame and back on unequal periods, rocking as it rolls
+  if (mOn(1.0) && uV1 < 0.5 && t > 0.0) {
+    roll = 0.11 * (1.0 - cos(TAU * t / 17.0)) + 0.05 * sin(TAU * t / 6.1) + 0.02 * sin(TAU * t / 2.3);
+    q = vec2(0.9, 0.02) + rot(0.05 * sin(TAU * t / 4.3)) * (p - vec2(0.9, 0.02));
+  }
+  q -= vec2(roll, 0.0);
   vec2 sq = (q - vec2(0.9, 0.025)) / vec2(0.16, 0.022);
   col *= 1.0 - 0.5 * exp(-dot(sq, sq) * 1.5);                       // its shadow on the floor
   col = part(col, dBack(q), uPal[4]);
@@ -1309,15 +1333,18 @@ vec3 motif(vec2 p, float t) {
   vec2 ct = (p - ic(0.266, 0.8915)) / vec2(0.0616, 0.0067), ca = (p - ic(0.46, 0.872)) / vec2(0.08, 0.009);
   col *= 1.0 - (0.8 * exp(-0.5 * (ct.x * ct.x * ct.x * ct.x + ct.y * ct.y * ct.y * ct.y)) + 0.4 * exp(-0.5 * dot(ca, ca))) * type;
   // motion a: the ticks pulse; motion b: they flash at the foot of each squat, counting the reps
-  float k = 1.0 + 0.12 * sin(uV1 > 0.5 ? t * 2.6 : mOn(1.0) ? 6.0 * TAU * t / uCycle : 0.0);
+  float k = 1.0 + 0.12 * sin(uV1 > 0.5 ? t * 2.6 : 0.0);
   if (mOn(2.0)) { float u = t / uCycle; k += 0.3 * (mBump(u, 0.13, 0.23) + mBump(u, 0.39, 0.49) + mBump(u, 0.65, 0.75)); }
+  // motion a: each tick pulses on a period of its own
+  float K[6] = float[6](k, k, k, k, k, k);
+  if (mOn(1.0) && uV1 < 0.5 && t > 0.0) for (int i = 0; i < 6; i++) K[i] = 1.0 + 0.16 * sin(TAU * t / (2.3 + 0.37 * float(i)));
   // thick end first, measured on the concept
-  col = tick(col, p, ic(0.738, 0.083), ic(0.689, 0.152), 0.0127, k);
-  col = tick(col, p, ic(0.801, 0.172), ic(0.726, 0.199), 0.0127, k);
-  col = tick(col, p, ic(0.216, 0.196), ic(0.276, 0.225), 0.0110, k);
-  col = tick(col, p, ic(0.204, 0.273), ic(0.265, 0.272), 0.0110, k);
-  col = tick(col, p, ic(0.712, 0.870), ic(0.775, 0.893), 0.0101, k);
-  col = tick(col, p, ic(0.664, 0.931), ic(0.758, 0.919), 0.0105, k);
+  col = tick(col, p, ic(0.738, 0.083), ic(0.689, 0.152), 0.0127, K[0]);
+  col = tick(col, p, ic(0.801, 0.172), ic(0.726, 0.199), 0.0127, K[1]);
+  col = tick(col, p, ic(0.216, 0.196), ic(0.276, 0.225), 0.0110, K[2]);
+  col = tick(col, p, ic(0.204, 0.273), ic(0.265, 0.272), 0.0110, K[3]);
+  col = tick(col, p, ic(0.712, 0.870), ic(0.775, 0.893), 0.0101, K[4]);
+  col = tick(col, p, ic(0.664, 0.931), ic(0.758, 0.919), 0.0105, K[5]);
   return chair(col, p, t);
 }`;
 
@@ -1398,7 +1425,9 @@ vec3 orbit(vec3 col, vec2 p, float t, bool front) {
 }
 vec3 motif(vec2 p, float t) {
   // motion b: the bars rise and fall a little, out of step, like live counts through a day
-  if (mOn(2.0)) { float u = t / uCycle; BL = vec3(0.05 * mBump(u, 0.02, 0.5), 0.06 * mBump(u, 0.16, 0.64), 0.04 * mBump(u, 0.3, 0.78)); }
+  // motion b, never repeating: the bars keep rising and falling, out of step, each on two unequal periods
+  if (mOn(2.0) && t > 0.0) BL = ease(sat(t / 2.0)) * vec3(0.07 * sin(TAU * t / 9.0) + 0.03 * sin(TAU * t / 3.7),
+    0.09 * sin(TAU * t / 11.3) + 0.035 * sin(TAU * t / 4.1), 0.1 * sin(TAU * t / 13.1) + 0.04 * sin(TAU * t / 5.3));
   float ta = mOn(1.0) ? t : 0.0;
   vec3 col = ground(p);
   if (p.y < YF) {
@@ -2228,7 +2257,7 @@ const MOTIONS = {
   Mirra: [
     { key: 'glint', cycle: 1 / 0.09, move: 0.66, rect: [0.205, 0, 0.75, 0.69] },
     { key: 'sync', cycle: 10, move: 0.82, rect: [0.12, 0, 0.842, 0.795] },
-    { key: 'ripple', cycle: 12, move: 0.86, rect: [0, 0, 1, 0.26] },
+    { key: 'ripple', cycle: 0, move: 1, turn: 24, rect: [0, 0, 1, 0.26] },
   ],
   stet: [
     { key: 'drift', cycle: 0, move: 1, turn: 24, rect: [0, 0.24, 1, 0.87] },
@@ -2243,7 +2272,7 @@ const MOTIONS = {
   Clauded: [
     { key: 'swing', cycle: TAU_S / 0.45, move: 1, rect: [0.122, 0.175, 0.872, 0.695] },
     { key: 'float', cycle: 12, move: 1, rect: [0.11, 0.155, 0.888, 0.71] },
-    { key: 'bridges', cycle: 10, move: 0.74, rect: [0.13, 0.428, 0.705, 0.695] },
+    { key: 'bridges', cycle: 0, move: 1, turn: 24, rect: [0.13, 0.428, 0.705, 0.695] },
   ],
   LikeWiki: [
     { key: 'drift', cycle: TAU_S / 0.3, move: 1, rect: null },
@@ -2251,7 +2280,7 @@ const MOTIONS = {
     { key: 'heartbeat', cycle: 7, move: 0.21, turn: 14, rect: null },
   ],
   Topshine: [
-    { key: 'shimmer', cycle: TAU_S / 0.45, move: 1, rect: [0.06, 0.198, 0.893, 0.912] },
+    { key: 'shimmer', cycle: 0, move: 1, turn: 24, rect: null },
     { key: 'shine', cycle: 10, move: 0.78, rect: null },
     { key: 'dolly', cycle: 14, move: 1, rect: [0.09, 0.205, 0.905, 0.89] },
   ],
@@ -2261,24 +2290,24 @@ const MOTIONS = {
     { key: 'echo', cycle: 8, move: 0.74, rect: [0.065, 0.292, 0.932, 0.74] },
   ],
   Chairtax: [
-    { key: 'fidget', cycle: TAU_S / 0.45, move: 1, rect: [0.162, 0, 1, 1] },
+    { key: 'fidget', cycle: 0, move: 1, turn: 24, rect: [0.162, 0, 1, 1] },
     { key: 'squats', cycle: 12, move: 0.82, rect: [0.155, 0.015, 0.852, 1] },
     { key: 'rollout', cycle: 14, move: 0.92, rect: [0.562, 0, 1, 0.43] },
   ],
   Scorecard: [
-    { key: 'turn', cycle: 16, move: 1, rect: [0.198, 0.213, 0.782, 0.792] },
+    { key: 'turn', cycle: 0, move: 1, turn: 24, rect: null },
     { key: 'shares', cycle: 12, move: 1, rect: [0.198, 0.213, 0.782, 0.792] },
     { key: 'race', cycle: 12, move: 1, rect: [0, 0, 1, 0.832] },
   ],
   Stats: [
     { key: 'caustics', cycle: TAU_S / 0.3, move: 1, rect: [0.02, 0.09, 1, 0.762] },
-    { key: 'counts', cycle: 12, move: 0.78, rect: [0.125, 0.115, 0.915, 0.87] },
+    { key: 'counts', cycle: 0, move: 1, turn: 24, rect: [0.08, 0, 0.95, 0.95] },
     { key: 'summary', cycle: 10, move: 0.72, rect: null },
   ],
   'About Neil': [
     { key: 'swing', cycle: TAU_S / 0.4, move: 1, rect: [0.208, 0.183, 0.753, 0.71] },
     { key: 'roll', cycle: 14, move: 0.9, rect: [0, 0, 1, 0.71] },
-    { key: 'sundial', cycle: 16, move: 1, rect: [0, 0, 1, 0.71] },
+    { key: 'sundial', cycle: 0, move: 1, turn: 24, rect: [0, 0, 1, 0.71] },
   ],
 };
 
