@@ -5,11 +5,11 @@
   "year": "2026",
   "tag": "Make AI films for a fraction of the price",
   "video": { "src": "/media/topshine-preview-v4-720.mp4", "poster": "/media/topshine-preview-v4-poster.jpg", "band": 0.3, "start": 1 },
-  "blurb": "Make a whole ad campaign, music video or film on open video models: every variant in one run, with a price before every run.",
+  "blurb": "Direct a whole AI film for the price of a coffee: every shot in several takes, rendered at once, with the best ones picked and finished in a full editor.",
   "url": "https://topshine-waitlist-staging.neilasjoseph.workers.dev",
   "urlText": "Topshine waitlist",
   "stack": "Python · FastAPI · Postgres · rented RTX 5090s",
-  "figs": [],
+  "figs": [["Up to 85%", "cheaper than closed AI video tools"], ["Every take", "of every shot, rendered in one batch"], ["Capped", "a price before every job, and you only pay for clips that get made"]],
   "accent": {
    "light": "#6c44f0",
    "dark": "#9384fa"
@@ -24,23 +24,10 @@
   "year": "2026",
   "tag": "Stay active, even when you're glued to your desk",
   "video": { "src": "/media/chairtax-v18-720.mp4", "poster": "/media/chairtax-v18-poster.jpg", "band": 0.3 },
-  "blurb": "When a break is due, Chairtax takes over your Mac's screen. Do a few squats, or one of five other movements, in front of the camera and the screen is yours again.",
+  "blurb": "Stay active at your desk: quick exercise breaks on your schedule, counted by your webcam, and then you're straight back to work.",
   "url": "https://chairtax.app",
   "stack": "Swift · SwiftUI · AppKit · Apple Vision · Cloudflare Workers",
-  "figs": [
-   [
-    "6",
-    "movements the camera counts"
-   ],
-   [
-    "3",
-    "ranks of how hard a break is to skip"
-   ],
-   [
-    "On-device",
-    "rep counting; the picture is never uploaded"
-   ]
-  ],
+  "figs": [["$29.99 lifetime", "or $14.99 a year"], ["6 movements", "squats, jumping jacks and more, 5 to 20 reps a break"], ["Money back", "do 100 reps on 16 of your first 30 days, or get your money back"]],
   "accent": {
    "light": "#ffb020",
    "dark": "#ffc85a"
