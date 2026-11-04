@@ -2614,6 +2614,8 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
   renderer.setRenderTarget(prevRT);
   // the mark at a front's drawn size, and at the size the form field rasterises it
   const markAt = sz => logo && d.mark ? logoImage(logo, Math.round(d.mark[2] * sz / 1024)).then(img => d.markKey ? keyedMark(img, d.markKey) : img) : Promise.resolve(null);
+  const markAmbP = markAt(AMBIENT.size);   // the mark at the motion frames' size, made alongside the rest
+  markAmbP.catch(() => {});                 // (a failure is the await's below, not an unhandled rejection meanwhile)
   const [markImg, formImg, art] = await Promise.all([
     markAt(size),
     d.form?.fromType ? lettersReady.then(() => typeImage(d))
@@ -2623,7 +2625,7 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
     compiled,
     lettersReady,
   ]);
-  const markAmb = await markAt(AMBIENT.size);   // the mark at the motion frames' size
+  const markAmb = await markAmbP;
   if (art) {
     const { width: w, height: h } = art.image;
     renderer.initTexture(art);
