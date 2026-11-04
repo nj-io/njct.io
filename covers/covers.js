@@ -2316,23 +2316,29 @@ const MOTIONS = {
   ],
 };
 
-// Ambient motion: at rest the covers move slowly on their own clocks, all at once (each starting a little after the last)
-// or in a relay, one at a time or one on each shelf. A moving cover at rest is drawn a few times a second (coverHz), only
-// the part its option changes, at one sample a pixel; the covers' frames are staggered, at most perFrame in one frame, and
-// the shelf draws only when one has changed (at most hz times a second). The cover in focus (hovered, or in Details with its
-// front facing) draws every frame at two samples, at the hover choice's pace. Nothing moves before the intro is over, in
-// Details (but the sleeve in focus), on a page (main.js draws nothing there), in a hidden tab or under reduced motion; a
-// cover that stops goes back to its still frame. Off (the default), each cover animates only in focus, as v1 did.
-// Prototype: window.__editionsTest.coverMotion = { mirra: 'b', ..., mode, pace, hover } (coverMotion.configure).
-// size: the target a moving cover at rest is drawn into (the shelf samples at most about that); stop: how fast the others
-// ease to a stop while a cover is selected (time constant, s; about 0.4 s to a hold)
-const AMBIENT = { hz: 30, coverHz: { all: 15, relay: 30 }, perFrame: 6, ease: 0.6, stop: 0.13, start: 700, gap: 1200, fade: 1.2, size: 512 };
+// Ambient motion: at rest the covers move on their own clocks, all at once (each starting a little after the last) or in a
+// relay, one at a time or one on each shelf. While they move, main.js runs its frame loop on rAF, drawing every Nth display
+// refresh (about 60 frames a second, evenly spaced: every refresh up to 90 Hz, every 2nd at 120 to 144 Hz), and asks step()
+// in each frame it draws: every moving cover is drawn in every such frame, at that frame's time, into a rest frame of its
+// own (sized from the sleeve on screen, at most 512², smaller when the frames come in late: the guard), only the part its
+// option changes, at one sample a pixel. The cover in focus (hovered, keyboard-focused, or in Details with its front
+// facing) is drawn at 1024 and two samples every frame; the others ease to a stop, hold the frame they reached and carry
+// on from it when the focus ends, and the phone crate's put-back sleeves hold theirs the same way. Nothing moves before
+// the intro is over, in Details (but the sleeve in focus), on a page (main.js draws nothing there), in a hidden tab or
+// under reduced motion. Off (?motion=off), each cover animates only in focus, as v1 did.
+// window.__editionsTest.coverMotion = { mirra: 'b', ..., mode, pace, hover } (coverMotion.configure).
+// sizes: the rest frames' sizes, largest first; guard: the drawn frames at rest coming in at over late× the interval meant
+// (their median over window ms) step the rest frames down a size; stop: how fast the others ease to a stop while a cover
+// is selected (time constant, s; about 0.4 s to a hold); log: the frames kept for state()
+const AMBIENT = { ease: 0.6, stop: 0.13, start: 700, gap: 1200, fade: 1.2, sizes: [512, 384, 256], guard: { window: 2000, late: 1.5 }, log: 180 };
 const PACES = { glacial: 0.3, slow: 0.5, steady: 0.75 };          // the clock's rate at rest
 const HOVER = { faster: 2, same: 1, rest: 0 };                     // the clock's rate in focus, as a share of the pace
 // relay order: one lane hops across both shelves; two lanes take one shelf each (sleeves 0-5 on top, 6-10 below)
 const RELAY = { relay: [[0, 8, 3, 10, 5, 7, 1, 9, 4, 6, 2]], relay2: [[0, 3, 5, 1, 4, 2], [8, 10, 7, 9, 6]] };
+// size: the rest frames' size (an index into AMBIENT.sizes), the larger of fit's (the sleeve on screen) and the guard's
 const amb = { list: [], cfg: { mode: 'off', pace: 'slow', hover: 'same', picks: {} }, wake: null, reduced: () => false,
-  running: false, last: -1, began: 0, timer: 0, timerAt: 0, lanes: null, frames: 0, draws: 0, show: null, shared: false, wants: false };
+  running: false, last: -1, began: 0, lanes: null, frames: 0, draws: 0, show: null, wants: false,
+  size: 0, fit: 0, guard: { at: 0, prev: 0, iv: [], step: 0 }, every: 1, refresh: 1000 / 60, swaps: 0, log: [] };
 const coverKey = name => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 // a pick ('a' | 'b' | 'c', an option's key, 'off') as an option number (0: still)
 function optionFor(h) {
@@ -2384,12 +2390,11 @@ export const coverMotion = {
   // main.js: its wake() and reduced(), and the test hook's choices. The motion is on: all the covers at once, the
   // operator's picks, at the Slow pace (?motion=glacial|slow|steady picks the pace), the cover in focus keeping its own;
   // ?motion=off turns it off (v1 exactly). The test hook, when set, wins.
-  // show(i, texture): put that texture on sleeve i's front (the 512² motion frame or the 1024 front); clock: main.js runs the
-  // ambient clock (ambient(), shared with the sun) and asks wantsFrame() for the covers, so no timer of their own runs here
-  attach({ wake, reduced, test, show, clock } = {}) {
+  // show(i, texture): put that texture on sleeve i's front (the rest frame or the 1024 front). main.js runs the frame loop
+  // while wantsFrame() says the covers move; no timer of their own runs here.
+  attach({ wake, reduced, test, show } = {}) {
     amb.wake = wake || null;
     amb.show = show || null;
-    amb.shared = !!clock;
     if (reduced) amb.reduced = reduced;
     const sw = new URLSearchParams(location.search).get('motion');
     if (!test && sw !== 'off') test = { ...PICKS, mode: 'all', hover: 'same', pace: PACES[sw] ? sw : 'slow' };
@@ -2412,42 +2417,55 @@ export const coverMotion = {
     if (mode !== undefined) { amb.lanes = null; amb.began = 0; }
     amb.wake?.();
   },
-  // The frame loop, before it draws: moves the clocks on and draws the covers that are due. Returns whether a cover changed.
-  // ready: the intro is over; details: Details is open; crate: the crate's front sleeve (the phone), else -1.
-  step(now, { ready = true, details = false, crate = -1 } = {}) {
+  // The frame loop, in each frame it draws: moves the clocks on and draws every moving cover. Returns whether one changed.
+  // ready: the intro is over; details: Details is open; crate: the crate's front sleeve (the phone), else -1; draw: false in
+  // a frame between the covers' own (main.js draws those for the shelf's own motion at more than about 60 Hz): only the
+  // cover in focus draws; every: the covers' frames come every that many refreshes; refresh: the display's refresh
+  // interval (ms); px: the sleeve's size on screen in device pixels, which sizes the rest frames.
+  step(now, { ready = true, details = false, crate = -1, draw = true, every = 1, refresh = 1000 / 60, px = 512 } = {}) {
     const run = amb.cfg.mode !== 'off' && !!amb.wake && !amb.reduced();
     if (run !== amb.running) {
       amb.running = run;
       for (const h of amb.list) if (h) { h.cover._stop(); h.mo.lane = null; }
       amb.lanes = null; amb.began = 0; amb.last = -1;
     }
+    amb.wants = false;
     if (!run) return false;
     const dt = amb.last < 0 ? 0 : Math.min(0.1, Math.max(0, (now - amb.last) / 1000));
     amb.last = now;
     if (!ready) return false;
     if (!amb.began) amb.began = now;
     amb.frames++;
-    const pace = paceOf(), fast = amb.cfg.mode !== 'all' || crate >= 0, hz = AMBIENT.coverHz[fast ? 'relay' : 'all'];
+    amb.every = every; amb.refresh = refresh;
+    // the rest frames' size: the smallest at least the sleeve's size on screen, or the guard's if that is smaller
+    const S = AMBIENT.sizes;
+    amb.fit = S.reduce((f, z, i) => (z >= px - 0.5 ? i : f), 0);
+    amb.size = Math.max(amb.fit, amb.guard.step);
+    amb.swaps = 1;                                          // covers that take up a new size this frame (one at a time)
+    const pace = paceOf();
     if (!details) plan(now, crate);
     // a cover in focus (hovered, keyboard-focused or in Details, front facing) keeps moving at its pace; the others ease to
     // a stop and hold the frame they reached, and carry on from it when the focus ends
-    const k = 1 - Math.exp(-dt / AMBIENT.ease), kStop = 1 - Math.exp(-dt / AMBIENT.stop), due = [];
+    const k = 1 - Math.exp(-dt / AMBIENT.ease), kStop = 1 - Math.exp(-dt / AMBIENT.stop);
     const sel = amb.list.some(h => h && h.mo.focus);
     let busy = false, changed = false;
-    for (const h of amb.list) {
-      if (!h || !h.mo.opt) continue;
+    const drew = [];
+    amb.list.forEach((h, i) => {
+      if (!h || !h.mo.opt) return;
       const m = h.mo, o = h.optOf();
-      if (details && !m.focus) continue;                       // Details: the shelf holds still
+      if (details && !m.focus) return;                         // Details: the shelf holds still
       const rest = m.focus && amb.cfg.hover === 'rest';
+      // the phone crate's put-back sleeves hold the frame they reached, and carry on from it at the front again
+      const parked = crate >= 0 && !m.want && !m.focus && m.state === 'moving';
       // still -> moving (wanted, or in focus) -> ending (runs on to the next still frame) or fading (back to it)
-      if (!rest && (m.want || m.focus)) m.state = 'moving';
+      if (!rest && (m.want || m.focus || parked)) m.state = 'moving';
       else if (m.state === 'moving' || (rest && m.state === 'ending')) m.state = !o.cycle || rest ? 'fading' : 'ending';
-      if (m.state === 'still') continue;
+      if (m.state === 'still') return;
       if (m.state === 'fading') h.restFrame();
-      const held = sel && !m.focus && m.state === 'moving';
+      const held = (parked || (sel && !m.focus)) && m.state === 'moving';
       const target = m.state === 'fading' || held ? 0 : m.focus ? pace * HOVER[amb.cfg.hover] : pace;
       m.rate += (target - m.rate) * (held ? kStop : k);
-      if (held && m.rate < 0.03 * pace) m.rate = 0;   // stopped (about 0.45 s at 60 frames a second)
+      if (held && m.rate < 0.03 * pace) m.rate = 0;   // stopped (about 0.45 s)
       if (m.state === 'fading' && m.rate < 0.01) m.rate = 0;
       const was = m.mix;
       m.mix = m.state === 'fading' ? Math.min(1, m.mix + dt / AMBIENT.fade) : Math.max(0, m.mix - dt / AMBIENT.fade);
@@ -2463,43 +2481,51 @@ export const coverMotion = {
         // a relay lane hands over after a pause
         if (m.lane && amb.lanes?.includes(m.lane) && amb.list[m.lane.cur] === h) { m.lane.cur = -1; m.lane.at = now + AMBIENT.gap; }
         m.lane = null;
-        continue;
+        return;
       }
       // the phone crate's one moving cover is seen close up: the 1024 front, as v1 drew it
       const big = m.focus || crate >= 0;
-      if (!big) h.dropBig();
-      if (!(held && m.rate === 0)) busy = true;
-      if (!m.dirty) continue;
-      // in focus: the 1024 front, every frame, at two samples; just out of focus and still faster than the pace: the 512²
-      // frame every frame; else the 512² frame when it is due
-      if (m.focus) { h.drawMotion(h.aliveSamples); m.drawnAt = now; changed = true; amb.draws++; }
-      else if (m.rate > pace * 1.15) { if (big) h.drawMotion(1); else h.drawSmall(1); m.drawnAt = now; changed = true; amb.draws++; }
-      else if (now - m.drawnAt >= 1000 / hz - 4) due.push(h);
-    }
-    // the most overdue first; while a cover is in focus (drawn every frame) at most one other, to keep the frame rate
-    due.sort((a, b) => a.mo.drawnAt - b.mo.drawnAt);
-    const cap = amb.list.some(h => h && h.mo.focus) ? 1 : AMBIENT.perFrame;
-    for (const h of due.slice(0, cap)) { if (crate >= 0) h.drawMotion(1); else h.drawSmall(1); h.mo.drawnAt = now; changed = true; amb.draws++; }
-    // the next ambient frame: soon while a cover moves, else when the next one is due to start
-    let at = busy ? now : Infinity;
+      if (!big || (held && m.rate === 0)) h.dropBig();
+      if (!(held && m.rate === 0)) busy = true;         // held still: nothing to draw
+      if (!m.dirty) return;
+      // in focus: the 1024 front at two samples, every frame; else the rest frame (the crate's: the 1024 front), one sample
+      if (m.focus) h.drawMotion(h.aliveSamples);
+      else if (!draw) return;
+      else if (big) h.drawMotion(1);
+      else h.drawSmall(1);
+      drew.push(i); changed = true; amb.draws++;
+    });
+    amb.log.push({ t: +now.toFixed(2), drew });
+    if (amb.log.length > AMBIENT.log) amb.log.shift();
+    // a cover still to start (all at once, each a little after the last), or a relay lane's next
+    let pending = false;
     if (!details && amb.cfg.mode === 'all' && crate < 0) {
-      RELAY.relay[0].forEach((i, n) => { const h = amb.list[i]; if (h && h.mo.opt && h.mo.state === 'still') at = Math.min(at, amb.began + n * AMBIENT.start); });
-    } else if (!details && amb.lanes) for (const lane of amb.lanes) if (lane.cur < 0) at = Math.min(at, lane.at);
-    at = Math.max(now + 1000 / AMBIENT.hz, at);
-    amb.wants = at < Infinity;
-    if (amb.shared) return changed;                     // main.js's ambient clock asks wantsFrame()
-    if (amb.timer && at < amb.timerAt - 4) { clearTimeout(amb.timer); amb.timer = 0; }   // due sooner than the wake set
-    if (at < Infinity && !amb.timer && !document.hidden) {
-      amb.timerAt = at;
-      amb.timer = setTimeout(() => { amb.timer = 0; amb.wake?.(); }, at - now);
-    }
+      for (const i of RELAY.relay[0]) { const h = amb.list[i]; if (h && h.mo.opt && h.mo.state === 'still') pending = true; }
+    } else if (!details && amb.lanes) pending = amb.lanes.some(l => l.cur < 0);
+    // The guard: at rest (all the covers moving, none in focus), the frames drawn for them coming in late, their interval's
+    // median over the window above late× the interval meant, step the rest frames down a size. Only down, for the visit.
+    const g = amb.guard;
+    if (draw && !sel && !details && crate < 0 && !pending && drew.length) {
+      if (g.prev && now - g.prev < 500) g.iv.push(now - g.prev);
+      g.prev = now;
+      if (!g.at) g.at = now;
+      if (now - g.at >= AMBIENT.guard.window) {
+        const iv = g.iv.sort((a, b) => a - b), med = iv[iv.length >> 1];
+        const cur = Math.max(g.step, amb.fit);
+        if (iv.length >= 8 && med > AMBIENT.guard.late * every * refresh && cur < S.length - 1) g.step = cur + 1;
+        g.at = now; g.iv = [];
+      }
+    } else { g.at = 0; g.prev = 0; g.iv = []; }
+    amb.wants = busy || pending;
     return changed;
   },
-  // the shared ambient clock: whether the covers want its next tick
+  // whether the covers want the next frame (main.js keeps its loop on rAF while they do)
   wantsFrame() { return amb.running && amb.wants && !document.hidden; },
-  // probes: the choices, and each cover's option, state and clock
+  // probes: the choices, each cover's option, state and clock, and the last frames drawn: { t: rAF time, drew: [covers] }
   state() {
     return { ...amb.cfg, picks: { ...amb.cfg.picks }, running: amb.running, frames: amb.frames, draws: amb.draws,
+      every: amb.every, refresh: +amb.refresh.toFixed(2), restSize: AMBIENT.sizes[amb.size], fitSize: AMBIENT.sizes[amb.fit],
+      guardSize: AMBIENT.sizes[amb.guard.step], log: amb.log.slice(),
       lanes: amb.lanes && amb.lanes.map(l => ({ cover: amb.list[l.cur]?.name ?? null, next: l.cur < 0 ? Math.round(l.at - amb.last) : null })),
       covers: amb.list.map(h => h && { name: h.name, option: h.mo.opt ? h.opts[h.mo.opt - 1].key : 'off', state: h.mo.state,
         clock: +h.mo.clock.toFixed(3), rate: +h.mo.rate.toFixed(3), focus: h.mo.focus, mix: +h.mo.mix.toFixed(3), shown: h.shownSize() }) };
@@ -2614,7 +2640,7 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
   renderer.setRenderTarget(prevRT);
   // the mark at a front's drawn size, and at the size the form field rasterises it
   const markAt = sz => logo && d.mark ? logoImage(logo, Math.round(d.mark[2] * sz / 1024)).then(img => d.markKey ? keyedMark(img, d.markKey) : img) : Promise.resolve(null);
-  const markAmbP = markAt(AMBIENT.size);   // the mark at the motion frames' size, made alongside the rest
+  const markAmbP = markAt(AMBIENT.sizes[0]);   // the mark at the rest frames' largest size, made alongside the rest
   markAmbP.catch(() => {});                 // (a failure is the await's below, not an unhandled rejection meanwhile)
   const [markImg, formImg, art] = await Promise.all([
     markAt(size),
@@ -2780,27 +2806,33 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
     mo.pristine = ss >= samples && mo.clock === 0 && mo.mix === 0;
     show(frontRT.texture);
   };
-  // Frames at rest go to a 512² target of their own, drawn with layers made at that size (the 1024 front, drawn only for the
-  // cover in focus, keeps the still frame otherwise); the sleeve shows whichever was drawn last (amb.show).
+  // Frames at rest go to a target of their own (AMBIENT.sizes[amb.size], at most 512²), drawn with layers made at that
+  // size by the 1024 front's rules for that level (the 1024 front, drawn only for the cover in focus, keeps the still frame
+  // otherwise); the sleeve shows whichever was drawn last (amb.show). A new size is taken up by one cover a frame.
   let ambRT = null, ambLayers = null, ambStill = false, shown = frontRT.texture;
   const show = tex => { if (tex !== shown) { shown = tex; amb.show?.(index, tex); } };
-  const drawSmall = ss => {
-    const o = optOf(), A = AMBIENT.size;
+  const drawSmall = (ss, A = AMBIENT.sizes[amb.size]) => {
+    const o = optOf();
+    if (ambRT && ambRT.width !== A) {
+      if (amb.swaps > 0) { amb.swaps--; ambRT.dispose(); ambRT = null; ambLayers?.dispose(); ambLayers = null; }
+      else A = ambRT.width;
+    }
     if (!ambRT) { ambRT = target(A); ambRT.texture.name = `${entry.name} motion ${A}`; ambStill = false; }
     if (!ambLayers) ambLayers = layersAt(A, markAmb);
+    const mip = Math.log2(size / A);
     uniforms.uCycle.value = o?.cycle || 1;
     uniforms.uV1.value = 0;
     if (!ambStill) {
       // the part of the cover the motion never changes: the still frame, once
       uniforms.uMotion.value = 0; uniforms.uTime.value = d.t0; uniforms.uRestMix.value = 0; uniforms.uRest.value = BLANK;
-      draw(ambRT, 0, ambLayers, aliveSamples, 0, null, 1);
+      draw(ambRT, 0, ambLayers, aliveSamples, 0, null, mip);
       ambStill = true;
     }
     uniforms.uMotion.value = mo.opt;
     uniforms.uTime.value = d.t0 + mo.clock;
     uniforms.uRestMix.value = mo.mix > 0 && restRT ? ease(mo.mix) : 0;
     uniforms.uRest.value = mo.mix > 0 && restRT ? restRT.texture : BLANK;
-    draw(ambRT, 0, ambLayers, ss, 0, o?.rect || null, 1);
+    draw(ambRT, 0, ambLayers, ss, 0, o?.rect || null, mip);
     mo.dirty = false;
     mo.pristine = false;
     show(ambRT.texture);
@@ -2900,9 +2932,11 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
     },
     // previews (covers/preview.html ?motion): the front at an option (1..3; 0 still) and clock (s), ss samples a pixel; the
     // whole front, or (part) only the part of it the option changes, as an ambient frame draws it
-    motionFrame(opt, clock, ss = aliveSamples, part = false) {
+    // (rest: a rest frame of that size instead, the part the option changes, as the shelf draws it at rest)
+    motionFrame(opt, clock, ss = aliveSamples, part = false, rest = 0) {
       if (disposed) return;
       mo.opt = opt; mo.clock = clock; mo.mix = 0;
+      if (rest) { amb.swaps = 1; drawSmall(ss, rest); return; }
       if (!alive) alive = frontLayers();
       uniforms.uMotion.value = opt;
       uniforms.uCycle.value = optOf()?.cycle || 1;

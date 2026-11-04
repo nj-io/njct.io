@@ -199,11 +199,13 @@ function stepSun(now) {
   if (sunTickDue) { sunTickDue = false; if (sunM.tick(ambientT()) && det) bgDirty = true; }
   return f < 1;
 }
-// The ambient clock asks for the next frame of leaves, and of the covers' motion (covers.js coverMotion) on the same tick.
+// The ambient clock asks for the next frame of leaves. While the covers move (coversRun), the frame loop runs on rAF for
+// them and ticks the leaves itself, on every other frame it draws for them (about 30 a second), and this clock waits.
+let coversRun = false, sunAlt = false;
+const sunAmbient = () => sunOn && !crateMode && !det && !reduced() && SUN_TEST?.t == null;
 function ambient() {
-  const sun = sunOn && !crateMode && !det && !reduced() && SUN_TEST?.t == null, moving = !!coversM?.coverMotion.wantsFrame();
-  if (ambientTimer || inProject >= 0 || document.hidden || (!sun && !moving)) return;
-  ambientTimer = setTimeout(() => { ambientTimer = 0; if (sun) sunTickDue = true; wake(); }, 1000 / CAFE.sun.ambientHz);
+  if (ambientTimer || coversRun || !sunAmbient() || inProject >= 0 || document.hidden) return;
+  ambientTimer = setTimeout(() => { ambientTimer = 0; sunTickDue = true; wake(); }, 1000 / CAFE.sun.ambientHz);
 }
 document.addEventListener('visibilitychange', () => { if (!document.hidden) { sunTickDue = true; wake(); } });
 
@@ -245,16 +247,34 @@ function setAlive(i) {
   aliveIdx = i;
   if (i >= 0) covers[i]?.setAlive(true);
 }
-// Cover motion (covers.js coverMotion): at rest the covers move, each drawn into a 512² frame of its own, staggered; the
-// cover in focus keeps moving at 1024 while the others ease to a stop. The frame loop asks it before every draw, and it
-// runs on the ambient clock above (shared with the sun). It waits for the intro, holds the shelf in Details, and stops on a
-// page, in a hidden tab and under reduced motion. ?motion=off turns it off (v1 exactly); ?motion=glacial|slow|steady sets the pace.
+// Cover motion (covers.js coverMotion): at rest every cover moves, drawn into a rest frame of its own (sized from the
+// sleeve on screen) in every frame the loop draws for them; the cover in focus is drawn at 1024 in every frame while the
+// others ease to a stop. While they move the loop runs on rAF and draws every restEvery-th refresh: about 60 frames a
+// second, evenly (N = max(1, floor(refresh Hz / 55))), the refreshes between drawing nothing when nothing else moves. It
+// waits for the intro, holds the shelf in Details, and stops on a page, in a hidden tab and under reduced motion.
+// ?motion=off turns it off (v1 exactly); ?motion=glacial|slow|steady sets the pace.
 coversMod.then(m => {
-  m.coverMotion.attach({ wake, reduced, test: window.__editionsTest?.coverMotion, show: (i, tex) => setCover(sleeves[i], tex, null), clock: true });
+  m.coverMotion.attach({ wake, reduced, test: window.__editionsTest?.coverMotion, show: (i, tex) => setCover(sleeves[i], tex, null) });
   if (window.__editions) window.__editions.coverMotion = m.coverMotion;
 });
-const stepCovers = now => !window.__editionsTest?.stillCovers && coversM?.coverMotion.step(now,
-  { ready: settled.every(Boolean), details: !!det, crate: crateMode ? crate.current : -1 });
+let restOnly = false, restTick = 0, restEvery = 1, refreshMs = 1000 / 60, rafAt = 0, rafRun = [], nearAt = 0;
+// The display's refresh interval, from the rAF times: the shortest run of them seen (the median of each 15), raised again
+// only when nothing near it has come for 5 s (the window moved to a slower display).
+function noteRefresh(now) {
+  const iv = now - rafAt;
+  rafAt = now;
+  if (!(iv > 2 && iv < 100)) return;
+  if (iv < refreshMs * 1.3) nearAt = now;
+  rafRun.push(iv);
+  if (rafRun.length < 15) return;
+  const med = rafRun.sort((a, b) => a - b)[7];
+  rafRun = [];
+  if (med < refreshMs || now - nearAt > 5000) { refreshMs = med; nearAt = now; }
+  restEvery = Math.max(1, Math.floor(1000 / refreshMs / 55));
+}
+const stepCovers = (now, draw) => !window.__editionsTest?.stillCovers && coversM?.coverMotion.step(now,
+  { ready: settled.every(Boolean), details: !!det, crate: crateMode ? crate.current : -1, draw, every: restEvery, refresh: refreshMs,
+    px: SLEEVE.size * S * renderer.getPixelRatio() * 1.02 });   // (a sleeve at rest stands a little in front of the wall)
 
 // ---- sound --------------------------------------------------------------------------------------
 // The sound engine loads with the visitor's first pointer move or key, which keeps it out of the first
@@ -499,7 +519,7 @@ const firstFrame = {};
 firstFrame.ready = new Promise(r => { firstFrame.resolve = r; });
 export const drawn = firstFrame.ready;   // the page loads the menu's marks after it (index.html)
 
-function wake() { if (!raf) raf = requestAnimationFrame(frame); }
+function wake() { restOnly = false; if (!raf) raf = requestAnimationFrame(frame); }
 
 // The flight eases on screen, as measured: the sleeve's size and position on screen follow the curve
 // (moving its depth linearly would make it grow late and shrink early, by perspective).
@@ -580,6 +600,10 @@ function frame(now) {
   raf = 0;
   if (glLost) return;
   if (inProject >= 0) { last = 0; return; }   // a page is open: the shelf holds still and draws nothing
+  noteRefresh(now);
+  // only the covers move: their frames come every restEvery-th refresh, and the refreshes between draw nothing
+  restTick = (restTick + 1) % restEvery;
+  if (restOnly && restTick) { raf = requestAnimationFrame(frame); return; }
   const dt = last ? Math.min(0.05, (now - last) / 1000) : 0;
   last = now;
   let active = false;
@@ -596,7 +620,9 @@ function frame(now) {
     if (lifted >= 0) sleeves[lifted].fall = null;
   }
   setAlive(det ? (Math.cos(sleeves[det.i].pose.yaw) > 0 ? det.i : -1) : lifted);   // in Details, while its front faces
-  stepCovers(now);
+  stepCovers(now, !restTick);
+  coversRun = !!coversM?.coverMotion.wantsFrame();
+  if (coversRun && !restTick && sunAmbient() && (sunAlt = !sunAlt)) sunTickDue = true;   // the leaves, every other frame of theirs
   const waiting = lifted !== want;
   for (const s of sleeves) {
     let moved = false;
@@ -681,7 +707,9 @@ function frame(now) {
   }
   if (!backsWarm && !active) warmBacks();
   if (!sunP && !crateMode && settled.every(Boolean)) startSun();
-  if (active || waiting || alive || crateMoving || fades.length) wake(); else last = 0;
+  const busy = active || waiting || alive || crateMoving || fades.length;
+  if (busy || coversRun) wake(); else last = 0;
+  restOnly = coversRun && !busy;
   ambient();
 }
 
