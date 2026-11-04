@@ -816,3 +816,26 @@ Shows who visited each product site, where they came from and which post, email 
 - Button: "Send"
 - Close button label (screen readers): "Close"
 - Email the form composes: subject "Hello from {name}", body "{message}\n\n{name} <{email}>"
+
+## Product wording, round 2 (proposal, 2026-11-04)
+Each sleeve's tagline and Details blurb, written for the person who would use the product: what it is and what it does for them. Mirra, stet, Social Hook, LikeWiki, Topshine and Chairtax draw on the one-pagers of 2026-10-29. Clauded, Stellar Explorer, Scorecard and Stats are suggestions.
+
+| Project | Tagline | Blurb |
+|---|---|---|
+| Mirra | Know what the accounts you follow are saying | Mirra reads every post from the X accounts you choose and sends you a short brief: what each one is talking about, where they stand and the calls they made. A brief per account every day or week, and a Monday roundup of your whole list, by email and on the web. |
+| stet | Change every word on your site, no developer needed | You, your editors, your clients and your AI agents can change every word your product says: site copy, emails and SEO fields. A developer sets it up once. After that, edits go live in seconds with a live preview. |
+| Social Hook | Posts about your work, written while you build | Social Hook watches your code changes, picks what's worth sharing and drafts posts in your voice for X and LinkedIn. You approve each one, or let it post on its own. |
+| LikeWiki | Your X bookmarks, turned into a wiki | Every night LikeWiki reads your X likes and bookmarks and writes them into a wiki: a page per topic, with every claim linked to the post it came from. Ask it questions, or let your AI tools read it. |
+| Topshine | Make a whole AI film, start to finish | Topshine plans every shot of your film, ad or music video, makes several takes of each, then lets you pick the best ones and finish the cut in a full editor. You see the price before every run. |
+| Chairtax | Squat breaks your Mac won't let you skip | When it's time for a break, Chairtax covers your Mac's screen. Do a few squats in front of the camera and the screen comes back. Bearly the bear keeps you company. |
+| Clauded | Let Claude Code work without the prompts | Clauded runs Claude Code in a sealed sandbox, so you can turn off permission prompts without risking your Mac. Copy and paste, sound, Chrome, git and your tools keep working. |
+| Stellar Explorer | Fly through the stars around the Sun | A 3D map of 117,000 nearby stars that you fly through in your browser. Click a star to see what it is, with sound that moves as you do. |
+| Scorecard | See where any website's visitors come from | Put websites side by side and see how each gets its visitors: search, links, social and apps. Every number shows its source and date. |
+| Stats | See which posts bring you customers | One dashboard for all your sites: who visited, where they came from and what they bought. Every sale is traced to the post, email or ad that brought it, with a summary in Telegram each morning. |
+
+Back-cover figures to check before they stay, since every quoted number must be real: Mirra (2,400+ accounts mirrored, sub-60 s latency, ~90% gross margin, all from the Telegram mirror), Social Hook (12k+ posts published), Clauded (10k+ sandboxed sessions), LikeWiki (1,400+ concept pages, 12k+ cited sources), Stellar Explorer (117k stars, 60 fps).
+
+Proposed Mirra figures, to match the brief-led wording: "Daily or weekly · a brief per account", "Mondays · a roundup across your list", "Email and web · without living on X".
+
+## Open: align the one-pagers with the brand engine (set for 2026-11-05)
+The 2026-10-29 one-pagers carry newer product wording than the brand engine (`~/dev/_brand`: each project's `assets/brand.json` and the brand studio). Bring the brand engine up to the one-pager content.
