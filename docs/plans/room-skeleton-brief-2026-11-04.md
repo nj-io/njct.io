@@ -1,5 +1,7 @@
 # Editions v2: the room skeleton
 
+> **Superseded** on 4 November 2026 by `room-cafe-brief-2026-11-04.md`: the operator chose a three-view café (Counter, Editions, Table) in place of the four-wall room.
+
 - **Branch:** `feat/room`, cut from `feat/editions`.
 - **Status:** v1 (the record wall) is built and frozen on `feat/editions`. This brief starts v2.
 

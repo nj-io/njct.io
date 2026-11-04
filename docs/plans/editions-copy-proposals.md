@@ -68,6 +68,17 @@ Every string here waits for operator approval before it ships. Approved copy alr
 | 62 | Header: the Projects menu's trigger, beside the wordmark | Projects (the operator's word) | Ruling 11 |
 | 63 | Projects menu: one item per sleeve, in shelf order | the project's mark, its name (approved) over its tag (approved), e.g. "Mirra" over "Real-time X→Telegram mirror and digest"; About Neil: "About Neil" over "Hi, I’m Neil." (about[0], approved). Alternative for the second line: the year, as the shelf's index shows it | Ruling 11; the reference's Editions menu (season over edition name) |
 | 64 | Projects menu: accessible names | the list is named by its trigger, "Projects"; the marks are decorative (empty alt) | Ruling 11 |
+| 65 | Header tagline (replaces row 5) | Products I've designed and built. | Operator, 4 Nov 2026 (approved) |
+| 66 | Café counter, the menu board: the services | Cross-platform content; Community management | Operator, 4 Nov 2026 (approved names) |
+| 67 | Menu board: the line under each service | Cross-platform content: "Video, images and posts made for each platform and published for you." Community management: "Comments, messages and requests answered in your brand's voice." | Drafted from the operator's description ("exposure across multiple social platforms", "brand representation (ie answering user requests)") |
+| 68 | Menu board heading | Menu (alternative: What I make) | Café brief, 4 Nov 2026 |
+| 69 | Counter, at the till: a link to mailto:neil@njct.io | Order here (the header keeps Get in touch, row 6) | Café brief, 4 Nov 2026 |
+| 70 | Order slips on the rail above the counter (three) | steps pending from the operator; drafts: 1. Tell me about your brand; 2. I set up and run your channels; 3. A monthly report on what worked | Operator kept the slips, 4 Nov 2026; the steps are not given yet |
+| 71 | Window glass, seen reversed from inside (Table view) | njct.io | Operator, 4 Nov 2026 (approved) |
+| 72 | The edge buttons: each view's name | Counter; Editions; Table (alternative: Services; Projects; About) | Café brief, 4 Nov 2026; research: give each view a visible name |
+| 73 | Edge buttons: accessible names | Turn to <view name> | Café brief, 4 Nov 2026 |
+| 74 | Laptop screen, the terminal window | real output from this repo (the build, git log), typed slowly | Café brief, 4 Nov 2026 |
+| 75 | The coffee glass on the table | Neil, written on the cup or glass | Café brief, 4 Nov 2026 |
 
 ## Row 33: Topshine dossier (proposal)
 
