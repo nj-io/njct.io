@@ -30,8 +30,9 @@
 //   ?cell=200    panel size in the grid (default: shelf size, 200)
 //   ?backs=0     no shelf backs (backSize 0);  ?backsize=1024&size=16  the scene's Details-back call
 //   ?alive=i     start cover i alive;  ?measure  ?bench  timing hooks for the capture script
+//   ?motion      one front filling a cell-sized canvas, for motion previews: __covers.shot(r, option, clock, samples, part)
 import * as THREE from 'three';
-import { createCover, coverProfiler, loadCoverFonts } from './covers.js';
+import { createCover, coverProfiler, loadCoverFonts, coverMotion } from './covers.js';
 
 const CONCEPTS = {
   'Mirra': 'mirra-b4', 'stet': 'stet-a3', 'Social Hook': 'social-hook-a1', 'Clauded': 'clauded-b4',
@@ -135,6 +136,30 @@ function collectQueries() {
   }
 }
 
+// ?motion: cover r (of ?view, or of all) drawn at a motion option (1..3; 0 still) and clock (s), returned as a PNG data URL
+if (q.has('motion')) {
+  const data = await (await fetch('../data/projects.json')).json();
+  const indices = view >= 0 ? [view] : data.map((_, i) => i);
+  renderer.setSize(cell, cell);
+  Object.assign(camera, { left: 0, right: cell, top: 0, bottom: cell });
+  camera.updateProjectionMatrix();
+  const mesh = new THREE.Mesh(plane, new THREE.MeshBasicMaterial({ toneMapped: false, side: THREE.DoubleSide }));
+  mesh.position.set(cell / 2, cell / 2, 0);
+  mesh.scale.set(cell, -cell, 1);
+  scene.add(mesh);
+  const covers = await Promise.all(indices.map(i => createCover(renderer, data[i], i, { size, backSize: 0, samples: +(q.get('samples') || 4) })));
+  window.__covers = {
+    covers, renderer, names: indices.map(i => data[i].name), options: coverMotion.options,
+    shot(r, option, clock, ss = 2, part = false) {
+      covers[r].motionFrame(option, clock, ss, part);
+      mesh.material.map = covers[r].front;
+      mesh.material.needsUpdate = true;
+      renderer.render(scene, camera);
+      return canvas.toDataURL('image/png');
+    },
+  };
+  await new Promise(() => {});   // the grid below is not built
+}
 const data = await (await fetch('../data/projects.json')).json();
 const indices = view >= 0 ? [view] : data.map((_, i) => i);
 const imgs = indices.map((i, r) => addHtml(r, data[i]));

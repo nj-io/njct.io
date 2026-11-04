@@ -130,6 +130,17 @@ mat2 rot(float a) { float c = cos(a), s = sin(a); return mat2(c, s, -s, c); }
 float ease(float u) { return u * u * (3.0 - 2.0 * u); }
 // a soft falloff that reaches exactly zero at r
 float falloff(float d, float r) { float u = sat(1.0 - max(d, 0.0) / r); return u * u * u; }
+// Motion (MOTIONS): the option in play (1, 2, 3; 0 none) and its cycle (clock s). The clock runs in [0, uCycle), and every
+// option is exactly the still frame at clock 0. mRise is 0 before a and 1 after b; mBump is 0 outside [a, b], 1 at its middle.
+uniform float uMotion, uCycle;
+bool mOn(float k) { return abs(uMotion - k) < 0.5; }
+// uV1: the motion is off, so the cover in focus plays v1's own hover motion, exactly as v1 did
+uniform float uV1;
+// uLod: how many levels smaller than the 1024 front this target is (a 512² motion frame: 1), so blurs read off the type
+// mask's levels keep their width
+uniform float uLod;
+float mRise(float u, float a, float b) { return ease(sat((u - a) / (b - a))); }
+float mBump(float u, float a, float b) { float x = sat((u - a) / (b - a)); return 0.5 - 0.5 * cos(TAU * x); }
 
 // The brand mark's field: r = signed distance (cover units, negative inside),
 // g, b = slope of the inflated height field, a = height (0 rim .. 1 crown).
@@ -225,6 +236,14 @@ const MOTIFS = {};
 // Mirra: the ring mark as one glossy white form standing on a reflective floor.
 MOTIFS.mirra = /* glsl */`
 const float YF = 0.236;
+const vec2 RC = vec2(0.4805, 0.4705);   // the ring's centre
+// motion b: how strongly the arc of light running round the ring lights p (its head sharp, its tail long), and how far into
+// the movement it is (k)
+float syncArc(vec2 p, float u, out float k) {
+  k = mRise(u, 0.0, 0.12) * (1.0 - mRise(u, 0.66, 0.82));
+  float d = mod(atan(p.y - RC.y, p.x - RC.x) - (1.5708 - TAU * ease(sat((u - 0.02) / 0.78))) + PI, TAU) - PI;
+  return d > 0.0 ? exp(-d * d / 0.9) : exp(-d * d / 0.03);
+}
 vec3 ground(vec2 p) {
   vec3 col = mix(uPal[2], uPal[1], smoothstep(0.16, 0.64, p.y));
   col = mix(col, uPal[0], smoothstep(0.5, 1.05, p.y) * (0.75 + 0.25 * smoothstep(0.8, 0.1, p.x)));
@@ -246,10 +265,15 @@ vec3 ringShade(vec4 f, vec2 p, float t) {
   // frosted: the room's blue shows through toward the edges of the face
   col = mix(col, uPal[4], 0.35 * (1.0 - smoothstep(0.2, 0.95, f.a)) * (0.6 + 0.4 * sat(-dot(n.xy, vec2(-0.6, 0.8)))));
   col += 0.30 * spec(n, L, 26.0);
-  // a highlight that sweeps across the bevels when the cover is alive
-  float ph = fract(t * 0.09 + 0.25) * 2.6 - 0.8;
+  // motion a: a highlight that sweeps across the bevels
+  float ph = fract((mOn(1.0) ? t : 0.0) * 0.09 + 0.25) * 2.6 - 0.8;
   float sw = exp(-pow((p.x * 0.8 + p.y * 0.6 - ph) / 0.05, 2.0));
   col += sw * (0.25 + 0.75 * (1.0 - n.z)) * 0.6;
+  // motion b: the ring dims to the room's blue, but for an arc of light that runs once round it as the mirror syncs
+  if (mOn(2.0)) {
+    float k, g = syncArc(p, t / uCycle, k);
+    if (k > 0.0) col = mix(col, col * vec3(0.62, 0.76, 0.95), k * 0.7 * (1.0 - g)) + k * g * 0.3;
+  }
   return col;
 }
 vec3 motif(vec2 p, float t) {
@@ -258,6 +282,16 @@ vec3 motif(vec2 p, float t) {
   if (p.y < YF) {
     float dz = YF - p.y;
     vec2 pm = vec2(p.x, 2.0 * YF - p.y);
+    // motion c, never repeating: ripples run out across the mirror from the ring's foot without end, two trains of waves
+    // on unequal periods whose strength drifts, from a source that wanders along the foot
+    if (mOn(3.0) && t > 0.0) {
+      vec2 w = vec2(p.x - 0.488 - 0.05 * sin(TAU * t / 23.0), dz * 3.4);
+      float r = length(w), g = ease(sat(t / 2.0)) / (1.0 + 2.5 * r) * smoothstep(0.0, 0.04, r);
+      float a1 = 0.6 + 0.4 * sin(TAU * t / 13.0), a2 = 0.5 + 0.5 * sin(TAU * t / 17.0 + 1.3);
+      float f1 = r * 115.0 - TAU * t / 0.9, f2 = r * 70.0 - TAU * t / 1.4 + 0.7;
+      pm += vec2(w.x / max(r, 1e-3) * 0.5, -1.0) * 0.011 * g * (a1 * sin(f1) + 0.7 * a2 * sin(f2));
+      col *= 1.0 + 0.14 * g * (a1 * cos(f1) + 0.7 * a2 * cos(f2));
+    }
     vec4 fm = formAt(pm);
     float b = 0.0015 + dz * 0.10;
     float a = smoothstep(b, -b, fm.r) * exp(-dz / 0.09) * 0.62;
@@ -267,6 +301,7 @@ vec3 motif(vec2 p, float t) {
   vec4 f = formAt(p);
   // bloom around the form, strongest where it meets the floor
   col += vec3(1.0) * 0.12 * falloff(f.r, 0.06);
+  if (mOn(2.0) && f.r > 0.0) { float k, g = syncArc(p, t / uCycle, k); col += vec3(0.9, 0.96, 1.0) * k * g * 0.5 * falloff(f.r, 0.11); }
   col += vec3(1.0) * 0.30 * exp(-pow((p.x - 0.488) / 0.11, 2.0) - pow((p.y - YF) / 0.018, 2.0));
   col = mix(col, ringShade(f, p, t), cover(f.r));
   return col;
@@ -300,11 +335,13 @@ const vec3 LINE = vec3(0.35, 0.2, 1.0);
 const vec4 RIM = vec4(0.0025, 1.0, 0.8, 0.06);
 const float RIMW = 0.45;
 const vec2 RIMB = vec2(1.5, 1.8);
+const vec3 DOTC = vec3(0.816, 0.480, 0.112);   // the stet mark's dots: the back's accent, #E9B85E, linear
 // a box's soft window, soft over s tile px
 float box(vec2 x, vec4 b, float s) { return smoothstep(b.x - s, b.x, x.x) * smoothstep(b.z + s, b.z, x.x) * smoothstep(b.y - s, b.y, x.y) * smoothstep(b.w + s, b.w, x.y); }
 float nearType(vec2 c, vec2 rb) {
   vec2 o = vec2(rb.x, 0.0);
-  vec4 m = texture2D(uText, c + o.xy, rb.y) + texture2D(uText, c - o.xy, rb.y) + texture2D(uText, c + o.yx, rb.y) + texture2D(uText, c - o.yx, rb.y);
+  float lb = rb.y - uLod;
+  vec4 m = texture2D(uText, c + o.xy, lb) + texture2D(uText, c - o.xy, lb) + texture2D(uText, c + o.yx, lb) + texture2D(uText, c - o.yx, lb);
   return sat(0.25 * (m.r + m.g + m.b));
 }
 vec3 motif(vec2 p, float t) {
@@ -312,7 +349,16 @@ vec3 motif(vec2 p, float t) {
   // the ground's faint mottle, a few pixels across (linear light), and the concept's dark line hugging every letter
   vec3 col = mix(uPal[0], uPal[1], smoothstep(0.25, 0.85, v)) * (1.0 + (vnoise(FC / GG.x + 9.0) - 0.5) * GG.y);
   float g = nearType(p, TAP);
-  return col * (1.0 - LINE.z * exp(-pow((g - LINE.x) / LINE.y, 2.0)) * smoothstep(0.0, 0.05, g) * (1.0 - uMode));
+  col *= 1.0 - LINE.z * exp(-pow((g - LINE.x) / LINE.y, 2.0)) * smoothstep(0.0, 0.05, g) * (1.0 - uMode);
+  // motion c: the proofreader's stet mark, a row of dots set under the word one by one, let stand, then faded
+  if (mOn(3.0) && p.y > 0.15 && p.y < 0.22) {
+    float u = t / uCycle, keep = 1.0 - mRise(u, 0.7, 0.84);
+    for (int i = 0; i < 7; i++) {
+      float a = mRise(u, 0.06 + 0.07 * float(i), 0.12 + 0.07 * float(i)) * keep;
+      col = mix(col, DOTC, a * cover(length(p - vec2(0.14 + 0.12 * float(i), 0.185)) - 0.0115 * (0.7 + 0.3 * a)));
+    }
+  }
+  return col;
 }
 vec3 face(vec2 q, int F) {
   vec3 c = vec3(0.0); float ws = 0.0;
@@ -353,14 +399,36 @@ float turned(vec2 p, int L, out float d, out float h) {
 // the concept's folds are drawn crisp: a light line on one side and a dark one on the other (gain at d, gain at d,
 // tile px), fading where the fold does
 const vec4 CREASE[4] = vec4[4](vec4(0.0, 0.0, 0.0, 0.0), vec4(0.0), vec4(0.03, -1.1, -0.22, 0.9), vec4(0.035, -0.8, -0.08, 1.2));
+// each face's keys' box (cover units, x0, y0, x1, y1): a turning lookup is held inside its face's keys, beyond which the
+// face's colour field has nothing to blend (it would read black)
+const vec4 FBOX[7] = vec4[7](vec4(0.0713, 0.602, 0.3078, 0.7021), vec4(0.0409, 0.2883, 0.3345, 0.6513), vec4(0.3755, 0.2926, 0.478, 0.8063),
+  vec4(0.5238, 0.2903, 0.8095, 0.7024), vec4(0.624, 0.4904, 0.8101, 0.5408), vec4(0.8493, 0.2896, 0.9767, 0.824), vec4(0.8448, 0.6379, 0.864, 0.7742));
+// each letter's middle and half-size (cover units), from its faces' keys: the s, the first t, the e, the last t
+const vec4 LETTER[4] = vec4[4](vec4(0.188, 0.495, 0.147, 0.207), vec4(0.427, 0.549, 0.051, 0.257), vec4(0.667, 0.496, 0.143, 0.206), vec4(0.911, 0.557, 0.066, 0.267));
 vec3 stetFill(vec2 p, float t, int L) {
-  // the keys drift a little when alive; the stipple jitters where the blend is read
-  vec2 q = p + 0.010 * vec2(sin(t * 0.37), cos(t * 0.29) - 1.0) + (h22(FC * 0.731 + 3.0) - 0.5) * 0.016;
+  // motion a, never repeating: each letter's colours turn round inside it, about the letter's middle and stretched to its
+  // shape, each letter on its own clock (the t's the other way round), breathing in and out as they turn; the stipple
+  // jitters where the blend is read
+  vec2 q = p;
+  if (uV1 > 0.5) q = p + 0.010 * vec2(sin(t * 0.37), cos(t * 0.29) - 1.0);   // v1: the keys drift a little
+  else if (mOn(1.0) && t > 0.0) {
+    vec4 c = LETTER[L];
+    float per = L == 0 ? 22.0 : L == 1 ? -17.0 : L == 2 ? 26.0 : -19.0, k = 1.0 + 0.18 * sin(TAU * t / (11.0 + 2.0 * float(L)));
+    q = c.xy + rot(TAU * t / per) * ((p - c.xy) / c.zw) * k * c.zw;
+  }
+  q += (h22(FC * 0.731 + 3.0) - 0.5) * 0.016;
   ivec2 F = FACES[L];
   float d = 1e3, h = 0.0;
   float b = F.y < 0 ? 0.0 : turned(p, L, d, h);
-  vec3 c = b < 1.0 ? face(q, F.x) : vec3(0.0);
-  if (b > 0.0) c = mix(c, face(q, F.y), b);
+  // motion a: each face reads its colour from inside its own keys (blended in from clock 0, so the still frame is untouched)
+  vec2 qa = q, qb = q;
+  if (mOn(1.0) && t > 0.0 && uV1 < 0.5) {
+    float g = sat(t / 1.5);
+    qa = mix(q, clamp(q, FBOX[F.x].xy, FBOX[F.x].zw), g);
+    if (F.y >= 0) qb = mix(q, clamp(q, FBOX[F.y].xy, FBOX[F.y].zw), g);
+  }
+  vec3 c = b < 1.0 ? face(qa, F.x) : vec3(0.0);
+  if (b > 0.0) c = mix(c, face(qb, F.y), b);
   vec4 k = CREASE[L];
   c *= 1.0 + h * (k.x * exp(-pow((d - k.y) / 0.6, 2.0)) + k.z * exp(-pow((d - k.w) / 0.6, 2.0)));
   // the rim reads the front's type mask (the back's band has none)
@@ -369,6 +437,12 @@ vec3 stetFill(vec2 p, float t, int L) {
     vec2 x = vec2(p.x, 1.0 - p.y) * 546.0;
     float boost = RIMB.x * box(x, vec4(326.0, 240.0, 458.0, 304.0), 6.0) + RIMB.y * box(x, vec4(58.0, 194.0, 192.0, 270.0), 6.0);
     c = mix(c, vec3(1.0), sat(RIMW * (1.0 + boost)) * exp(-pow((nearType(p, RIM.xy) - RIM.z) / RIM.w, 2.0)));
+  }
+  // motion b: a band of light reads across the word, left to right, like a proofreader's pass
+  if (mOn(2.0)) {
+    float u = t / uCycle, k = mRise(u, 0.0, 0.08) * (1.0 - mRise(u, 0.52, 0.64));
+    float x = mix(-0.2, 1.2, ease(sat((u - 0.02) / 0.6))) - 0.16 * (p.y - 0.5);
+    c += k * 0.42 * exp(-pow((p.x - x) / 0.075, 2.0)) * (1.0 - c);
   }
   // the concept's stipple, stronger in the mid and dark tones, and its dark speckle, sparse spots a few pixels across
   // that show most on the light tones
@@ -415,36 +489,65 @@ const vec3 K_TRI[6] = vec3[](vec3(0.0071, 0.0850, 0.7454), vec3(0.0040, 0.0086, 
 float sdLeft(vec2 q, vec2 o, float k) { return -((q.x - o.x) * -k + (q.y - o.y)) / sqrt(k * k + 1.0); }
 vec3 motif(vec2 p, float t) {
   vec2 q = vec2(p.x, 1.0 - p.y), w = q - 0.5;   // concept coordinates, y down
-  // alive, the discs drift a few pixels and the band of light breathes
-  float dr = 0.006 * sin(t * 0.35), br = 1.0 + 0.25 * sin(t * 0.5);
-  vec2 X = vec2(0.47626, 0.77821);
+  float u = t / uCycle;
+  // motion a, never repeating: every shape on its own clock, the periods (clock s) unequal so the whole never comes round
+  // again: the split disc turns round and round and breathes, the other discs travel and grow and shrink against one
+  // another, the crossing wanders and the diagonals swing with it, the band of light breathes
+  vec2 X = vec2(0.47626, 0.77821), c1 = vec2(0.65799, 0.33545), cD = vec2(0.59558, 0.43873), cP = vec2(0.02461, 1.04655);
+  float r1 = 0.35365, rD = 0.16549, rP = 0.51214, br = 1.0;
+  vec2 q4 = q, w4 = w, w1 = w, wP = w;
+  if (uV1 > 0.5) {
+    // v1: the discs drift a few pixels and the band of light breathes
+    float dr = 0.006 * sin(t * 0.35);
+    br = 1.0 + 0.25 * sin(t * 0.5);
+    cD.x += dr; cP.x -= dr; q4 = q + vec2(0.8 * dr, 0.0);
+  } else if (mOn(1.0) && t > 0.0) {
+    vec4 s = sin(TAU * t / vec4(9.0, 11.0, 13.0, 14.0)), s2 = sin(TAU * t / vec4(15.0, 17.0, 19.0, 21.0)), s3 = sin(TAU * t / vec4(23.0, 25.0, 27.0, 29.0));
+    br += 0.25 * s.x;
+    X += vec2(0.07 * s2.w, 0.04 * s3.z);
+    r1 *= 1.0 + 0.22 * s.y;  c1 += vec2(0.03 * s2.y, 0.03 * s3.y);
+    rD *= 1.0 + 0.35 * s.z;  cD += vec2(0.06 * s2.z, 0.04 * s2.x);
+    rP *= 1.0 - 0.18 * s.w;  cP += vec2(0.05 * s3.x, -0.04 * s3.w);
+    w1 = w - (c1 - vec2(0.65799, 0.33545)); wP = w - (cP - vec2(0.02461, 1.04655));
+    // the split disc turns about its middle, a full turn every 18 clock s, breathing as it turns
+    vec2 C4 = vec2(0.795, 0.77);
+    q4 = C4 + rot(-TAU * t / 18.0) * (q - C4) / (1.0 + 0.14 * sin(TAU * t / 16.0));
+    w4 = q4 - 0.5;
+  }
   float dL = sdLeft(q, X, -0.98364), dA = sdLeft(q, X, -1.01603);
   float dB = -sdLeft(q, X, 1.05718);   // positive below the triangle's right edge
   float dl = abs(q.y < X.y ? dL : dA);
+  // motion c: a pulse of light runs up the diagonal, from the crossing out to the corner, as a post goes out
+  if (mOn(3.0)) {
+    float k = mRise(u, 0.0, 0.1) * (1.0 - mRise(u, 0.55, 0.7));
+    float s = dot(q - X, vec2(0.71295, -0.70122)) - mix(-0.25, 0.95, ease(sat((u - 0.03) / 0.62)));
+    br += k * 1.4 * exp(-s * s / 0.012);
+  }
   vec2 e = br * vec2(exp(-dl / 0.01614), exp(-dl / 0.0561));
+  // motion b: the pale disc rises from the lower left, like a post going up, and settles back
+  vec2 rz = mOn(2.0) ? vec2(0.018, -0.07) * mRise(u, 0.04, 0.42) * (1.0 - mRise(u, 0.56, 0.94)) : vec2(0.0);
   // each area's field is evaluated only where the area shows
   vec3 G = POLY(K_G, w), col = G;
   float m = sat((q.y - 0.54851) / 0.19798 + 0.5);
   if (m > 0.0) col = mix(col, POLY(K_M, w) + BAND(K_M, e), m);
   // the pale corner beyond the dark disc at the top right
-  vec2 c1 = vec2(0.65799, 0.33545);
-  if (q.x > c1.x && q.y < c1.y) col = mix(col, POLY(K_TR, w), cover(0.35365 - length(q - c1)));
+  if (q.x > c1.x && q.y < c1.y) col = mix(col, POLY(K_TR, w1), cover(r1 - length(q - c1)));
   // the dark disc under "Hook": the top field's own blue
-  col = mix(col, G, cover(length(q - vec2(0.59558 + dr, 0.43873)) - 0.16549));
+  col = mix(col, G, cover(length(q - cD) - rD));
   // the pale disc from the lower left, under the line of the triangle's right edge
-  float a = cover(length(q - vec2(0.02461 - dr, 1.04655)) - 0.51214) * cover(-dB);
-  if (a > 0.0) col = mix(col, POLY(K_C3, w) + BAND(K_C3, e), a);
+  float a = cover(length(q - rz - cP) - rP) * cover(-dB);
+  if (a > 0.0) { vec2 wz = wP - rz; col = mix(col, POLY(K_C3, wz) + BAND(K_C3, e), a); }
   // beyond the diagonal: the light field above the triangle's right edge
   float right = cover(max(dL, dA));
   float b = right * cover(dB);
   if (b > 0.0) col = mix(col, POLY(K_LF, w) + BAND(K_LF, e), b);
   // the split disc, light on the left of the split (its own circle), deep on the right (half-ellipses)
-  float xs = 0.77971 - dr * 0.8;
-  b = cover(length(q - vec2(0.7876 - dr * 0.8, 0.78558)) - 0.24415) * cover(q.x - xs);
-  if (b > 0.0) col = mix(col, POLY(K_C4L, w) + BAND(K_C4L, e), b);
-  vec2 o4 = q - vec2(0.80816 - dr * 0.8, 0.75084);
-  b = cover(sdEllipse(o4, vec2(o4.x < 0.0 ? 0.26661 : 0.20003, 0.21656))) * cover(xs - q.x);
-  if (b > 0.0) col = mix(col, POLY(K_C4R, w), b);
+  float xs = 0.77971;
+  b = cover(length(q4 - vec2(0.7876, 0.78558)) - 0.24415) * cover(q4.x - xs);
+  if (b > 0.0) col = mix(col, POLY(K_C4L, w4) + BAND(K_C4L, e), b);
+  vec2 o4 = q4 - vec2(0.80816, 0.75084);
+  b = cover(sdEllipse(o4, vec2(o4.x < 0.0 ? 0.26661 : 0.20003, 0.21656))) * cover(xs - q4.x);
+  if (b > 0.0) col = mix(col, POLY(K_C4R, w4), b);
   // the deep triangle below the crossing, over the disc's foot
   b = right * cover(-dB);
   if (b > 0.0) col = mix(col, POLY(K_TRI, w), b);
@@ -464,7 +567,8 @@ float b3(float t) { t = abs(t); return t < 1.0 ? (4.0 - 6.0 * t * t + 3.0 * t * 
 // the gaps and the contour: dark teal, deepest at the gap's middle
 const vec3 RAMP = vec3(0.004, 0.1095, 0.1248), CORE = vec3(0.0009, 0.0742, 0.0865);
 const vec3 SIDEDK = vec3(0.0048, 0.1441, 0.162), SIDELT = vec3(0.0497, 0.4564, 0.4793);
-vec3 room(vec2 p, vec4 f) {
+// pw: where the whale's own glass at p rests (motion b floats it)
+vec3 room(vec2 p, vec2 pw, vec4 f) {
   float wb = smoothstep(YF + 0.006, YF - 0.006, p.y), dz = max(YF - p.y, 0.0) / YF;
   float rc = 0.0;
   // the whale's lower body over each floor column, one soft tap: its reflection, streaked
@@ -488,20 +592,22 @@ vec3 room(vec2 p, vec4 f) {
   // the glass's thickness: each facet's side face, seen in the gap below and right of its front face, lit from the
   // floor at its foot, with a bright line along its lower edge
   if (f.r > 0.0 && f.r < 0.012) {
-    float rb = formAt(p + vec2(-0.0015, 0.0045)).r, sb = cover(rb) * (1.0 - cover(f.r));
+    float rb = formAt(pw + vec2(-0.0015, 0.0045)).r, sb = cover(rb) * (1.0 - cover(f.r));
     vec3 sc = mix(SIDEDK, SIDELT, smoothstep(-0.0045, 0.0, rb)) + SIDELT * 0.6 * exp(-pow(rb / 0.0012, 2.0));
     c = mix(c, sc, sb);
   }
   return c;
 }
 const vec3 RIM = vec3(0.472, 0.72, 0.76), SIDE = vec3(0.0075, 0.1878, 0.2159);   // SIDE: the concept's teal just inside its edges
-vec3 whale(vec4 f, vec2 p, float t) {
+const vec2 FAN = vec2(0.414, 0.461);   // where the fan of blades on the whale's back springs from
+vec3 whale(vec4 f, vec2 p, vec2 pw, float t) {
   vec3 n = formNormal(f);
-  vec3 L = normalize(vec3(-0.35 + 0.3 * sin(t * 0.45), 0.65, 0.68));
+  // motion a: the key light swings across the glass
+  vec3 L = normalize(vec3(-0.35 + 0.3 * sin((mOn(1.0) ? t : 0.0) * 0.45), 0.65, 0.68));
   float e = 1.0 - n.z, dd = max(-f.r, 0.0);
   float rz = 2.0 * dot(n, L) * n.z - L.z;
   float dirt = dot(n.xy, normalize(L.xy)) / (length(n.xy) + 1e-5);
-  float gu = sat((p.x - 0.12) / 0.76) * 5.0, gv = sat((p.y - 0.15) / 0.7) * 5.0;
+  float gu = sat((pw.x - 0.12) / 0.76) * 5.0, gv = sat((pw.y - 0.15) / 0.7) * 5.0;
   // the glass's tint across the body: a 6 x 6 grid over the whale, read bilinearly
   float a0 = max(0.0, 1.0 - abs(gu)), a1 = max(0.0, 1.0 - abs(gu - 1.0)), a2 = max(0.0, 1.0 - abs(gu - 2.0)), a3 = max(0.0, 1.0 - abs(gu - 3.0)), a4 = max(0.0, 1.0 - abs(gu - 4.0)), a5 = max(0.0, 1.0 - abs(gu - 5.0)), b0 = max(0.0, 1.0 - abs(gv)), b1 = max(0.0, 1.0 - abs(gv - 1.0)), b2 = max(0.0, 1.0 - abs(gv - 2.0)), b3 = max(0.0, 1.0 - abs(gv - 3.0)), b4 = max(0.0, 1.0 - abs(gv - 4.0)), b5 = max(0.0, 1.0 - abs(gv - 5.0));
   vec3 c = b0 * (a0 * vec3(0.1885, 0.6292, 0.6707) + a1 * vec3(0.1435, 1.2844, 1.3969) + a2 * vec3(0.0645, 0.9087, 0.9925) + a3 * vec3(0.0204, 0.6345, 0.6958) + a4 * vec3(0.1554, 0.5621, 0.6007) + a5 * vec3(0.1296, 0.4893, 0.5235))
@@ -522,11 +628,31 @@ vec3 whale(vec4 f, vec2 p, float t) {
   c += vec3(0.0, 0.0262, 0.0) * (exp(-dd / 0.02));
   // the floor's light caught in the glass's lower body, strongest at the lower edges
   c += SIDELT * 1.5 * exp(-max(p.y - YF, 0.0) / 0.08) * (0.35 + 0.65 * lower) * exp(-dd / 0.03);
+  // motion c: light runs through the fan of blades on its back, blade by blade, left to right: the bridges back to the
+  // Mac (clipboard, sound, Chrome, git, MCP) lighting in turn
+  // never repeating: two beams of light keep running round it the same way, on unequal periods, each blade lighting as
+  // a beam crosses it (below the fan a beam has nothing to light, and comes back in at the left)
+  if (mOn(3.0) && t > 0.0) {
+    vec2 r = pw - FAN;
+    float rl = length(r);
+    if (r.y > -0.01 && rl > 0.03 && rl < 0.27) {
+      float a = atan(r.y, r.x), g = ease(sat(t / 2.0));
+      float d1 = mod(a - PI + TAU * t / 7.0 + PI, TAU) - PI, d2 = mod(a - PI + TAU * t / 11.3 - 2.1 + PI, TAU) - PI;
+      float beam = exp(-d1 * d1 / 0.02) * (0.7 + 0.3 * sin(TAU * t / 5.3)) + 0.75 * exp(-d2 * d2 / 0.03);
+      c += g * beam * (SIDELT * 1.7 + RIM * 1.3 * exp(-pow(dd / 0.004, 2.0)));
+    }
+  }
   return max(c, 0.0);
 }
 vec3 motif(vec2 p, float t) {
-  vec4 f = formAt(p);
-  return mix(room(p, f), whale(f, p, t), cover(f.r));
+  // motion b: the glass whale floats up off its floor and settles, with a slight roll
+  vec2 pw = p;
+  if (mOn(2.0) && t > 0.0) {
+    float u = t / uCycle, a = 0.012 * sin(TAU * u);
+    pw = vec2(0.45, 0.42) + rot(a) * (p - vec2(0.45, 0.42)) - vec2(0.0, 0.010 * (0.5 - 0.5 * cos(TAU * u)));
+  }
+  vec4 f = formAt(pw);
+  return mix(room(p, pw, f), whale(f, p, pw, t), cover(f.r));
 }`;
 
 // LikeWiki: two words stacked huge over a split field, cream above the fold and green below, with large
@@ -543,18 +669,31 @@ vec3 disc(vec3 col, vec2 q, vec2 c, vec2 r, vec3 a, vec3 b, vec2 dir, float m) {
 }
 vec3 motif(vec2 p, float t) {
   vec2 q = vec2(p.x, 1.0 - p.y);
-  float dr = 0.008 * sin(t * 0.3);
+  // motion a: the discs drift
+  float dr = 0.008 * sin((mOn(1.0) ? t : 0.0) * 0.3), u = t / uCycle;
+  // motion b, never repeating: every disc travels on a slow path of its own (each axis two periods, all unequal) and
+  // grows and shrinks as it goes, never in step with the others; motion c: all of them beat twice together, like a like
+  // landing
+  float G[7] = float[7](0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0), S[7] = float[7](1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0);
+  vec2 D[7] = vec2[7](vec2(0.0), vec2(0.0), vec2(0.0), vec2(0.0), vec2(0.0), vec2(0.0), vec2(0.0));
+  if (mOn(2.0) && t > 0.0) for (int i = 0; i < 7; i++) {
+    float f = float(i), sg = i % 2 == 0 ? 1.0 : -1.0;
+    D[i] = vec2(0.07 * sin(TAU * t / (17.0 + 3.1 * f)) + 0.03 * sg * sin(TAU * t / (7.3 + 1.7 * f)),
+                0.05 * sg * sin(TAU * t / (13.0 + 2.3 * f)) + 0.025 * sin(TAU * t / (9.1 + 1.3 * f)));
+    S[i] = 1.0 + 0.3 * sg * sin(TAU * t / (11.0 + 2.9 * f));
+  }
+  if (mOn(3.0)) { float h = 0.016 * (mBump(u, 0.03, 0.11) + 0.65 * mBump(u, 0.13, 0.21)); for (int i = 0; i < 7; i++) G[i] = h; }
   float top = cover(q.y - FOLD), bot = 1.0 - top;
   vec3 col = vec3(0.0);
   col = field(col, q, vec3(0.8879, 0.8796, 0.7991), vec3(0.8228, 0.7913, 0.7157), vec2(1, -0.01), top);   // #F2F1E7 .. #EAE6DC
   col = field(col, q, vec3(0.0116, 0.0423, 0.0319), vec3(0.0103, 0.0395, 0.0284), vec2(1, -0.002), bot);   // #1C3A32 .. #1A382F
-  col = disc(col, q, vec2(0.2263 + dr, -0.0418), vec2(0.2715, 0.2715), vec3(0.2542, 0.3968, 0.3419), vec3(0.2502, 0.4508, 0.314), vec2(0.0028, 1), top);   // #8AA99E .. #89B398
-  col = disc(col, q, vec2(1.0273, 0.5805), vec2(0.1596, 0.1596), vec3(0.0595, 0.1845, 0.1119), vec3(0.1329, 0.2789, 0.1912), vec2(0.0028, 1), top);   // #45775E .. #669079
-  col = disc(col, q, vec2(0.2766, 0.5296), vec2(0.0695, 0.0695), vec3(0.2664, 0.4621, 0.3419), vec3(0.159, 0.3231, 0.2346), vec2(0.0008, 1), top);   // #8DB59E .. #6F9A85
-  col = disc(col, q, vec2(-0.1446, 0.5953), vec2(0.2337, 0.2337), vec3(0.0319, 0.0865, 0.0648), vec3(0.0232, 0.0666, 0.0423), vec2(1, 0.004), bot);   // #325348 .. #2A493A
-  col = disc(col, q, vec2(0.5118, 0.3866 + dr), vec2(0.17, 0.17), vec3(0.3419, 0.521, 0.4072), vec3(0.1022, 0.2462, 0.162), vec2(1, 0.001), bot);   // #9EBFAB .. #5A8870
-  col = disc(col, q, vec2(0.7234 - dr, 0.4285), vec2(0.1966, 0.1966), vec3(0.1779, 0.402, 0.2664), vec3(0.0437, 0.1529, 0.0976), vec2(1, -0.003), bot);   // #75AA8D .. #3B6D58
-  col = disc(col, q, vec2(0.5783 - dr, 1.1004), vec2(0.3118, 0.2655), vec3(0.3813, 0.6795, 0.4969), vec3(0.0, 0.1274, 0.0666), vec2(0.9999, -0.015), bot);   // #A6D7BB .. #006449
+  col = disc(col, q, vec2(0.2263 + dr, -0.0418) + D[0], (vec2(0.2715, 0.2715) + G[0]) * S[0], vec3(0.2542, 0.3968, 0.3419), vec3(0.2502, 0.4508, 0.314), vec2(0.0028, 1), top);   // #8AA99E .. #89B398
+  col = disc(col, q, vec2(1.0273, 0.5805) + D[1], (vec2(0.1596, 0.1596) + G[1]) * S[1], vec3(0.0595, 0.1845, 0.1119), vec3(0.1329, 0.2789, 0.1912), vec2(0.0028, 1), top);   // #45775E .. #669079
+  col = disc(col, q, vec2(0.2766, 0.5296) + D[2], (vec2(0.0695, 0.0695) + G[2]) * S[2], vec3(0.2664, 0.4621, 0.3419), vec3(0.159, 0.3231, 0.2346), vec2(0.0008, 1), top);   // #8DB59E .. #6F9A85
+  col = disc(col, q, vec2(-0.1446, 0.5953) + D[3], (vec2(0.2337, 0.2337) + G[3]) * S[3], vec3(0.0319, 0.0865, 0.0648), vec3(0.0232, 0.0666, 0.0423), vec2(1, 0.004), bot);   // #325348 .. #2A493A
+  col = disc(col, q, vec2(0.5118, 0.3866 + dr) + D[4], (vec2(0.17, 0.17) + G[4]) * S[4], vec3(0.3419, 0.521, 0.4072), vec3(0.1022, 0.2462, 0.162), vec2(1, 0.001), bot);   // #9EBFAB .. #5A8870
+  col = disc(col, q, vec2(0.7234 - dr, 0.4285) + D[5], (vec2(0.1966, 0.1966) + G[5]) * S[5], vec3(0.1779, 0.402, 0.2664), vec3(0.0437, 0.1529, 0.0976), vec2(1, -0.003), bot);   // #75AA8D .. #3B6D58
+  col = disc(col, q, vec2(0.5783 - dr, 1.1004) + D[6], (vec2(0.3118, 0.2655) + G[6]) * S[6], vec3(0.3813, 0.6795, 0.4969), vec3(0.0, 0.1274, 0.0666), vec2(0.9999, -0.015), bot);   // #A6D7BB .. #006449
   return col;
 }`;
 
@@ -595,9 +734,9 @@ MOTIFS.topshine = (() => {
   G.orb0 = G.star + 5 + 4 * T.qlines.length; G.orb1 = G.orb0 + 4;
   const orb = ([x, y, r]) => `vec3(${f(x * k)}, ${f(y * k)}, ${f(r * k)})`;
   // an orb's highlights: elongated gaussians, summed
-  const spec = list => list.map(([x, y, sx, sy, deg]) => {
+  const spec = (list, uv) => list.map(([x, y, sx, sy, deg]) => {
     const a = deg * Math.PI / 180;
-    return `streak(u, vec2(${f(x * k)}, ${f(y * k)}), vec2(${f(sx * k)}, ${f(sy * k)}), vec2(${f(Math.cos(a))}, ${f(Math.sin(a))}))`;
+    return `streak(${uv}, vec2(${f(x * k)}, ${f(y * k)}), vec2(${f(sx * k)}, ${f(sy * k)}), vec2(${f(Math.cos(a))}, ${f(Math.sin(a))}))`;
   }).join(' + ');
   return /* glsl */`
 const float CPX = 574.0;   // concept px per cover unit: the fit's widths are in concept px
@@ -607,6 +746,10 @@ const int FN[${FN.length}] = int[${FN.length}](${FN.join(', ')});
 const vec3 FB[${FB.length}] = vec3[${FB.length}](${FB.join(', ')});
 const vec2 SO = vec2(${f(T.O[0] * k)}, ${f(T.O[1] * k)}), SA = vec2(${f(T.A[0] * k)}, ${f(T.A[1] * k)}), SB = vec2(${f(T.B[0] * k)}, ${f(T.B[1] * k)});
 const vec3 ORB0 = ${orb(T.orbs[0])}, ORB1 = ${orb(T.orbs[1])};
+// the star's tips (concept coordinates: top, right, foot, left), where motion b's flares bloom
+const vec2 TIP[4] = vec2[4](SO - vec2(0.0, SB.x), SO + vec2(SA.x, 0.0), SO + vec2(0.0, SB.y), SO - vec2(SA.y, 0.0));
+// motion c: how far each orb has slid (concept coordinates), set once a pixel by motif()
+vec2 OFF0 = vec2(0.0), OFF1 = vec2(0.0);
 const vec2 RC = vec2(${f(rx * k)}, ${f(ry * k)}), RAB = vec2(${f(ra * k)}, ${f(rb * k)}), RCS = vec2(${f(Math.cos(ar))}, ${f(Math.sin(ar))});
 const vec4 MS = vec4(${f(M[0] * k)}, ${f(M[1] * k)}, ${f(M[2] * k)}, ${f(M[3] * k)});
 const vec3 MD0 = ${orb(M.slice(5, 8))}, MD1 = ${orb(M.slice(8, 11))};
@@ -647,10 +790,12 @@ float streak(vec2 u, vec2 c, vec2 s, vec2 cs) {
 // one sample's weight for every block (its feature times the coverage of its part) and its extra light (alive)
 void weigh(vec2 p, float t, inout float w[${FO.length}], inout vec3 extra) {
   vec2 u = vec2(p.x, 1.0 - p.y);
-  float live = 1.0 - exp(-t * 1.2);
+  // motion a: a glint runs round the ring and caustics shimmer in the star, fading in and out over the cycle
+  float live = uV1 > 0.5 || mOn(1.0) ? 1.0 - exp(-t * 1.2) : 0.0;
   vec4 f = formAt(p);
   float cs = cover(f.r);
-  float c0 = cover(length(u - ORB0.xy) - ORB0.z), c1 = cover(length(u - ORB1.xy) - ORB1.z);
+  vec2 uo0 = u - OFF0, uo1 = u - OFF1;
+  float c0 = cover(length(uo0 - ORB0.xy) - ORB0.z), c1 = cover(length(uo1 - ORB1.xy) - ORB1.z);
   float o1 = c1, o0 = c0 * (1.0 - c1), st = cs * (1.0 - c0) * (1.0 - c1), gr = (1.0 - cs) * (1.0 - c0) * (1.0 - c1);
   // the ring: its edges, its fill and the wider band inside it, in front of the star on its lower half
   vec2 d = u - RC, o = vec2(d.x * RCS.x + d.y * RCS.y, -d.x * RCS.y + d.y * RCS.x);
@@ -698,12 +843,12 @@ void weigh(vec2 p, float t, inout float w[${FO.length}], inout vec3 extra) {
     }
   }
   if (o0 > 0.0) {
-    float dd = (length(u - ORB0.xy) - ORB0.z) * CPX;
-    w[${G.orb0}] += o0; w[${G.orb0 + 1}] += o0 * line(dd + 1.0, 1.0); w[${G.orb0 + 2}] += o0 * line(dd + 3.5, 1.5); w[${G.orb0 + 3}] += o0 * (${spec(T.specs[0])});
+    float dd = (length(uo0 - ORB0.xy) - ORB0.z) * CPX;
+    w[${G.orb0}] += o0; w[${G.orb0 + 1}] += o0 * line(dd + 1.0, 1.0); w[${G.orb0 + 2}] += o0 * line(dd + 3.5, 1.5); w[${G.orb0 + 3}] += o0 * (${spec(T.specs[0], 'uo0')});
   }
   if (o1 > 0.0) {
-    float dd = (length(u - ORB1.xy) - ORB1.z) * CPX;
-    w[${G.orb1}] += o1; w[${G.orb1 + 1}] += o1 * line(dd + 1.0, 1.0); w[${G.orb1 + 2}] += o1 * line(dd + 3.5, 1.5); w[${G.orb1 + 3}] += o1 * (${spec(T.specs[1])});
+    float dd = (length(uo1 - ORB1.xy) - ORB1.z) * CPX;
+    w[${G.orb1}] += o1; w[${G.orb1 + 1}] += o1 * line(dd + 1.0, 1.0); w[${G.orb1 + 2}] += o1 * line(dd + 3.5, 1.5); w[${G.orb1 + 3}] += o1 * (${spec(T.specs[1], 'uo1')});
   }
 }
 // Fields are read once per pixel, at its centre; each sample keeps its own weights. The first call for a pixel shades
@@ -717,12 +862,33 @@ vec3 motif(vec2 p, float t) {
   vec2 offs[4] = vec2[4](vec2(0.125, 0.375), vec2(-0.375, 0.125), vec2(0.375, -0.125), vec2(-0.125, -0.375));
   float w[${FO.length}];
   for (int k = 0; k < ${FO.length}; k++) w[k] = 0.0;
+  // motion c: a camera dolly: the near orb (lower left) slides one way and back, the far one less the other way, the star
+  // holding the middle of the frame
+  if (mOn(3.0)) { float s = sin(TAU * t / uCycle); OFF1 = vec2(0.03 * s, -0.004 * s); OFF0 = vec2(-0.013 * s, 0.002 * s); }
+  // motion a, never repeating: the glint keeps running round the ring and the caustics shimmer, while the camera keeps
+  // drifting past the set: the near orb travels far on a slow path, the far orb less the other way, on unequal periods
+  if (mOn(1.0) && uV1 < 0.5 && t > 0.0) {
+    OFF1 = vec2(0.085 * sin(TAU * t / 19.0) + 0.035 * sin(TAU * t / 7.7), -0.05 * sin(TAU * t / 13.0) + 0.02 * sin(TAU * t / 5.9));
+    OFF0 = vec2(-0.05 * sin(TAU * t / 23.0) - 0.02 * sin(TAU * t / 8.3), 0.04 * sin(TAU * t / 17.0));
+  }
   vec3 col = vec3(0.0);
   for (int i = 0; i < ns; i++) {
     weigh((FC + (ns > 1 ? offs[i] : vec2(0.0))) / uRes, t, w, col);
   }
   vec2 u = vec2(FC.x, uRes.y - FC.y) / uRes;
-  for (int k = 0; k < ${FO.length}; k++) if (abs(w[k]) > 1e-4 * float(ns)) col += w[k] * field(k, u);
+  for (int k = 0; k < ${FO.length}; k++) if (abs(w[k]) > 1e-4 * float(ns)) col += w[k] * field(k, k >= ${G.orb1} ? u - OFF1 : k >= ${G.orb0} ? u - OFF0 : u);
+  // motion b: the star's four tips flare in turn (top, right, foot, left), each a soft bloom with a four-point glint
+  if (mOn(2.0)) {
+    float v = t / uCycle;
+    for (int i = 0; i < 4; i++) {
+      float k = mBump(v, 0.04 + 0.16 * float(i), 0.3 + 0.16 * float(i));
+      if (k > 0.0) {
+        vec2 d = (u - TIP[i]) * CPX, a = abs(d);
+        float g = 0.5 * exp(-dot(d, d) / 300.0) + 0.6 * exp(-dot(d, d) / 24.0) + 0.4 * (exp(-a.x / 1.4 - a.y / 40.0) + exp(-a.y / 1.4 - a.x / 40.0));
+        col += float(ns) * k * g * vec3(0.96, 0.93, 1.0);
+      }
+    }
+  }
   tsCol = max(col / float(ns), vec3(0.0));
   return tsCol;
 }`;
@@ -742,16 +908,29 @@ float scLine(vec2 X, vec3 l) { return dot(X, l.xy) - l.z; }
 vec3 motif(vec2 p, float t) {
   vec2 X = vec2(p.x, 1.0 - p.y) * 566.0;
   float bw = max(1.7, AAW * 566.0);   // the concept's edge, never under a pixel
-  // the disc's quarters turn about their own split point when alive
+  // motion a: the disc's quarters turn a step about their own split point, and rest
   vec2 S2 = vec2(275.746, 290.235);
-  float T = t * 0.25;
-  float a = -0.5 * PI * (floor(T) + ease(sat((fract(T) - 0.62) / 0.38)));
+  float T = (uV1 > 0.5 ? t : 0.0) * 0.25, uc = t / uCycle;
+  float a = -0.5 * PI * (floor(T) + ease(sat((fract(T) - 0.62) / 0.38)));   // v1: a quarter at a time, resting between
+  // motion a, never repeating: the quarters keep turning the one way, surging a quarter at a time but never stopping
+  if (mOn(1.0) && uV1 < 0.5 && t > 0.0) a = -0.5 * PI * (t / 5.0 - 0.8 * sin(TAU * t / 5.0) / TAU);
   vec2 Xq = S2 + rot(-a) * (X - S2);
   float L = scCov(275.367 - X.x, bw), Tp = scCov(289.395 - X.y, bw);
   float L2 = scCov(S2.x - Xq.x, bw), T2 = scCov(S2.y - Xq.y, bw);
-  float tri = scCov(-scLine(X, vec3(0.728472, -0.685076, -104.283)), bw);
-  float dg = scCov(scLine(X, vec3(0.702087, 0.712092, 403.23)), bw);
-  float nb = scCov(scLine(X, vec3(0.694955, 0.719053, 651.874)), bw);
+  // motion b: the disc's splits turn apart and back, so its quarters re-weigh like a live share of traffic
+  if (mOn(2.0) && t > 0.0) {
+    float sa = sin(TAU * uc), sb = sin(2.0 * TAU * uc);
+    L2 = scCov(S2.x - (S2 + rot(-0.15 * sa) * (X - S2)).x, bw);
+    T2 = scCov(S2.y - (S2 + rot(0.09 * sb - 0.05 * sa) * (X - S2)).y, bw);
+  }
+  // motion c: the diagonal fields behind the disc gain and lose ground on one another, like a race for traffic
+  vec3 race = mOn(3.0) ? vec3(30.0 * sin(TAU * uc), 24.0 * sin(2.0 * TAU * uc), -28.0 * sin(TAU * uc)) : vec3(0.0);
+  // ... while the fields behind it race, gaining and losing ground on unequal periods
+  if (mOn(1.0) && uV1 < 0.5 && t > 0.0) race = vec3(34.0 * sin(TAU * t / 11.0) + 10.0 * sin(TAU * t / 4.3), 28.0 * sin(TAU * t / 7.3),
+    -30.0 * sin(TAU * t / 13.7) - 8.0 * sin(TAU * t / 3.9));
+  float tri = scCov(-scLine(X, vec3(0.728472, -0.685076, -104.283 + race.x)), bw);
+  float dg = scCov(scLine(X, vec3(0.702087, 0.712092, 403.23 + race.y)), bw);
+  float nb = scCov(scLine(X, vec3(0.694955, 0.719053, 651.874 + race.z)), bw);
   float A = scCov(scLine(Xq, vec3(-0.687235, -0.726436, -406.399)), bw), B = scCov(scLine(Xq, vec3(-0.687367, -0.72631, -407.788)), bw);
   vec2 e = rot(-2.65023) * (X - vec2(277.487, 281.652));
   float rr = length(e / vec2(151.778, 148.914)), gg = length(e / vec2(23036.7, 22175.4)) + 1e-9;
@@ -906,47 +1085,62 @@ vec3 motif(vec2 p, float t) {
   vec2 E = ic(0.5, 0.695); float ER = 0.43;
   float de = length(p - E) - ER;
   vec2 S = ic(0.5, 0.485);
+  // motion a: the planets move along their orbits and the stars twinkle; b: the grid flows toward the viewer, as if
+  // flying forward through the map; c: echoes ripple out from the centre star along its orbits, as sound spreads
+  float ta = mOn(1.0) ? t : 0.0, u = t / uCycle;
+  // motion a: the planets travel their orbits (four times v1's speed, v1's own with the motion off), the galaxies turn
+  float to = uV1 > 0.5 ? t : 4.0 * ta, tg = uV1 > 0.5 ? 0.0 : 0.06 * ta;
+  float flow = mOn(2.0) ? fract(t / 3.0) : 0.0, fly = mOn(2.0) ? mRise(u, 0.0, 0.15) * (1.0 - mRise(u, 0.82, 1.0)) : 0.0;
+  float echo = mOn(3.0) ? mRise(u, 0.0, 0.06) * (1.0 - mRise(u, 0.62, 0.74)) : 0.0;
   if (de < 0.01) {
     // deep space inside the emblem
     vec3 sp = mix(uPal[2], uPal[1], smoothstep(0.0, 0.3, length((p - S) * vec2(0.8, 1.1))));
     sp = mix(sp, uPal[0] * 1.2, smoothstep(0.2, 0.43, length(p - E)));
     sp += uPal[3] * 0.25 * exp(-pow(length(p - ic(0.22, 0.66)) / 0.12, 2.0));
     sp += uPal[3] * 0.18 * exp(-pow(length(p - ic(0.78, 0.6)) / 0.14, 2.0));
-    sp += vec3(0.85, 0.9, 1.0) * (stars(p, 0.024, 0.86, t) * 0.8 + stars(p + 0.31, 0.055, 0.8, t));
+    sp += vec3(0.85, 0.9, 1.0) * (stars(p, 0.024, 0.86, ta) * 0.8 + stars(p + 0.31, 0.055, 0.8, ta));
     // concentric orbits around the star, and the vertical axis
     for (int i = 0; i < 4; i++) {
       float a = 0.095 + 0.09 * float(i);
       float d = sdEllipse(p - S, vec2(a, a * 0.31));
+      // an echo passing an orbit lights it
+      float lit = echo > 0.0 ? echo * (exp(-pow((u - 0.1 - 0.11 * float(i)) / 0.05, 2.0)) + 0.5 * exp(-pow((u - 0.38 - 0.11 * float(i)) / 0.05, 2.0))) : 0.0;
       sp = mix(sp, uPal[4], ring(d, 0.0009) * 0.55);
+      if (lit > 0.0) sp += mix(uPal[4], vec3(1.0), 0.5) * lit * (0.9 * ring(d, 0.0014) + 0.35 * exp(-abs(d) / 0.008));
+    }
+    // the echoes' wavefronts, two a cycle, the second fainter
+    if (echo > 0.0) for (int j = 0; j < 2; j++) {
+      float r = 0.02 + 0.9 * (u - 0.02 - 0.28 * float(j));
+      if (r > 0.02 && r < 0.5) sp += mix(uPal[4], vec3(1.0), 0.3) * echo * (1.0 - 0.5 * float(j)) * 0.5 * exp(-pow(sdEllipse(p - S, vec2(r, r * 0.31)) / 0.005, 2.0)) * smoothstep(0.5, 0.3, r);
     }
     sp = mix(sp, uPal[4], ring(sdEllipse(p - S, vec2(0.25, 0.25)), 0.0007) * 0.25);
     sp = mix(sp, uPal[4], ring(p.x - 0.5, 0.0008) * 0.6 * step(S.y, p.y));
-    sp = galaxy(sp, p, ic(0.255, 0.335), 0.06, 0.5, uPal[5]);
-    sp = galaxy(sp, p, ic(0.79, 0.62), 0.085, -0.45, uPal[5]);
+    sp = galaxy(sp, p, ic(0.255, 0.335), 0.06, 0.5 + tg, uPal[5]);
+    sp = galaxy(sp, p, ic(0.79, 0.62), 0.085, -0.45 - 0.8 * tg, uPal[5]);
     // the grid: a pyramid of light falling from the star
     vec2 bl = ic(0.235, 0.925), br = ic(0.765, 0.925);
     float tri = sdTri(p, S, bl, br);
     float depth = sat((S.y - p.y) / (S.y - bl.y));
     vec3 grid = mix(uPal[6], uPal[7], depth * depth) + toLin(vec3(0.35, 0.8, 1.0)) * 0.35 * pow(depth, 4.0);
     float hl = 0.0;
-    for (int i = 1; i < 6; i++) { float yy = mix(S.y, bl.y, pow(float(i) / 5.0, 1.6)); hl = max(hl, ring(p.y - yy, 0.0009)); }
+    for (int i = 0; i < 6; i++) { float g = float(i) + flow; float yy = mix(S.y, bl.y, pow(g / 5.0, 1.6)); hl = max(hl, ring(p.y - yy, 0.0009 + 0.0007 * fly) * min(g, 1.0)); }
     float u = (p.x - S.x) / max(S.y - p.y, 1e-3) * (S.y - bl.y) / (br.x - S.x);
     float vk = floor(u * 4.0 + 0.5) / 4.0;
     float vl = ring((u - vk) * (br.x - S.x) * (S.y - p.y) / (S.y - bl.y) * 0.97, 0.0009);
-    grid += vec3(0.6, 0.75, 1.0) * 0.35 * max(hl, vl) * depth;
+    grid += vec3(0.6, 0.75, 1.0) * 0.35 * (1.0 + 1.5 * fly) * max(hl, vl) * depth;
     sp = mix(sp, grid, cover(tri) * (0.55 + 0.4 * depth));
     sp += uPal[7] * 0.25 * ring(tri, 0.0012) + toLin(vec3(0.5, 0.85, 1.0)) * 0.5 * ring(p.y - bl.y, 0.0016) * cover(tri - 0.002);
     // planets
-    sp = planet(sp, p, orbitPos(S, ic(0.37, 0.355), 0.06, t), 0.022, toLin(vec3(1.0, 0.62, 0.3)), toLin(vec3(0.75, 0.25, 0.2)), S - p);
-    sp = planet(sp, p, orbitPos(S, ic(0.165, 0.50), 0.03, t), 0.013, toLin(vec3(1.0, 0.96, 0.9)), toLin(vec3(0.75, 0.7, 0.7)), S - p);
-    sp = planet(sp, p, orbitPos(S, ic(0.275, 0.545), 0.05, t), 0.011, toLin(vec3(0.55, 0.72, 1.0)), toLin(vec3(0.3, 0.35, 0.8)), S - p);
-    sp = planet(sp, p, orbitPos(S, ic(0.325, 0.605), 0.05, t), 0.012, toLin(vec3(1.0, 0.5, 0.25)), toLin(vec3(0.7, 0.2, 0.15)), S - p);
-    sp = planet(sp, p, orbitPos(S, ic(0.705, 0.545), 0.045, t), 0.019, toLin(vec3(1.0, 0.62, 0.25)), toLin(vec3(0.85, 0.3, 0.15)), S - p);
-    sp = planet(sp, p, orbitPos(S, ic(0.845, 0.555), 0.03, t), 0.012, toLin(vec3(1.0, 0.96, 0.88)), toLin(vec3(0.8, 0.75, 0.7)), S - p);
-    vec2 PB = orbitPos(S, ic(0.215, 0.69), 0.02, t);
+    sp = planet(sp, p, orbitPos(S, ic(0.37, 0.355), 0.06, to), 0.022, toLin(vec3(1.0, 0.62, 0.3)), toLin(vec3(0.75, 0.25, 0.2)), S - p);
+    sp = planet(sp, p, orbitPos(S, ic(0.165, 0.50), 0.03, to), 0.013, toLin(vec3(1.0, 0.96, 0.9)), toLin(vec3(0.75, 0.7, 0.7)), S - p);
+    sp = planet(sp, p, orbitPos(S, ic(0.275, 0.545), 0.05, to), 0.011, toLin(vec3(0.55, 0.72, 1.0)), toLin(vec3(0.3, 0.35, 0.8)), S - p);
+    sp = planet(sp, p, orbitPos(S, ic(0.325, 0.605), 0.05, to), 0.012, toLin(vec3(1.0, 0.5, 0.25)), toLin(vec3(0.7, 0.2, 0.15)), S - p);
+    sp = planet(sp, p, orbitPos(S, ic(0.705, 0.545), 0.045, to), 0.019, toLin(vec3(1.0, 0.62, 0.25)), toLin(vec3(0.85, 0.3, 0.15)), S - p);
+    sp = planet(sp, p, orbitPos(S, ic(0.845, 0.555), 0.03, to), 0.012, toLin(vec3(1.0, 0.96, 0.88)), toLin(vec3(0.8, 0.75, 0.7)), S - p);
+    vec2 PB = orbitPos(S, ic(0.215, 0.69), 0.02, to);
     sp = planet(sp, p, PB, 0.063, toLin(vec3(0.95, 0.55, 0.55)), toLin(vec3(0.45, 0.28, 0.85)), vec2(0.6, 0.5));
     // a ringed planet
-    vec2 PS = orbitPos(S, ic(0.735, 0.425), 0.035, t);
+    vec2 PS = orbitPos(S, ic(0.735, 0.425), 0.035, to);
     vec2 so = rot(0.32) * (p - PS);
     float rd = sdEllipse(so, vec2(0.058, 0.014));
     vec3 ringC = toLin(vec3(0.78, 0.74, 0.98));
@@ -989,12 +1183,21 @@ MOTIFS.about = /* glsl */`
 float blob(vec2 s, vec2 o, vec2 w) { vec2 d = (s - o) / w; return exp(-dot(d, d)); }
 vec3 motif(vec2 p, float t) {
   vec2 C = ic(0.4789, 0.5634); float R = 0.2499;
-  float v = length((p - vec2(0.48, 0.5)) * vec2(1.0, 0.9));
+  float v = length((p - vec2(0.48, 0.5)) * vec2(1.0, 0.9)), u = t / uCycle;
   vec3 col = mix(uPal[0], uPal[1], smoothstep(0.1, 0.85, v));
+  // motion b: the sphere rolls a little way to the left and back, its shadow with it, its gold turning as it rolls
+  float roll = mOn(2.0) ? -0.042 * mBump(u, 0.04, 0.9) : 0.0;
+  C.x += roll;
+  // motion c: a sundial: the light arcs over from the right to the left and back, and the shadow turns about the
+  // sphere's foot (on the floor, seen foreshortened)
+  float sun = 0.0, az = mOn(3.0) && t > 0.0 ? TAU * t / 36.0 : 0.0;
+  // never turning back: the light goes all the way round the sphere (about the line of sight, so the face we see is never
+  // left unlit), a turn every 36 clock s, and the shadow turns all the way round its foot with it
   // contact shadow, cast to the left (light from the upper right), in sphere radii from its foot, y down: a
   // near-black core just under it, a warm penumbra reaching left (the gold's light on the paper), a faint wide falloff
   // (skipped where the sphere hides it and well above its foot, where every term is under 1e-5)
   vec2 s = vec2(p.x - C.x, C.y - R - p.y) / R;
+  if (az != 0.0) { vec2 f = rot(az) * vec2(s.x, s.y / 0.3); s = vec2(f.x, f.y * 0.3); }
   vec2 q = (p - C) / R;
   float rr = dot(q, q);
   if (rr > 0.95 && s.y > -1.2) {
@@ -1007,9 +1210,10 @@ vec3 motif(vec2 p, float t) {
   // occlusion darkening it towards its foot (terms and colours fitted to the concept's sphere, in Lab)
   if (rr < 1.08) {
     vec3 n = vec3(q, sqrt(sat(1.0 - rr)));
-    // alive, the key and its sheen swing a little about the vertical
-    float sw = 0.3 * sin(t * 0.4);
+    // motion a: the key and its sheen swing a little about the vertical
+    float sw = 0.3 * sin((mOn(1.0) ? t : 0.0) * 0.4);
     vec3 m = vec3(n.x * cos(sw) - n.z * sin(sw), n.y, n.x * sin(sw) + n.z * cos(sw));
+    if (az != 0.0) m.xy = rot(-az) * m.xy;
     float key = pow(sat((dot(m, vec3(0.4419, 0.5516, 0.7074)) + 0.2885) / 1.2885), 2.9185);
     float bounce = pow(sat(dot(n, vec3(-0.3752, -0.8371, 0.3982))), 1.3779);
     float sheen = pow(sat(dot(m, vec3(0.4984, 0.6846, 0.5319))), 10.4132);
@@ -1019,7 +1223,9 @@ vec3 motif(vec2 p, float t) {
       // the paper's light caught on the lower-left limb
       + vec3(1.387, 0.510, 0.054) * pow(1.0 - n.z, 6.0) * sat(dot(n.xy, vec2(-0.4226, -0.9063)) / max(length(n.xy), 1e-4));
     g *= 1.0 - 1.0000 * exp(-(1.0 + n.y) / 0.1612);
-    g = max(g, 0.0) * (1.0 + (vnoise(p * SPH_GF) - 0.5) * SPH_GA * (SPH_GK + key) * GRAIN_ON);
+    // the gold's grain turns with a rolling sphere (it rolls about the axis toward the viewer)
+    vec2 pg = roll != 0.0 ? ic(0.4789, 0.5634) + rot(roll / R) * (p - C) : p;
+    g = max(g, 0.0) * (1.0 + (vnoise(pg * SPH_GF) - 0.5) * SPH_GA * (SPH_GK + key) * GRAIN_ON);
     col = mix(col, g, cover((sqrt(rr) - 1.0) * R));
   }
   return col;
@@ -1035,7 +1241,14 @@ vec3 goldInk(vec2 p) {
 // Chairtax: the name itself is the artwork, Bearly (art/, drawn unaltered) leaning on "Chair" with his chin
 // on his paw, the letters casting a soft shadow, and his navy office chair rolled out to the corner.
 MOTIFS.chairtax = /* glsl */`
-float lift(float t) { return 0.004 * (0.5 - 0.5 * cos(t * 2.0)); }
+// Bearly's lift (cover units): motion a, a small bob; motion b, three slow squats down behind "Chair" and up again
+float squat(float u) { return mBump(u, 0.06, 0.3) + mBump(u, 0.32, 0.56) + mBump(u, 0.58, 0.82); }
+float lift(float t) {
+  if (uV1 > 0.5) return 0.004 * (0.5 - 0.5 * cos(t * 2.0));
+  if (mOn(1.0)) return 0.004 * (0.5 - 0.5 * cos(TAU * t / 3.1)) * (0.7 + 0.3 * sin(TAU * t / 7.9));
+  if (mOn(2.0)) return -0.034 * squat(t / uCycle);
+  return 0.0;
+}
 #define ART_DY(t) lift(t)
 // a stroke tapering from radius r0 at a to r1 at b
 float sdTaper(vec2 p, vec2 a, vec2 b, float r0, float r1) {
@@ -1060,9 +1273,18 @@ float dLegs(vec2 q) {
 float dLift(vec2 q) { return sdBox(q, vec2(0.898, 0.085), vec2(0.016, 0.022), 0.004); }
 float dWheels(vec2 q) { return min(length(q - vec2(0.80, 0.043)), length(q - vec2(0.915, 0.012))) - 0.021; }
 vec3 chair(vec3 col, vec2 p, float t) {
-  // rolled out to the corner; alive, it rolls a few pixels and settles
-  float roll = 0.008 * sin(t * 0.9) * (0.6 + 0.4 * cos(t * 0.45));
-  vec2 q = p - vec2(roll, 0.0);
+  // rolled out to the corner; motion a: it rolls a few pixels and back; motion c: it rolls away out of the frame for the
+  // break, waits, and rolls back
+  float u = t / uCycle, roll = 0.0;
+  if (uV1 > 0.5) roll = 0.008 * sin(t * 0.9) * (0.6 + 0.4 * cos(t * 0.45));   // v1: it rolls a few pixels and back
+  if (mOn(3.0)) roll = 0.24 * mRise(u, 0.05, 0.36) * (1.0 - mRise(u, 0.58, 0.92));
+  vec2 q = p;
+  // motion a, never repeating: the chair keeps wandering, out of the frame and back on unequal periods, rocking as it rolls
+  if (mOn(1.0) && uV1 < 0.5 && t > 0.0) {
+    roll = 0.11 * (1.0 - cos(TAU * t / 17.0)) + 0.05 * sin(TAU * t / 6.1) + 0.02 * sin(TAU * t / 2.3);
+    q = vec2(0.9, 0.02) + rot(0.05 * sin(TAU * t / 4.3)) * (p - vec2(0.9, 0.02));
+  }
+  q -= vec2(roll, 0.0);
   vec2 sq = (q - vec2(0.9, 0.025)) / vec2(0.16, 0.022);
   col *= 1.0 - 0.5 * exp(-dot(sq, sq) * 1.5);                       // its shadow on the floor
   col = part(col, dBack(q), uPal[4]);
@@ -1088,6 +1310,7 @@ const vec3 HALO = vec3(0.056, 0.021, 0.0), POOL = vec3(0.033, 0.010, 0.0);
 // the type mask blurred on its coarse levels, four taps r apart
 vec4 blurText(vec2 c, float r, float bias) {
   vec2 o = vec2(r, 0.0);
+  bias -= uLod;
   return 0.25 * (texture2D(uText, c + o.xy, bias) + texture2D(uText, c - o.xy, bias) + texture2D(uText, c + o.yx, bias) + texture2D(uText, c - o.yx, bias));
 }
 vec3 motif(vec2 p, float t) {
@@ -1114,22 +1337,28 @@ vec3 motif(vec2 p, float t) {
   // contact shadows, over the halo too: a dark, sharp-edged band right under the t's foot, a softer one under the a
   vec2 ct = (p - ic(0.266, 0.8915)) / vec2(0.0616, 0.0067), ca = (p - ic(0.46, 0.872)) / vec2(0.08, 0.009);
   col *= 1.0 - (0.8 * exp(-0.5 * (ct.x * ct.x * ct.x * ct.x + ct.y * ct.y * ct.y * ct.y)) + 0.4 * exp(-0.5 * dot(ca, ca))) * type;
-  float k = 1.0 + 0.12 * sin(t * 2.6);
+  // motion a: the ticks pulse; motion b: they flash at the foot of each squat, counting the reps
+  float k = 1.0 + 0.12 * sin(uV1 > 0.5 ? t * 2.6 : 0.0);
+  if (mOn(2.0)) { float u = t / uCycle; k += 0.3 * (mBump(u, 0.13, 0.23) + mBump(u, 0.39, 0.49) + mBump(u, 0.65, 0.75)); }
+  // motion a: each tick pulses on a period of its own
+  float K[6] = float[6](k, k, k, k, k, k);
+  if (mOn(1.0) && uV1 < 0.5 && t > 0.0) for (int i = 0; i < 6; i++) K[i] = 1.0 + 0.16 * sin(TAU * t / (2.3 + 0.37 * float(i)));
   // thick end first, measured on the concept
-  col = tick(col, p, ic(0.738, 0.083), ic(0.689, 0.152), 0.0127, k);
-  col = tick(col, p, ic(0.801, 0.172), ic(0.726, 0.199), 0.0127, k);
-  col = tick(col, p, ic(0.216, 0.196), ic(0.276, 0.225), 0.0110, k);
-  col = tick(col, p, ic(0.204, 0.273), ic(0.265, 0.272), 0.0110, k);
-  col = tick(col, p, ic(0.712, 0.870), ic(0.775, 0.893), 0.0101, k);
-  col = tick(col, p, ic(0.664, 0.931), ic(0.758, 0.919), 0.0105, k);
+  col = tick(col, p, ic(0.738, 0.083), ic(0.689, 0.152), 0.0127, K[0]);
+  col = tick(col, p, ic(0.801, 0.172), ic(0.726, 0.199), 0.0127, K[1]);
+  col = tick(col, p, ic(0.216, 0.196), ic(0.276, 0.225), 0.0110, K[2]);
+  col = tick(col, p, ic(0.204, 0.273), ic(0.265, 0.272), 0.0110, K[3]);
+  col = tick(col, p, ic(0.712, 0.870), ic(0.775, 0.893), 0.0101, K[4]);
+  col = tick(col, p, ic(0.664, 0.931), ic(0.758, 0.919), 0.0105, K[5]);
   return chair(col, p, t);
 }`;
 
 // Stats: three rising bars of frosted glass, blue, green and amber, inside a thin glass orbit, on a cool white ground.
 MOTIFS.stats = /* glsl */`
 const float YF = 0.11, HW = 0.082, RB = 0.036;
-// bar i: centre x and top (y up); every bar stands on the floor
-vec2 bar(int i) { return i == 0 ? vec2(0.294, 0.426) : i == 1 ? vec2(0.508, 0.568) : vec2(0.727, 0.743); }
+// bar i: centre x and top (y up); every bar stands on the floor. Motion b lifts the tops (BL, set by motif()).
+vec3 BL = vec3(0.0);
+vec2 bar(int i) { return i == 0 ? vec2(0.294, 0.426 + BL.x) : i == 1 ? vec2(0.508, 0.568 + BL.y) : vec2(0.727, 0.743 + BL.z); }
 const vec2 SIDE = vec2(0.026, 0.004);   // the slab's back face, seen past its right side and top
 float sdRB(vec2 o, vec2 b, float r) { vec2 q = abs(o) - b + r; return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r; }
 vec3 ground(vec2 p) {
@@ -1158,7 +1387,7 @@ vec3 face(vec2 p, vec2 c, vec2 hs, vec3 tint, float t, float d) {
   body += vec3(1.0) * 0.4 * ring(d + 0.0055, 0.0014);
   vec3 L = normalize(vec3(-0.5, 0.6, 0.62));
   body += vec3(1.0) * 0.45 * spec(n, L, 40.0);
-  // caustics: bright threads drifting through the glass when alive
+  // motion a: caustics, bright threads drifting through the glass
   float cz = sin(dot(p, vec2(21.0, 8.0)) + 2.2 * sin(dot(p, vec2(-6.0, 13.0)) + t * 0.6) + 4.0 * n.x - t * 0.9);
   body += mix(tint, vec3(1.0), 0.75) * 0.05 * pow(1.0 - abs(cz), 3.0) * smoothstep(0.0, 0.04, di) * (0.4 + 0.6 * a);
   return body;
@@ -1183,14 +1412,28 @@ vec3 orbit(vec3 col, vec2 p, float t, bool front) {
   float k = smoothstep(-0.008, 0.008, front ? -o.y : o.y);
   float w = 0.0064, x = sat(abs(d) / w);
   float ang = atan(o.y / ab.y, o.x / ab.x);
-  float sweep = pow(0.5 + 0.5 * sin(ang - t * 0.7 + 2.2), 3.0);
+  // motion a: the light along the tube sweeps round it
+  float sweep = pow(0.5 + 0.5 * sin(ang - (uV1 > 0.5 ? t * 0.7 : mOn(1.0) ? t * 0.6 : 0.0) + 2.2), 3.0);
   vec3 tube = mix(col, uPal[5], 0.3) + 0.02;
   tube += vec3(1.0) * 0.36 * pow(x, 4.0);
   tube += vec3(1.0) * 0.40 * exp(-pow((d + w * 0.3) / (w * 0.22), 2.0)) * (0.25 + 0.75 * sweep);
+  // motion c: one bead of light runs once round the orbit, behind the bars and out in front, like the morning summary
+  float bead = 0.0;
+  if (mOn(3.0)) {
+    float u = t / uCycle, kb = mRise(u, 0.0, 0.08) * (1.0 - mRise(u, 0.62, 0.72));
+    float da = abs(mod(ang - 0.4 - TAU * ease(sat((u - 0.02) / 0.66)) + PI, TAU) - PI);
+    bead = kb * exp(-da * da / 0.02);
+    tube += vec3(1.0) * 1.2 * bead * exp(-pow(d / w, 2.0));
+  }
   col = mix(col, tube, ring(d, w) * k);
-  return col + uPal[5] * 0.06 * exp(-abs(d) / 0.01) * k;
+  return col + uPal[5] * 0.06 * exp(-abs(d) / 0.01) * k + vec3(0.85, 0.92, 1.0) * 0.6 * bead * exp(-abs(d) / 0.02) * k;
 }
 vec3 motif(vec2 p, float t) {
+  // motion b: the bars rise and fall a little, out of step, like live counts through a day
+  // motion b, never repeating: the bars keep rising and falling, out of step, each on two unequal periods
+  if (mOn(2.0) && t > 0.0) BL = ease(sat(t / 2.0)) * vec3(0.07 * sin(TAU * t / 9.0) + 0.03 * sin(TAU * t / 3.7),
+    0.09 * sin(TAU * t / 11.3) + 0.035 * sin(TAU * t / 4.1), 0.1 * sin(TAU * t / 13.1) + 0.04 * sin(TAU * t / 5.3));
+  float ta = mOn(1.0) ? t : 0.0;
   vec3 col = ground(p);
   if (p.y < YF) {
     // the bars mirrored in the floor, and the coloured light they pool on it
@@ -1205,7 +1448,7 @@ vec3 motif(vec2 p, float t) {
     }
   }
   col = orbit(col, p, t, false);
-  for (int i = 0; i < 3; i++) col = slab(col, p, i, t);
+  for (int i = 0; i < 3; i++) col = slab(col, p, i, ta);
   return orbit(col, p, t, true);
 }`;
 
@@ -2007,6 +2250,289 @@ function pump() {
   if (jobs.length) nextFrame(pump); else pumping = false;
 }
 
+// ---------- motion (prototype, feat/cover-motion) ----------
+// Each cover's three motion options, in the order its motif numbers them (uMotion 1, 2, 3). cycle: its length in clock
+// seconds (the clock runs at 1 under a pointer that speeds it up, slower at rest), 0 for a motion that never comes back to
+// the still frame; every option is the still frame at clock 0 and again after each whole cycle. move: the share of the
+// cycle after which the frame is the still frame until the cycle ends. turn: clock seconds a relay turn plays (by default
+// one movement); a turn ends at the next still frame, or (cycle 0) fades back to it. rect: the part of the cover the option
+// changes (cover units, y up), which a motion frame draws alone (null: the whole cover).
+const TAU_S = Math.PI * 2;
+const MOTIONS = {
+  Mirra: [
+    { key: 'glint', cycle: 1 / 0.09, move: 0.66, rect: [0.205, 0, 0.75, 0.69] },
+    { key: 'sync', cycle: 10, move: 0.82, rect: [0.12, 0, 0.842, 0.795] },
+    { key: 'ripple', cycle: 0, move: 1, turn: 24, rect: [0, 0, 1, 0.26] },
+  ],
+  stet: [
+    { key: 'drift', cycle: 0, move: 1, turn: 24, rect: [0, 0.24, 1, 0.87] },
+    { key: 'proof', cycle: 9, move: 0.64, rect: [0, 0.24, 1, 0.87] },
+    { key: 'mark', cycle: 10, move: 0.84, rect: [0.102, 0.15, 0.898, 0.22] },
+  ],
+  'Social Hook': [
+    { key: 'travel', cycle: 0, move: 1, turn: 24, rect: null },
+    { key: 'rise', cycle: 12, move: 0.94, rect: [0, 0, 0.56, 0.56] },
+    { key: 'signal', cycle: 8, move: 0.7, rect: [0, 0, 1, 0.76] },
+  ],
+  Clauded: [
+    { key: 'swing', cycle: TAU_S / 0.45, move: 1, rect: [0.122, 0.175, 0.872, 0.695] },
+    { key: 'float', cycle: 12, move: 1, rect: [0.11, 0.155, 0.888, 0.71] },
+    { key: 'bridges', cycle: 0, move: 1, turn: 24, rect: [0.13, 0.428, 0.705, 0.695] },
+  ],
+  LikeWiki: [
+    { key: 'drift', cycle: TAU_S / 0.3, move: 1, rect: null },
+    { key: 'compile', cycle: 0, move: 1, turn: 24, rect: null },
+    { key: 'heartbeat', cycle: 7, move: 0.21, turn: 14, rect: null },
+  ],
+  Topshine: [
+    { key: 'shimmer', cycle: 0, move: 1, turn: 24, rect: null },
+    { key: 'shine', cycle: 10, move: 0.78, rect: null },
+    { key: 'dolly', cycle: 14, move: 1, rect: [0.09, 0.205, 0.905, 0.89] },
+  ],
+  'Stellar Explorer': [
+    { key: 'orbits', cycle: 0, move: 1, turn: 16, rect: [0.06, 0, 0.952, 0.732] },
+    { key: 'flight', cycle: 9, move: 1, rect: [0.213, 0.053, 0.788, 0.528] },
+    { key: 'echo', cycle: 8, move: 0.74, rect: [0.065, 0.292, 0.932, 0.74] },
+  ],
+  Chairtax: [
+    { key: 'fidget', cycle: 0, move: 1, turn: 24, rect: [0.162, 0, 1, 1] },
+    { key: 'squats', cycle: 12, move: 0.82, rect: [0.155, 0.015, 0.852, 1] },
+    { key: 'rollout', cycle: 14, move: 0.92, rect: [0.562, 0, 1, 0.43] },
+  ],
+  Scorecard: [
+    { key: 'turn', cycle: 0, move: 1, turn: 24, rect: null },
+    { key: 'shares', cycle: 12, move: 1, rect: [0.198, 0.213, 0.782, 0.792] },
+    { key: 'race', cycle: 12, move: 1, rect: [0, 0, 1, 0.832] },
+  ],
+  Stats: [
+    { key: 'caustics', cycle: TAU_S / 0.3, move: 1, rect: [0.02, 0.09, 1, 0.762] },
+    { key: 'counts', cycle: 0, move: 1, turn: 24, rect: [0.08, 0, 0.95, 0.95] },
+    { key: 'summary', cycle: 10, move: 0.72, rect: null },
+  ],
+  'About Neil': [
+    { key: 'swing', cycle: TAU_S / 0.4, move: 1, rect: [0.208, 0.183, 0.753, 0.71] },
+    { key: 'roll', cycle: 14, move: 0.9, rect: [0, 0, 1, 0.71] },
+    { key: 'sundial', cycle: 0, move: 1, turn: 24, rect: [0, 0, 1, 0.71] },
+  ],
+};
+
+// Ambient motion: at rest the covers move on their own clocks, all at once (each starting a little after the last) or in a
+// relay, one at a time or one on each shelf. While they move, main.js runs its frame loop on rAF, drawing every Nth display
+// refresh (about 60 frames a second, evenly spaced: every refresh up to 90 Hz, every 2nd at 120 to 144 Hz), and asks step()
+// in each frame it draws: every moving cover is drawn in every such frame, at that frame's time, into a rest frame of its
+// own (sized from the sleeve on screen, at most 512², smaller when the frames come in late: the guard), only the part its
+// option changes, at one sample a pixel. The cover in focus (hovered, keyboard-focused, or in Details with its front
+// facing) is drawn at 1024 and two samples every frame; the others ease to a stop, hold the frame they reached and carry
+// on from it when the focus ends, and the phone crate's put-back sleeves hold theirs the same way. Nothing moves before
+// the intro is over, in Details (but the sleeve in focus), on a page (main.js draws nothing there), in a hidden tab or
+// under reduced motion. Off (?motion=off), each cover animates only in focus, as v1 did.
+// window.__editionsTest.coverMotion = { mirra: 'b', ..., mode, pace, hover } (coverMotion.configure).
+// sizes: the rest frames' sizes, largest first; guard: the drawn frames at rest coming in at over late× the interval meant
+// (their median over window ms) step the rest frames down a size; stop: how fast the others ease to a stop while a cover
+// is selected (time constant, s; about 0.4 s to a hold); log: the frames kept for state()
+const AMBIENT = { ease: 0.6, stop: 0.13, start: 700, gap: 1200, fade: 1.2, sizes: [512, 384, 256], guard: { window: 2000, late: 1.5 }, log: 180 };
+const PACES = { glacial: 0.3, slow: 0.5, steady: 0.75 };          // the clock's rate at rest
+const HOVER = { faster: 2, same: 1, rest: 0 };                     // the clock's rate in focus, as a share of the pace
+// relay order: one lane hops across both shelves; two lanes take one shelf each (sleeves 0-5 on top, 6-10 below)
+const RELAY = { relay: [[0, 8, 3, 10, 5, 7, 1, 9, 4, 6, 2]], relay2: [[0, 3, 5, 1, 4, 2], [8, 10, 7, 9, 6]] };
+// size: the rest frames' size (an index into AMBIENT.sizes), the larger of fit's (the sleeve on screen) and the guard's
+const amb = { list: [], cfg: { mode: 'off', pace: 'slow', hover: 'same', picks: {} }, wake: null, reduced: () => false,
+  running: false, last: -1, began: 0, lanes: null, frames: 0, draws: 0, show: null, wants: false,
+  size: 0, fit: 0, guard: { at: 0, prev: 0, iv: [], step: 0 }, every: 1, refresh: 1000 / 60, swaps: 0, log: [] };
+const coverKey = name => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+// a pick ('a' | 'b' | 'c', an option's key, 'off') as an option number (0: still)
+function optionFor(h) {
+  const p = amb.cfg.picks, k = coverKey(h.name);
+  const v = p[k] ?? p[h.name] ?? (k === 'about-neil' ? p.about : undefined) ?? 'a';
+  if (v === 'off' || v === 'none' || v === 0) return 0;
+  const i = typeof v === 'number' ? v - 1 : v.length === 1 && 'abc'.includes(v) ? 'abc'.indexOf(v) : h.opts.findIndex(o => o.key === v);
+  return i >= 0 && i < h.opts.length ? i + 1 : 1;
+}
+const paceOf = () => (typeof amb.cfg.pace === 'number' ? amb.cfg.pace : PACES[amb.cfg.pace] ?? PACES.slow);
+const relayOf = o => (o.turn ?? (o.cycle ? o.cycle * o.move : 12));
+
+// Which covers move now: every cover (each after its start), the relay lanes' turns, or only the crate's front sleeve.
+function plan(now, crate) {
+  const mode = amb.cfg.mode, list = amb.list;
+  for (const h of list) if (h) h.mo.want = false;
+  if (crate >= 0) { if (list[crate]) list[crate].mo.want = true; return; }
+  if (mode === 'all') {
+    RELAY.relay[0].forEach((i, k) => { if (list[i] && now - amb.began >= k * AMBIENT.start) list[i].mo.want = true; });
+    return;
+  }
+  if (!amb.lanes) amb.lanes = (RELAY[mode] || RELAY.relay).map((order, k) => ({ order, pos: -1, cur: -1, at: amb.began + k * AMBIENT.gap * 2.5 }));
+  for (const lane of amb.lanes) {
+    const h = list[lane.cur];
+    // the lane's cover moves until its turn is spent, then runs on to its still frame (or fades to it) by itself
+    if (h && h.mo.lane === lane && (h.mo.state !== 'still' || h.mo.turn > 0)) { h.mo.want = h.mo.turn > 0; continue; }
+    if (h) { h.mo.lane = null; lane.cur = -1; lane.at = now + AMBIENT.gap; }
+    if (now < lane.at) continue;
+    // the lane's next cover that has a motion and is at rest
+    for (let n = 0; n < lane.order.length; n++) {
+      lane.pos = (lane.pos + 1) % lane.order.length;
+      const next = list[lane.order[lane.pos]];
+      if (next && next.mo.opt && next.mo.state === 'still') {
+        lane.cur = lane.order[lane.pos];
+        next.mo.lane = lane;
+        next.mo.turn = relayOf(next.optOf());
+        next.mo.want = true;
+        break;
+      }
+    }
+  }
+}
+
+// The operator's picks (round 2; Topshine, Chairtax and Scorecard play their a and c together as option a), which the motion plays.
+const PICKS = { mirra: 'c', stet: 'a', 'social-hook': 'a', clauded: 'c', likewiki: 'b', topshine: 'a', 'stellar-explorer': 'a', chairtax: 'a',
+  scorecard: 'a', stats: 'b', about: 'c' };
+
+export const coverMotion = {
+  // main.js: its wake() and reduced(), and the test hook's choices. The motion is on: all the covers at once, the
+  // operator's picks, at the Slow pace (?motion=glacial|slow|steady picks the pace), the cover in focus keeping its own;
+  // ?motion=off turns it off (v1 exactly). The test hook, when set, wins.
+  // show(i, texture): put that texture on sleeve i's front (the rest frame or the 1024 front). main.js runs the frame loop
+  // while wantsFrame() says the covers move; no timer of their own runs here.
+  attach({ wake, reduced, test, show } = {}) {
+    amb.wake = wake || null;
+    amb.show = show || null;
+    if (reduced) amb.reduced = reduced;
+    const sw = new URLSearchParams(location.search).get('motion');
+    if (!test && sw !== 'off') test = { ...PICKS, mode: 'all', hover: 'same', pace: PACES[sw] ? sw : 'slow' };
+    document.addEventListener('visibilitychange', () => { if (!document.hidden && amb.running) { amb.last = -1; amb.wake?.(); } });
+    if (test) this.configure({ mode: 'all', ...test });
+  },
+  // { mode: 'off' | 'all' | 'relay' | 'relay2', pace: 'glacial' | 'slow' | 'steady' | a number, hover: 'faster' | 'same' |
+  // 'rest', and a pick for any cover by its key (mirra, social-hook, about ...): 'a' | 'b' | 'c' | an option's key | 'off' }
+  configure(cfg = {}) {
+    const { mode, pace, hover, ...picks } = cfg;
+    if (mode !== undefined) amb.cfg.mode = mode;
+    if (pace !== undefined) amb.cfg.pace = pace;
+    if (hover !== undefined) amb.cfg.hover = hover;
+    Object.assign(amb.cfg.picks, picks);
+    for (const h of amb.list) {
+      if (!h) continue;
+      const opt = optionFor(h);
+      if (opt !== h.mo.opt) { h.settle(); h.mo.lane = null; h.mo.opt = opt; }
+    }
+    if (mode !== undefined) { amb.lanes = null; amb.began = 0; }
+    amb.wake?.();
+  },
+  // The frame loop, in each frame it draws: moves the clocks on and draws every moving cover. Returns whether one changed.
+  // ready: the intro is over; details: Details is open; crate: the crate's front sleeve (the phone), else -1; draw: false in
+  // a frame between the covers' own (main.js draws those for the shelf's own motion at more than about 60 Hz): only the
+  // cover in focus draws; every: the covers' frames come every that many refreshes; refresh: the display's refresh
+  // interval (ms); px: the sleeve's size on screen in device pixels, which sizes the rest frames.
+  step(now, { ready = true, details = false, crate = -1, draw = true, every = 1, refresh = 1000 / 60, px = 512 } = {}) {
+    const run = amb.cfg.mode !== 'off' && !!amb.wake && !amb.reduced();
+    if (run !== amb.running) {
+      amb.running = run;
+      for (const h of amb.list) if (h) { h.cover._stop(); h.mo.lane = null; }
+      amb.lanes = null; amb.began = 0; amb.last = -1;
+    }
+    amb.wants = false;
+    if (!run) return false;
+    const dt = amb.last < 0 ? 0 : Math.min(0.1, Math.max(0, (now - amb.last) / 1000));
+    amb.last = now;
+    if (!ready) return false;
+    if (!amb.began) amb.began = now;
+    amb.frames++;
+    amb.every = every; amb.refresh = refresh;
+    // the rest frames' size: the smallest at least the sleeve's size on screen, or the guard's if that is smaller
+    const S = AMBIENT.sizes;
+    amb.fit = S.reduce((f, z, i) => (z >= px - 0.5 ? i : f), 0);
+    amb.size = Math.max(amb.fit, amb.guard.step);
+    amb.swaps = 1;                                          // covers that take up a new size this frame (one at a time)
+    const pace = paceOf();
+    if (!details) plan(now, crate);
+    // a cover in focus (hovered, keyboard-focused or in Details, front facing) keeps moving at its pace; the others ease to
+    // a stop and hold the frame they reached, and carry on from it when the focus ends
+    const k = 1 - Math.exp(-dt / AMBIENT.ease), kStop = 1 - Math.exp(-dt / AMBIENT.stop);
+    const sel = amb.list.some(h => h && h.mo.focus);
+    let busy = false, changed = false;
+    const drew = [];
+    amb.list.forEach((h, i) => {
+      if (!h || !h.mo.opt) return;
+      const m = h.mo, o = h.optOf();
+      if (details && !m.focus) return;                         // Details: the shelf holds still
+      const rest = m.focus && amb.cfg.hover === 'rest';
+      // the phone crate's put-back sleeves hold the frame they reached, and carry on from it at the front again
+      const parked = crate >= 0 && !m.want && !m.focus && m.state === 'moving';
+      // still -> moving (wanted, or in focus) -> ending (runs on to the next still frame) or fading (back to it)
+      if (!rest && (m.want || m.focus || parked)) m.state = 'moving';
+      else if (m.state === 'moving' || (rest && m.state === 'ending')) m.state = !o.cycle || rest ? 'fading' : 'ending';
+      if (m.state === 'still') return;
+      if (m.state === 'fading') h.restFrame();
+      const held = (parked || (sel && !m.focus)) && m.state === 'moving';
+      const target = m.state === 'fading' || held ? 0 : m.focus ? pace * HOVER[amb.cfg.hover] : pace;
+      m.rate += (target - m.rate) * (held ? kStop : k);
+      if (held && m.rate < 0.03 * pace) m.rate = 0;   // stopped (about 0.45 s)
+      if (m.state === 'fading' && m.rate < 0.01) m.rate = 0;
+      const was = m.mix;
+      m.mix = m.state === 'fading' ? Math.min(1, m.mix + dt / AMBIENT.fade) : Math.max(0, m.mix - dt / AMBIENT.fade);
+      if (m.mix !== was) m.dirty = true;
+      if (m.state === 'fading' && m.mix >= 1) m.rate = 0;   // faded out: the still frame shows, so nothing need draw
+      const dc = m.rate * dt, ended = h.tick(dc);
+      if (m.lane && m.turn > 0) m.turn -= dc;
+      if (m.lane && m.turn <= 0 && m.state === 'moving' && !m.focus) m.state = o.cycle ? 'ending' : 'fading';
+      const still = o.cycle && h.mo.clock >= o.move * o.cycle;   // past the movement: the still frame until the cycle ends
+      if ((m.state === 'ending' && (ended || still)) || (m.state === 'fading' && m.mix >= 1 && !m.focus)) {
+        h.settle();
+        changed = true;
+        // a relay lane hands over after a pause
+        if (m.lane && amb.lanes?.includes(m.lane) && amb.list[m.lane.cur] === h) { m.lane.cur = -1; m.lane.at = now + AMBIENT.gap; }
+        m.lane = null;
+        return;
+      }
+      // the phone crate's one moving cover is seen close up: the 1024 front, as v1 drew it
+      const big = m.focus || crate >= 0;
+      if (!big || (held && m.rate === 0)) h.dropBig();
+      if (!(held && m.rate === 0)) busy = true;         // held still: nothing to draw
+      if (!m.dirty) return;
+      // in focus: the 1024 front at two samples, every frame; else the rest frame (the crate's: the 1024 front), one sample
+      if (m.focus) h.drawMotion(h.aliveSamples);
+      else if (!draw) return;
+      else if (big) h.drawMotion(1);
+      else h.drawSmall(1);
+      drew.push(i); changed = true; amb.draws++;
+    });
+    amb.log.push({ t: +now.toFixed(2), drew });
+    if (amb.log.length > AMBIENT.log) amb.log.shift();
+    // a cover still to start (all at once, each a little after the last), or a relay lane's next
+    let pending = false;
+    if (!details && amb.cfg.mode === 'all' && crate < 0) {
+      for (const i of RELAY.relay[0]) { const h = amb.list[i]; if (h && h.mo.opt && h.mo.state === 'still') pending = true; }
+    } else if (!details && amb.lanes) pending = amb.lanes.some(l => l.cur < 0);
+    // The guard: at rest (all the covers moving, none in focus), the frames drawn for them coming in late, their interval's
+    // median over the window above late× the interval meant, step the rest frames down a size. Only down, for the visit.
+    const g = amb.guard;
+    if (draw && !sel && !details && crate < 0 && !pending && drew.length) {
+      if (g.prev && now - g.prev < 500) g.iv.push(now - g.prev);
+      g.prev = now;
+      if (!g.at) g.at = now;
+      if (now - g.at >= AMBIENT.guard.window) {
+        const iv = g.iv.sort((a, b) => a - b), med = iv[iv.length >> 1];
+        const cur = Math.max(g.step, amb.fit);
+        if (iv.length >= 8 && med > AMBIENT.guard.late * every * refresh && cur < S.length - 1) g.step = cur + 1;
+        g.at = now; g.iv = [];
+      }
+    } else { g.at = 0; g.prev = 0; g.iv = []; }
+    amb.wants = busy || pending;
+    return changed;
+  },
+  // whether the covers want the next frame (main.js keeps its loop on rAF while they do)
+  wantsFrame() { return amb.running && amb.wants && !document.hidden; },
+  // probes: the choices, each cover's option, state and clock, and the last frames drawn: { t: rAF time, drew: [covers] }
+  state() {
+    return { ...amb.cfg, picks: { ...amb.cfg.picks }, running: amb.running, frames: amb.frames, draws: amb.draws,
+      every: amb.every, refresh: +amb.refresh.toFixed(2), restSize: AMBIENT.sizes[amb.size], fitSize: AMBIENT.sizes[amb.fit],
+      guardSize: AMBIENT.sizes[amb.guard.step], log: amb.log.slice(),
+      lanes: amb.lanes && amb.lanes.map(l => ({ cover: amb.list[l.cur]?.name ?? null, next: l.cur < 0 ? Math.round(l.at - amb.last) : null })),
+      covers: amb.list.map(h => h && { name: h.name, option: h.mo.opt ? h.opts[h.mo.opt - 1].key : 'off', state: h.mo.state,
+        clock: +h.mo.clock.toFixed(3), rate: +h.mo.rate.toFixed(3), focus: h.mo.focus, mix: +h.mo.mix.toFixed(3), shown: h.shownSize() }) };
+  },
+  options: MOTIONS,
+};
+
 // ---------- the cover ----------
 
 const TRI = new THREE.BufferGeometry();
@@ -2064,6 +2590,10 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
     uPaper: { value: lin(d.back.paper) },
     uPal: { value: pal },
     uAux: { value: Array.from({ length: 8 }, () => new THREE.Vector4()) },
+    uMotion: { value: 0 },
+    uCycle: { value: 1 },
+    uV1: { value: 0 },
+    uLod: { value: 0 },
   };
   // a motif's colour keys (stet, Topshine), as a float texture the shader reads with texelFetch: key i at column
   // i % KW in row pair i / KW (row 2k: x, y, sigma; row 2k + 1: r, g, b), KW = min(keys, 2048)
@@ -2110,6 +2640,8 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
   renderer.setRenderTarget(prevRT);
   // the mark at a front's drawn size, and at the size the form field rasterises it
   const markAt = sz => logo && d.mark ? logoImage(logo, Math.round(d.mark[2] * sz / 1024)).then(img => d.markKey ? keyedMark(img, d.markKey) : img) : Promise.resolve(null);
+  const markAmbP = markAt(AMBIENT.sizes[0]);   // the mark at the rest frames' largest size, made alongside the rest
+  markAmbP.catch(() => {});                 // (a failure is the await's below, not an unhandled rejection meanwhile)
   const [markImg, formImg, art] = await Promise.all([
     markAt(size),
     d.form?.fromType ? lettersReady.then(() => typeImage(d))
@@ -2119,6 +2651,7 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
     compiled,
     lettersReady,
   ]);
+  const markAmb = await markAmbP;
   if (art) {
     const { width: w, height: h } = art.image;
     renderer.initTexture(art);
@@ -2142,6 +2675,7 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
   // the front's type mask and its colour overlay (the brand mark, drawn unaltered)
   const layersAt = (sz, img) => {
     const ctx = textCtx(sz), k = sz / 1024;
+    if (img && !d.mark) img = null;
     drawFront(ctx, d);
     const mips = !!(d.shaderMips || d.typeGlow);
     const text = upload(ctx.canvas, false, mips);
@@ -2153,12 +2687,14 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
     }
     return { text, over, dispose() { text.dispose(); if (over !== BLANK) over.dispose(); } };
   };
-  const frontLayers = () => layersAt(size, markImg);
-  const draw = (rt, mode, layers, ss, level = 0) => {
+  const frontLayers = (mark = true) => layersAt(size, mark ? markImg : null);
+  // mip: the level whose rules the motif follows (a 512² motion frame is drawn as the 1024 front's level 1 would be)
+  const draw = (rt, mode, layers, ss, level = 0, rect = null, mip = level) => {
     const prev = renderer.getRenderTarget();
     const s = rt.width >> level;
     uniforms.uMode.value = mode;
-    uniforms.uMip.value = level;
+    uniforms.uMip.value = mip;
+    uniforms.uLod.value = mip - level;
     uniforms.uRes.value.set(s, s);
     uniforms.uText.value = layers.text;
     uniforms.uOver.value = layers.over || BLANK;
@@ -2170,15 +2706,22 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
     // a mip level: the target's viewport is the level's size while it is bound (three skips the box
     // mipmap pass for a render to any level but 0, so the level keeps what the shader drew)
     if (level) rt.viewport.set(0, 0, s, s);
+    if (rect) {
+      const x0 = Math.max(0, Math.floor(rect[0] * s) - 1), y0 = Math.max(0, Math.floor(rect[1] * s) - 1);
+      rt.scissor.set(x0, y0, Math.min(s, Math.ceil(rect[2] * s) + 1) - x0, Math.min(s, Math.ceil(rect[3] * s) + 1) - y0);
+      rt.scissorTest = true;
+    }
     renderer.setRenderTarget(rt, 0, level);
     renderer.render(scene, CAM);
     if (level) rt.viewport.set(0, 0, rt.width, rt.height);
+    if (rect) { rt.scissorTest = false; rt.scissor.set(0, 0, rt.width, rt.height); }
     renderer.setRenderTarget(prev);
   };
   // The front, then (shaderMips) its levels down to 32², each drawn with the level's own pixel size, so
-  // the motif's fine structure fades to its mean before it can beat against the level's grid.
-  const renderFront = (layers, ss) => {
-    draw(frontRT, 0, layers, ss);
+  // the motif's fine structure fades to its mean before it can beat against the level's grid. A front drawn only in a
+  // rect (a motion frame) still draws those levels whole: drawing level 0 rebuilds every level below it from level 0.
+  const renderFront = (layers, ss, rect = null) => {
+    draw(frontRT, 0, layers, ss, 0, rect);
     if (d.shaderMips) for (let k = 1; (frontRT.width >> k) >= 32 && (d.shaderMips === true || k <= d.shaderMips); k++) draw(frontRT, 0, layers, ss, k);
   };
   const ease = u => u * u * (3 - 2 * u);
@@ -2206,8 +2749,16 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
     uniforms.uTime.value = t;
   };
 
-  // alive state: the animated layers, and the resting frame the cover fades back to on release
-  let time = d.t0, speed = 0, want = 0, alive = null, restRT = null, restMix = 0, disposed = false, form = null;
+  // alive state: the animated layers, and the resting frame the cover fades back to on release (v1's hover motion, run
+  // when ambient motion is off), and the motion (MOTIONS) both run on: the option in play, its clock (the shader's t less
+  // t0, kept within the option's cycle), the clock's rate. pristine: the front is the still frame at full quality.
+  let speed = 0, want = 0, alive = null, restRT = null, restMix = 0, disposed = false, form = null;
+  const opts = MOTIONS[entry.name] || [];
+  const mo = { opt: opts.length ? 1 : 0, clock: 0, rate: 0, state: 'still', focus: false, mix: 0, turn: 0, drawnAt: -1e9, dirty: false, pristine: true };
+  const optOf = () => opts[mo.opt - 1] || null;
+  // the part of the cover the mark covers (cover units, y up), so a motion that never meets it draws without it
+  const markRect = d.mark ? [d.mark[0] / 1024, 1 - (d.mark[1] + d.mark[2]) / 1024, (d.mark[0] + d.mark[2]) / 1024, 1 - d.mark[1] / 1024] : null;
+  const meets = (a, b) => !a || !b || (a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3]);
   if (formImg) {
     const src = await enqueue(`${entry.name} form`, () => {
       const fs = formSource(formImg, d.form);
@@ -2229,13 +2780,87 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
     backRT && enqueue(`${entry.name} back`, () => renderBack(backRT, backImg)),
   ]);
 
-  const stop = () => {
-    speed = 0; want = 0; restMix = 0; time = d.t0;
+  // The clock moved on by dc seconds, within the option's cycle (a motion that never comes back runs on, within an hour).
+  // Returns whether it passed the end of the option's movement (where the frame is the still frame again).
+  const tick = dc => {
+    const o = optOf();
+    if (!o || !dc) return false;
+    // with the motion off (v1's hover motion) the clock runs on unwrapped, as v1's did
+    const was = mo.clock, cyc = amb.running ? o.cycle || 3600 : Infinity, end = o.cycle ? o.move * o.cycle : Infinity;
+    mo.clock = (mo.clock + dc) % cyc;
+    mo.dirty = true;
+    return mo.clock < was || (was < end && mo.clock >= end);
+  };
+  // the front at the motion's clock, ss samples a pixel, drawn only in the part of the cover the option changes
+  const drawMotion = ss => {
+    const o = optOf();
+    if (!alive) alive = frontLayers(meets(o?.rect, markRect));
+    uniforms.uMotion.value = mo.opt;
+    uniforms.uCycle.value = o?.cycle || 1;
+    uniforms.uV1.value = amb.running ? 0 : 1;
+    uniforms.uTime.value = d.t0 + mo.clock;
+    uniforms.uRestMix.value = mo.mix > 0 && restRT ? ease(mo.mix) : 0;
+    uniforms.uRest.value = mo.mix > 0 && restRT ? restRT.texture : BLANK;
+    renderFront(alive, ss, o?.rect || null);
+    mo.dirty = false;
+    mo.pristine = ss >= samples && mo.clock === 0 && mo.mix === 0;
+    show(frontRT.texture);
+  };
+  // Frames at rest go to a target of their own (AMBIENT.sizes[amb.size], at most 512²), drawn with layers made at that
+  // size by the 1024 front's rules for that level (the 1024 front, drawn only for the cover in focus, keeps the still frame
+  // otherwise); the sleeve shows whichever was drawn last (amb.show). A new size is taken up by one cover a frame.
+  let ambRT = null, ambLayers = null, ambStill = false, shown = frontRT.texture;
+  const show = tex => { if (tex !== shown) { shown = tex; amb.show?.(index, tex); } };
+  const drawSmall = (ss, A = AMBIENT.sizes[amb.size]) => {
+    const o = optOf();
+    if (ambRT && ambRT.width !== A) {
+      if (amb.swaps > 0) { amb.swaps--; ambRT.dispose(); ambRT = null; ambLayers?.dispose(); ambLayers = null; }
+      else A = ambRT.width;
+    }
+    if (!ambRT) { ambRT = target(A); ambRT.texture.name = `${entry.name} motion ${A}`; ambStill = false; }
+    if (!ambLayers) ambLayers = layersAt(A, markAmb);
+    const mip = Math.log2(size / A);
+    uniforms.uCycle.value = o?.cycle || 1;
+    uniforms.uV1.value = 0;
+    if (!ambStill) {
+      // the part of the cover the motion never changes: the still frame, once
+      uniforms.uMotion.value = 0; uniforms.uTime.value = d.t0; uniforms.uRestMix.value = 0; uniforms.uRest.value = BLANK;
+      draw(ambRT, 0, ambLayers, aliveSamples, 0, null, mip);
+      ambStill = true;
+    }
+    uniforms.uMotion.value = mo.opt;
+    uniforms.uTime.value = d.t0 + mo.clock;
+    uniforms.uRestMix.value = mo.mix > 0 && restRT ? ease(mo.mix) : 0;
+    uniforms.uRest.value = mo.mix > 0 && restRT ? restRT.texture : BLANK;
+    draw(ambRT, 0, ambLayers, ss, 0, o?.rect || null, mip);
+    mo.dirty = false;
+    mo.pristine = false;
+    show(ambRT.texture);
+  };
+  // out of focus: the 1024 front's layers are given up (the next focus makes them again)
+  const dropBig = () => { if (alive && amb.running && !restRT) { alive.dispose(); alive = null; } };
+  // the still frame the cover fades back to (a motion that never comes back to it, or the hover choice 'rest')
+  const restFrame = () => {
+    if (restRT) return;
+    if (!alive) alive = frontLayers(meets(optOf()?.rect, markRect));
+    restRT = new THREE.WebGLRenderTarget(size, size, { depthBuffer: false, stencilBuffer: false, colorSpace: THREE.SRGBColorSpace });
     uniforms.uTime.value = d.t0;
     uniforms.uRestMix.value = 0;
-    uniforms.uRest.value = BLANK;
+    draw(restRT, 0, alive, samples);
+  };
+  // back to the still frame at full quality, the motion's layers released
+  const settle = () => {
+    mo.clock = 0; mo.rate = 0; mo.mix = 0; mo.turn = 0; mo.state = 'still'; mo.dirty = false;
+    if (!mo.pristine && !disposed) drawMotion(samples);
+    show(frontRT.texture);
     if (alive) { alive.dispose(); alive = null; }
     if (restRT) { restRT.dispose(); restRT = null; }
+    uniforms.uTime.value = d.t0; uniforms.uRestMix.value = 0; uniforms.uRest.value = BLANK;
+  };
+  // v1: a cover stopped while another comes alive goes back to its still frame (it used to keep its last moving frame)
+  const stop = () => {
+    speed = 0; want = 0; restMix = 0;
+    settle();
     if (aliveCover === cover) aliveCover = null;
   };
   let detail = null;   // { size, rt, p, evict }: this cover's entry in the Details-back cache
@@ -2264,39 +2889,28 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
       touchDetail(detail);
       return detail.p;
     },
+    // Hovered or in Details (front facing). With ambient motion the scheduler draws the cover in focus every frame; without
+    // it, as v1: at most one cover animates, only while in focus, and fades back to its still frame when released.
     setAlive(on) {
       if (disposed) return;
+      mo.focus = !!on;
+      if (amb.running || amb.cfg.mode !== 'off') return;   // the motion on (reduced motion: nothing moves at all)
       want = on ? 1 : 0;
-      if (!on) return;
+      if (!on || !mo.opt) return;
       if (aliveCover && aliveCover !== cover) aliveCover._stop();
       aliveCover = cover;
-      if (!alive) alive = frontLayers();
-      if (!restRT) {
-        restRT = new THREE.WebGLRenderTarget(size, size, { depthBuffer: false, stencilBuffer: false, colorSpace: THREE.SRGBColorSpace });
-        const t = uniforms.uTime.value;
-        uniforms.uTime.value = d.t0;
-        draw(restRT, 0, alive, samples);
-        uniforms.uTime.value = t;
-      }
+      if (!alive) alive = frontLayers(meets(optOf()?.rect, markRect));
+      restFrame();
     },
     update(dt) {
-      if (!alive) return;
+      if (amb.running || amb.cfg.mode !== 'off' || !alive || !restRT) return;
       dt = Math.min(Math.max(dt, 0), 0.1);
       speed += (want - speed) * (1 - Math.exp(-dt * 2.5));
       restMix = want ? Math.max(0, restMix - dt * 2.5) : Math.min(1, restMix + dt / 1.2);
-      if (want === 0 && restMix >= 1) {
-        uniforms.uTime.value = d.t0;
-        uniforms.uRestMix.value = 0;
-        uniforms.uRest.value = BLANK;
-        renderFront(alive, samples);
-        stop();
-        return;
-      }
-      time += dt * speed;
-      uniforms.uTime.value = time;
-      uniforms.uRestMix.value = ease(restMix);
-      uniforms.uRest.value = restMix > 0 ? restRT.texture : BLANK;
-      renderFront(alive, aliveSamples);
+      if (want === 0 && restMix >= 1) { stop(); return; }
+      tick(dt * speed);
+      mo.mix = restMix;
+      drawMotion(aliveSamples);
     },
     dispose() {
       disposed = true;
@@ -2305,16 +2919,39 @@ export async function createCover(renderer, entry, index, { size = 1024, backSiz
       if (detail) detail.evict();
       if (form) { form.tex.dispose(); if (form.col) form.col.dispose(); }
       if (keysTex) keysTex.dispose();
+      if (ambRT) ambRT.dispose();
+      if (ambLayers) ambLayers.dispose();
     },
     // resident GPU bytes (preview diagnostics): mipmapped RGBA8 targets, half-float form fields
     gpuBytes() {
       const rt = (t, mips) => t ? t.width * t.height * 4 * (mips ? 4 / 3 : 1) : 0;
-      let n = rt(frontRT, true) + rt(backRT, true) + rt(detail?.rt, true) + rt(restRT, false);
+      let n = rt(frontRT, true) + rt(backRT, true) + rt(detail?.rt, true) + rt(restRT, false) + rt(ambRT, true);
       if (form) n += form.tex.image.width ** 2 * 8 + (form.col ? form.col.image.width ** 2 * 4 : 0);
       if (art) n += art.image.width * art.image.height * 4 * 4 / 3;
       return n;
     },
+    // previews (covers/preview.html ?motion): the front at an option (1..3; 0 still) and clock (s), ss samples a pixel; the
+    // whole front, or (part) only the part of it the option changes, as an ambient frame draws it
+    // (rest: a rest frame of that size instead, the part the option changes, as the shelf draws it at rest)
+    motionFrame(opt, clock, ss = aliveSamples, part = false, rest = 0) {
+      if (disposed) return;
+      mo.opt = opt; mo.clock = clock; mo.mix = 0;
+      if (rest) { amb.swaps = 1; drawSmall(ss, rest); return; }
+      if (!alive) alive = frontLayers();
+      uniforms.uMotion.value = opt;
+      uniforms.uCycle.value = optOf()?.cycle || 1;
+      uniforms.uV1.value = 0;
+      uniforms.uTime.value = d.t0 + clock;
+      uniforms.uRestMix.value = 0; uniforms.uRest.value = BLANK;
+      renderFront(alive, ss, part ? optOf()?.rect || null : null);
+      mo.pristine = false;
+    },
     _stop: stop,
   };
+  // the scheduler's handle on this cover, playing the option picked for it (covers land after the picks are set)
+  const handle = { cover, mo, opts, name: entry.name, tick, drawMotion, drawSmall, dropBig, restFrame, settle, samples, aliveSamples, optOf,
+    shownSize: () => (shown === frontRT.texture ? frontRT.width : ambRT ? ambRT.width : 0) };
+  if (opts.length) mo.opt = optionFor(handle);
+  amb.list[index] = handle;
   return cover;
 }
