@@ -14,7 +14,7 @@ import { fileURLToPath } from 'url';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '../..');
-const URL0 = 'http://127.0.0.1:8750/editions/';
+const URL0 = 'http://127.0.0.1:8750/';
 const PHONE_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1';
 const args = process.argv.slice(2);
 const round = args[args.indexOf('--round') + 1];

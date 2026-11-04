@@ -4,7 +4,7 @@
   "kind": "project",
   "year": "2025",
   "tag": "Real-time X→Telegram mirror and digest",
-  "video": { "src": "/editions/media/mirra-promo-720.mp4", "poster": "/editions/media/mirra-promo-poster.jpg", "band": 0.3 },
+  "video": { "src": "/media/mirra-promo-720.mp4", "poster": "/media/mirra-promo-poster.jpg", "band": 0.3 },
   "blurb": "Never miss a post from the accounts you care about — mirrored to Telegram in real time, then distilled into a digest of their posts and shifting sentiment.",
   "url": "https://mirra.to",
   "stack": "Next.js · Python · MTProto · Supabase",
@@ -27,8 +27,8 @@
    "dark": "#9EC7EA"
   },
   "logo": {
-   "png": "/editions/data/logos/mirra.png",
-   "icon": "/editions/data/logos/menu/mirra.webp"
+   "png": "/data/logos/mirra.png",
+   "icon": "/data/logos/menu/mirra.webp"
   }
  },
  {
@@ -38,7 +38,7 @@
   "tag": "The copy layer for your codebase",
   "blurb": "Every sentence your product says — site copy, emails, SEO fields — managed as typed keys your team edits without a deploy, with a full copy committed in your repo.",
   "url": "https://getstet.github.io/",
-  "video": { "src": "/editions/media/stet-ten-720.mp4", "poster": "/editions/media/stet-ten-poster.jpg", "band": 0.28 },
+  "video": { "src": "/media/stet-ten-720.mp4", "poster": "/media/stet-ten-poster.jpg", "band": 0.28 },
   "stack": "TypeScript · Postgres · Cloudflare · Astro · MCP",
   "figs": [
    [
@@ -119,8 +119,8 @@
    "dark": "#46D4D8"
   },
   "logo": {
-   "png": "/editions/data/logos/clauded.png",
-   "icon": "/editions/data/logos/menu/clauded.webp"
+   "png": "/data/logos/clauded.png",
+   "icon": "/data/logos/menu/clauded.webp"
   }
  },
  {
@@ -158,7 +158,7 @@
   "kind": "project",
   "year": "2026",
   "tag": "A video studio on open video models",
-  "video": { "src": "/editions/media/topshine-preview-v4-720.mp4", "poster": "/editions/media/topshine-preview-v4-poster.jpg", "band": 0.3, "start": 1 },
+  "video": { "src": "/media/topshine-preview-v4-720.mp4", "poster": "/media/topshine-preview-v4-poster.jpg", "band": 0.3, "start": 1 },
   "blurb": "Make a whole ad campaign, music video or film on open video models: every variant in one run, with a price before every run.",
   "url": null,
   "stack": "Python · FastAPI · Postgres · rented RTX 5090s",
@@ -201,7 +201,7 @@
   "kind": "project",
   "year": "2026",
   "tag": "Camera-counted squat breaks for the Mac",
-  "video": { "src": "/editions/media/chairtax-v18-720.mp4", "poster": "/editions/media/chairtax-v18-poster.jpg", "band": 0.3 },
+  "video": { "src": "/media/chairtax-v18-720.mp4", "poster": "/media/chairtax-v18-poster.jpg", "band": 0.3 },
   "blurb": "When a break is due, Chairtax takes over your Mac's screen. Do a few squats, or one of five other movements, in front of the camera and the screen is yours again.",
   "url": "https://chairtax.app",
   "stack": "Swift · SwiftUI · AppKit · Apple Vision · Cloudflare Workers",
@@ -224,8 +224,8 @@
    "dark": "#ffc85a"
   },
   "logo": {
-   "png": "/editions/data/logos/chairtax.png",
-   "icon": "/editions/data/logos/menu/chairtax.webp"
+   "png": "/data/logos/chairtax.png",
+   "icon": "/data/logos/menu/chairtax.webp"
   }
  },
  {

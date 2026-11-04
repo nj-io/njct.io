@@ -22,7 +22,7 @@ const SITES = {
     phoneFirst: 'button[aria-controls="mobile-menu"]',
   },
   ours: {
-    url: 'http://127.0.0.1:8750/editions/', settle: 3000,
+    url: 'http://127.0.0.1:8750/', settle: 3000,
     trigger: '.pm-btn', list: '.pm-list', phoneTrigger: '.pm-btn', phoneList: '.pm-list',
   },
 };

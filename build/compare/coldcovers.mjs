@@ -50,7 +50,7 @@ for (const rate of rates) {
     await pg.evaluateOnNewDocument(() => { window.__raf = []; const f = t => { window.__raf.push(t); requestAnimationFrame(f); }; requestAnimationFrame(f); });
     const cdp = await pg.createCDPSession();
     await cdp.send('Emulation.setCPUThrottlingRate', { rate });
-    await pg.goto(`http://127.0.0.1:8750/editions/?nonce=${Date.now()}${k}`, { waitUntil: 'domcontentloaded' });
+    await pg.goto(`http://127.0.0.1:8750/?nonce=${Date.now()}${k}`, { waitUntil: 'domcontentloaded' });
     const ok = await pg.waitForFunction(() => window.__editions?.firstFrameAt != null, { timeout: 30000 }).then(() => true, () => false);
     if (!ok) {
       console.error('no first frame:', JSON.stringify(await pg.evaluate(() => ({ noGl: document.documentElement.classList.contains('no-gl'), gl2: !!document.createElement('canvas').getContext('webgl2'), hooks: !!window.__editions }))));

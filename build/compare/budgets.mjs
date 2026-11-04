@@ -35,7 +35,7 @@ const server = http.createServer((req, res) => {
   res.end(zip ? zlib.gzipSync(body, { level: 6 }) : body);
 });
 await new Promise(r => server.listen(0, '127.0.0.1', r));   // a free port
-const URL0 = `http://127.0.0.1:${server.address().port}/editions/`;
+const URL0 = `http://127.0.0.1:${server.address().port}/`;
 const PHONE_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1';
 const args = process.argv.slice(2);
 const arg = k => { const i = args.indexOf(`--${k}`); return i >= 0 ? args[i + 1] : undefined; };
