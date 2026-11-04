@@ -107,5 +107,7 @@ export const CAFE = {
   // The sun, in degrees: azimuth from the street front's normal toward the record wall, and elevation.
   // power: its light on a wall square to it, in the wall's linear units; leaves: how far beyond the
   // window's centre the foliage hangs, along the sun.
-  sun: { az: 38, el: 13, power: 1.3, leaves: 500, fadeIn: 1200, ambientHz: 30 },
+  // coverGain: the sun on a cover against its fitted light, by slug; a pale cover takes less, so its title
+  // keeps at least 85% of its contrast in the patch (About Neil's gold on cream).
+  sun: { az: 38, el: 13, power: 1.3, leaves: 500, fadeIn: 1200, ambientHz: 30, coverGain: { default: 0.85, about: 0.34 } },
 };
