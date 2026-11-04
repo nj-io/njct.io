@@ -3,7 +3,7 @@
 // turns it front and back; Escape puts it back); keyboard; sound. Renders only while something moves.
 import * as THREE from 'three';
 import { RoomEnvironment } from '/vendor/three-0.181.0/addons/environments/RoomEnvironment.js';
-import { CAMERA_Z, REF_H, SHELF, SLEEVE, INTRO, DETAILS, OPEN, LINEUP, viewScale, slugOf } from './scene/config.js';
+import { CAMERA_Z, REF_H, SHELF, SLEEVE, INTRO, DETAILS, LINEUP, viewScale, slugOf } from './scene/config.js';
 import { createLightUniforms, applyLights } from './scene/lighting.js';
 import { createWall } from './scene/wall.js';
 import { createShelves } from './scene/shelves.js';
@@ -855,9 +855,9 @@ function endDetails(s, now, opening = false) {
 
 // ---- Open: a project's page, by hash route (#mirra, #social-hook, #about) -------------------------
 // Open sets the hash; the route opens the page, so deep links and the browser's Back work the same way.
-// The page module loads on demand; the shelf stops drawing while a page is open and the page's world
-// draws on the same canvas.
-let view = null, viewP = null, inProject = -1, openedFromShelf = false, cutAfter = 0;
+// The page module loads on demand; the page covers the shelf from its first frame, and the shelf stops
+// drawing while it is open.
+let view = null, viewP = null, inProject = -1, openedFromShelf = false, openPlayed = false;
 const loadView = () => viewP || (viewP = import('./project/project.js').then(m => (view = m.createProjectView({
   renderer, entries, slugOf, onBack: backToShelf,
 }))));
@@ -867,7 +867,7 @@ function openProject(i) {
   loadView();   // start loading now; the route waits for it
   if (entries[i].kind !== 'about') import('./project/project.js').then(m => m.loadDossier(slugOf(entries[i])));
   openedFromShelf = true;
-  cutAfter = OPEN.cut;
+  openPlayed = true;
   announce(`Open: ${entries[i].name}`);
   location.hash = slugOf(entries[i]);
 }
@@ -886,9 +886,9 @@ async function route() {
     inProject = i;
     for (const a of canvas.getAnimations()) a.finish();   // a deep link skips the canvas fade
     audio?.setRoomTone(false);
-    if (!cutAfter) play('open');   // a link or the browser's Forward (Open has played it already)
-    await v.open(i, { cutAfter });
-    cutAfter = 0;
+    if (!openPlayed) play('open');   // a link or the browser's Forward (Open has played it already)
+    openPlayed = false;
+    await v.open(i);
   } else if (inProject >= 0) {
     const i0 = inProject;
     inProject = -1;

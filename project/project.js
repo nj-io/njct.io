@@ -1,9 +1,10 @@
-// A project's page, opened from the shelf: a cut to a flat window in its accent, the accent panel sliding in
-// with the giant vertical title, then the dossier below:
-// Overview, Under the hood, Build process. About Neil gets the same structure with its own text.
+// A project's page, opened from the shelf or the Projects menu: one band in the project's colour, there in
+// full from its first frame (no hero for now: a gap holds its place), the chapter rail at its left and the
+// dossier: Overview first, then Under the hood and Build process behind the technical detail. About Neil
+// gets the same structure with its own text.
 // Loaded on demand with its stylesheet and the project's dossier file; disposed on Back.
-import { OPEN, CONTACT } from '../scene/config.js';
-import { bezier, clamp01, dur, delay, reduced } from '../scene/ease.js';
+import { CONTACT } from '../scene/config.js';
+import { reduced } from '../scene/ease.js';
 import { coverGround } from '../covers/grounds.js';
 
 const CSS = new URL('./project.css', import.meta.url).href;
@@ -100,10 +101,10 @@ const onBand = svg => svg.replace(/<style>[\s\S]*?<\/style>|style="[^"]*"/g, css
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 const host = url => url.replace(/^https?:\/\//, '').replace(/\/$/, '');
-// The project's live site, in a new tab (Decision 16): in the hero, under the overview and in the foot.
-// The hero's box says "Visit the site" (a long host would wrap in its narrow column); the others name the host.
-const visitLink = (entry, cls, label = `Visit ${entry.urlText || host(entry.url)}`) =>
-  `<a class="${cls}" href="${esc(entry.url)}" target="_blank" rel="noopener">${esc(label)}<span aria-hidden="true">↗</span><span class="sr"> (opens in a new tab)</span></a>`;
+// The project's live site, in a new tab (Decision 16): under the overview's lead and in the foot.
+const visitLink = (entry, cls) => `<a class="${cls}" href="${esc(entry.url)}" target="_blank" rel="noopener">Visit ${esc(entry.urlText || host(entry.url))}<span aria-hidden="true">↗</span><span class="sr"> (opens in a new tab)</span></a>`;
+// The chapters, as the rail lists them.
+const CHAPTERS = [['overview', 'Overview'], ['under-the-hood', 'Under the hood'], ['build-process', 'Build process']];
 // The overview's steps: the narration's numbered list, each item's bold lead as the step's name.
 function stepsHTML(archHi) {
   const items = [...(archHi || '').matchAll(/<li>([\s\S]*?)<\/li>/g)].map(m => m[1]);
@@ -115,27 +116,33 @@ function stepsHTML(archHi) {
 }
 
 function pageHTML(entry, data, slugOf, entries) {
-  const about = entry.kind === 'about';
-  const sec = (id, n, title, body) => `<section class="pj-sec" aria-labelledby="pj-h-${id}">
-    <div class="pj-part" id="pj-${id}" data-sec="${id}"><header class="pj-sh"><p class="pj-num">${n}</p><h2 id="pj-h-${id}"${reduced() ? '' : ' class="pj-sig"'}>${title}${reduced() ? '' : `<span class="pj-fill" aria-hidden="true">${title}</span>`}</h2></header>${body}</div></section>`;
-  if (about) {
+  // A chapter: its number and title, then its body. The first chapter's title is on screen from the first
+  // frame, so it is built filled; later titles fill as they scroll in (signalTitles), unless motion is reduced.
+  const sec = (id, n, title, body, sig = !reduced()) => `<section class="pj-sec" aria-labelledby="pj-h-${id}">
+    <div class="pj-part" id="pj-${id}" data-sec="${id}"><header class="pj-sh"><p class="pj-num">${n}</p><h2 id="pj-h-${id}"${sig ? ' class="pj-sig"' : ''}>${title}${sig ? `<span class="pj-fill" aria-hidden="true">${title}</span>` : ''}</h2></header>${body}</div></section>`;
+  if (entry.kind === 'about') {
     const a = entry.about;
     const list = entries.filter(e => e.kind !== 'about').map(e =>
       `<li><a href="#${slugOf(e)}"><span class="n">${esc(e.name)}</span><span class="t">${esc(e.tag)}</span></a></li>`).join('');
     return sec('about', '01', esc(a[0]),
-      `<p class="pj-lead">${esc(a[1])}</p><div class="pj-text"><p>${esc(a[2])}</p><p>${esc(a[3])}</p></div><ul class="pj-list">${list}</ul>`);
+      `<p class="pj-lead">${esc(a[1])}</p><div class="pj-text"><p>${esc(a[2])}</p><p>${esc(a[3])}</p></div><ul class="pj-list">${list}</ul>`, false);
   }
   if (!data) return '<p class="pj-fail">This page did not load.</p>';
+  // The figures as the reference's rows of short items: four to a row on desktop, a rule over each row.
+  const glance = data.glance?.length
+    ? `<dl class="pj-items">${data.glance.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>` : '';
   const diagram = data.diagram
     ? `<figure class="pj-figure"><div class="pj-diagram" tabindex="0" role="region" aria-label="${esc(data.loCap || 'Architecture diagram')}">${onBand(data.diagram)}</div>${data.loCap ? `<figcaption>${data.loCap}</figcaption>` : ''}</figure>` : '';
-  // The page opens on the Overview alone: the lead, then the narration's steps as cards (a narration
-  // without steps shows as its text). The figures are the hero's cards. Under the hood (the diagram, the
-  // narration's other paragraphs, the spec sheet) and Build process wait behind the technical detail.
+  // Overview: the lead, the live site, the figures, then the narration's steps as cards (a narration
+  // without steps shows as its text). Under the hood (the diagram, the narration's other paragraphs, the
+  // spec sheet) and Build process wait behind the technical detail; the rail opens it.
   const steps = stepsHTML(data.archHi);
   const narration = steps ? (data.archHi || '').replace(/<ol>[\s\S]*?<\/ol>/g, '').trim() : '';
+  const proposal = data.proposal ? '<p class="pj-num">Draft for review</p>' : '';
   return [
-    sec('overview', '01', 'Overview', `<p class="pj-lead">${data.what}</p>${steps || (data.archHi ? `<div class="pj-text">${data.archHi}</div>` : '')}
-      ${entry.url ? `<p class="pj-actions">${visitLink(entry, 'pj-visit')}</p>` : ''}`),
+    sec('overview', '01', 'Overview', `${proposal}<p class="pj-lead">${data.what}</p>
+      ${entry.url ? `<p class="pj-actions">${visitLink(entry, 'pj-visit')}</p>` : ''}${glance}
+      ${steps || (data.archHi ? `<div class="pj-text">${data.archHi}</div>` : '')}`, false),
     `<details class="pj-more"><summary><span class="pj-more-open">Read the technical detail</span><span class="pj-more-close">Hide the technical detail</span></summary>
       ${sec('under-the-hood', '02', 'Under the hood', `${diagram}${narration ? `<div class="pj-text">${narration}</div>` : ''}<div class="pj-text">${data.arch}</div></div>
       <div class="pj-part" id="pj-build-process" data-sec="build-process"><h3 class="pj-h3">Build process</h3><div class="pj-text">${data.proc}</div>`)}</details>`,
@@ -188,69 +195,18 @@ function signalTitles(root) {
   return () => { io.disconnect(); for (const r of runs) cancelAnimationFrame(r.raf); runs.clear(); };
 }
 
-// The hero's window: the project's cover art (covers/hero/, 512 px, from build/covers/thumbs.mjs) blurred
-// and dimmed as its ground, and over it the project's logo as an app-icon tile, or the cover itself when
-// the project has no logo (Stellar Explorer, Scorecard, About Neil).
-function windowHTML(entry, slug) {
-  const art = new URL(`../covers/hero/${slug}.webp`, import.meta.url).href;
-  const logo = entry.logo?.svg || (entry.logo?.png ? `<img src="${esc(entry.logo.png)}" alt="" decoding="async">` : '');
-  return `<div class="pj-art" style="background-image: url('${art}')"></div>
-    <div class="pj-emblem${logo ? '' : ' pj-emblem-cover'}">${logo || `<img src="${art}" alt="" decoding="async">`}</div>`;
-}
-
-function heroColumn(entry, data, slugOf, entries) {
-  if (entry.kind === 'about') {
-    const rows = entries.filter(e => e.kind !== 'about').map((e, k) =>
-      `<li><button type="button" data-go="#${slugOf(e)}"><span>${esc(e.name)}</span><span>${String(k + 1).padStart(2, '0')}</span></button></li>`).join('');
-    return `<nav class="pj-box pj-index" aria-label="Projects"><ol>${rows}</ol></nav>`;
-  }
-  const figs = (data?.glance || []).map(([k, v]) => `<div class="pj-box pj-fig"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('');
-  return `${entry.url ? visitLink(entry, 'pj-box pj-visit-box', 'Visit the site') : ''}${figs}`;
-}
-
-// The giant title's size: as long as the panel's title column is tall (desktop) or the screen is wide
-// (phone), never wider than the column. On desktop the tag runs down from the column's top: a title long
-// enough to reach it either stops short of it or thins to pass beside it, whichever leaves it larger.
-const measure = document.createElement('canvas').getContext('2d');
-function fitTitle(el, text, vertical, box) {
-  measure.font = "500 100px 'NJ Text', system-ui, sans-serif";
-  const w100 = measure.measureText(text).width - 2 * (text.length - 1);   // letter-spacing -0.02em
-  let size = vertical ? Math.min((box.w - 22) / 0.74, box.h / (w100 / 100)) : Math.min(box.w / (w100 / 100), 140);
-  if (vertical && box.sub && size * w100 / 100 + box.sub + 24 > box.h)
-    size = Math.min(size, Math.max((box.h - box.sub - 24) / (w100 / 100), (box.w - 52) / 0.74));
-  el.style.fontSize = `${Math.floor(size * 10) / 10}px`;
-}
-
-const GLYPHS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-function scrambleHTML(text, u) {   // u 0..1: letters settle in reading order, each glimpsed scrambled first
-  const n = text.length;
-  let out = '';
-  for (let k = 0; k < n; k++) {
-    const settle = (k + 1) / n, appear = settle - 0.35;
-    const ch = text[k];
-    if (u >= settle || ch === ' ') out += esc(ch);
-    else if (u >= appear) out += esc(GLYPHS[(Math.random() * GLYPHS.length) | 0]);
-    else out += `<span style="visibility:hidden">${esc(ch)}</span>`;
-  }
-  return out;
-}
-
 export function createProjectView({ entries, slugOf, onBack }) {
   let st = null, token = 0;
 
-  async function open(i, { cutAfter = 0 } = {}) {
+  async function open(i) {
     close();
-    const my = ++token, t0 = performance.now(), entry = entries[i];
+    const my = ++token, entry = entries[i];
     const [data] = await Promise.all([entry.kind === 'about' ? null : loadDossier(slugOf(entry)), loadCss()]);
     if (my !== token) return;
 
-    // The page is built and parsed before the cut (hidden, so nothing is laid out yet). At the cut only the
-    // header and hero are laid out; the dossier below them (pj-cold) is laid out two frames later, so
-    // neither lands in one long frame.
     const col = colours(entry);
     const root = document.createElement('main');
-    root.className = 'pj pj-cold';
-    root.hidden = true;
+    root.className = 'pj';
     root.setAttribute('aria-label', entry.name);
     const vars = {
       '--acc': col.panel, '--fg': col.fg, '--fg-inv': col.fgInv, '--pj-ink': col.ink, '--pj-card': col.card,
@@ -260,8 +216,8 @@ export function createProjectView({ entries, slugOf, onBack }) {
       '--dg-cluster': col.cluster, '--dg-rule': col.rule,
     };
     for (const k in vars) root.style.setProperty(k, vars[k]);
-    const sub = entry.kind === 'about' ? entry.about[2] : entry.tag;
-    const proposal = data?.proposal ? '<p class="pj-num" style="margin-top:-36px">Draft for review</p>' : '';
+    const rail = entry.kind === 'about' || !data ? '<div></div>'
+      : `<nav class="pj-rail" aria-label="Chapters"><ol>${CHAPTERS.map(([id, label]) => `<li><button type="button" data-sec="${id}">${label}</button></li>`).join('')}</ol></nav>`;
     root.innerHTML = `
       <header class="pj-head">
         <a class="pj-mark" href="./" data-back>njct.io</a><span class="pj-name">${esc(entry.name)}</span>
@@ -269,17 +225,12 @@ export function createProjectView({ entries, slugOf, onBack }) {
         <button class="pj-back" type="button" data-back>Back</button>
         <a class="pj-cta" href="${CONTACT}">Get in touch</a>
       </header>
-      <section class="pj-hero" aria-label="${esc(entry.name)}">
-        <div class="pj-panel">
-          <div class="pj-titlecol"><h1 class="pj-title" tabindex="-1" aria-label="${esc(entry.name)}"><span aria-hidden="true"></span></h1>${sub ? `<p class="pj-sub">${esc(sub)}</p>` : ''}</div>
-          <div class="pj-col">${heroColumn(entry, data, slugOf, entries)}</div>
-        </div>
-        <div class="pj-window" aria-hidden="true">${windowHTML(entry, slugOf(entry))}${data?.mascot ? `<img class="pj-mascot" src="${esc(data.mascot.src)}" width="${data.mascot.w}" height="${data.mascot.h}" alt="" decoding="async">` : ''}</div>
-      </section>
+      <h1 class="sr" tabindex="-1">${esc(entry.name)}</h1>
+      <div class="pj-gap" aria-hidden="true"></div>
       <div class="pj-body">
-        <div></div>
+        ${rail}
         <div class="pj-main">
-          ${pageHTML(entry, data, slugOf, entries).replace('<p class="pj-lead">', `${proposal}<p class="pj-lead">`)}
+          ${pageHTML(entry, data, slugOf, entries)}
           <footer class="pj-foot">
             <button type="button" data-back>Back to the shelf</button>
             ${entry.url ? visitLink(entry, '') : ''}
@@ -287,82 +238,51 @@ export function createProjectView({ entries, slugOf, onBack }) {
           </footer>
         </div>
       </div>`;
-    document.body.append(root);
-    const wait = t0 + cutAfter - performance.now();
-    if (wait > 0) await new Promise(r => setTimeout(r, wait));
-    if (my !== token) { root.remove(); return; }
-    root.hidden = false;
     document.documentElement.style.setProperty('--pj-ground', col.panel);   // the band runs under overscroll too
     document.documentElement.classList.add('in-project');
+    document.body.append(root);
     history.scrollRestoration = 'manual';
     window.scrollTo(0, 0);
 
-    const q = s => root.querySelector(s);
-    const title = q('.pj-title'), titleSpan = title.firstElementChild, panel = q('.pj-panel');
-    const vertical = () => matchMedia('(min-width: 900px)').matches;
-    const fit = () => {
-      const tc = q('.pj-titlecol').getBoundingClientRect(), hero = q('.pj-hero').getBoundingClientRect();
-      fitTitle(title, entry.name, vertical(), vertical()
-        ? { w: tc.width, h: hero.height - 2 * parseFloat(getComputedStyle(root).getPropertyValue('--pj-frame')) - 12, sub: q('.pj-sub')?.getBoundingClientRect().height || 0 }
-        : { w: hero.width - 32 });
-    };
-    fit();
-    titleSpan.innerHTML = scrambleHTML(entry.name, 0);
     // Diagrams keep their drawn size and scroll sideways inside their box.
     for (const svg of root.querySelectorAll('.pj-diagram svg')) {
       const vb = svg.viewBox?.baseVal;
       if (vb && vb.width) { svg.style.width = `${Math.round(vb.width)}px`; svg.style.maxWidth = 'none'; svg.removeAttribute('width'); }
     }
 
+    // A chapter inside the technical detail opens it before the page scrolls there.
     root.addEventListener('click', e => {
       const b = e.target.closest('[data-back], [data-sec], [data-go]');
       if (!b) return;
-      if (b.matches('[data-back]')) { e.preventDefault(); onBack(); }
-      else if (b.dataset.sec) root.querySelector(`#pj-${b.dataset.sec}`)?.scrollIntoView({ behavior: reduced() ? 'auto' : 'smooth' });
-      else location.hash = b.dataset.go;
+      if (b.matches('[data-back]')) { e.preventDefault(); onBack(); return; }
+      if (!b.dataset.sec) { location.hash = b.dataset.go; return; }
+      const to = root.querySelector(`#pj-${b.dataset.sec}`), more = to?.closest('details');
+      if (more && !more.open) more.open = true;
+      to?.scrollIntoView({ behavior: reduced() ? 'auto' : 'smooth' });
     });
+    // The rail marks the chapter at the screen's middle.
+    const railButtons = [...root.querySelectorAll('.pj-rail button')];
+    const io = new IntersectionObserver(es => {
+      for (const e of es) if (e.isIntersecting) railButtons.forEach(b => b.setAttribute('aria-current', String(b.dataset.sec === e.target.dataset.sec)));
+    }, { rootMargin: '-45% 0px -50% 0px' });
+    root.querySelectorAll('.pj-part').forEach(s => io.observe(s));
+    railButtons[0]?.setAttribute('aria-current', 'true');
     const sig = signalTitles(root);
 
-    const cut = performance.now();
-    st = { i, root, sig, raf: 0, cut, frames: 0, panelDone: !vertical(), titleDone: false, fit };
-    const warmBody = () => root.classList.remove('pj-cold');
-    // After the body, each section is laid out in full in a frame of its own (pj-laid), so every heading and
-    // its content are in the accessibility tree wherever the page is scrolled (a section that
-    // content-visibility skips is left out of it).
+    st = { i, root, io, sig, raf: 0 };
+    // Each chapter is laid out in full in a frame of its own (pj-laid), so every heading and its content are
+    // in the accessibility tree wherever the page is scrolled (a chapter content-visibility skips is left out).
     const unlaid = [...root.querySelectorAll('.pj-sec')];
-    if (!vertical()) { panel.style.transform = 'none'; q('.pj-mascot')?.classList.add('in'); }
-    const onScroll = () => { warmBody(); if (st && !st.raf) wake(); };
-    const onResize = () => { st?.fit(); wake(); };
-    const onKey = e => { if (e.key === 'Escape' && !e.defaultPrevented) { e.preventDefault(); onBack(); } };
-    st.off = () => { removeEventListener('scroll', onScroll); removeEventListener('resize', onResize); removeEventListener('keydown', onKey); };
-    addEventListener('scroll', onScroll, { passive: true });
-    addEventListener('resize', onResize);
-    addEventListener('keydown', onKey);
-    title.focus({ preventScroll: true });
-
-    function frame(now) {
+    const frame = () => {
       if (!st || st.root !== root) return;
-      st.raf = 0;
-      const t = now - st.cut;
-      let busy = ++st.frames < 3 || unlaid.length > 0;
-      if (st.frames === 2) warmBody();
-      else if (st.frames > 2) unlaid.shift()?.classList.add('pj-laid');
-      if (!st.panelDone) {
-        const P = OPEN.panel, u = bezier(P.ease, clamp01((t - delay(P.at)) / dur(P.dur)));
-        panel.style.transform = u >= 1 ? 'none' : `translateX(${((u - 1) * 100).toFixed(3)}%)`;
-        st.panelDone = u >= 1; busy = true;
-        if (st.panelDone) q('.pj-mascot')?.classList.add('in');
-      }
-      if (!st.titleDone) {
-        const T = OPEN.title, u = clamp01((t - delay(T.at)) / dur(T.dur));
-        titleSpan.innerHTML = reduced() ? (u > 0 ? esc(entry.name) : scrambleHTML(entry.name, 0)) : scrambleHTML(entry.name, u);
-        st.titleDone = u >= 1; busy = true;
-      }
-      if (busy) st.raf = requestAnimationFrame(frame);
-    }
-    function wake() { if (st && !st.raf) st.raf = requestAnimationFrame(frame); }
-    st.wake = wake;
-    wake();
+      unlaid.shift()?.classList.add('pj-laid');
+      st.raf = unlaid.length ? requestAnimationFrame(frame) : 0;
+    };
+    st.raf = requestAnimationFrame(frame);
+    const onKey = e => { if (e.key === 'Escape' && !e.defaultPrevented) { e.preventDefault(); onBack(); } };
+    st.off = () => removeEventListener('keydown', onKey);
+    addEventListener('keydown', onKey);
+    root.querySelector('h1').focus({ preventScroll: true });
   }
 
   function close() {
@@ -371,7 +291,7 @@ export function createProjectView({ entries, slugOf, onBack }) {
     const s = st;
     st = null;
     if (s.raf) cancelAnimationFrame(s.raf);
-    s.off(); s.sig();
+    s.off(); s.io.disconnect(); s.sig();
     s.root.remove();
     document.documentElement.classList.remove('in-project');
     document.documentElement.style.removeProperty('--pj-ground');

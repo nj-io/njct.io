@@ -3,7 +3,6 @@
 // first frame until the full covers land. Run again whenever a cover's design or the lineup changes.
 //
 //   node build/covers/thumbs.mjs [--thumb 128] [--q 0.75] [--out covers/thumbs]
-//   node build/covers/thumbs.mjs --thumb 512 --q 0.8 --out covers/hero    (the project pages' hero art)
 //
 // Serves the repo itself on a free loopback port. Uses Playwright's Chromium when `playwright` resolves
 // (a cloud machine); otherwise puppeteer-core with build/pptr.json's Chrome (the operator's Mac).
