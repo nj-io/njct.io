@@ -21,7 +21,7 @@
     document.currentScript.after(m);
   } else if (window.__editionsGL) {
     // bundle: first-view chunks, written by build/bundle.mjs
-    const first = ["/editions/dist/main.js","/editions/dist/chunk-CBEJLKG4.js","/editions/dist/chunk-U3AZOSC6.js","/editions/dist/chunk-BB35V6BP.js","/editions/dist/menu.js"];
+    const first = ["/editions/dist/main.js","/editions/dist/chunk-XUX7XAJI.js","/editions/dist/chunk-U3AZOSC6.js","/editions/dist/chunk-BB35V6BP.js","/editions/dist/menu.js"];
     // /bundle
     for (const href of first) document.head.append(Object.assign(document.createElement('link'), { rel: 'modulepreload', href }));
   }
@@ -159,11 +159,23 @@
     background: #000; color: #ececec; line-height: 40px; cursor: pointer; opacity: 0; text-decoration: none; white-space: nowrap;
   }
   .d-open[inert] { pointer-events: none; }
-  /* Details film: muted and looping in the text column, 16:9; a click plays it full screen with sound. */
-  .d-video { position: fixed; padding: 0; border: 0; border-radius: 6px; overflow: hidden; background: #000; cursor: zoom-in; opacity: 0; aspect-ratio: 16 / 9; }
-  .d-video[inert] { pointer-events: none; }
-  .d-video video { display: block; width: 100%; height: 100%; object-fit: cover; }
-  .d-video video:fullscreen { object-fit: contain; }
+  /* Details film (scene/film.js): the play button over the back's art band, and the frame the film zooms into. */
+  .d-play {
+    position: fixed; width: 56px; height: 56px; margin: -28px 0 0 -28px; padding: 0; border: 0; border-radius: 50%;
+    background: rgba(0, 0, 0, 0.72); color: #fff; cursor: pointer; display: grid; place-items: center;
+  }
+  .d-play[hidden], .d-close[hidden] { display: none; }
+  .d-play svg { width: 20px; height: 20px; margin-left: 3px; }
+  .d-play:focus-visible, .d-close:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+  .film-shade { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6); opacity: 0; pointer-events: none; transition: opacity 0.4s; z-index: 20; }
+  .film-shade.on { opacity: 1; pointer-events: auto; }
+  .film-frame { position: fixed; z-index: 21; overflow: hidden; border-radius: 4px; background: #000; opacity: 0; pointer-events: none; }
+  .film-frame.on { opacity: 1; pointer-events: auto; }
+  .film-frame video { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .d-close {
+    position: fixed; z-index: 22; top: 16px; right: 16px; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%;
+    background: rgba(255, 255, 255, 0.9); color: #000; font-size: 22px; line-height: 44px; cursor: pointer;
+  }
 
   /* The phone crate: the list stays for screen readers and the keyboard; the bar and rail are its controls. */
   .crate-bar, .crate-rail { display: none; }
@@ -201,7 +213,7 @@
 
   /* Without WebGL: the shelf as cards (editions/fallback.js). */
   .no-gl, .no-gl body { height: auto; overflow: auto; }
-  .no-gl canvas, .no-gl #slots, .no-gl .index, .no-gl .crate-bar, .no-gl .crate-rail, .no-gl .details, .no-gl .d-open, .no-gl .d-video, .no-gl .sound { display: none !important; }
+  .no-gl canvas, .no-gl #slots, .no-gl .index, .no-gl .crate-bar, .no-gl .crate-rail, .no-gl .details, .no-gl .d-open, .no-gl .d-play, .no-gl .film-frame, .no-gl .sound { display: none !important; }
   .no-gl .rise, .no-gl .late { opacity: 1; }
   .no-gl .masthead { position: absolute; }
   .fb { padding: 120px var(--gutter) 64px; }
@@ -251,7 +263,10 @@
   <h2 class="d-title"></h2>
   <p class="d-tag"></p>
 </section>
-<button class="d-video" id="d-video" type="button" aria-label="Play the film full screen" inert hidden><video muted loop playsinline preload="none"></video></button>
+<button class="d-play" id="d-play" type="button" aria-label="Play the film" hidden><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 2l14 8-14 8z" fill="currentColor"/></svg></button>
+<div class="film-shade" id="film-shade"></div>
+<div class="film-frame" id="film-frame"><video muted loop playsinline preload="none"></video></div>
+<button class="d-close" id="d-close" type="button" aria-label="Close the film" hidden>&#x2715;</button>
 <a class="d-open" id="d-open" data-action="open" inert>Open</a>
 <script type="module">
   // Without WebGL 2 (or if the scene fails to start) the shelf is plain cards.

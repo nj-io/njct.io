@@ -807,4 +807,5 @@ Shows who visited each product site, where they came from and which post, email 
 - **Left out as speculative:** links made in Social Hook sharing the same tags (the memory note calls it "an open question for later"), the engine published as a public tool, and the attribution article.
 
 ## Details film (proposal, 2026-11-04)
-- Film button label (screen readers): "Play the film full screen"
+- Play button label (screen readers): "Play the film"
+- Close button label (screen readers): "Close the film"

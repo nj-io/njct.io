@@ -12,6 +12,7 @@ import { introPose, appearTime, stepHover, fallPose, HOVER_DELAY, bezier, lerpPo
 import { createPost } from './scene/post.js';
 import { createSticker } from './scene/sticker.js';
 import { createCrate, createCrateShadow, CRATE } from './scene/crate.js';
+import { createFilm } from './scene/film.js';
 
 const entries = LINEUP;
 
@@ -64,6 +65,9 @@ const post = createPost(renderer);
 // far (the crate's depth then reads almost flat, as on the reference).
 let CAMZ = CAMERA_Z;
 const camera = new THREE.PerspectiveCamera(20, 1, 100, CAMZ * 2);
+const film = createFilm({ camera, layer: FOCUS, wake: () => wake(), dur, els: {
+  frame: document.getElementById('film-frame'), video: document.querySelector('#film-frame video'),
+  play: document.getElementById('d-play'), close: document.getElementById('d-close'), shade: document.getElementById('film-shade') } });
 camera.position.set(0, 0, CAMZ);
 const crate = createCrate(sleeves.length);
 const crateShadow = createCrateShadow();
@@ -268,7 +272,6 @@ const detailsEl = document.getElementById('details');
 const dTitle = detailsEl.querySelector('.d-title');
 const dTag = detailsEl.querySelector('.d-tag');
 const dOpen = document.getElementById('d-open');
-const dVideo = document.getElementById('d-video'), dFilm = dVideo.querySelector('video');
 
 // Opacity fades that start from wherever the element is now.
 function fade(el, to, at, ms) {
@@ -396,30 +399,7 @@ function placeDetails() {
   dTitle.style.top = `${snap(cy - 54.2)}px`;
   dTag.style.top = `${snap(cy - 13.6)}px`;
   dOpen.style.top = `${snap(cy + detSize / 2 + 16)}px`;
-  // The film sits under the tagline where the column beside the sleeve is wide enough, else under Open.
-  const col = W / 2 - detSize / 2 - 2 * 40;
-  const w = col >= 240 ? Math.min(400, col) : Math.min(W - 32, 480);
-  Object.assign(dVideo.style, col >= 240
-    ? { left: 'calc(var(--gutter) + 20px)', top: `${snap(cy + 40)}px`, width: `${w}px`, transform: '' }
-    : { left: '50%', top: `${snap(cy + detSize / 2 + (crateMode ? 12 : 72))}px`, width: `${w}px`, transform: 'translateX(-50%)' });
 }
-dVideo.addEventListener('click', () => {
-  dFilm.muted = false; dFilm.controls = true; dFilm.currentTime = 0; dFilm.play().catch(() => {});
-  (dFilm.requestFullscreen || dFilm.webkitEnterFullscreen)?.call(dFilm);
-});
-document.addEventListener('fullscreenchange', () => {
-  if (document.fullscreenElement !== dFilm) { dFilm.muted = true; dFilm.controls = false; }
-});
-function showFilm(entry, D) {
-  const v = entry.video;
-  dVideo.hidden = !v;
-  if (!v) return;
-  if (dFilm.getAttribute('src') !== v.src) { dFilm.poster = v.poster; dFilm.src = v.src; }
-  dFilm.muted = true; dVideo.inert = false;
-  if (!reduced()) dFilm.play().catch(() => {});
-  fade(dVideo, 1, D.open.at, D.open.dur);
-}
-function hideFilm() { dVideo.inert = true; dFilm.pause(); }
 
 // ---- state ----------------------------------------------------------------------------------------
 let raf = 0, last = 0, bakeDirty = true, bgDirty = true, introStart = null, sleevesStart = null;
@@ -475,6 +455,7 @@ function stepDetails(s, now) {
     det.blur = crateMode ? 0 : smooth(clamp01((t - delay(DETAILS.blur.at)) / dur(DETAILS.blur.dur)));   // the crate stays sharp, as on the reference
     const end = Math.max(turnLead() + dur(P.dur), ...[F, DETAILS.blur, DETAILS.title].map(k => delay(k.at) + dur(k.dur)));
     moving = t < end || now - det.flip.t0 < delay(P.at) + dur(P.dur);
+    det.film = [turnOf(t - turnLead()), !moving && showsBack(p.yaw)];
   } else {
     // Turn back to the front in place first, then fly back to the hover pose on the shelf (or its place in
     // the crate). x.lag is the turn's length less the overlap; 0 when the sleeve already shows its front.
@@ -484,7 +465,8 @@ function stepDetails(s, now) {
     p.yaw = x.from.yaw + (x.yawTo - x.from.yaw) * (x.lag ? turnOf(t) : 1);
     det.blur = x.blur * (1 - smooth(clamp01((tf - delay(X.blurOut.at)) / dur(X.blurOut.dur))));
     moving = tf < delay(X.at) + dur(X.dur) || det.blur > 0;
-    if (!moving) { endDetails(s, now); return true; }
+    det.film = [x.lag ? 1 - turnOf(t) : 0, false];
+    if (!moving) { film.detach(); endDetails(s, now); return true; }
   }
   s.pose = p;
   return moving;
@@ -576,6 +558,7 @@ function frame(now) {
       post.background(scene, camera, sigma);
       bgDirty = false; lastSigma = sigma;
     }
+    if (det.film) film.update(...det.film);
     post.composite(Math.min(1, det.blur * 4));
     camera.layers.set(FOCUS);
     renderer.autoClear = false;
@@ -776,7 +759,7 @@ function openDetails(i) {
   fade(tagline, 0, D.headerOut.at, D.headerOut.dur);
   for (const el of [dTitle, dTag]) fade(el, 1, D.title.at, D.title.dur);
   fade(dOpen, 1, D.open.at, D.open.dur);
-  showFilm(s.entry, D);
+  film.attach(s);
   detailsEl.focus({ preventScroll: true });   // Tab reaches Open; Space stays the flip
   play('details', { pan: panOf(i) });
   announce(s.entry.tag ? `Details: ${s.entry.name}. ${s.entry.tag}` : `Details: ${s.entry.name}`);
@@ -803,8 +786,8 @@ function closeDetails() {
   const yawTo = TURN * (det.dir > 0 ? Math.ceil(k - 0.5 - 1e-6) : Math.floor(k + 0.5 + 1e-6));
   const lag = Math.abs(yawTo - s.pose.yaw) < 1e-3 ? 0 : dur(DETAILS.flip.dur) * (1 - TURN_OVERLAP);
   det.exit = { t0: now, from: { ...s.pose }, yawTo, lag, blur: det.blur };
-  for (const el of [dTitle, dTag, dOpen, dVideo]) fade(el, 0, X.at, X.textOut);
-  hideFilm();
+  for (const el of [dTitle, dTag, dOpen]) fade(el, 0, X.at, X.textOut);
+  film.unzoom(true);
   fade(tagline, 1, X.headerIn.at, X.headerIn.dur);
   detailsEl.inert = true; dOpen.inert = true;
   play('close', { pan: panOf(det.i) });
@@ -903,8 +886,8 @@ window.addEventListener('hashchange', () => { if (!location.hash) openedFromShel
 // the context is lost. The tagline comes straight back (its intro fade, cancelled by Details, held it).
 function dropDetails(opening = false) {
   const s = sleeves[det.i];
-  for (const el of [dTitle, dTag, dOpen, dVideo]) for (const a of el.getAnimations()) a.cancel();
-  hideFilm();
+  for (const el of [dTitle, dTag, dOpen]) for (const a of el.getAnimations()) a.cancel();
+  film.detach();
   fade(tagline, 1, 0, 1);
   detailsEl.inert = true; dOpen.inert = true;
   endDetails(s, performance.now(), opening);
@@ -942,6 +925,7 @@ slotsEl.addEventListener('focusout', e => {
 window.addEventListener('keydown', e => {
   if (e.metaKey || e.ctrlKey || e.altKey || inProject >= 0) return;
   if (det) {
+    if (film.zoomed) { if (e.key === 'Escape') { e.preventDefault(); film.unzoom(); } return; }
     if (e.key === 'Escape') { e.preventDefault(); closeDetails(); }
     else if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); if (!e.repeat) flip(); }
     return;
