@@ -224,6 +224,13 @@ Each round is build, capture, measure, critique and fix, as in v1. Units: one sc
   - **Size:** the sun chunk is 7.1 KB gzip, and the first view grows by 1.2 KB.
   - **Timing:** unmeasured, since there is no GPU here. Measure it on the Mac Mini.
 
+## Operator notes to pick up when the café work resumes (4 November 2026)
+The café work is paused while the cover motion is finished (the operator's priority). When it resumes:
+- **The wind:** trunks and roots stand still and the main limbs barely move; only the outer twigs and the leaves sway, the leaves fluttering on their own. Today the limbs move almost as much as the leaves, which is wrong. Stiffness should grow toward the trunk (the displacement rising steeply with how far out a point is), with the leaves' flutter on top of their twig's sway.
+- **The Thai tea is in a plastic takeaway cup** (clear, with its domed lid and straw), not a glass.
+- **Glass and plastic must read as real:** thickness at the rims, refraction, a specular highlight from the window, and condensation where cold drinks are; the same care for the window pane, the pastry case, the jars and the fridge door.
+- **Next in the queue** (round 3's remainder, before rounds 6 and 7, the operator's call): rounded edges (a local commit, not yet checked), the window brighter than the room as a camera sees it with bloom and halation, soft reflections from a room probe, bounce light.
+
 ## Done when
 - **Round 1:** done (see above), apart from the Mac Mini timing.
   - The operator has chosen the sun and window from the study.
