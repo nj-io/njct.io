@@ -1,6 +1,6 @@
 // njct.io Editions: the shelf wall. Shelves, studio light and soft shadows; the intro drop; hover;
-// Details (the sleeve flies forward over the blurred shelf, Space flips it to its back cover, Escape puts
-// it back); keyboard; sound. Renders only while something moves.
+// Details (the sleeve flies forward over the blurred shelf, turning to its back cover on the way; Space
+// turns it front and back; Escape puts it back); keyboard; sound. Renders only while something moves.
 import * as THREE from 'three';
 import { RoomEnvironment } from '/vendor/three-0.181.0/addons/environments/RoomEnvironment.js';
 import { CAMERA_Z, REF_H, SHELF, SLEEVE, INTRO, DETAILS, OPEN, LINEUP, viewScale, slugOf } from './scene/config.js';
@@ -113,9 +113,11 @@ const coversReady = coversMod.then(() => Promise.all(Array.from({ length: COVER_
 // sleeve asks on every entry, and gives its back up (to the placeholder) when it leaves Details.
 function backFor(i) {
   const s = sleeves[i];
-  covers[i]?.detailBack(1024).then(tex => {
+  const p = covers[i]?.detailBack(1024).then(tex => {
     if (det && det.i === i) { s.back.map = tex || blank; s.back.color.set(tex ? 0xffffff : BACK_PLAIN); s.back.needsUpdate = true; wake(); }
   }).catch(e => console.warn(`cover ${s.entry.name}: no Details back (${e?.message || e})`));
+  // The flight waits on this (stepDetails); a sleeve without a cover has no back to wait for.
+  Promise.resolve(p).then(() => { if (det && det.i === i && det.backIn === null) det.backIn = performance.now(); });
 }
 // The back's faces load (and its first back renders) at idle once the intro is over, so a Details back
 // is a single render job when Details opens and never lands in a flip. The covers module loads the back
@@ -425,6 +427,10 @@ function flight(s, a, b, e) {
 const easeOut = u => 1 - (1 - u) ** 3;
 const smooth = u => u * u * (3 - 2 * u);
 const TURN = Math.PI * 2;
+// The turn into and out of Details takes the flight's eased progress e, so the sleeve turns as it travels,
+// in one move. Reduced motion: no turn; the sleeve changes sides halfway along its (short) flight.
+const turnOf = e => (reduced() ? (e >= 0.5 ? 1 : 0) : e);
+const showsBack = yaw => Math.abs(Math.round(yaw / Math.PI)) % 2 === 1;
 
 // Details pose of the sleeve in focus at time now (the flight in or out, the flip).
 function stepDetails(s, now) {
@@ -432,19 +438,21 @@ function stepDetails(s, now) {
   const yawAt = () => det.flip.from + (det.flip.to - det.flip.from) * bezier(P.ease, clamp01((now - det.flip.t0 - delay(P.at)) / dur(P.dur)));
   let p, moving;
   if (!det.exit) {
+    // Until the sleeve's back is drawn (at most DETAILS.backWait), the clock holds at the flight's start.
+    if (det.backIn === null && now - det.asked < DETAILS.backWait && now - det.t0 > delay(F.at)) det.t0 = now - delay(F.at);
     const t = now - det.t0;
     const e = bezier(F.ease, clamp01((t - delay(F.at)) / dur(F.dur)));
     p = flight(s, det.from, detailsPose(s), e);
-    p.yaw = yawAt();
+    p.yaw = det.turn * turnOf(e) + yawAt();
     det.blur = crateMode ? 0 : smooth(clamp01((t - delay(DETAILS.blur.at)) / dur(DETAILS.blur.dur)));   // the crate stays sharp, as on the reference
     const end = Math.max(...[F, DETAILS.blur, DETAILS.title].map(k => delay(k.at) + dur(k.dur)));
     moving = t < end || now - det.flip.t0 < delay(P.at) + dur(P.dur);
   } else {
-    // Back to the hover pose on the shelf, turning the rest of the way round if it was flipped.
+    // Back to the hover pose on the shelf (or its place in the crate), turning to its front on the way.
     const x = det.exit, t = now - x.t0;
     const e = bezier(X.ease, clamp01((t - delay(X.at)) / dur(X.dur)));
     p = flight(s, x.from, { ...(crateMode ? crate.pose(s) : hoverPose()), yaw: x.yawTo }, e);
-    p.yaw = x.from.yaw + (x.yawTo - x.from.yaw) * bezier(X.turn.ease, clamp01((t - delay(X.turn.at)) / dur(X.turn.dur)));
+    p.yaw = x.from.yaw + (x.yawTo - x.from.yaw) * turnOf(e);
     det.blur = x.blur * (1 - smooth(clamp01((t - delay(X.blurOut.at)) / dur(X.blurOut.dur))));
     moving = t < delay(X.at) + dur(X.dur) || det.blur > 0;
     if (!moving) { endDetails(s, now); return true; }
@@ -484,7 +492,7 @@ function frame(now) {
     lifted = want;
     if (lifted >= 0) sleeves[lifted].fall = null;
   }
-  setAlive(det ? det.i : lifted);
+  setAlive(det ? (Math.cos(sleeves[det.i].pose.yaw) > 0 ? det.i : -1) : lifted);   // in Details, while its front faces
   const waiting = lifted !== want;
   for (const s of sleeves) {
     let moved = false;
@@ -724,7 +732,9 @@ function openDetails(i) {
   s.fall = null;
   if (crateMode) crate.go(i);
   const ret = slotOf(document.activeElement) === i ? document.activeElement : null;   // focus comes back here
-  det = { i, t0: now, from: { ...s.pose }, flip: { from: 0, to: 0, t0: -1e9 }, exit: null, blur: 0, ret };
+  // The sleeve turns its front toward the way it travels (the crate's sleeves rise straight up).
+  const dir = !crateMode && s.x > 0 ? -1 : 1;
+  det = { i, t0: now, asked: now, backIn: null, from: { ...s.pose }, dir, turn: dir * Math.PI, flip: { from: 0, to: 0, t0: -1e9 }, exit: null, blur: 0, ret };
   s.mesh.layers.set(FOCUS);
   bgDirty = true;
   backFor(i);
@@ -748,16 +758,19 @@ function flip() {
   if (!det || det.exit) return;
   const now = performance.now(), P = DETAILS.flip, f = det.flip;
   const yaw = f.from + (f.to - f.from) * bezier(P.ease, clamp01((now - f.t0 - delay(P.at)) / dur(P.dur)));
-  det.flip = { from: yaw, to: f.to + Math.PI, t0: now };
+  det.flip = { from: yaw, to: f.to + det.dir * Math.PI, t0: now };
   play('flip');
-  announce(Math.round(det.flip.to / Math.PI) % 2 ? 'Back of the sleeve' : 'Front of the sleeve');
+  announce(showsBack(det.turn + det.flip.to) ? 'Back of the sleeve' : 'Front of the sleeve');
   wake();
 }
 
 function closeDetails() {
   if (!det || det.exit) return;
   const s = sleeves[det.i], now = performance.now(), X = DETAILS.exit;
-  det.exit = { t0: now, from: { ...s.pose }, yawTo: Math.ceil(s.pose.yaw / TURN - 1e-6) * TURN, blur: det.blur };
+  // The front is the nearest whole turn; halfway between two (the back), the one that undoes the last
+  // turn, so the sleeve turns back the way it came.
+  const k = s.pose.yaw / TURN;
+  det.exit = { t0: now, from: { ...s.pose }, yawTo: TURN * (det.dir > 0 ? Math.ceil(k - 0.5 - 1e-6) : Math.floor(k + 0.5 + 1e-6)), blur: det.blur };
   for (const el of [dTitle, dTag, dOpen]) fade(el, 0, X.at, X.textOut);
   fade(tagline, 1, X.headerIn.at, X.headerIn.dur);
   detailsEl.inert = true; dOpen.inert = true;
@@ -952,7 +965,9 @@ const hooks = {
   get crate() { return crateMode ? { p: crate.p, current: crate.current, dragging: crate.dragging } : null; },
   set stickerOff(on) { stickerOff = !!on; wake(); },   // a test hides the sticker to find it on screen by difference
   get details() {
-    return det ? { index: det.i, flipped: Math.round(det.flip.to / Math.PI) % 2 === 1, closing: !!det.exit, blur: det.blur, yaw: sleeves[det.i].pose.yaw } : null;
+    // flipped: the sleeve shows (or is turning to) its back; backIn: ms from the click to its back drawn.
+    return det ? { index: det.i, flipped: showsBack(det.turn + det.flip.to), closing: !!det.exit, blur: det.blur, yaw: sleeves[det.i].pose.yaw,
+      backIn: det.backIn === null ? null : Math.round(det.backIn - det.asked) } : null;
   },
 };
 window.__editions = hooks;
