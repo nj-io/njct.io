@@ -13,10 +13,10 @@ Each project is a record sleeve on a shelf wall, in the interaction model of Sho
 | 10 editions on 2 shelves (5 + 5) | 11 sleeves on 2 shelves (6 + 5): 10 projects plus "About Neil" (Decision 1) |
 | Illustrated cover images | Procedural cover shader per project, seeded from its name, in its accent colours; the hovered sleeve's cover animates |
 | Shadow catcher baked into a model | Soft contact shadows rendered once at load into a texture; studio light from three.js `RoomEnvironment` through `PMREMGenerator` |
-| Details: sleeve to front, background blur, Space flips | Same; the back cover carries the project's figures, stack and link |
+| Details: sleeve to front, background blur, Space flips | The sleeve flies to the centre and turns to its back cover in one move, over the blurred shelf; Space turns it front and back. The back carries the project's figures, stack and link |
 | Now playing sticker on the newest edition | Now playing sticker on the newest sleeve, Stats (Decision 12) |
 | Header: wordmark, Search, Shopify.com, Start for free; on edition pages an Editions menu | Header: wordmark, the Projects menu (Decision 15), Get in touch (Decision 5) |
-| Open: the edition's own WebGL world, then a long page | The project's own procedural scene (its Gray-Scott culture from the current site), then its dossier |
+| Open: the edition's own WebGL world, then a long page | Open goes to the product's live site in a new tab (Decision 16). The project page (the project's own procedural scene, its Gray-Scott culture from the current site, then its dossier) opens from the Projects menu and its hash route |
 | Bottom timeline | Bottom index: year and name per project |
 | Phone: record-crate stack, bottom bar | Same model |
 
@@ -127,3 +127,4 @@ The page exposes `window.__editions` for the harness only: `ready` (promise reso
 13. The back covers keep the light paper.
 14. The project page is full-bleed colour sections in each project's colour, as on the reference's page.
 15. The header has a Projects menu listing all 11 projects in shelf order, without search, as the reference's Editions menu: a dropdown beside the wordmark, a sheet from the bottom on a phone. Choosing one opens its page through the hash route. Its rows carry the project's mark, its name and its tag (copy proposals row 63).
+16. Open (the shelf pill, the Details button, the crate bar) goes to the product's live site, its `url`, in a new tab (2026-11-04). Topshine, Scorecard and About Neil, which have no live site, open their page here. Project pages are reached through the Projects menu and their hash routes. The project page carries no Details button.

@@ -66,9 +66,10 @@ try {
   await pg.keyboard.press('Escape'); await sleep(1200);
   report.closeLive = await pg.evaluate(() => document.getElementById('announce').textContent);
   report.focusAfterDetails = await pg.evaluate(() => document.activeElement?.getAttribute('aria-label'));
-  await pg.click('button[data-action="open"][data-index="0"]').catch(async () => { await pg.focus('button[data-action="open"][data-index="0"]'); await pg.keyboard.press('Enter'); });
+  // Topshine's Open is its page here (the others open their live site in a new tab).
+  await pg.focus('[data-action="open"][data-index="5"]'); await pg.keyboard.press('Enter');
   await sleep(3500);
-  await ax(pg, 'page-mirra');
+  await ax(pg, 'page-topshine');
   report.focusOnPage = await pg.evaluate(() => document.activeElement?.tagName + ' ' + (document.activeElement?.getAttribute('aria-label') || ''));
   await pg.goto(URL0 + '#about', { waitUntil: 'domcontentloaded' }); await sleep(4000);
   await ax(pg, 'page-about');
@@ -106,7 +107,7 @@ try {
       await sleep(80); await shot('details-80'); await sleep(400); await shot('details-480');
       await pg.keyboard.press('Space'); await sleep(80); await shot('flip-80'); await sleep(300); await shot('flip-380');
       await pg.keyboard.press('Escape'); await sleep(600);
-      await pg.focus('button[data-action="open"][data-index="0"]'); await pg.keyboard.press('Enter');
+      await pg.focus('[data-action="open"][data-index="5"]'); await pg.keyboard.press('Enter');
     } else {
       const cdp = await pg.createCDPSession();
       await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 195, y: 300 }] });
@@ -114,6 +115,7 @@ try {
       await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
       await sleep(60); await shot('flick-60'); await sleep(300); await shot('flick-360');
       rm.phoneAfterFlick = await pg.evaluate(() => window.__editions.crate);
+      await pg.focus('[data-action="open"][data-index="5"]'); await sleep(900);   // the crate brings Topshine to the front
       await pg.tap('.cb-open');
     }
     await sleep(300); await shot('open-300');

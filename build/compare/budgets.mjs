@@ -119,8 +119,11 @@ async function motion(browser, rate) {
   t = await now(pg);
   await pg.keyboard.press('Escape'); await sleep(1200);
   out.escape = await cadence(pg, t, await now(pg));
+  // Open on a sleeve whose Open is its page here (Topshine; the others open their live site in a new tab).
+  const r5 = await pg.evaluate(() => window.__editions.sleeveRect(5));
+  await pg.mouse.move(r5.x + r5.width / 2, r5.y + r5.height / 2); await sleep(1200);
   t = await now(pg);
-  await pg.click('button[data-action="open"][data-index="0"]'); await sleep(4500);
+  await pg.click('[data-action="open"][data-index="5"]'); await sleep(4500);
   out.open = await cadence(pg, t, await now(pg));
   t = await now(pg);
   for (let k = 0; k < 20; k++) { await pg.mouse.wheel({ deltaY: 120 }); await sleep(60); }

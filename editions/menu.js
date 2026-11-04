@@ -7,6 +7,7 @@
 // the menu first opens: the page calls icons() after the shelf's first WebGL frame, or at once without one,
 // so none of their bytes share the link with the first frame's.
 import { LINEUP, slugOf } from './scene/config.js';
+import { start as contact } from './contact.js';
 
 const GAP = 40;   // the trigger's left edge, after the wordmark's right edge (the reference's 40 px)
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -18,6 +19,7 @@ let load = null;   // set by start(); loads the marks and the tiles' colours, on
 export function icons() { load?.(); }
 
 export function start(entries = LINEUP) {
+  contact();
   const nav = document.querySelector('.pm');
   if (!nav || nav.dataset.ready) return;
   nav.dataset.ready = '1';

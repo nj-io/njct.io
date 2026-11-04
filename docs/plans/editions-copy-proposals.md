@@ -68,17 +68,18 @@ Every string here waits for operator approval before it ships. Approved copy alr
 | 62 | Header: the Projects menu's trigger, beside the wordmark | Projects (the operator's word) | Ruling 11 |
 | 63 | Projects menu: one item per sleeve, in shelf order | the project's mark, its name (approved) over its tag (approved), e.g. "Mirra" over "Real-time X→Telegram mirror and digest"; About Neil: "About Neil" over "Hi, I’m Neil." (about[0], approved). Alternative for the second line: the year, as the shelf's index shows it | Ruling 11; the reference's Editions menu (season over edition name) |
 | 64 | Projects menu: accessible names | the list is named by its trigger, "Projects"; the marks are decorative (empty alt) | Ruling 11 |
-| 65 | Header tagline (replaces row 5) | Products I've designed and built. | Operator, 4 Nov 2026 (approved) |
-| 66 | Café counter, the menu board: the services | Cross-platform content; Community management | Operator, 4 Nov 2026 (approved names) |
-| 67 | Menu board: the line under each service | Cross-platform content: "Video, images and posts made for each platform and published for you." Community management: "Comments, messages and requests answered in your brand's voice." | Drafted from the operator's description ("exposure across multiple social platforms", "brand representation (ie answering user requests)") |
-| 68 | Menu board heading | Menu (alternative: What I make) | Café brief, 4 Nov 2026 |
-| 69 | Counter, at the till: a link to mailto:neil@njct.io | Order here (the header keeps Get in touch, row 6) | Café brief, 4 Nov 2026 |
-| 70 | Order slips on the rail above the counter (three) | steps pending from the operator; drafts: 1. Tell me about your brand; 2. I set up and run your channels; 3. A monthly report on what worked | Operator kept the slips, 4 Nov 2026; the steps are not given yet |
-| 71 | Window glass, seen reversed from inside (Table view) | njct.io | Operator, 4 Nov 2026 (approved) |
-| 72 | The edge buttons: each view's name | Counter; Editions; Table (alternative: Services; Projects; About) | Café brief, 4 Nov 2026; research: give each view a visible name |
-| 73 | Edge buttons: accessible names | Turn to <view name> | Café brief, 4 Nov 2026 |
-| 74 | Laptop screen, the terminal window | real output from this repo (the build, git log), typed slowly | Café brief, 4 Nov 2026 |
-| 75 | The coffee glass on the table | Neil, written on the cup or glass | Café brief, 4 Nov 2026 |
+| 65 | Accessible name of Open (the shelf pill, the Details button, the crate bar) on a project with a live site, a link that opens it in a new tab (replaces rows 19 and 41 for these projects; Topshine, Scorecard and About Neil keep "Open: <name>") | Open: <project name> site, new tab, e.g. "Open: Mirra site, new tab". Alternative: "Open <host> in a new tab", e.g. "Open mirra.to in a new tab" (row 4 host format) | Operator's request: Open opens the product's live site |
+| 66 | Header tagline (replaces row 5) | Products I've designed and built. | Operator, 4 Nov 2026 (approved) |
+| 67 | Café counter, the menu board: the services | Cross-platform content; Community management | Operator, 4 Nov 2026 (approved names) |
+| 68 | Menu board: the line under each service | Cross-platform content: "Video, images and posts made for each platform and published for you." Community management: "Comments, messages and requests answered in your brand's voice." | Drafted from the operator's description ("exposure across multiple social platforms", "brand representation (ie answering user requests)") |
+| 69 | Menu board heading | Menu (alternative: What I make) | Café brief, 4 Nov 2026 |
+| 70 | Counter, at the till: opens the Get in touch form (the header's contact form modal) | Order here (the header keeps Get in touch, row 6) | Café brief, 4 Nov 2026 |
+| 71 | Order slips on the rail above the counter (three) | steps pending from the operator; drafts: 1. Tell me about your brand; 2. I set up and run your channels; 3. A monthly report on what worked | Operator kept the slips, 4 Nov 2026; the steps are not given yet |
+| 72 | Window glass, seen reversed from inside (Table view) | njct.io | Operator, 4 Nov 2026 (approved) |
+| 73 | The edge buttons: each view's name | Counter; Editions; Table (alternative: Services; Projects; About) | Café brief, 4 Nov 2026; research: give each view a visible name |
+| 74 | Edge buttons: accessible names | Turn to <view name> | Café brief, 4 Nov 2026 |
+| 75 | Laptop screen, the terminal window | real output from this repo (the build, git log), typed slowly | Café brief, 4 Nov 2026 |
+| 76 | The Thai tea glass on the table | Neil, written on the glass | Café brief, 4 Nov 2026 |
 
 ## Row 33: Topshine dossier (proposal)
 
@@ -815,3 +816,37 @@ Shows who visited each product site, where they came from and which post, email 
 - **The by-product split** is planned for Mirra's adoption and has no plan document; the only source is the memory note's ruling.
 - **"Their bidding learns from it"** paraphrases the purpose of conversion uploads; the README says only "Tells ad platforms about sales".
 - **Left out as speculative:** links made in Social Hook sharing the same tags (the memory note calls it "an open question for later"), the engine published as a public tool, and the attribution article.
+
+## Details film (proposal, 2026-11-04)
+- Play button label (screen readers): "Play the film"
+- Close button label (screen readers): "Close the film"
+
+## Get in touch modal (proposal, 2026-11-04)
+- Title: "Get in touch"
+- Field labels: "Name", "Email", "Message"
+- Button: "Send"
+- Close button label (screen readers): "Close"
+- Email the form composes: subject "Hello from {name}", body "{message}\n\n{name} <{email}>"
+
+## Product wording, round 2 (proposal, 2026-11-04)
+Each sleeve's tagline and Details blurb, written for the person who would use the product: what it is and what it does for them. Mirra, stet, Social Hook, LikeWiki, Topshine and Chairtax draw on the one-pagers of 2026-10-29. Clauded, Stellar Explorer, Scorecard and Stats are suggestions.
+
+| Project | Tagline | Blurb |
+|---|---|---|
+| Mirra | Know what the accounts you follow are saying | Mirra reads every post from the X accounts you choose and sends you a short brief: what each one is talking about, where they stand and the calls they made. A brief per account every day or week, and a Monday roundup of your whole list, by email and on the web. |
+| stet | Change every word on your site, no developer needed | You, your editors, your clients and your AI agents can change every word your product says: site copy, emails and SEO fields. A developer sets it up once. After that, edits go live in seconds with a live preview. |
+| Social Hook | Posts about your work, written while you build | Social Hook watches your code changes, picks what's worth sharing and drafts posts in your voice for X and LinkedIn. You approve each one, or let it post on its own. |
+| LikeWiki | Your X bookmarks, turned into a wiki | Every night LikeWiki reads your X likes and bookmarks and writes them into a wiki: a page per topic, with every claim linked to the post it came from. Ask it questions, or let your AI tools read it. |
+| Topshine | Make a whole AI film, start to finish | Topshine plans every shot of your film, ad or music video, makes several takes of each, then lets you pick the best ones and finish the cut in a full editor. You see the price before every run. |
+| Chairtax | Squat breaks your Mac won't let you skip | When it's time for a break, Chairtax covers your Mac's screen. Do a few squats in front of the camera and the screen comes back. Bearly the bear keeps you company. |
+| Clauded | Let Claude Code work without the prompts | Clauded runs Claude Code in a sealed sandbox, so you can turn off permission prompts without risking your Mac. Copy and paste, sound, Chrome, git and your tools keep working. |
+| Stellar Explorer | Fly through the stars around the Sun | A 3D map of 117,000 nearby stars that you fly through in your browser. Click a star to see what it is, with sound that moves as you do. |
+| Scorecard | See where any website's visitors come from | Put websites side by side and see how each gets its visitors: search, links, social and apps. Every number shows its source and date. |
+| Stats | See which posts bring you customers | One dashboard for all your sites: who visited, where they came from and what they bought. Every sale is traced to the post, email or ad that brought it, with a summary in Telegram each morning. |
+
+Back-cover figures to check before they stay, since every quoted number must be real: Mirra (2,400+ accounts mirrored, sub-60 s latency, ~90% gross margin, all from the Telegram mirror), Social Hook (12k+ posts published), Clauded (10k+ sandboxed sessions), LikeWiki (1,400+ concept pages, 12k+ cited sources), Stellar Explorer (117k stars, 60 fps).
+
+Proposed Mirra figures, to match the brief-led wording: "Daily or weekly · a brief per account", "Mondays · a roundup across your list", "Email and web · without living on X".
+
+## Open: align the one-pagers with the brand engine (set for 2026-11-05)
+The 2026-10-29 one-pagers carry newer product wording than the brand engine (`~/dev/_brand`: each project's `assets/brand.json` and the brand studio). Bring the brand engine up to the one-pager content.

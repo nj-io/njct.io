@@ -21,7 +21,7 @@
     document.currentScript.after(m);
   } else if (window.__editionsGL) {
     // bundle: first-view chunks, written by build/bundle.mjs
-    const first = ["/editions/dist/main.js","/editions/dist/chunk-CBEJLKG4.js","/editions/dist/chunk-U3AZOSC6.js","/editions/dist/chunk-OOBDN6GE.js","/editions/dist/menu.js"];
+    const first = ["/editions/dist/main.js","/editions/dist/chunk-XUX7XAJI.js","/editions/dist/chunk-U3AZOSC6.js","/editions/dist/chunk-BB35V6BP.js","/editions/dist/menu.js"];
     // /bundle
     for (const href of first) document.head.append(Object.assign(document.createElement('link'), { rel: 'modulepreload', href }));
   }
@@ -126,12 +126,13 @@
   #slots { position: fixed; inset: 0; margin: 0; padding: 0; list-style: none; pointer-events: none; }
   .slot { position: absolute; left: 0; top: 0; will-change: transform; }
   .slot article { display: flex; gap: 8px; }
-  .slot button {
+  .slot :is(button, a) {
+    box-sizing: border-box; text-decoration: none;
     height: 35px; padding: 0 14px; border: 0; border-radius: 17.5px; background: rgba(255, 255, 255, 0.7); color: var(--ink);
     line-height: 35px; white-space: nowrap; cursor: pointer; opacity: 0; pointer-events: none;
     transition: opacity 0.2s ease 0s;
   }
-  .slot.hot button, .slot button:focus-visible { opacity: 1; pointer-events: auto; transition-delay: 0.12s; }
+  .slot.hot :is(button, a), .slot :is(button, a):focus-visible { opacity: 1; pointer-events: auto; transition-delay: 0.12s; }
 
   .index { position: fixed; left: var(--gutter); right: var(--gutter); bottom: 0; height: 90px; box-sizing: border-box; border-top: 1px solid rgba(0, 0, 0, 0.1); pointer-events: none; }
   .index ol { position: absolute; left: 0; right: 0; bottom: 26.5px; margin: 0; padding: 0; list-style: none; display: flex; justify-content: center; gap: 44px; }
@@ -147,7 +148,7 @@
   }
   @media (max-height: 500px) { .index { display: none; } }
 
-  .in-details .slot button { opacity: 0 !important; pointer-events: none !important; transition-delay: 0s !important; }
+  .in-details .slot :is(button, a) { opacity: 0 !important; pointer-events: none !important; transition-delay: 0s !important; }
 
   /* Details: the title and tagline at left, Open under the sleeve (positions set by main.js). */
   .details { position: fixed; inset: 0; pointer-events: none; outline: none; }
@@ -155,9 +156,41 @@
   .d-tag { position: absolute; left: calc(var(--gutter) + 20px); margin: 0; max-width: 300px; line-height: 18px; opacity: 0; }
   .d-open {
     position: fixed; left: 50%; transform: translateX(-50%); height: 40px; padding: 0 15.25px; border: 0; border-radius: 20px;
-    background: #000; color: #ececec; line-height: 40px; cursor: pointer; opacity: 0;
+    background: #000; color: #ececec; line-height: 40px; cursor: pointer; opacity: 0; text-decoration: none; white-space: nowrap;
   }
   .d-open[inert] { pointer-events: none; }
+  /* Get in touch (editions/contact.js): the modal grows out of the pill; contact.js animates the panel's box. */
+  dialog.ct { position: fixed; inset: 0; width: 100%; height: 100%; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; background: transparent; overflow: hidden; }
+  dialog.ct::backdrop { background: transparent; }
+  .ct-panel { position: fixed; overflow: hidden; background: #fff; border-radius: 16px; box-shadow: 0 24px 64px rgba(0, 0, 0, 0.22); }
+  .ct-body { position: relative; padding: 28px 28px 24px; overflow-y: auto; max-height: calc(100vh - 32px); box-sizing: border-box; }
+  .ct-title { margin: 0 0 20px; font-size: 24px; line-height: 28px; font-weight: 400; }
+  .ct-form { display: grid; gap: 14px; }
+  .ct-form label { display: grid; gap: 6px; color: var(--ink-soft); }
+  .ct-form input, .ct-form textarea {
+    font: inherit; color: var(--ink); padding: 10px 12px; border: 1px solid rgba(0, 0, 0, 0.18); border-radius: 10px; background: #fff; resize: vertical; min-height: 44px; box-sizing: border-box;
+  }
+  .ct-form input:focus-visible, .ct-form textarea:focus-visible { outline: 2px solid #000; outline-offset: 1px; }
+  .ct-send { justify-self: start; height: 44px; padding: 0 22px; border: 0; border-radius: 22px; background: #000; color: #fff; font: inherit; cursor: pointer; }
+  .ct-close { position: absolute; top: 16px; right: 16px; width: 44px; height: 44px; border: 0; border-radius: 50%; background: transparent; font-size: 20px; cursor: pointer; color: var(--ink); }
+  .ct-send:focus-visible, .ct-close:focus-visible { outline: 2px solid #000; outline-offset: 2px; }
+  /* Details film (scene/film.js): the play button over the back's art band, and the frame the film zooms into. */
+  .d-play {
+    position: fixed; width: 56px; height: 56px; margin: -28px 0 0 -28px; padding: 0; border: 0; border-radius: 50%;
+    background: rgba(0, 0, 0, 0.72); color: #fff; cursor: pointer; display: grid; place-items: center;
+  }
+  .d-play[hidden], .d-close[hidden] { display: none; }
+  .d-play svg { width: 20px; height: 20px; margin-left: 3px; }
+  .d-play:focus-visible, .d-close:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+  .film-shade { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6); opacity: 0; pointer-events: none; transition: opacity 0.4s; z-index: 20; }
+  .film-shade.on { opacity: 1; pointer-events: auto; }
+  .film-frame { position: fixed; z-index: 21; overflow: hidden; border-radius: 4px; background: #000; opacity: 0; pointer-events: none; }
+  .film-frame.on { opacity: 1; pointer-events: auto; }
+  .film-frame video { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .d-close {
+    position: fixed; z-index: 22; top: 16px; right: 16px; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%;
+    background: rgba(255, 255, 255, 0.9); color: #000; font-size: 22px; line-height: 44px; cursor: pointer;
+  }
 
   /* The phone crate: the list stays for screen readers and the keyboard; the bar and rail are its controls. */
   .crate-bar, .crate-rail { display: none; }
@@ -169,7 +202,7 @@
   .cb-label span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .cb-year { color: var(--ink-soft); min-height: 14px; }
   .cb-name { font-size: 14px; line-height: 18px; }
-  .crate-bar button { height: 44px; padding: 0 16px; border: 0; border-radius: 22px; cursor: pointer; line-height: 44px; white-space: nowrap; }
+  .crate-bar :is(button, a) { box-sizing: border-box; text-decoration: none; height: 44px; padding: 0 16px; border: 0; border-radius: 22px; cursor: pointer; line-height: 44px; white-space: nowrap; }
   .cb-back, .cb-details { background: rgba(255, 255, 255, 0.7); color: var(--ink); }
   .cb-open { background: #000; color: #fff; }
   .cb-back { display: none; margin-right: auto; }
@@ -187,7 +220,7 @@
     .pm { top: 5px; }
     .pm-btn { height: 44px; }
     .sound { top: 58px; width: 44px; height: 44px; }
-    .slot button { height: 44px; line-height: 44px; border-radius: 22px; }
+    .slot :is(button, a) { height: 44px; line-height: 44px; border-radius: 22px; }
     .d-open { height: 44px; line-height: 44px; border-radius: 22px; }
   }
 
@@ -195,7 +228,7 @@
 
   /* Without WebGL: the shelf as cards (editions/fallback.js). */
   .no-gl, .no-gl body { height: auto; overflow: auto; }
-  .no-gl canvas, .no-gl #slots, .no-gl .index, .no-gl .crate-bar, .no-gl .crate-rail, .no-gl .details, .no-gl .d-open, .no-gl .sound { display: none !important; }
+  .no-gl canvas, .no-gl #slots, .no-gl .index, .no-gl .crate-bar, .no-gl .crate-rail, .no-gl .details, .no-gl .d-open, .no-gl .d-play, .no-gl .film-frame, .no-gl .sound { display: none !important; }
   .no-gl .rise, .no-gl .late { opacity: 1; }
   .no-gl .masthead { position: absolute; }
   .fb { padding: 120px var(--gutter) 64px; }
@@ -237,7 +270,7 @@
   <p class="cb-label" aria-hidden="true"><span class="cb-year"></span><span class="cb-name"></span></p>
   <button class="cb-back" type="button">Back</button>
   <button class="cb-details" type="button" data-action="details">Details</button>
-  <button class="cb-open" type="button" data-action="open">Open</button>
+  <a class="cb-open" data-action="open">Open</a>
 </div>
 <div class="crate-rail late" aria-hidden="true"><span></span></div>
 <p class="sr" id="announce" aria-live="polite"></p>
@@ -245,7 +278,11 @@
   <h2 class="d-title"></h2>
   <p class="d-tag"></p>
 </section>
-<button class="d-open" id="d-open" type="button" data-action="open" inert>Open</button>
+<button class="d-play" id="d-play" type="button" aria-label="Play the film" hidden><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 2l14 8-14 8z" fill="currentColor"/></svg></button>
+<div class="film-shade" id="film-shade"></div>
+<div class="film-frame" id="film-frame"><video muted loop playsinline preload="auto"></video></div>
+<button class="d-close" id="d-close" type="button" aria-label="Close the film" hidden>&#x2715;</button>
+<a class="d-open" id="d-open" data-action="open" inert>Open</a>
 <script type="module">
   // Without WebGL 2 (or if the scene fails to start) the shelf is plain cards.
   // The menu's marks load after the shelf's first frame (menu.js icons()); the static shelf has none, so at once.

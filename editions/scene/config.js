@@ -50,8 +50,10 @@ export const SHELF = {
 export const UNHOVER = { delay: 140, drop: 290, pause: 70, lean: 165 };
 
 // Details (ms after the click or key). The sleeve flies to the centre at 2.14x its shelf size (416 px at
-// 1440x900, centred at x 720, y 435.5), the shelf blurs, the title and tagline fade in at left, Open
-// fades in under the sleeve. Measured on the reference at 60 fps.
+// 1440x900, centred at x 720, y 435.5) and turns to its back on the way, the shelf blurs, the title and
+// tagline fade in at left, Open fades in under the sleeve. The flight, blur and text are measured on the
+// reference at 60 fps. The turn follows the flight's eased progress (main.js stepDetails), so travel and
+// turn start, peak and land together; the sleeve is edge-on halfway along its path, about 320 ms in.
 export const DETAILS = {
   fly: { at: 72, dur: 582, ease: [0.31, 0.02, 0.45, 1.0] },
   size: 416, centreY: 435.5,                      // px at 1440x900
@@ -59,11 +61,15 @@ export const DETAILS = {
   headerOut: { at: 100, dur: 300 },               // the header tagline fades out
   title: { at: 300, dur: 600 },
   open: { at: 750, dur: 500 },
-  flip: { at: 140, dur: 480, ease: [0.15, 0, 0.3, 1.0] },   // yaw from the left edge on the blurred ground
-  // Escape: the flight back to the hover pose; a flipped sleeve turns to its front on the way (edge-on at
-  // about 280 ms on the reference). Flight measured from the sleeve's bottom edge.
+  // The flight waits for the sleeve's Details back, at most backWait ms after the click, so the turn
+  // never shows an undrawn back.
+  backWait: 400,
+  flip: { at: 140, dur: 480, ease: [0.15, 0, 0.3, 1.0] },   // Space: yaw from the left edge on the blurred ground
+  // Escape: the flight back to the hover pose. A sleeve showing its back turns to its front on the way,
+  // following the flight's eased progress as on the way in (edge-on at about 280 ms, as on the
+  // reference). Flight measured from the sleeve's bottom edge.
   exit: { at: 58, dur: 595, ease: [0.35, 0.05, 0.17, 1.03], textOut: 190, blurOut: { at: 240, dur: 210 },
-    headerIn: { at: 640, dur: 360 }, turn: { at: 150, dur: 230, ease: [0.42, 0, 0.58, 1] } },
+    headerIn: { at: 640, dur: 360 } },
 };
 
 // Intro timeline, ms after the first rendered frame (measured on the reference at 60 fps).

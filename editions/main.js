@@ -1,6 +1,6 @@
 // njct.io Editions: the shelf wall. Shelves, studio light and soft shadows; the intro drop; hover;
-// Details (the sleeve flies forward over the blurred shelf, Space flips it to its back cover, Escape puts
-// it back); keyboard; sound. Renders only while something moves.
+// Details (the sleeve flies forward over the blurred shelf, turning to its back cover on the way; Space
+// turns it front and back; Escape puts it back); keyboard; sound. Renders only while something moves.
 import * as THREE from 'three';
 import { RoomEnvironment } from '/vendor/three-0.181.0/addons/environments/RoomEnvironment.js';
 import { CAMERA_Z, REF_H, SHELF, SLEEVE, INTRO, DETAILS, OPEN, LINEUP, viewScale, slugOf } from './scene/config.js';
@@ -12,6 +12,7 @@ import { introPose, appearTime, stepHover, fallPose, HOVER_DELAY, bezier, lerpPo
 import { createPost } from './scene/post.js';
 import { createSticker } from './scene/sticker.js';
 import { createCrate, createCrateShadow, CRATE } from './scene/crate.js';
+import { createFilm } from './scene/film.js';
 
 const entries = LINEUP;
 
@@ -64,6 +65,9 @@ const post = createPost(renderer);
 // far (the crate's depth then reads almost flat, as on the reference).
 let CAMZ = CAMERA_Z;
 const camera = new THREE.PerspectiveCamera(20, 1, 100, CAMZ * 2);
+const film = createFilm({ camera, layer: FOCUS, wake: () => wake(), dur, els: {
+  frame: document.getElementById('film-frame'), video: document.querySelector('#film-frame video'),
+  play: document.getElementById('d-play'), close: document.getElementById('d-close'), shade: document.getElementById('film-shade') } });
 camera.position.set(0, 0, CAMZ);
 const crate = createCrate(sleeves.length);
 const crateShadow = createCrateShadow();
@@ -113,9 +117,11 @@ const coversReady = coversMod.then(() => Promise.all(Array.from({ length: COVER_
 // sleeve asks on every entry, and gives its back up (to the placeholder) when it leaves Details.
 function backFor(i) {
   const s = sleeves[i];
-  covers[i]?.detailBack(1024).then(tex => {
+  const p = covers[i]?.detailBack(1024).then(tex => {
     if (det && det.i === i) { s.back.map = tex || blank; s.back.color.set(tex ? 0xffffff : BACK_PLAIN); s.back.needsUpdate = true; wake(); }
   }).catch(e => console.warn(`cover ${s.entry.name}: no Details back (${e?.message || e})`));
+  // The flight waits on this (stepDetails); a sleeve without a cover has no back to wait for.
+  Promise.resolve(p).then(() => { if (det && det.i === i && det.backIn === null) det.backIn = performance.now(); });
 }
 // The back's faces load (and its first back renders) at idle once the intro is over, so a Details back
 // is a single render job when Details opens and never lands in a flip. The covers module loads the back
@@ -223,19 +229,30 @@ const slots = sleeves.map(s => {
   const h = document.createElement('h2'); h.className = 'sr'; h.id = `sl-${s.i}`; h.textContent = e.name;
   art.appendChild(h);
   if (e.tag) { const t = document.createElement('p'); t.className = 'sr'; t.textContent = e.year ? `${e.tag}, ${e.year}` : e.tag; art.appendChild(t); }
-  for (const [action, label] of [['open', 'Open'], ['details', 'Details']]) {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.dataset.action = action;
-    b.dataset.index = String(s.i);
-    b.textContent = label;
-    b.setAttribute('aria-label', `${label}: ${e.name}`);
-    art.appendChild(b);
-  }
+  const open = document.createElement('a');
+  open.dataset.action = 'open';
+  open.textContent = 'Open';
+  setOpen(open, s.i);
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.dataset.action = 'details';
+  b.dataset.index = String(s.i);
+  b.textContent = 'Details';
+  b.setAttribute('aria-label', `Details: ${e.name}`);
+  art.append(open, b);
   el.appendChild(art);
   slotsEl.appendChild(el);
   return el;
 });
+// Open is a link: to the product's live site in a new tab, or, for an entry without one (and About
+// Neil), to its page here by its hash route (a plain click runs Open's cut; see the click handler).
+function setOpen(a, i) {
+  const e = entries[i];
+  a.dataset.index = String(i);
+  a.href = e.url || `#${slugOf(e)}`;
+  if (e.url) { a.target = '_blank'; a.rel = 'noopener'; } else { a.removeAttribute('target'); a.removeAttribute('rel'); }
+  a.setAttribute('aria-label', e.url ? `Open: ${e.name} site, new tab` : `Open: ${e.name}`);
+}
 // The crate's bottom bar (the front sleeve's year and name, Details and Open; Back in Details) and rail.
 const cbBar = document.getElementById('crate-bar');
 const cbYear = cbBar.querySelector('.cb-year'), cbName = cbBar.querySelector('.cb-name');
@@ -414,6 +431,15 @@ function flight(s, a, b, e) {
 const easeOut = u => 1 - (1 - u) ** 3;
 const smooth = u => u * u * (3 - 2 * u);
 const TURN = Math.PI * 2;
+// The turn into and out of Details runs after the travel, in two moves: the sleeve flies to the centre
+// showing its front, then turns. Its own clock u (ms since the turn began) runs on the flip's duration and
+// easing, overlapping the end of the travel by TURN_OVERLAP. Reduced motion: no turn; the sleeve changes
+// sides when the turn would start.
+const TURN_OVERLAP = 0.1;
+const FILM_FADE = 450;
+const turnOf = u => (reduced() ? (u >= 0 ? 1 : 0) : bezier(DETAILS.flip.ease, clamp01(u / dur(DETAILS.flip.dur))));
+const turnLead = () => delay(DETAILS.fly.at) + dur(DETAILS.fly.dur) * (1 - TURN_OVERLAP);
+const showsBack = yaw => Math.abs(Math.round(yaw / Math.PI)) % 2 === 1;
 
 // Details pose of the sleeve in focus at time now (the flight in or out, the flip).
 function stepDetails(s, now) {
@@ -421,22 +447,29 @@ function stepDetails(s, now) {
   const yawAt = () => det.flip.from + (det.flip.to - det.flip.from) * bezier(P.ease, clamp01((now - det.flip.t0 - delay(P.at)) / dur(P.dur)));
   let p, moving;
   if (!det.exit) {
+    // Until the sleeve's back is drawn (at most DETAILS.backWait), the clock holds at the flight's start.
+    if (det.backIn === null && now - det.asked < DETAILS.backWait && now - det.t0 > delay(F.at)) det.t0 = now - delay(F.at);
     const t = now - det.t0;
     const e = bezier(F.ease, clamp01((t - delay(F.at)) / dur(F.dur)));
     p = flight(s, det.from, detailsPose(s), e);
-    p.yaw = yawAt();
+    p.yaw = det.turn * turnOf(t - turnLead()) + yawAt();
     det.blur = crateMode ? 0 : smooth(clamp01((t - delay(DETAILS.blur.at)) / dur(DETAILS.blur.dur)));   // the crate stays sharp, as on the reference
-    const end = Math.max(...[F, DETAILS.blur, DETAILS.title].map(k => delay(k.at) + dur(k.dur)));
+    // A film fades in over the back's art band only once the turn is done (FILM_FADE ms).
+    const turned = turnLead() + dur(P.dur), filmIn = sleeves[det.i].entry.video ? dur(FILM_FADE) : 0;
+    const end = Math.max(turned + filmIn, ...[F, DETAILS.blur, DETAILS.title].map(k => delay(k.at) + dur(k.dur)));
     moving = t < end || now - det.flip.t0 < delay(P.at) + dur(P.dur);
+    det.film = [filmIn ? smooth(clamp01((t - turned) / filmIn)) : 0, !moving && showsBack(p.yaw)];
   } else {
-    // Back to the hover pose on the shelf, turning the rest of the way round if it was flipped.
-    const x = det.exit, t = now - x.t0;
-    const e = bezier(X.ease, clamp01((t - delay(X.at)) / dur(X.dur)));
+    // Turn back to the front in place first, then fly back to the hover pose on the shelf (or its place in
+    // the crate). x.lag is the turn's length less the overlap; 0 when the sleeve already shows its front.
+    const x = det.exit, t = now - x.t0, tf = t - x.lag;
+    const e = bezier(X.ease, clamp01((tf - delay(X.at)) / dur(X.dur)));
     p = flight(s, x.from, { ...(crateMode ? crate.pose(s) : hoverPose()), yaw: x.yawTo }, e);
-    p.yaw = x.from.yaw + (x.yawTo - x.from.yaw) * bezier(X.turn.ease, clamp01((t - delay(X.turn.at)) / dur(X.turn.dur)));
-    det.blur = x.blur * (1 - smooth(clamp01((t - delay(X.blurOut.at)) / dur(X.blurOut.dur))));
-    moving = t < delay(X.at) + dur(X.dur) || det.blur > 0;
-    if (!moving) { endDetails(s, now); return true; }
+    p.yaw = x.from.yaw + (x.yawTo - x.from.yaw) * (x.lag ? turnOf(t) : 1);
+    det.blur = x.blur * (1 - smooth(clamp01((tf - delay(X.blurOut.at)) / dur(X.blurOut.dur))));
+    moving = tf < delay(X.at) + dur(X.dur) || det.blur > 0;
+    det.film = [x.lag ? 1 - turnOf(t) : 0, false];
+    if (!moving) { film.detach(); endDetails(s, now); return true; }
   }
   s.pose = p;
   return moving;
@@ -473,7 +506,7 @@ function frame(now) {
     lifted = want;
     if (lifted >= 0) sleeves[lifted].fall = null;
   }
-  setAlive(det ? det.i : lifted);
+  setAlive(det ? (Math.cos(sleeves[det.i].pose.yaw) > 0 ? det.i : -1) : lifted);   // in Details, while its front faces
   const waiting = lifted !== want;
   for (const s of sleeves) {
     let moved = false;
@@ -528,6 +561,7 @@ function frame(now) {
       post.background(scene, camera, sigma);
       bgDirty = false; lastSigma = sigma;
     }
+    if (det.film) film.update(...det.film);
     post.composite(Math.min(1, det.blur * 4));
     camera.layers.set(FOCUS);
     renderer.autoClear = false;
@@ -639,7 +673,9 @@ function syncCrate(force = false) {
   crateShown = c;
   cbYear.textContent = e.year || '';
   cbName.textContent = e.name;
-  for (const [b, label] of [[cbDetails, 'Details'], [cbOpen, 'Open']]) { b.dataset.index = String(c); b.setAttribute('aria-label', `${label}: ${e.name}`); }
+  cbDetails.dataset.index = String(c);
+  cbDetails.setAttribute('aria-label', `Details: ${e.name}`);
+  setOpen(cbOpen, c);
 }
 function crateRest() {
   const c = crate.current;
@@ -711,20 +747,22 @@ function openDetails(i) {
   s.fall = null;
   if (crateMode) crate.go(i);
   const ret = slotOf(document.activeElement) === i ? document.activeElement : null;   // focus comes back here
-  det = { i, t0: now, from: { ...s.pose }, flip: { from: 0, to: 0, t0: -1e9 }, exit: null, blur: 0, ret };
+  // The sleeve turns its front toward the way it travels (the crate's sleeves rise straight up).
+  const dir = !crateMode && s.x > 0 ? -1 : 1;
+  det = { i, t0: now, asked: now, backIn: null, from: { ...s.pose }, dir, turn: dir * Math.PI, flip: { from: 0, to: 0, t0: -1e9 }, exit: null, blur: 0, ret };
   s.mesh.layers.set(FOCUS);
   bgDirty = true;
   backFor(i);
   dTitle.textContent = s.entry.name;
   dTag.textContent = s.entry.tag;
-  dOpen.dataset.index = String(i);
-  dOpen.setAttribute('aria-label', `Open: ${s.entry.name}`);
+  setOpen(dOpen, i);
   detailsEl.inert = false; dOpen.inert = false; slotsEl.inert = true;
   document.body.classList.add('in-details');
   const D = DETAILS;
   fade(tagline, 0, D.headerOut.at, D.headerOut.dur);
   for (const el of [dTitle, dTag]) fade(el, 1, D.title.at, D.title.dur);
   fade(dOpen, 1, D.open.at, D.open.dur);
+  film.attach(s);
   detailsEl.focus({ preventScroll: true });   // Tab reaches Open; Space stays the flip
   play('details', { pan: panOf(i) });
   announce(s.entry.tag ? `Details: ${s.entry.name}. ${s.entry.tag}` : `Details: ${s.entry.name}`);
@@ -736,17 +774,23 @@ function flip() {
   if (!det || det.exit) return;
   const now = performance.now(), P = DETAILS.flip, f = det.flip;
   const yaw = f.from + (f.to - f.from) * bezier(P.ease, clamp01((now - f.t0 - delay(P.at)) / dur(P.dur)));
-  det.flip = { from: yaw, to: f.to + Math.PI, t0: now };
+  det.flip = { from: yaw, to: f.to + det.dir * Math.PI, t0: now };
   play('flip');
-  announce(Math.round(det.flip.to / Math.PI) % 2 ? 'Back of the sleeve' : 'Front of the sleeve');
+  announce(showsBack(det.turn + det.flip.to) ? 'Back of the sleeve' : 'Front of the sleeve');
   wake();
 }
 
 function closeDetails() {
   if (!det || det.exit) return;
   const s = sleeves[det.i], now = performance.now(), X = DETAILS.exit;
-  det.exit = { t0: now, from: { ...s.pose }, yawTo: Math.ceil(s.pose.yaw / TURN - 1e-6) * TURN, blur: det.blur };
+  // The front is the nearest whole turn; halfway between two (the back), the one that undoes the last
+  // turn, so the sleeve turns back the way it came.
+  const k = s.pose.yaw / TURN;
+  const yawTo = TURN * (det.dir > 0 ? Math.ceil(k - 0.5 - 1e-6) : Math.floor(k + 0.5 + 1e-6));
+  const lag = Math.abs(yawTo - s.pose.yaw) < 1e-3 ? 0 : dur(DETAILS.flip.dur) * (1 - TURN_OVERLAP);
+  det.exit = { t0: now, from: { ...s.pose }, yawTo, lag, blur: det.blur };
   for (const el of [dTitle, dTag, dOpen]) fade(el, 0, X.at, X.textOut);
+  film.unzoom(true);
   fade(tagline, 1, X.headerIn.at, X.headerIn.dur);
   detailsEl.inert = true; dOpen.inert = true;
   play('close', { pan: panOf(det.i) });
@@ -846,6 +890,7 @@ window.addEventListener('hashchange', () => { if (!location.hash) openedFromShel
 function dropDetails(opening = false) {
   const s = sleeves[det.i];
   for (const el of [dTitle, dTag, dOpen]) for (const a of el.getAnimations()) a.cancel();
+  film.detach();
   fade(tagline, 1, 0, 1);
   detailsEl.inert = true; dOpen.inert = true;
   endDetails(s, performance.now(), opening);
@@ -853,12 +898,16 @@ function dropDetails(opening = false) {
   lifted = -1;
 }
 
+// Open on a live site is left to the browser (a new tab); Open on a page here runs Open's cut, unless the
+// click asks for a new tab or window of the page's address.
 document.addEventListener('click', e => {
-  const b = e.target.closest('button[data-action]');
+  const b = e.target.closest('[data-action][data-index]');
   if (!b) return;
   const i = +b.dataset.index;
-  if (b.dataset.action === 'details') openDetails(i);
-  else openProject(i);
+  if (b.dataset.action === 'details') { openDetails(i); return; }
+  if (entries[i].url || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  e.preventDefault();
+  openProject(i);
 });
 
 // ---- keyboard -------------------------------------------------------------------------------------
@@ -877,8 +926,9 @@ slotsEl.addEventListener('focusout', e => {
   if (!det) setHovered(pointerHit);
 });
 window.addEventListener('keydown', e => {
-  if (e.metaKey || e.ctrlKey || e.altKey || inProject >= 0) return;
+  if (e.metaKey || e.ctrlKey || e.altKey || inProject >= 0 || document.querySelector('dialog.ct[open]')) return;
   if (det) {
+    if (film.zoomed) { if (e.key === 'Escape') { e.preventDefault(); film.unzoom(); } return; }
     if (e.key === 'Escape') { e.preventDefault(); closeDetails(); }
     else if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); if (!e.repeat) flip(); }
     return;
@@ -936,7 +986,9 @@ const hooks = {
   get crate() { return crateMode ? { p: crate.p, current: crate.current, dragging: crate.dragging } : null; },
   set stickerOff(on) { stickerOff = !!on; wake(); },   // a test hides the sticker to find it on screen by difference
   get details() {
-    return det ? { index: det.i, flipped: Math.round(det.flip.to / Math.PI) % 2 === 1, closing: !!det.exit, blur: det.blur, yaw: sleeves[det.i].pose.yaw } : null;
+    // flipped: the sleeve shows (or is turning to) its back; backIn: ms from the click to its back drawn.
+    return det ? { index: det.i, flipped: showsBack(det.turn + det.flip.to), closing: !!det.exit, blur: det.blur, yaw: sleeves[det.i].pose.yaw,
+      backIn: det.backIn === null ? null : Math.round(det.backIn - det.asked) } : null;
   },
 };
 window.__editions = hooks;
