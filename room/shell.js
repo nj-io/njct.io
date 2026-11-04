@@ -558,6 +558,24 @@ function createFinish(renderer) {
   };
 }
 
+// A box with rounded edges (radius r): a 3 x 3 x 3 grid whose outer rows sit r in from each face, pushed out
+// onto the rounded shell with the shell's normals, so its edges catch the light as made things' do.
+function roundedBox(w, h, d, r) {
+  const g = new THREE.BoxGeometry(1, 1, 1, 3, 3, 3), p = g.attributes.position, n = g.attributes.normal;
+  const half = [w / 2, h / 2, d / 2], inner = half.map(v => Math.max(v - r, 0));
+  const v = new THREE.Vector3(), c = new THREE.Vector3(), q = new THREE.Vector3(), clamp = THREE.MathUtils.clamp;
+  const map = (t, k) => (Math.abs(t) > 0.4 ? Math.sign(t) * half[k] : Math.sign(t) * inner[k]);
+  for (let i = 0; i < p.count; i++) {
+    v.set(map(p.getX(i), 0), map(p.getY(i), 1), map(p.getZ(i), 2));
+    c.set(clamp(v.x, -inner[0], inner[0]), clamp(v.y, -inner[1], inner[1]), clamp(v.z, -inner[2], inner[2]));
+    q.subVectors(v, c);
+    const len = q.length();
+    if (len > 1e-6) { q.multiplyScalar(r / len); v.copy(c).add(q); n.setXYZ(i, q.x / r, q.y / r, q.z / r); }
+    p.setXYZ(i, v.x, v.y, v.z);
+  }
+  return g;
+}
+
 // Geometries merged into one: positions, normals, uvs and the per-vertex colour, indexed.
 function merge(geos) {
   let nv = 0, ni = 0;
@@ -700,7 +718,12 @@ export function createShell({ renderer, scene, lightUniforms, sun }) {
     const m = new THREE.Matrix4().compose(_p.set(x, y, z), _q.setFromEuler(_e.set(rx, ry, rz, 'YXZ')), _s);
     return parent ? parent.clone().multiply(m) : m;
   };
-  const bx = (key, col, x0, y0, z0, x1, y1, z1, F) => put(key, new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0).translate((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2), F, col);
+  // Made things get rounded edges (up to 6 units, about a centimetre); walls, glass, light and thin trims stay square.
+  const ROUNDED = new Set(['wood', 'marble', 'flute', 'satin', 'plain', 'fabric', 'cane', 'glazed', 'chrome']);
+  const bx = (key, col, x0, y0, z0, x1, y1, z1, F) => {
+    const w = x1 - x0, h = y1 - y0, d = z1 - z0, m = Math.min(w, h, d), r = ROUNDED.has(key) && m >= 10 ? Math.min(6, m * 0.18) : 0;
+    return put(key, (r > 0.5 ? roundedBox(w, h, d, r) : new THREE.BoxGeometry(w, h, d)).translate((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2), F, col);
+  };
   const cy = (key, col, x, y0, z, r, h, F, rTop = r, seg = 24) => put(key, new THREE.CylinderGeometry(rTop, r, h, seg).translate(x, y0 + h / 2, z), F, col);
   const el = (key, col, x, y, z, rx, ry, rz, F, seg = 16) => put(key, new THREE.SphereGeometry(1, seg, Math.max(6, seg >> 1)).scale(rx, ry, rz).translate(x, y, z), F, col);
   const lathe = (key, col, pts, x, y, z, F, seg = 24) => put(key, new THREE.LatheGeometry(pts.map(([r, h]) => new THREE.Vector2(r, h)), seg).translate(x, y, z), F, col);
