@@ -3,7 +3,7 @@
 // turns it front and back; Escape puts it back); keyboard; sound. Renders only while something moves.
 import * as THREE from 'three';
 import { RoomEnvironment } from '/vendor/three-0.181.0/addons/environments/RoomEnvironment.js';
-import { CAMERA_Z, REF_H, SHELF, SLEEVE, INTRO, DETAILS, OPEN, LINEUP, viewScale, slugOf } from './scene/config.js';
+import { CAMERA_Z, REF_H, SHELF, SLEEVE, INTRO, DETAILS, OPEN, LINEUP, CAFE, viewScale, slugOf } from './scene/config.js';
 import { createLightUniforms, applyLights } from './scene/lighting.js';
 import { createWall } from './scene/wall.js';
 import { createShelves } from './scene/shelves.js';
@@ -140,6 +140,51 @@ function warmBacks() {
   }, { timeout: 2000 });
 }
 const BACK_PLAIN = 0xe9e6e0;   // the back's card colour in sleeves.js
+
+// ---- the café's sun (scene/sun.js) ------------------------------------------------------------------
+// Late sun through the café's window, on the record wall, its shelves and sleeves: a lazy chunk, loaded
+// once every sleeve has landed. Its programs compile out of sight, then it fades in. The leaves move on
+// an ambient clock of their own (CAFE.sun.ambientHz), which holds still in Details, on a project page, in
+// a hidden tab and under reduced motion. Until it is on, and on the phone crate, every material runs v1's
+// own program. A test can keep it off (__editionsTest.noSun) or set its angles, clock and fade
+// (__editionsTest.sun = { az, el, t, fade }).
+const SUN_TEST = window.__editionsTest?.sun || null;
+let sunM = null, sunP = null, sunOn = false, sunFadeAt = 0, sunSleeves = true, sunTickDue = true, ambientTimer = 0;
+const AMBIENT_STILL = 7.5;   // the clock's frame under reduced motion
+const ambientT = () => (SUN_TEST?.t ?? (reduced() ? AMBIENT_STILL : performance.now() / 1000));
+function startSun() {
+  if (sunP || window.__editionsTest?.noSun) return;
+  sunP = import('./scene/sun.js').then(async m => {
+    const sun = m.createSun({ renderer, scene, wallMesh: wall.mesh, shelfMeshes, sleeves });
+    if (SUN_TEST) sun.setParams(SUN_TEST);
+    sun.sleevesMoved();
+    sun.tick(ambientT());
+    await sun.compile(camera);
+    sunM = sun;
+    sunOn = true;
+    sunFadeAt = performance.now();
+    sun.setFade(SUN_TEST?.fade ?? 0);
+    sun.setEnabled(!crateMode);
+    wake();
+    return sun;
+  }).catch(e => { console.warn(`sun: ${e?.message || e}`); });
+  return sunP;
+}
+// Before a frame draws: the sleeves' faces, the fade, the leaves. Returns whether the sun still fades in.
+function stepSun(now) {
+  if (!sunOn || crateMode) return false;
+  if (sunSleeves) { sunM.sleevesMoved(); sunSleeves = false; }
+  const f = SUN_TEST?.fade ?? clamp01((now - sunFadeAt) / dur(CAFE.sun.fadeIn));
+  sunM.setFade(f);
+  if (sunTickDue) { sunTickDue = false; if (sunM.tick(ambientT()) && det) bgDirty = true; }
+  return f < 1;
+}
+// The ambient clock asks for the next frame of leaves.
+function ambient() {
+  if (ambientTimer || !sunOn || crateMode || det || inProject >= 0 || document.hidden || reduced() || SUN_TEST?.t != null) return;
+  ambientTimer = setTimeout(() => { ambientTimer = 0; sunTickDue = true; wake(); }, 1000 / CAFE.sun.ambientHz);
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { sunTickDue = true; wake(); } });
 
 // The intro holds each sleeve until its cover is in. Sleeve i appears at its scheduled time, or when its
 // cover lands if that is later, and never sooner after the sleeve before it than the schedule spaces
@@ -328,6 +373,7 @@ function layout() {
   crateShadow.mesh.visible = crateMode;
   if (crateMode) crateShadow.layout(W, H, S);
   for (const s of sleeves) s.mats[0].color.set(crateMode ? CRATE.edgeColour : 0xf1efea);
+  if (sunM) { sunM.setEnabled(sunOn && !crateMode); sunSleeves = sunTickDue = true; }   // the crate has no sun
   // Without shelves the wall loses their shadows too.
   SHELF.tops.forEach((top, r) => (bare ? uniforms.uShelf.value[r].set(0, 0, -1e5, -1e5)
     : uniforms.uShelf.value[r].set(-SHELF.width / 2, SHELF.width / 2, top - SHELF.thick, top)));
@@ -532,6 +578,7 @@ function frame(now) {
     }
     if (moved) {
       applyPose(s);
+      sunSleeves = true;
       if (!crateMode) placeSlot(s);
       // A sleeve shades the wall until it is well clear of it (Details flies it out of range). The crate
       // stands clear of the wall and shades none of it.
@@ -552,6 +599,7 @@ function frame(now) {
   }
   const alive = aliveIdx >= 0 || now < aliveUntil;
   if (alive && !window.__editionsTest?.stillCovers) for (const c of covers) c?.update(dt);   // a test can hold the covers still
+  if (stepSun(now)) { active = true; bgDirty = true; }
 
   if (det) {
     const s = sleeves[det.i];
@@ -582,7 +630,9 @@ function frame(now) {
     active = true;
   }
   if (!backsWarm && !active) warmBacks();
+  if (!sunP && !crateMode && settled.every(Boolean)) startSun();
   if (active || waiting || alive || crateMoving) wake(); else last = 0;
+  ambient();
 }
 
 // ---- intro: canvas fade, header rise, late fade ---------------------------------------------------
@@ -969,6 +1019,10 @@ rm.addEventListener?.('change', e => { setReducedMotion(e.matches); crate.setRed
 // ---- test hooks -----------------------------------------------------------------------------------
 const hooks = {
   count: sleeves.length,
+  // The café's sun: whether it is on, and (for a test) a promise for it, which loads it if it isn't yet.
+  get sun() { return sunM ? { on: sunOn && sunM.on, fade: sunM.fade } : null; },
+  sunReady: () => (sunP || startSun() || Promise.resolve(null)),
+  setSun(params) { if (!sunM) return; sunM.setParams(params); sunTickDue = sunSleeves = true; wake(); },
   firstFrameAt: null,
   ready: firstFrame.ready,
   covers: coversReady,

@@ -78,3 +78,6 @@ export function createShelves(uniforms) {
     return mesh;
   });
 }
+
+// The shelf shaders, for the sun pass (scene/sun.js), which builds its own variants of them.
+export { VERT as SHELF_VERT, FRAG as SHELF_FRAG };
