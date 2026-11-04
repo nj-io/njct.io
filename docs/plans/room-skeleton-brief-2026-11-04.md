@@ -36,7 +36,7 @@ From `docs/research/room-2026-11-04/evidence.md`:
 - Keep wall text in HTML: Googlebot doesn't run WebGL.
 - Follow Shopify's own structure: HTML over one canvas, and only the active and adjacent scenes mounted.
 
-The references are in `references.md` in the same folder.
+The references are in `references.md` in the same folder. The operator reads the research as a page, the Room Reference Wall (https://claude.ai/artifact/1aAN65UKpVavRBgreAQHQo), with the screenshots, findings and the three directions. Point to its sections when you refer to the research. The markdown files hold the same content.
 
 ## Rules
 - **Copy:** visible strings are placeholders. Add any new one to `docs/plans/editions-copy-proposals.md` as a proposal.
