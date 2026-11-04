@@ -1,0 +1,32 @@
+# njct-contact: sends the njct.io "Get in touch" form to neil@njct.io.
+# Setup (dashboard, once): Email Routing on for njct.io, neil@njct.io verified as a destination.
+# Deploy: `npx wrangler deploy` (needs Neil's login or a deploy token). No secrets: the send_email
+# binding needs no API key, so nothing goes into SOPS or the vault. See README.md.
+name = "njct-contact"
+main = "src/index.js"
+compatibility_date = "2026-11-01"
+workers_dev = false
+
+# The Pages site serves njct.io; this route takes the /api/contact path from it.
+routes = [{ pattern = "njct.io/api/contact", zone_name = "njct.io" }]
+
+# 5 sends per IP per hour (brief § Rate limit). namespace_id is any integer unique to the account;
+# change it if the dashboard reports a clash.
+[[ratelimits]]
+name = "CONTACT_LIMITER"
+namespace_id = "3001"
+  [ratelimits.simple]
+  limit = 5
+  period = 3600
+
+# Cloudflare Email Routing send_email binding: no API key, delivers only to the verified
+# destination address below.
+[[send_email]]
+name = "CONTACT_MAIL"
+destination_address = "neil@njct.io"
+
+[vars]
+# The origins that may post; a comma-separated list. The second is the local dev origin.
+ALLOWED_ORIGIN = "https://njct.io,http://127.0.0.1:8750"
+EMAIL_FROM = "contact@njct.io"
+EMAIL_TO = "neil@njct.io"

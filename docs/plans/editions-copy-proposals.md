@@ -810,12 +810,17 @@ Shows who visited each product site, where they came from and which post, email 
 - Play button label (screen readers): "Play the film"
 - Close button label (screen readers): "Close the film"
 
-## Get in touch modal (proposal, 2026-11-04)
+## Get in touch modal (ruling, 2026-11-04)
 - Title: "Get in touch"
 - Field labels: "Name", "Email", "Message"
 - Button: "Send"
 - Close button label (screen readers): "Close"
-- Email the form composes: subject "Hello from {name}", body "{message}\n\n{name} <{email}>"
+- Email the form composes (the fallback when the Worker is down): subject "Hello from {name}", body "{message}\n\n{name} <{email}>"
+
+## Contact form send states (proposal, 2026-11-04; shipped to the visitor only after approval)
+- While sending, the button reads "Sending…" and is disabled.
+- On success: "Message sent." — then the modal closes after 2 s.
+- On failure: "That didn't send. Email me directly instead: " followed by a mailto link "neil@njct.io" (the compose format above).
 
 ## Product wording, round 2 (proposal, 2026-11-04)
 Each sleeve's tagline and Details blurb, written for the person who would use the product: what it is and what it does for them. Mirra, stet, Social Hook, LikeWiki, Topshine and Chairtax draw on the one-pagers of 2026-10-29. Clauded, Stellar Explorer, Scorecard and Stats are suggestions.

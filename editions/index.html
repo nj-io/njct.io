@@ -171,7 +171,15 @@
     font: inherit; color: var(--ink); padding: 10px 12px; border: 1px solid rgba(0, 0, 0, 0.18); border-radius: 10px; background: #fff; resize: vertical; min-height: 44px; box-sizing: border-box;
   }
   .ct-form input:focus-visible, .ct-form textarea:focus-visible { outline: 2px solid #000; outline-offset: 1px; }
-  .ct-send { justify-self: start; height: 44px; padding: 0 22px; border: 0; border-radius: 22px; background: #000; color: #fff; font: inherit; cursor: pointer; }
+  .ct-send { justify-self: start; min-width: 104px; height: 44px; padding: 0 22px; border: 0; border-radius: 22px; background: #000; color: #fff; font: inherit; cursor: pointer; }
+  .ct-send[disabled] { opacity: 0.55; cursor: default; }
+  /* The Worker's honeypot: off-screen and out of the tab order. */
+  .ct-web { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+  /* The sent and error notes under the form (editions/contact.js). */
+  .ct-note { margin: 14px 0 0; font-size: 14px; line-height: 20px; color: var(--ink-soft); }
+  .ct-note:empty { display: none; margin: 0; }
+  .ct-note a { color: var(--ink); }
+  .ct-note.sent { color: var(--ink); }
   .ct-close { position: absolute; top: 16px; right: 16px; width: 44px; height: 44px; border: 0; border-radius: 50%; background: transparent; font-size: 20px; cursor: pointer; color: var(--ink); }
   .ct-send:focus-visible, .ct-close:focus-visible { outline: 2px solid #000; outline-offset: 2px; }
   /* Details film (scene/film.js): the play button over the back's art band, and the frame the film zooms into. */
