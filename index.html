@@ -156,6 +156,8 @@
   /* The side line: what the product is, large enough to read at a glance, about 26 characters to a line
      and balanced so its lines come out even. */
   .d-tag { position: absolute; left: calc(var(--gutter) + 20px); margin: 0; max-width: 26ch; font-size: 21px; line-height: 28px; font-weight: 500; letter-spacing: -0.005em; text-wrap: balance; opacity: 0; }
+  /* Over a dark cover in the blurred shelf the ink keeps a soft halo of the wall's light, so it never sinks. */
+  .d-title, .d-tag { text-shadow: 0 0 1px rgb(234 234 232), 0 0 4px rgb(234 234 232), 0 0 8px rgb(234 234 232), 0 0 16px rgb(234 234 232), 0 0 28px rgb(234 234 232 / 0.85); }
   .d-open {
     position: fixed; left: 50%; transform: translateX(-50%); height: 40px; padding: 0 15.25px; border: 0; border-radius: 20px;
     background: #000; color: #ececec; line-height: 40px; cursor: pointer; opacity: 0; text-decoration: none; white-space: nowrap;

@@ -12,7 +12,11 @@ import { restPose } from './sleeves.js';
 
 export const CRATE = {
   width: 0.682, bottom: 0.797,
-  lean: 56 * Math.PI / 180, strip: 0.124, top: 132,      // px: the back strips stay below the header
+  // The camera stands at 0.4 of the shelf's distance, close enough that the crate reads in perspective (the
+  // sleeves narrow toward the back), and the sleeves stand at 24 degrees from upright (operator, 4 Nov 2026;
+  // the reference's 56 degrees, seen from four times the shelf's distance, read flat and squashed).
+  camera: 0.4,
+  lean: 24 * Math.PI / 180, strip: 0.124, top: 132,      // px: the back strips stay below the header
   flatLean: 78 * Math.PI / 180, flatStrip: 0.07, flatMax: 4,
   drag: 150, carry: 0.06, omega: 8.5,
   details: { size: 0.815, centreY: 0.404 },              // the sleeve in Details: share of the width, centre height
@@ -69,7 +73,7 @@ export function createCrate(count) {
     STEP = Math.min(CRATE.strip * L, count > 1 ? Math.max(0, frontTop - CRATE.top) / (count - 1) / Sf : 0);
     ZS = STEP * Math.tan(CRATE.lean) + 4;    // each plane sits behind the one in front of it
     FS = CRATE.flatStrip * L;
-    Z0 = (count - 1) * ZS + L * Math.sin(CRATE.lean) + 10;
+    Z0 = (count - 1) * ZS + 10;   // the backmost sleeve's foot clears the wall; every sleeve leans toward the camera
     S0 = Sf * (camZ - Z0) / camZ;
     return S0;
   }
@@ -79,14 +83,16 @@ export function createCrate(count) {
   function pose(s) {
     const d = s.i - p, q = restPose();
     q.dx = -s.x;
+    // As in a record crate seen from above: the sleeves stand front to back, each leaning toward the
+    // visitor (its top nearer than its foot), the ones behind standing higher; a flipped sleeve falls
+    // forward toward the visitor, its back up, and drops out below.
     if (d >= 0) {
-      q.lean = CRATE.lean; q.lift = Yb + d * STEP - s.shelfY; q.z = Z0 - d * ZS;
+      q.lean = -CRATE.lean; q.lift = Yb + d * STEP - s.shelfY; q.z = Z0 - d * ZS;
     } else {
-      // Passed: drops and lies flatter in front, each one a plane in front of the last.
       const k = -d, u = Math.min(1, k);
-      q.lean = CRATE.lean + (CRATE.flatLean - CRATE.lean) * u;
+      q.lean = -(CRATE.lean + (CRATE.flatLean - CRATE.lean) * u);
       q.lift = Yb - flatOff(k) - s.shelfY;
-      q.z = Z0 + 0.8 * L * u + 5 * Math.max(0, flatOff(k) - flatOff(1));
+      q.z = Z0 + 0.25 * L * u + 5 * Math.max(0, flatOff(k) - flatOff(1));
     }
     return q;
   }

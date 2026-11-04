@@ -368,7 +368,7 @@ function layout() {
   W = window.innerWidth; H = window.innerHeight;
   const wasCrate = crateMode;
   crateMode = W < 600;
-  CAMZ = crateMode ? CAMERA_Z * 4 : CAMERA_Z;
+  CAMZ = crateMode ? CAMERA_Z * CRATE.camera : CAMERA_Z;
   S = crateMode ? crate.layout(W, H, CAMZ) : viewScale(W, H);
   camera.position.z = CAMZ; camera.far = CAMZ * 2;
   const hw = W / 2 / S, hh = H / 2 / S;

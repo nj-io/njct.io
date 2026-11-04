@@ -1,34 +1,83 @@
 [
  {
-  "name": "Mirra",
+  "name": "Topshine",
   "kind": "project",
-  "year": "2025",
-  "tag": "Track what the people you follow are talking about, and the topics you care about, without the doomscroll",
-  "video": { "src": "/media/mirra-promo-720.mp4", "poster": "/media/mirra-promo-poster.jpg", "band": 0.3 },
-  "blurb": "Never miss a post from the accounts you care about — mirrored to Telegram in real time, then distilled into a digest of their posts and shifting sentiment.",
-  "url": "https://mirra.to",
-  "stack": "Next.js · Python · MTProto · Supabase",
+  "year": "2026",
+  "tag": "Make AI films for a fraction of the price",
+  "video": { "src": "/media/topshine-preview-v4-720.mp4", "poster": "/media/topshine-preview-v4-poster.jpg", "band": 0.3, "start": 1 },
+  "blurb": "Make a whole ad campaign, music video or film on open video models: every variant in one run, with a price before every run.",
+  "url": "https://topshine-waitlist-staging.neilasjoseph.workers.dev",
+  "urlText": "Topshine waitlist",
+  "stack": "Python · FastAPI · Postgres · rented RTX 5090s",
+  "figs": [],
+  "accent": {
+   "light": "#6c44f0",
+   "dark": "#9384fa"
+  },
+  "logo": {
+   "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><path d=\"M10 .6c.6 5 2.9 7.7 8.9 9.4-6 1.7-8.3 4.4-8.9 9.4-.6-5-2.9-7.7-8.9-9.4C7.1 8.3 9.4 5.6 10 .6z\" fill=\"#7e5ff9\"/><circle cx=\"16.2\" cy=\"3.8\" r=\"1.55\" fill=\"#7e5ff9\"/><circle cx=\"4.2\" cy=\"16.1\" r=\"1.45\" fill=\"#7e5ff9\"/></svg>"
+  }
+ },
+ {
+  "name": "Chairtax",
+  "kind": "project",
+  "year": "2026",
+  "tag": "Stay active, even when you're glued to your desk",
+  "video": { "src": "/media/chairtax-v18-720.mp4", "poster": "/media/chairtax-v18-poster.jpg", "band": 0.3 },
+  "blurb": "When a break is due, Chairtax takes over your Mac's screen. Do a few squats, or one of five other movements, in front of the camera and the screen is yours again.",
+  "url": "https://chairtax.app",
+  "stack": "Swift · SwiftUI · AppKit · Apple Vision · Cloudflare Workers",
   "figs": [
    [
-    "2,400+",
-    "accounts mirrored"
+    "6",
+    "movements the camera counts"
    ],
    [
-    "sub-60s",
-    "mirror latency"
+    "3",
+    "ranks of how hard a break is to skip"
    ],
    [
-    "~90%",
-    "gross margin"
+    "On-device",
+    "rep counting; the picture is never uploaded"
    ]
   ],
   "accent": {
-   "light": "#2C7AC2",
-   "dark": "#9EC7EA"
+   "light": "#ffb020",
+   "dark": "#ffc85a"
   },
   "logo": {
-   "png": "/data/logos/mirra.png",
-   "icon": "/data/logos/menu/mirra.webp"
+   "png": "/data/logos/chairtax.png",
+   "icon": "/data/logos/menu/chairtax.webp"
+  }
+ },
+ {
+  "name": "Social Hook",
+  "kind": "project",
+  "year": "2026",
+  "tag": "Automated marketing that turns your work into posts and publishes them across every platform at once",
+  "blurb": "Watches your development, drafts what’s post-worthy in your voice, and publishes where your audience lives — with approval gates or fully autonomous.",
+  "url": "https://nj-io.github.io/social-hook/",
+  "stack": "Python · FastAPI · GitHub Actions",
+  "figs": [
+   [
+    "12k+",
+    "posts published"
+   ],
+   [
+    "X + LinkedIn",
+    "live channels"
+   ],
+   [
+    "fully",
+    "autonomous mode"
+   ]
+  ],
+  "accent": {
+   "light": "#2563EB",
+   "dark": "#5B8DEF"
+  },
+  "logo": {
+   "svg": "<svg viewBox=\"0 0 28 28\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><rect x=\"1\" y=\"1\" width=\"26\" height=\"26\" rx=\"0\" stroke=\"#2563EB\" stroke-width=\"1.5\" fill=\"#fff\"/><circle cx=\"8\" cy=\"14\" r=\"3\" fill=\"#2563EB\"/><line x1=\"11\" y1=\"14\" x2=\"17\" y2=\"14\" stroke=\"#2563EB\" stroke-width=\"1.5\"/><circle cx=\"20\" cy=\"14\" r=\"3\" stroke=\"#2563EB\" stroke-width=\"1.5\" fill=\"#EFF6FF\"/></svg>"
   }
  },
  {
@@ -63,33 +112,65 @@
   }
  },
  {
-  "name": "Social Hook",
+  "name": "Mirra",
   "kind": "project",
-  "year": "2026",
-  "tag": "Automated marketing that turns your work into posts and publishes them across every platform at once",
-  "blurb": "Watches your development, drafts what’s post-worthy in your voice, and publishes where your audience lives — with approval gates or fully autonomous.",
-  "url": "https://nj-io.github.io/social-hook/",
-  "stack": "Python · FastAPI · GitHub Actions",
+  "year": "2025",
+  "tag": "Track what the people you follow are talking about, and the topics you care about, without the doomscroll",
+  "video": { "src": "/media/mirra-promo-720.mp4", "poster": "/media/mirra-promo-poster.jpg", "band": 0.3 },
+  "blurb": "Never miss a post from the accounts you care about — mirrored to Telegram in real time, then distilled into a digest of their posts and shifting sentiment.",
+  "url": "https://mirra.to",
+  "stack": "Next.js · Python · MTProto · Supabase",
   "figs": [
    [
-    "12k+",
-    "posts published"
+    "2,400+",
+    "accounts mirrored"
    ],
    [
-    "X + LinkedIn",
-    "live channels"
+    "sub-60s",
+    "mirror latency"
    ],
    [
-    "fully",
-    "autonomous mode"
+    "~90%",
+    "gross margin"
    ]
   ],
   "accent": {
-   "light": "#2563EB",
-   "dark": "#5B8DEF"
+   "light": "#2C7AC2",
+   "dark": "#9EC7EA"
   },
   "logo": {
-   "svg": "<svg viewBox=\"0 0 28 28\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><rect x=\"1\" y=\"1\" width=\"26\" height=\"26\" rx=\"0\" stroke=\"#2563EB\" stroke-width=\"1.5\" fill=\"#fff\"/><circle cx=\"8\" cy=\"14\" r=\"3\" fill=\"#2563EB\"/><line x1=\"11\" y1=\"14\" x2=\"17\" y2=\"14\" stroke=\"#2563EB\" stroke-width=\"1.5\"/><circle cx=\"20\" cy=\"14\" r=\"3\" stroke=\"#2563EB\" stroke-width=\"1.5\" fill=\"#EFF6FF\"/></svg>"
+   "png": "/data/logos/mirra.png",
+   "icon": "/data/logos/menu/mirra.webp"
+  }
+ },
+ {
+  "name": "LikeWiki",
+  "kind": "project",
+  "year": "2026",
+  "tag": "Your X likes, turned into a searchable wiki",
+  "blurb": "A personal knowledge base compiled from X likes — an LLM incrementally builds and maintains a persistent, cited wiki from the raw sources.",
+  "url": "https://likewiki.njct.io",
+  "stack": "Python · MCP · SQLite",
+  "figs": [
+   [
+    "1,400+",
+    "concept pages"
+   ],
+   [
+    "12k+",
+    "cited sources"
+   ],
+   [
+    "nightly",
+    "self-maintaining"
+   ]
+  ],
+  "accent": {
+   "light": "#2f5d50",
+   "dark": "#7fbfa9"
+  },
+  "logo": {
+   "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 32 32\"><rect width=\"32\" height=\"32\" rx=\"7\" fill=\"#2f5d50\"/><g transform=\"translate(3.2 3.2) scale(.8)\"><circle cx=\"16\" cy=\"16\" r=\"12.6\" fill=\"none\" stroke=\"#fff\" stroke-width=\"1.8\" opacity=\".55\"/><circle cx=\"24.9\" cy=\"7.1\" r=\"2.6\" fill=\"#fff\"/><path d=\"M12 20.5C12 20.5 3 14.5 3 8.8 3 6 5.1 4 7.6 4 9.5 4 11.1 5.1 12 6.6 12.9 5.1 14.5 4 16.4 4 18.9 4 21 6 21 8.8 21 14.5 12 20.5 12 20.5Z\" transform=\"translate(16 16.6) scale(.66) translate(-12 -12.25)\" fill=\"#fff\"/></g></svg>"
   }
  },
  {
@@ -124,55 +205,6 @@
   }
  },
  {
-  "name": "LikeWiki",
-  "kind": "project",
-  "year": "2026",
-  "tag": "Your X likes, turned into a searchable wiki",
-  "blurb": "A personal knowledge base compiled from X likes — an LLM incrementally builds and maintains a persistent, cited wiki from the raw sources.",
-  "url": "https://likewiki.njct.io",
-  "stack": "Python · MCP · SQLite",
-  "figs": [
-   [
-    "1,400+",
-    "concept pages"
-   ],
-   [
-    "12k+",
-    "cited sources"
-   ],
-   [
-    "nightly",
-    "self-maintaining"
-   ]
-  ],
-  "accent": {
-   "light": "#2f5d50",
-   "dark": "#7fbfa9"
-  },
-  "logo": {
-   "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 32 32\"><rect width=\"32\" height=\"32\" rx=\"7\" fill=\"#2f5d50\"/><g transform=\"translate(3.2 3.2) scale(.8)\"><circle cx=\"16\" cy=\"16\" r=\"12.6\" fill=\"none\" stroke=\"#fff\" stroke-width=\"1.8\" opacity=\".55\"/><circle cx=\"24.9\" cy=\"7.1\" r=\"2.6\" fill=\"#fff\"/><path d=\"M12 20.5C12 20.5 3 14.5 3 8.8 3 6 5.1 4 7.6 4 9.5 4 11.1 5.1 12 6.6 12.9 5.1 14.5 4 16.4 4 18.9 4 21 6 21 8.8 21 14.5 12 20.5 12 20.5Z\" transform=\"translate(16 16.6) scale(.66) translate(-12 -12.25)\" fill=\"#fff\"/></g></svg>"
-  }
- },
- {
-  "name": "Topshine",
-  "kind": "project",
-  "year": "2026",
-  "tag": "Make AI films for a fraction of the price",
-  "video": { "src": "/media/topshine-preview-v4-720.mp4", "poster": "/media/topshine-preview-v4-poster.jpg", "band": 0.3, "start": 1 },
-  "blurb": "Make a whole ad campaign, music video or film on open video models: every variant in one run, with a price before every run.",
-  "url": "https://topshine-waitlist-staging.neilasjoseph.workers.dev",
-  "urlText": "Topshine waitlist",
-  "stack": "Python · FastAPI · Postgres · rented RTX 5090s",
-  "figs": [],
-  "accent": {
-   "light": "#6c44f0",
-   "dark": "#9384fa"
-  },
-  "logo": {
-   "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><path d=\"M10 .6c.6 5 2.9 7.7 8.9 9.4-6 1.7-8.3 4.4-8.9 9.4-.6-5-2.9-7.7-8.9-9.4C7.1 8.3 9.4 5.6 10 .6z\" fill=\"#7e5ff9\"/><circle cx=\"16.2\" cy=\"3.8\" r=\"1.55\" fill=\"#7e5ff9\"/><circle cx=\"4.2\" cy=\"16.1\" r=\"1.45\" fill=\"#7e5ff9\"/></svg>"
-  }
- },
- {
   "name": "Stellar Explorer",
   "kind": "project",
   "year": "2026",
@@ -196,38 +228,6 @@
   ],
   "accent": null,
   "logo": null
- },
- {
-  "name": "Chairtax",
-  "kind": "project",
-  "year": "2026",
-  "tag": "Stay active, even when you're glued to your desk",
-  "video": { "src": "/media/chairtax-v18-720.mp4", "poster": "/media/chairtax-v18-poster.jpg", "band": 0.3 },
-  "blurb": "When a break is due, Chairtax takes over your Mac's screen. Do a few squats, or one of five other movements, in front of the camera and the screen is yours again.",
-  "url": "https://chairtax.app",
-  "stack": "Swift · SwiftUI · AppKit · Apple Vision · Cloudflare Workers",
-  "figs": [
-   [
-    "6",
-    "movements the camera counts"
-   ],
-   [
-    "3",
-    "ranks of how hard a break is to skip"
-   ],
-   [
-    "On-device",
-    "rep counting; the picture is never uploaded"
-   ]
-  ],
-  "accent": {
-   "light": "#ffb020",
-   "dark": "#ffc85a"
-  },
-  "logo": {
-   "png": "/data/logos/chairtax.png",
-   "icon": "/data/logos/menu/chairtax.webp"
-  }
  },
  {
   "name": "Scorecard",
