@@ -69,6 +69,10 @@ Every string here waits for operator approval before it ships. Approved copy alr
 | 63 | Projects menu: one item per sleeve, in shelf order | the project's mark, its name (approved) over its tag (approved), e.g. "Mirra" over "Real-time X→Telegram mirror and digest"; About Neil: "About Neil" over "Hi, I’m Neil." (about[0], approved). Alternative for the second line: the year, as the shelf's index shows it | Ruling 11; the reference's Editions menu (season over edition name) |
 | 64 | Projects menu: accessible names | the list is named by its trigger, "Projects"; the marks are decorative (empty alt) | Ruling 11 |
 | 65 | Accessible name of Open (the shelf pill, the Details button, the crate bar) on a project with a live site, a link that opens it in a new tab (replaces rows 19 and 41 for these projects; Topshine, Scorecard and About Neil keep "Open: <name>") | Open: <project name> site, new tab, e.g. "Open: Mirra site, new tab". Alternative: "Open <host> in a new tab", e.g. "Open mirra.to in a new tab" (row 4 host format) | Operator's request: Open opens the product's live site |
+| 66 | Project page: the live-site links (hero box, under the overview, foot), opening in a new tab | Hero box: "Visit the site ↗"; under the overview and in the foot: "Visit <host> ↗" (row 4 format, e.g. "Visit mirra.to"); accessible name adds "(opens in a new tab)". No link when the project has no url | Page redesign, 2026-11-04 |
+| 67 | Project page: the overview's steps heading | How it works (the steps are the dossier narration's numbered items, approved) | Page redesign, 2026-11-04 |
+| 68 | Project page: the technical detail's toggle | Closed: "Read the technical detail"; open: "Hide the technical detail" | Page redesign, 2026-11-04 |
+| 69 | Project page foot: contact link | Get in touch (row 6) | Page redesign, 2026-11-04 |
 
 ## Row 33: Topshine dossier (proposal)
 
@@ -844,3 +848,46 @@ Proposed Mirra figures, to match the brief-led wording: "Daily or weekly · a br
 
 ## Open: align the one-pagers with the brand engine (set for 2026-11-05)
 The 2026-10-29 one-pagers carry newer product wording than the brand engine (`~/dev/_brand`: each project's `assets/brand.json` and the brand studio). Bring the brand engine up to the one-pager content.
+
+## Round 3: the cover backs' figures (proposal, 2026-11-04)
+
+The backs' three figures today are mostly build metrics ("sub-60s mirror latency", "~90% gross margin", "Apache-2.0", "60 fps sustained"). A client reading a back wants three things: what it does for them, what it costs or how to get it, and one fact that makes it believable. Each back below follows that order, in plain words, as [value, label]. The current figures move to the project page, where the Overview's figure rows carry the numbers.
+
+Sources: the one-pagers (`v3-current-editions.json`, Neil, November 2026) for Mirra, stet, esca (Social Hook), LikeWiki, Topshine and Chairtax: only their client-facing parts (headline, sub, stats, product, model, status). Their ICP, market, unit maths, spend and asks are internal and stay off the site. Clauded, Stellar Explorer, Scorecard and Stats have no one-pager; their rows come from their dossiers.
+
+### What each product is
+
+| Product | In one line | Price and status |
+|---|---|---|
+| Mirra | Reads every post from the X accounts you choose and sends a brief per account, daily or weekly, plus a Monday summary of your whole list. It pulls out each account's market calls and scores them at 7, 30 and 90 days, so you can see whose calls held up. | Free for 1 account; Premium $16 a month ($12 yearly) for 10. Live. |
+| stet | A package a developer installs once; then owners, editors, clients and AI agents change every word a site says (pages, emails, SEO fields) in a live preview, and it goes live in seconds with no deploy. Every version is kept. | Free and open source to self-host; Cloud $19, $39 or $149 a month. Live on npm (0.8.0), 679 downloads in 30 days; Mirra runs on it. |
+| esca (Social Hook) | Watches your commits, decides what is worth posting, drafts it in your voice for each platform, and publishes once you approve it (Telegram, web or CLI) or on its own. | Free and open source (MIT, on PyPI); a hosted version for teams is coming. Runs the marketing for Chairtax and stet. |
+| LikeWiki | Every night it turns your X likes and bookmarks into a wiki: a page per post, and topic pages where every claim links to the post it came from, checked by a second model. Ask it questions, read a daily digest, or let AI agents read it. | Working for Neil, not yet a product; a personal plan at about $9 a month is proposed. |
+| Topshine | An AI video studio: it plans every shot with several takes, renders them all in one batch on rented GPUs running open video models, lets you pick the best take per shot, then finishes the film in a full editor. | Up to 85% cheaper than closed video APIs, with a capped quote on every job. Launching end of October 2026. |
+| Chairtax | A Mac app that covers your screen on a schedule and gives it back only when the webcam counts your squats or one of five other movements, on the Mac itself. Bearly the bear keeps you company. | $29.99 once, no subscription, on the Mac App Store (v1.1.0). |
+| Clauded | Runs Claude Code inside a Docker sandbox, so it can work without permission prompts while your clipboard, sound, Chrome, git and tools still reach it. | Free and open source (MIT), one-command install. |
+| Stellar Explorer | A 3D map of the night sky in the browser: fly between 117,000 stars and open any of them, with sound that follows the journey. | Free, in the browser. |
+| Scorecard | Works out how any website gets its traffic (ads, search, links, social mentions) with a source and date on every figure, and compares up to ten sites side by side. | Internal tool, not public. |
+| Stats | One dashboard for every product site: visitors, where they came from, and which post, email or ad led to each sale, with a Telegram summary every morning. | Internal tool; the live board is public at stats.njct.io. |
+
+### Proposed backs
+
+| # | Product | Figure 1: what it does | Figure 2: cost or access | Figure 3: why believe it |
+|---|---|---|---|---|
+| 70 | Mirra | Every post · from the X accounts you choose, in one brief | Free · to start; Premium $16 a month for 10 accounts | Calls scored · see whose predictions held up after 7, 30 and 90 days |
+| 71 | stet | Every word · pages, emails and SEO, edited without a deploy | Free · open source to self-host; Cloud from $19 a month | In seconds · from edit to live, with a preview first |
+| 72 | esca (Social Hook) | From your commits · it finds what's worth posting | Free · open source; a hosted version for teams is coming | Your voice · drafts for each platform, approved from your phone |
+| 73 | LikeWiki | Your X likes · turned into a wiki every night | Coming soon · a personal plan is planned | Every claim · links to the post it came from, checked by a second model |
+| 74 | Topshine | Every take · of every shot, rendered in one batch | Up to 85% · cheaper than closed video tools | Capped · a price before every job, and you pay only for clips made |
+| 75 | Chairtax | Move to unlock · your screen stays covered until you do your reps | $29.99 once · no subscription, on the Mac App Store | On your Mac · the webcam counts reps; video never leaves it |
+| 76 | Clauded | No prompts · Claude Code works freely inside a sandbox | Free · open source, one-command install | Still connected · clipboard, sound, Chrome and git keep working |
+| 77 | Stellar Explorer | 117,000 stars · fly between them in your browser | Free · nothing to install | Open any star · with sound that follows your journey |
+| 78 | Scorecard | Any website · see where its traffic comes from | Internal · built for this portfolio's research | Sourced · every figure carries its source and date |
+| 79 | Stats | Every sale · traced to the post, email or ad that brought the buyer | One place · every product site on one board | Every morning · a summary in Telegram |
+
+### For Neil to confirm before these ship
+
+- **Social Hook or esca?** The one-pager calls it esca; the shelf, cover and site still say Social Hook.
+- **Links:** stet is getstet.xyz in the one-pager (the shelf links getstet.github.io); Topshine is topshine.ai (the shelf has no link: has it launched?); LikeWiki is "coming soon" (the shelf links likewiki.njct.io).
+- **Mirra's tag** still reads "Real-time X→Telegram mirror and digest"; the product is now briefs and call scores, by email and on the web.
+- **Off the site:** Mirra's back shows "~90% gross margin" today; margins, unit maths and the one-pagers' asks stay internal.
