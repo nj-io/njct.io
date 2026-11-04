@@ -427,9 +427,13 @@ function flight(s, a, b, e) {
 const easeOut = u => 1 - (1 - u) ** 3;
 const smooth = u => u * u * (3 - 2 * u);
 const TURN = Math.PI * 2;
-// The turn into and out of Details takes the flight's eased progress e, so the sleeve turns as it travels,
-// in one move. Reduced motion: no turn; the sleeve changes sides halfway along its (short) flight.
-const turnOf = e => (reduced() ? (e >= 0.5 ? 1 : 0) : e);
+// The turn into and out of Details runs after the travel, in two moves: the sleeve flies to the centre
+// showing its front, then turns. Its own clock u (ms since the turn began) runs on the flip's duration and
+// easing, overlapping the end of the travel by TURN_OVERLAP. Reduced motion: no turn; the sleeve changes
+// sides when the turn would start.
+const TURN_OVERLAP = 0.1;
+const turnOf = u => (reduced() ? (u >= 0 ? 1 : 0) : bezier(DETAILS.flip.ease, clamp01(u / dur(DETAILS.flip.dur))));
+const turnLead = () => delay(DETAILS.fly.at) + dur(DETAILS.fly.dur) * (1 - TURN_OVERLAP);
 const showsBack = yaw => Math.abs(Math.round(yaw / Math.PI)) % 2 === 1;
 
 // Details pose of the sleeve in focus at time now (the flight in or out, the flip).
@@ -443,18 +447,19 @@ function stepDetails(s, now) {
     const t = now - det.t0;
     const e = bezier(F.ease, clamp01((t - delay(F.at)) / dur(F.dur)));
     p = flight(s, det.from, detailsPose(s), e);
-    p.yaw = det.turn * turnOf(e) + yawAt();
+    p.yaw = det.turn * turnOf(t - turnLead()) + yawAt();
     det.blur = crateMode ? 0 : smooth(clamp01((t - delay(DETAILS.blur.at)) / dur(DETAILS.blur.dur)));   // the crate stays sharp, as on the reference
-    const end = Math.max(...[F, DETAILS.blur, DETAILS.title].map(k => delay(k.at) + dur(k.dur)));
+    const end = Math.max(turnLead() + dur(P.dur), ...[F, DETAILS.blur, DETAILS.title].map(k => delay(k.at) + dur(k.dur)));
     moving = t < end || now - det.flip.t0 < delay(P.at) + dur(P.dur);
   } else {
-    // Back to the hover pose on the shelf (or its place in the crate), turning to its front on the way.
-    const x = det.exit, t = now - x.t0;
-    const e = bezier(X.ease, clamp01((t - delay(X.at)) / dur(X.dur)));
+    // Turn back to the front in place first, then fly back to the hover pose on the shelf (or its place in
+    // the crate). x.lag is the turn's length less the overlap; 0 when the sleeve already shows its front.
+    const x = det.exit, t = now - x.t0, tf = t - x.lag;
+    const e = bezier(X.ease, clamp01((tf - delay(X.at)) / dur(X.dur)));
     p = flight(s, x.from, { ...(crateMode ? crate.pose(s) : hoverPose()), yaw: x.yawTo }, e);
-    p.yaw = x.from.yaw + (x.yawTo - x.from.yaw) * turnOf(e);
-    det.blur = x.blur * (1 - smooth(clamp01((t - delay(X.blurOut.at)) / dur(X.blurOut.dur))));
-    moving = t < delay(X.at) + dur(X.dur) || det.blur > 0;
+    p.yaw = x.from.yaw + (x.yawTo - x.from.yaw) * (x.lag ? turnOf(t) : 1);
+    det.blur = x.blur * (1 - smooth(clamp01((tf - delay(X.blurOut.at)) / dur(X.blurOut.dur))));
+    moving = tf < delay(X.at) + dur(X.dur) || det.blur > 0;
     if (!moving) { endDetails(s, now); return true; }
   }
   s.pose = p;
@@ -770,7 +775,9 @@ function closeDetails() {
   // The front is the nearest whole turn; halfway between two (the back), the one that undoes the last
   // turn, so the sleeve turns back the way it came.
   const k = s.pose.yaw / TURN;
-  det.exit = { t0: now, from: { ...s.pose }, yawTo: TURN * (det.dir > 0 ? Math.ceil(k - 0.5 - 1e-6) : Math.floor(k + 0.5 + 1e-6)), blur: det.blur };
+  const yawTo = TURN * (det.dir > 0 ? Math.ceil(k - 0.5 - 1e-6) : Math.floor(k + 0.5 + 1e-6));
+  const lag = Math.abs(yawTo - s.pose.yaw) < 1e-3 ? 0 : dur(DETAILS.flip.dur) * (1 - TURN_OVERLAP);
+  det.exit = { t0: now, from: { ...s.pose }, yawTo, lag, blur: det.blur };
   for (const el of [dTitle, dTag, dOpen]) fade(el, 0, X.at, X.textOut);
   fade(tagline, 1, X.headerIn.at, X.headerIn.dur);
   detailsEl.inert = true; dOpen.inert = true;
