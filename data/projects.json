@@ -1,13 +1,13 @@
 [
  {
-  "name": "Topshine",
+  "name": "cheapgc",
   "kind": "project",
   "year": "2026",
   "tag": "Make AI films for a fraction of the price",
-  "video": { "src": "/media/topshine-preview-v4-720.mp4", "poster": "/media/topshine-preview-v4-poster.jpg", "band": 0.3, "start": 1 },
+  "video": { "src": "/media/cheapgc-preview-720.mp4", "poster": "/media/cheapgc-preview-poster.jpg", "band": 0.3, "start": 1 },
   "blurb": "Direct a whole AI film for the price of a coffee: every shot in several takes, rendered at once, with the best ones picked and finished in a full editor.",
-  "url": "https://topshine-waitlist-staging.neilasjoseph.workers.dev",
-  "urlText": "Topshine waitlist",
+  "url": "https://cheapgc.io",
+  "urlText": "cheapgc.io",
   "stack": "Python · FastAPI · Postgres · rented RTX 5090s",
   "figs": [["Up to 90%", "cheaper than closed AI video tools"], ["Every take", "of every shot, rendered in one batch"], ["Capped", "a price before every job, and you only pay for clips that get made"]],
   "accent": {

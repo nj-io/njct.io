@@ -19,15 +19,13 @@ fraunces-144pt-bold-cover.woff2 — NJ Serif, the Stellar Explorer title and the
   3 032 bytes, sha256 5fb7f377b44dc7bc16204cce8ec513f0958473a35ade6e14459f093f98db6a54
   Licence: OFL-1.1 (https://github.com/undercasetype/Fraunces)
 
-hanken-grotesk-600-cover.woff2 — NJ Hanken, the Topshine wordmark (600, each letter placed on its concept letter)
-  Hanken Grotesk (The Hanken Grotesk Project Authors), gstatic v12, wght 600
-  glyphs: "ehinopst" (from "topshine")
-  css2?family=Hanken%20Grotesk:wght@600&text=ehinopst
-  1 440 bytes, sha256 ad152b3c0e603c9a73fac8adeb76d13393edc11bbbcc5f92fe0dd4c1d3095f64
-  Licence: OFL-1.1 (https://github.com/marcologous/hanken-grotesk); the same family Topshine vendors
-  in ~/dev/topshine-design-waitlist/engine/assets/fonts/. Chosen by fitting 57 OFL candidates (Hanken Grotesk at
-  600 to 800, Red Hat Display, Manrope, Plus Jakarta Sans, Inter, Figtree and others) to the concept's letter masks;
-  it fit best with Red Hat Display 700 (IoU 0.93), every letter box within 0.2% of the cover.
+hanken-grotesk-650-900-cover.woff2 — NJ Hanken, the cheapgc wordmark ("cheap" at 650, "gc" at 900)
+  Hanken Grotesk (The Hanken Grotesk Project Authors), gstatic v12, wght 650..900 (variable)
+  glyphs: "aceghp" (from "cheapgc")
+  css2?family=Hanken%20Grotesk:wght@650..900&text=aceghp
+  2 832 bytes, sha256 25dc07a7c4fee979b16dd4972f20c0219350eecc3826b6d4c2762d438c4238c3
+  Licence: OFL-1.1 (https://github.com/marcologous/hanken-grotesk); the face of the cheapgc wordmark
+  (_brand/creatives/cheapgc/2026-11-09-wordmark, variation 2). Downloaded 2026-11-14.
 
 bricolage-grotesque-96pt-extrabold-title-cover.woff2 — NJ Bricolage, the Stats title (800, set at −0.01em)
   Bricolage Grotesque (Mathieu Triay), gstatic v9, opsz 96 · wdth 100 · wght 800

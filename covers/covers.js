@@ -26,7 +26,7 @@ const FONT_DIR = new URL('../../vendor/fonts/', import.meta.url);
 const FACES = [
   ['NJ Text', 'ui/inter-variable-ui.woff2', '100 900'],
   ['NJ Serif', 'fraunces-144pt-bold-cover.woff2', '700'],
-  ['NJ Hanken', 'hanken-grotesk-600-cover.woff2', '600'],
+  ['NJ Hanken', 'hanken-grotesk-650-900-cover.woff2', '650 900'],
   ['NJ Bricolage', 'bricolage-grotesque-96pt-extrabold-title-cover.woff2', '800'],
 ];
 // Faces only the backs use load with the first back.
@@ -1458,7 +1458,7 @@ vec3 motif(vec2 p, float t) {
 // type: title blocks; each line goes to channel ch of the type mask (R, G, B -> INK0..2).
 //   size by cap (cap height), fit (widest line's ink width) or px; x/base place the first line.
 //   set: [[glyph, cx, cy, px, degrees, ch], ...] places each glyph by its ink centre.
-//   runs: [[text, ch], ...] sets a one-line block in several inks.
+//   runs: [[text, ch, weight], ...] sets a one-line block in several inks (weight: the run's own, else the block's).
 //   paths: a letters/*.json file of traced letter outlines ({ ch, d } in 1024 units), drawn in place of set type.
 // inks: sRGB colour per type channel, used when the motif does not fill it itself.
 // mark: where the logo is drawn unaltered, [x, top, size]; markKey { lo, hi } draws a mark that comes on its app tile bare.
@@ -1678,15 +1678,13 @@ function designFor(entry) {
       bandY: 0.5, strip: 'art', grain: [0.03, 0.016],
       back: { paper: '#F2EEE6', ink: '#1E4A38', soft: '#5E7A6C', accent: '#2F5D50' },
     };
-    case 'Topshine': return {
+    case 'cheapgc': return {
       motif: 'topshine', t0: 0,
       pal: [],   // its colours are its fitted fields (TOPSHINE)
-      ground: GROUNDS.Topshine,
-      // each letter placed on its concept letter by its ink centre: [glyph, cx, cy, px, degrees, ink]
-      type: [{ font: 'NJ Hanken', weight: 600, set: [['t', 72.3, 892.9, 130.4, 0, 0], ['o', 131.1, 902.7, 135.3, 0, 0], ['p', 204.3, 916.1, 133.9, 0, 0],
-        ['s', 268.5, 904.5, 130, 0, 0], ['h', 333.6, 890.2, 136.3, 0, 0], ['i', 381.8, 889.3, 130.2, 0, 0], ['n', 429, 903.6, 137.7, 0, 0],
-        ['e', 497.7, 902.7, 134.1, 0, 0]] }],
-      inks: ['#0C1229'],
+      ground: GROUNDS.cheapgc,
+      // the cheapgc wordmark (_brand creatives 2026-11-09-wordmark, variation 2): "cheap" at 650 in navy, "gc" at 900 in violet
+      type: [{ lines: ['cheapgc'], runs: [['cheap', 0, 650], ['gc', 1, 900]], font: 'NJ Hanken', weight: 650, track: -0.055, px: 134, x: 52, base: 939 }],
+      inks: ['#080D23', '#6C44F0'],
       mark: [53.8, 54.9, 113.3],
       // the concept's star (the mark's star drawn fuller, as the concept renders it), in cover px
       form: { box: [178, 98, 700], R: 0.1, soft: 0.005, key: 'alpha', res: 640, svg: TOPSHINE_STAR },
@@ -1872,7 +1870,10 @@ function drawType(ctx, b, S, fill) {
     if (!b.runs) { ctx.fillText(line, x, y); return; }
     // a line set in runs of different inks: each run starts at the advance of the runs before it
     let rx = x;
-    for (const [run, ch] of b.runs) { ctx.fillStyle = fill || CH[ch]; ctx.fillText(run, rx, y); rx += ctx.measureText(run).width; }
+    for (const [run, ch, w] of b.runs) {
+      if (w) setFont(ctx, w, px * S, b.font, b.track);
+      ctx.fillStyle = fill || CH[ch]; ctx.fillText(run, rx, y); rx += ctx.measureText(run).width;
+    }
   });
 }
 function drawFront(ctx, d) {
@@ -1935,7 +1936,7 @@ function drawBack(ctx, entry) {
     ctx.fillStyle = CH[2];
     setFont(ctx, 600, 13.5 * S, 'NJ Text', 0);
     // the link's own text where the entry gives one (Stats: stats.njct.io for its /live url)
-    if (entry.url) ctx.fillText(entry.urlText || entry.url.replace(/^https?:\/\//, '').replace(/\/$/, ''), M, W - M);   // Scorecard, Topshine: no public url
+    if (entry.url) ctx.fillText(entry.urlText || entry.url.replace(/^https?:\/\//, '').replace(/\/$/, ''), M, W - M);   // Scorecard: no public url
   }
   ctx.fillStyle = CH[1];
   setFont(ctx, 600, 12 * S, 'NJ Text', 0.01);
@@ -2284,7 +2285,7 @@ const MOTIONS = {
     { key: 'compile', cycle: 0, move: 1, turn: 24, rect: null },
     { key: 'heartbeat', cycle: 7, move: 0.21, turn: 14, rect: null },
   ],
-  Topshine: [
+  cheapgc: [
     { key: 'shimmer', cycle: 0, move: 1, turn: 24, rect: null },
     { key: 'shine', cycle: 10, move: 0.78, rect: null },
     { key: 'dolly', cycle: 14, move: 1, rect: [0.09, 0.205, 0.905, 0.89] },
@@ -2382,8 +2383,8 @@ function plan(now, crate) {
   }
 }
 
-// The operator's picks (round 2; Topshine, Chairtax and Scorecard play their a and c together as option a), which the motion plays.
-const PICKS = { mirra: 'c', stet: 'a', 'social-hook': 'a', clauded: 'c', likewiki: 'b', topshine: 'a', 'stellar-explorer': 'a', chairtax: 'a',
+// The operator's picks (round 2; cheapgc, Chairtax and Scorecard play their a and c together as option a), which the motion plays.
+const PICKS = { mirra: 'c', stet: 'a', 'social-hook': 'a', clauded: 'c', likewiki: 'b', cheapgc: 'a', 'stellar-explorer': 'a', chairtax: 'a',
   scorecard: 'a', stats: 'b', about: 'c' };
 
 export const coverMotion = {

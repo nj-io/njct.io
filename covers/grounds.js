@@ -7,7 +7,7 @@ export const GROUNDS = {
   'Social Hook': '#427FED',   // its field's mean blue, without the letters and the mark
   Clauded: '#0F5B62',
   LikeWiki: '#1B3930',   // its green field
-  Topshine: '#D3D0F9',   // the lavender room, without the star, orbs and type
+  cheapgc: '#D3D0F9',   // the lavender room, without the star, orbs and type
   Scorecard: '#101D37',   // its navy field
   Xactions: '#080D28',
   'Stellar Explorer': '#0B0E1C',
