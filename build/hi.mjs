@@ -185,19 +185,6 @@ function links(copy, contact) {
   };
 }
 
-// Android downloads a .vcf without offering to import it, so on Android the button opens Contacts' new-contact
-// screen already filled in; the vCard stays the fallback (S.browser_fallback_url) when no app takes the intent.
-function androidIntent(contact, en) {
-  const e = encodeURIComponent;
-  const name = `${contact.given_name} ${contact.family_name}`.trim();
-  const extras = [
-    ['S.name', name], ['S.phone', `+${waDigits(contact)}`], ['i.phone_type', '2'], ['S.email', contact.email],
-    ['S.company', contact.org], ['S.job_title', contact.title], ['S.notes', en.hi_vcard_note],
-    ['S.browser_fallback_url', 'https://njct.io/hi/neil.vcf'],
-  ].filter(([, v]) => v);
-  return `intent:#Intent;action=android.intent.action.INSERT;type=vnd.android.cursor.dir/raw_contact;${extras.map(([k, v]) => `${k}=${e(v)}`).join(';')};end`;
-}
-
 function headRegion(copy, plates) {
   const en = copy.copy[copy.default_locale];
   const { p, l, og } = plates;
@@ -235,7 +222,7 @@ function buildHtml(html, root, copy, contact, plates) {
   const locale = fs.readFileSync(path.join(root, 'hi/locale.mjs'), 'utf8').replace(/^export /gm, '').trimEnd();
   const plate = (pl) => ({ w: pl.w, h: pl.h, sun: pl.sun, shade: pl.shade, leaves: pl.leaves });
   const href = links(copy, contact);
-  const contactJs = `const CONTACT = ${jsonInScript({ linkedin: href.linkedin, whatsapp: `https://wa.me/${waDigits(contact)}`, line: href.line, wechat: href.wechat, vcf: href.vcf, android: androidIntent(contact, en), wechat_id: contact.wechat_id })};`;
+  const contactJs = `const CONTACT = ${jsonInScript({ linkedin: href.linkedin, whatsapp: `https://wa.me/${waDigits(contact)}`, line: href.line, wechat: href.wechat, vcf: href.vcf, wechat_id: contact.wechat_id })};`;
   html = region(html, 'locale', locale);
   html = region(html, 'copy', `const COPY = ${jsonInScript(copy.copy)};`);
   html = region(html, 'plates', `const PLATES = ${jsonInScript({ p: plate(plates.p), l: plate(plates.l) })};`);
