@@ -4,6 +4,12 @@
 /hi/*
   Cache-Control: public, max-age=604800
 
+# the v2 video (hashed names, so a re-encode is a new URL): a year, immutable. The rule above's Cache-Control is
+# detached first, since Pages joins a header set twice with a comma. Pages types .mp4 and .webm by extension.
+/hi/loop.*
+  ! Cache-Control
+  Cache-Control: public, max-age=31536000, immutable
+
 /vendor/fonts/hi/*
   Cache-Control: public, max-age=604800
 

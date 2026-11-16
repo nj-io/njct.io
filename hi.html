@@ -71,6 +71,11 @@
   }
   .scene > *, .scene img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; }
   .scene canvas { mix-blend-mode: multiply; opacity: 0; transition: opacity 1.2s var(--ease); }
+  /* The video's box in the plate, in % of the scene (set by the leaves script per plate); the file stacks the
+     colour picture over its matte, so the video is twice the box's height and only the top half shows. */
+  .scene > .vid { overflow: hidden; opacity: 0; transition: opacity 0.4s var(--ease); pointer-events: none; }
+  .scene > .vid[hidden] { display: none; }
+  .vid video { position: absolute; left: 0; top: 0; width: 100%; height: 200%; object-fit: fill; }
 
   /* The header, as njct.io's: the wordmark, and the language picker built as the Projects menu. */
   .mast { display: flex; align-items: center; gap: 32px; height: 54px; }
@@ -273,7 +278,7 @@ function pillOrder(lang, cc) {
 const COPY = {"en":{"hi_title":"Neil · njct.io","hi_description":"Neil’s contact details: LinkedIn, WhatsApp, LINE and WeChat.","hi_lang_name":"English","hi_lang_label":"Language","hi_greet":"Hi, I’m Neil.","hi_role":"Founder, NJCT","hi_lead":"Great to meet you. Here’s where to find me.","hi_about":"Building products that last, and relationships that matter.","hi_channels_label":"Contact","hi_ch_linkedin":"LinkedIn","hi_ch_whatsapp":"WhatsApp","hi_ch_line":"LINE","hi_ch_wechat":"WeChat","hi_save":"Save contact","hi_wechat_title":"Add me on WeChat","hi_wechat_steps":"Take a screenshot of this code. In WeChat, tap + then Scan, and choose the screenshot from your photos. Or search for my WeChat ID.","hi_wechat_qr_alt":"My WeChat QR code","hi_wechat_id_label":"WeChat ID","hi_copy":"Copy","hi_copied":"Copied","hi_close":"Close","hi_wa_text":"Hi Neil, we just met.","hi_save_inapp":"To save the contact, open this page in your browser.","hi_vcard_note":"Met through njct.io/hi"},"th":{"hi_title":"Neil · njct.io","hi_lang_name":"ไทย","hi_lang_label":"ภาษา","hi_greet":"สวัสดีครับ ผม Neil","hi_role":"ผู้ก่อตั้ง NJCT","hi_lead":"ยินดีที่ได้รู้จักครับ ติดต่อผมได้ทางนี้","hi_about":"ทำโปรดักต์ที่อยู่ได้นาน และสร้าง connection ที่มีความหมาย","hi_channels_label":"ช่องทางติดต่อ","hi_ch_linkedin":"LinkedIn","hi_ch_whatsapp":"WhatsApp","hi_ch_line":"LINE","hi_ch_wechat":"WeChat","hi_save":"บันทึกรายชื่อ","hi_wechat_title":"เพิ่มผมเป็นเพื่อนใน WeChat","hi_wechat_steps":"แคปหน้าจอโค้ดนี้ไว้ แล้วเปิด WeChat แตะ + แล้วเลือก Scan และเลือกภาพจากอัลบั้ม หรือค้นหา WeChat ID ของผม","hi_wechat_qr_alt":"QR code WeChat ของผม","hi_wechat_id_label":"WeChat ID","hi_copy":"คัดลอก","hi_copied":"คัดลอกแล้ว","hi_close":"ปิด","hi_wa_text":"สวัสดี Neil เราเพิ่งเจอกัน","hi_save_inapp":"เปิดหน้านี้ในเบราว์เซอร์เพื่อบันทึกรายชื่อ"},"zh-Hans":{"hi_title":"Neil · njct.io","hi_lang_name":"简体中文","hi_lang_label":"语言","hi_greet":"你好，我是 Neil","hi_role":"NJCT 创始人","hi_lead":"很高兴认识你，可以在这里找到我。","hi_about":"用心做的产品和连接，才靠得住。","hi_channels_label":"联系方式","hi_ch_linkedin":"领英","hi_ch_whatsapp":"WhatsApp","hi_ch_line":"LINE","hi_ch_wechat":"微信","hi_save":"保存联系人","hi_wechat_title":"加我微信","hi_wechat_steps":"截图保存这个二维码，在微信里点“+”→“扫一扫”，从相册中选择截图。也可以搜索我的微信号。","hi_wechat_qr_alt":"我的微信二维码","hi_wechat_id_label":"微信号","hi_copy":"复制","hi_copied":"已复制","hi_close":"关闭","hi_wa_text":"你好 Neil，我们刚刚见过面。","hi_save_inapp":"请在浏览器中打开此页面以保存联系人。"},"zh-Hant":{"hi_title":"Neil · njct.io","hi_lang_name":"繁體中文","hi_lang_label":"語言","hi_greet":"你好，我是 Neil","hi_role":"NJCT 創辦人","hi_lead":"很高興認識你，可以在這裡找到我。","hi_about":"用心做的產品和連結，才靠得住。","hi_channels_label":"聯絡方式","hi_ch_linkedin":"LinkedIn","hi_ch_whatsapp":"WhatsApp","hi_ch_line":"LINE","hi_ch_wechat":"微信","hi_save":"儲存聯絡人","hi_wechat_title":"加我微信","hi_wechat_steps":"截圖保存這個 QR 碼，在微信裡點「+」→「掃一掃」，從相簿中選擇截圖。也可以搜尋我的微信號。","hi_wechat_qr_alt":"我的微信 QR 碼","hi_wechat_id_label":"微信號","hi_copy":"複製","hi_copied":"已複製","hi_close":"關閉","hi_wa_text":"你好 Neil，我們剛剛見過面。","hi_save_inapp":"請在瀏覽器中開啟此頁面以儲存聯絡人。"},"he":{"hi_title":"Neil · njct.io","hi_lang_name":"עברית","hi_lang_label":"שפה","hi_greet":"היי, אני ניל","hi_role":"מייסד NJCT","hi_lead":"נעים להכיר! כאן אפשר למצוא אותי.","hi_about":"בונה מוצרים וקשרים לטווח ארוך.","hi_channels_label":"יצירת קשר","hi_ch_linkedin":"LinkedIn","hi_ch_whatsapp":"WhatsApp","hi_ch_line":"LINE","hi_ch_wechat":"WeChat","hi_save":"שמירת איש קשר","hi_wechat_title":"הוסיפו אותי ב-WeChat","hi_wechat_steps":"צלמו מסך של הקוד. ב-WeChat הקישו על + ואז Scan, ובחרו את צילום המסך מהתמונות. אפשר גם לחפש את מזהה ה-WeChat שלי.","hi_wechat_qr_alt":"קוד ה-QR שלי ב-WeChat","hi_wechat_id_label":"מזהה WeChat","hi_copy":"העתקה","hi_copied":"הועתק","hi_close":"סגירה","hi_wa_text":"היי ניל, נפגשנו הרגע.","hi_save_inapp":"כדי לשמור את איש הקשר, פתחו את הדף בדפדפן."},"es":{"hi_title":"Neil · njct.io","hi_lang_name":"Español","hi_lang_label":"Idioma","hi_greet":"¡Hola! Soy Neil.","hi_role":"Fundador de NJCT","hi_lead":"Encantado de conocerte. Aquí me encuentras.","hi_about":"Creando productos que duran y relaciones que importan.","hi_channels_label":"Contacto","hi_ch_linkedin":"LinkedIn","hi_ch_whatsapp":"WhatsApp","hi_ch_line":"LINE","hi_ch_wechat":"WeChat","hi_save":"Guardar contacto","hi_wechat_title":"Agrégame en WeChat","hi_wechat_steps":"Haz una captura de este código. En WeChat, toca + y luego Escanear, y elige la captura de tus fotos. O busca mi ID de WeChat.","hi_wechat_qr_alt":"Mi código QR de WeChat","hi_wechat_id_label":"ID de WeChat","hi_copy":"Copiar","hi_copied":"Copiado","hi_close":"Cerrar","hi_wa_text":"Hola Neil, nos acabamos de conocer.","hi_save_inapp":"Para guardar el contacto, abre esta página en tu navegador."}};
 /* /copy */
 /* plates: written by build/hi.mjs */
-const PLATES = {"p":{"w":1024,"h":1536,"sun":"/hi/sun-p.86b73ad1.png","shade":[147,157,190],"leaves":{"crowns":[[150,610]],"monsteras":[[960,420,-152],[740,800,-164]],"branch":[[40,-30],[250,150],[530,170]]}},"l":{"w":1536,"h":1024,"sun":"/hi/sun-l.593be097.png","shade":[148,155,188],"leaves":{"crowns":[[260,400]],"monsteras":[[1150,330,-155],[860,560,-160]],"branch":[[40,0],[180,120],[370,140]]}}};
+const PLATES = {"p":{"w":1024,"h":1536,"sun":"/hi/sun-p.86b73ad1.png","shade":[147,157,190],"leaves":{"crowns":[[150,610]],"monsteras":[[960,420,-152],[740,800,-164]],"branch":[[40,-30],[250,150],[530,170]]},"after":{"avif":"/hi/plate-p-after.d922a3ce.avif","webp":"/hi/plate-p-after.45e06c52.webp","jpg":"/hi/plate-p-after.a9442b88.jpg"}},"l":{"w":1536,"h":1024,"sun":"/hi/sun-l.593be097.png","shade":[148,155,188],"leaves":{"crowns":[[260,400]],"monsteras":[[1150,330,-155],[860,560,-160]],"branch":[[40,0],[180,120],[370,140]]},"after":{"avif":"/hi/plate-l-after.9d6a921f.avif","webp":"/hi/plate-l-after.bd1953a6.webp","jpg":"/hi/plate-l-after.0adb2cb4.jpg"}},"video":{"mp4":"/hi/loop.fae12cb4.mp4","webm":"/hi/loop.f38ca009.webm","w":864,"h":1312,"box":{"p":[72,224,864,1312],"l":[960,149.33,576,874.67]}}};
 /* /plates */
 /* contact: written by build/hi.mjs */
 const CONTACT = {"linkedin":"https://www.linkedin.com/in/neilasj/","whatsapp":"https://wa.me/66935355090","line":"https://line.me/ti/p/~fitdegen","wechat":"/hi/wechat-qr.png?v=2041bc09","vcf":"/hi/neil.vcf","wechat_id":"lijiaqineil"};
@@ -346,6 +351,7 @@ function hiApply(lang) {
     <img src="/hi/plate-p.a941c01a.jpg" alt="" width="1024" height="1536" fetchpriority="high">
   </picture>
   <!-- /picture -->
+  <div class="vid" hidden><video muted playsinline webkit-playsinline x5-playsinline preload="none" disablepictureinpicture disableremoteplayback></video></div>
   <canvas id="leaves"></canvas>
 </div></div>
 <header class="mast">
@@ -607,6 +613,10 @@ function hiApply(lang) {
   }
   function build() {
     const p = matchMedia(WIDE).matches ? 'l' : 'p', P = PLATES[p];
+    if (V && vid) {                                // the video's box in this plate, in % of the scene
+      const b = V.box[p], pc = (a, n) => a / n * 100 + '%';
+      Object.assign(vid.style, { left: pc(b[0], P.w), top: pc(b[1], P.h), width: pc(b[2], P.w), height: pc(b[3], P.h) });
+    }
     if (boxless) {
       const r = scene.parentNode.getBoundingClientRect(), w = Math.max(r.width, r.height * P.w / P.h);
       scene.style.width = w + 'px'; scene.style.height = w * P.h / P.w + 'px';
@@ -641,11 +651,32 @@ function hiApply(lang) {
     return true;
   }
 
-  // The sun: the leaves stay only where the plate's wall is in sunlight. One step, so v2 can add a matte here
-  // that keeps leaf shade off the figure.
+  // The video (v2): a man walks in front of the wall, so while the video shows, the leaves are also cut out
+  // where he is. The file's lower half is his matte (white on black); each paint reads the frame on screen into
+  // a half-size bitmap (the hair's soft edge needs it) and turns its red channel into alpha, so the cut moves
+  // with him frame by frame.
+  const V = PLATES.video, vid = scene.querySelector('.vid'), video = vid && vid.firstElementChild;
+  let matte = false, mc = null, mg = null;
+  function cutout() {
+    if (!mc) { mc = mk(432, 656); mg = mc.getContext('2d', { willReadFrequently: true }); mg.imageSmoothingQuality = 'high'; }
+    mg.globalCompositeOperation = 'copy';
+    mg.drawImage(video, 0, V.h, V.w, V.h, 0, 0, mc.width, mc.height);
+    const d = mg.getImageData(0, 0, mc.width, mc.height), a = d.data;
+    for (let i = 0; i < a.length; i += 4) { a[i + 3] = a[i]; a[i] = a[i + 1] = a[i + 2] = 0; }
+    mg.putImageData(d, 0, 0);
+    return mc;
+  }
+
+  // The sun: the leaves stay only where the plate's wall is in sunlight; then, while the video shows, none
+  // where the man is.
   function sun() {
     g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'destination-in';
     g.drawImage(mask, 0, 0, W, H);
+    if (matte) {
+      const b = V.box[key], P = PLATES[key];
+      g.globalCompositeOperation = 'destination-out'; g.imageSmoothingEnabled = true;
+      g.drawImage(cutout(), b[0] / P.w * W, b[1] / P.h * H, b[2] / P.w * W, b[3] / P.h * H);
+    }
     g.globalCompositeOperation = 'source-over';
   }
 
@@ -687,7 +718,7 @@ function hiApply(lang) {
   // fades in; tilting an Android phone shifts them, the crown most. A hidden tab, or the scene out of view,
   // stops the loop; reduced motion, ?still and ?t= draw one still frame.
   const FADE = 1200;
-  let T0 = 0, raf = 0, lastDraw = -1e9, lastNow = 0, tiltRaw = null;
+  let T0 = 0, raf = 0, lastDraw = -1e9, lastNow = 0, tiltRaw = null, fresh = null;
   let tilt = (q.get('tilt') || '0,0').split(',').map(Number);
   function tick(now) {
     raf = requestAnimationFrame(tick);
@@ -696,7 +727,9 @@ function hiApply(lang) {
       const a = 1 - Math.exp(-dt / 150);
       tilt = [tilt[0] + (tiltRaw[0] - tilt[0]) * a, tilt[1] + (tiltRaw[1] - tilt[1]) * a];
     }
-    if (shown && now - shown > FADE && now - lastDraw < 29) return;
+    // while the video plays, one frame for each of its frames (requestVideoFrameCallback), so the cut keeps up
+    if (matte && fresh != null && !video.paused) { if (!fresh) return; fresh = false; }
+    else if (shown && now - shown > FADE && now - lastDraw < 29) return;
     lastDraw = now;
     paint((now - T0) / 1000, tilt);
   }
@@ -725,6 +758,62 @@ function hiApply(lang) {
     const DOE = window.DeviceOrientationEvent;
     if (DOE && typeof DOE.requestPermission !== 'function') addEventListener('deviceorientation', onTilt);
   }
+  // ---- The video (v2) -----------------------------------------------------------------------------------
+  // The page shows as it is first. After the page's load and 1.5 s, the video loads quietly, with the after
+  // plate in the format the page's <img> took. Once the video can play through, the after plate is decoded and
+  // the page has been on screen for 4 s, the video fades in on its first frame (the plate itself), plays once,
+  // and the page rests on the after plate (its last frame). Reduced motion, ?still, ?t=, Data Saver, a browser
+  // that plays neither file, or a refused play() keep the still page.
+  const can = (t) => video && video.canPlayType && video.canPlayType(t);
+  const file = V && PLATES.p.after && PLATES.l.after && !still && !(navigator.connection && navigator.connection.saveData)
+    && (can('video/webm; codecs="vp9"') ? V.webm : can('video/mp4; codecs="avc1.640033"') ? V.mp4 : '');
+  if (file) {
+    const img = scene.querySelector('img');
+    // 0 loading, 1 faded in on frame 0, 2 playing, 3 done
+    let state = 0, after = null, seen = document.hidden ? -1 : 0, wait = 0;
+    const off = () => { state = 3; matte = false; vid.hidden = true; };
+    function sync() {                              // plays while the tab is visible
+      if (state !== 2 || video.ended) return;
+      if (document.hidden) { video.pause(); return; }
+      const pr = video.play();
+      if (pr) pr.catch((e) => { if (e.name !== 'AbortError') off(); });   // autoplay refused: the still page
+    }
+    function go() {
+      if (state || !after || document.hidden || seen < 0 || video.readyState < 4) return;
+      const left = seen + 4000 - performance.now();
+      if (left > 0) { clearTimeout(wait); wait = setTimeout(go, left); return; }
+      state = 1; matte = true; vid.hidden = false; void vid.offsetWidth; vid.style.opacity = '1';
+      if (video.requestVideoFrameCallback) {
+        const f = () => { fresh = true; if (matte) video.requestVideoFrameCallback(f); };
+        fresh = false; video.requestVideoFrameCallback(f);
+      }
+      setTimeout(() => { state = 2; sync(); }, 450);
+    }
+    function load() {
+      video.muted = true; video.preload = 'auto'; video.src = file; video.load();
+      const ext = (/\.(avif|webp|jpg)\b/.exec(img.currentSrc) || [, 'jpg'])[1], im = new Image();
+      im.src = PLATES[key].after[ext];
+      (im.decode ? im.decode() : new Promise((res, rej) => { im.onload = res; im.onerror = rej; })).then(() => { after = im; go(); }, () => {});
+    }
+    video.addEventListener('canplaythrough', go);
+    video.addEventListener('error', () => { if (state < 2) off(); });
+    // the end: the <picture> takes the after plates (both orientations) under the last frame, then the video fades
+    video.addEventListener('ended', () => {
+      const A = { l: PLATES.l.after, p: PLATES.p.after };
+      for (const s of img.parentNode.querySelectorAll('source')) s.srcset = A[s.media ? 'l' : 'p'][(/image\/(\w+)/.exec(s.type) || [, 'jpg'])[1]];
+      img.src = A.p.jpg;
+      const fade = () => { vid.style.opacity = '0'; setTimeout(off, 450); };
+      if (img.decode) img.decode().then(fade, fade); else setTimeout(fade, 100);
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && seen < 0) seen = performance.now();
+      if (state) sync(); else go();
+    });
+    const idle = () => (window.requestIdleCallback ? requestIdleCallback(load, { timeout: 2000 }) : load());
+    const loaded = () => setTimeout(idle, 1500);
+    if (document.readyState === 'complete') loaded(); else addEventListener('load', loaded);
+  }
+
   // A new plate with the orientation, and a new box on a resize; the sprites are rebuilt only when the
   // canvas's size or plate changes.
   const rebuild = () => { if (build()) redraw(); };

@@ -2,6 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { resolveLang, pillOrder } from '../../hi/locale.mjs';
@@ -78,4 +79,15 @@ test('T2 glyph coverage: a Latin letter in zh-Hant missing from the Inter set; C
   assert.equal(r.status, 1, r.stderr);
   assert.match(r.stderr, /glyph missing: U\+004E 'N' \(inter\) in hi_greet \[zh-Hant\]/);
   assert.doesNotMatch(r.stderr, /你|好|我|是|，/);
+});
+
+// v2: the built page carries the video and the after plates the leaves script plays and swaps to.
+test('v2 video: PLATES in hi.html has video and both after plates', () => {
+  const html = fs.readFileSync(path.join(HERE, '..', '..', 'hi.html'), 'utf8');
+  const PLATES = JSON.parse(/const PLATES = (.*);\n/.exec(html)[1]);
+  for (const k of ['mp4', 'webm', 'w', 'h']) assert.ok(PLATES.video?.[k], `PLATES.video.${k}`);
+  for (const p of ['p', 'l']) {
+    assert.equal(PLATES.video.box?.[p]?.length, 4, `PLATES.video.box.${p}`);
+    for (const f of ['avif', 'webp', 'jpg']) assert.ok(PLATES[p].after?.[f], `PLATES.${p}.after.${f}`);
+  }
 });

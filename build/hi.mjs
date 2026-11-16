@@ -220,12 +220,14 @@ function pictureRegion({ p, l }) {
 function buildHtml(html, root, copy, contact, plates) {
   const en = copy.copy[copy.default_locale];
   const locale = fs.readFileSync(path.join(root, 'hi/locale.mjs'), 'utf8').replace(/^export /gm, '').trimEnd();
-  const plate = (pl) => ({ w: pl.w, h: pl.h, sun: pl.sun, shade: pl.shade, leaves: pl.leaves });
+  const plate = (pl) => ({ w: pl.w, h: pl.h, sun: pl.sun, shade: pl.shade, leaves: pl.leaves, after: pl.after });
+  // the v2 video: the colour half's size and its box in each plate (the after plates are fetched by script)
+  const video = plates.video && { mp4: plates.video.mp4, webm: plates.video.webm, w: plates.video.w, h: plates.video.h, box: plates.video.box };
   const href = links(copy, contact);
   const contactJs = `const CONTACT = ${jsonInScript({ linkedin: href.linkedin, whatsapp: `https://wa.me/${waDigits(contact)}`, line: href.line, wechat: href.wechat, vcf: href.vcf, wechat_id: contact.wechat_id })};`;
   html = region(html, 'locale', locale);
   html = region(html, 'copy', `const COPY = ${jsonInScript(copy.copy)};`);
-  html = region(html, 'plates', `const PLATES = ${jsonInScript({ p: plate(plates.p), l: plate(plates.l) })};`);
+  html = region(html, 'plates', `const PLATES = ${jsonInScript({ p: plate(plates.p), l: plate(plates.l), video })};`);
   html = region(html, 'contact', contactJs);
   html = region(html, 'head', headRegion(copy, plates));
   html = region(html, 'picture', pictureRegion(plates));
