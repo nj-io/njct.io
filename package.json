@@ -3,7 +3,11 @@
   "private": true,
   "scripts": {
     "build": "node build/bundle.mjs",
-    "check": "node build/bundle.mjs --check"
+    "check": "node build/bundle.mjs --check",
+    "build:hi": "node build/hi.mjs",
+    "check:hi": "node build/hi.mjs --check",
+    "release:hi": "node build/hi.mjs --check --release",
+    "test:hi": "node --test build/test/*.test.mjs"
   },
   "devDependencies": {
     "esbuild": "0.28.2"

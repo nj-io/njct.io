@@ -1,0 +1,10 @@
+{
+  "project": "njct",
+  "default_locale": "en",
+  "locales": ["en", "zh-Hant"],
+  "copy": {
+    "en": { "hi_greet": "Hi" },
+    "zh-Hant": { "hi_greet": "你好，我是 Neil" }
+  },
+  "status": { "hi_greet": { "en": "approved 2026-11-16: fixture", "zh-Hant": "approved 2026-11-16: fixture" } }
+}

@@ -1,0 +1,15 @@
+{
+  "project": "njct",
+  "default_locale": "en",
+  "locales": ["en", "th"],
+  "copy": {
+    "en": { "hi_greet": "Hi", "hi_save": "Save", "hi_role": "Founder, [[COMPANY]]", "hi_vcard_note": "Met" },
+    "th": { "hi_greet": "Hi", "hi_save": "Save", "hi_role": "Founder, [[COMPANY]]" }
+  },
+  "status": {
+    "hi_greet": { "en": "approved 2026-11-16: fixture", "th": "approved 2026-11-16: fixture" },
+    "hi_save": { "en": "pending", "th": "approved 2026-11-16: fixture" },
+    "hi_role": { "en": "approved 2026-11-16: fixture", "th": "approved 2026-11-16: fixture" },
+    "hi_vcard_note": { "en": "pending" }
+  }
+}

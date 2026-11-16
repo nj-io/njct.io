@@ -1,0 +1,26 @@
+Self-hosted font subsets for njct.io/hi. All are SIL Open Font License 1.1 (https://openfontlicense.org).
+Each file is a Google Fonts text= subset holding the characters content/copy.json draws in that face; glyphs.json
+lists what each file holds, read from its cmap. Regenerate with `node build/hi-fonts.mjs` whenever the copy,
+the contact details or the header wordmark change; `npm run check:hi` fails while a character is missing.
+Chinese uses the system CJK face, so no CJK font is downloaded.
+
+inter-hi.woff2
+  Inter, wght 400..500 (variable), gstatic v20, downloaded 2026-11-16
+  glyphs (65): " !+,-./:ACDEFGHILMNOPQRSTWY[]abcdefghijklmnopqrstuvwyz¡·áéíñó’“”→"
+  request: https://fonts.googleapis.com/css2?family=Inter:wght@400..500&text=%20!%2B%2C-.%2F%3AACDEFGHILMNOPQRSTWY%5B%5Dabcdefghijklmnopqrstuvwyz%C2%A1%C2%B7%C3%A1%C3%A9%C3%AD%C3%B1%C3%B3%E2%80%99%E2%80%9C%E2%80%9D%E2%86%92
+  17800 bytes, sha256 540b3b06ba6916c6156f805123654aaf28245530fe8e170edc81c7b2d2b2e65c
+  Licence: OFL-1.1 (https://github.com/rsms/inter)
+
+noto-sans-thai-hi.woff2
+  Noto Sans Thai, wght 400..500 (variable), gstatic v29, downloaded 2026-11-16
+  glyphs (42): "กขคงจชซดตทนบปผพภมยรลวษสหอะัาิีึืูเแโใไ็่้์"
+  request: https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400..500&text=%E0%B8%81%E0%B8%82%E0%B8%84%E0%B8%87%E0%B8%88%E0%B8%8A%E0%B8%8B%E0%B8%94%E0%B8%95%E0%B8%97%E0%B8%99%E0%B8%9A%E0%B8%9B%E0%B8%9C%E0%B8%9E%E0%B8%A0%E0%B8%A1%E0%B8%A2%E0%B8%A3%E0%B8%A5%E0%B8%A7%E0%B8%A9%E0%B8%AA%E0%B8%AB%E0%B8%AD%E0%B8%B0%E0%B8%B1%E0%B8%B2%E0%B8%B4%E0%B8%B5%E0%B8%B6%E0%B8%B7%E0%B8%B9%E0%B9%80%E0%B9%81%E0%B9%82%E0%B9%83%E0%B9%84%E0%B9%87%E0%B9%88%E0%B9%89%E0%B9%8C
+  13436 bytes, sha256 f89981e25725992514c1836c92ee12046ca736936c9dca5bf6ecf1e37b32eba7
+  Licence: OFL-1.1 (https://github.com/notofonts/thai)
+
+noto-sans-hebrew-hi.woff2
+  Noto Sans Hebrew, wght 400..500 (variable), gstatic v50, downloaded 2026-11-16
+  glyphs (25): "אבגדהוזחיךכלםמןנסעףפצקרשת"
+  request: https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400..500&text=%D7%90%D7%91%D7%92%D7%93%D7%94%D7%95%D7%96%D7%97%D7%99%D7%9A%D7%9B%D7%9C%D7%9D%D7%9E%D7%9F%D7%A0%D7%A1%D7%A2%D7%A3%D7%A4%D7%A6%D7%A7%D7%A8%D7%A9%D7%AA
+  4592 bytes, sha256 d6172861b1077d5c2f64cedfd1d1626f8992762b5a95754a37cb176f7bba2ea4
+  Licence: OFL-1.1 (https://github.com/notofonts/hebrew)

@@ -1,0 +1,9 @@
+{
+  "given_name": "Neil", "family_name": "[[FAMILY_NAME]]",
+  "org": "[[COMPANY]]", "title": "[[TITLE]]",
+  "email": "neil@njct.io", "web": "https://njct.io",
+  "linkedin": "https://www.linkedin.com/in/[[HANDLE]]",
+  "whatsapp": "[[E164_DIGITS]]",
+  "line": "https://line.me/ti/p/[[LINE_LINK]]",
+  "wechat_id": "[[WECHAT_ID]]"
+}

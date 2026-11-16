@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en" dir="ltr" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="only light">
+<!-- head: written by build/hi.mjs -->
+<title>Neil · njct.io</title>
+<meta name="description" content="Neil’s contact details: LinkedIn, WhatsApp, LINE and WeChat.">
+<meta property="og:title" content="Neil · njct.io">
+<meta property="og:description" content="Neil’s contact details: LinkedIn, WhatsApp, LINE and WeChat.">
+<meta property="og:url" content="https://njct.io/hi">
+<meta property="og:image" content="https://njct.io/hi/og.31b2e4b3.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#ad9178">
+<style>html { background: #776658; } @media (orientation: landscape) { html { background: #887465; } }</style>
+<link rel="preload" as="image" href="/hi/plate-p.ca230c8a.avif" type="image/avif" media="(orientation: portrait)" fetchpriority="high">
+<link rel="preload" as="image" href="/hi/plate-l.ed39cb48.avif" type="image/avif" media="(orientation: landscape)" fetchpriority="high">
+<!-- /head -->
+<script>
+/* locale: written by build/hi.mjs */
+const LANGS = ['en', 'th', 'zh-Hans', 'zh-Hant', 'he', 'es'];
+// A language tag (any case, '-' or '_') to a supported locale, or null. An explicit script subtag wins.
+function norm(t) {
+  const [p, ...sub] = String(t || '').toLowerCase().split(/[-_]/);
+  if (p === 'iw') return 'he';
+  if (p === 'zh') {
+    if (sub.includes('hant')) return 'zh-Hant';
+    if (sub.includes('hans')) return 'zh-Hans';
+    return sub.some((s) => s === 'tw' || s === 'hk' || s === 'mo') ? 'zh-Hant' : 'zh-Hans';
+  }
+  return ['en', 'th', 'he', 'es'].includes(p) ? p : null;
+}
+// D1: ?lang=, then the stored picker choice, then the first supported non-English language anywhere in the
+// device's list, then English.
+function resolveLang({ query, stored, languages }) {
+  const q = norm(query);
+  if (q) return { lang: q, source: 'query' };
+  const s = norm(stored);
+  if (s) return { lang: s, source: 'stored' };
+  let en = false;
+  for (const t of languages || []) {
+    const l = norm(t);
+    if (l && l !== 'en') return { lang: l, source: 'device' };
+    if (l === 'en') en = true;
+  }
+  return { lang: 'en', source: en ? 'device' : 'default' };
+}
+const ZH = ['wechat', 'linkedin', 'whatsapp', 'line'];
+const WA = ['whatsapp', 'linkedin', 'line', 'wechat'];
+const ORDER = {
+  en: ['linkedin', 'whatsapp', 'line', 'wechat'],
+  th: ['line', 'whatsapp', 'linkedin', 'wechat'],
+  'zh-Hans': ZH, 'zh-Hant': ZH, he: WA, es: WA,
+};
+// D2: for an English page only, the country picks one of the orders above.
+const COUNTRY_ORDER = Object.assign(
+  { TH: 'th', CN: 'zh-Hans', HK: 'zh-Hans', MO: 'zh-Hans', TW: 'zh-Hans', IL: 'he' },
+  Object.fromEntries('AR BO CL CO CR CU DO EC ES GT HN MX NI PA PE PR PY SV UY VE'.split(' ').map((c) => [c, 'es'])),
+);
+function pillOrder(lang, cc) {
+  return ORDER[lang !== 'en' ? lang : COUNTRY_ORDER[String(cc || '').toUpperCase()] || 'en'];
+}
+/* /locale */
+/* copy: written by build/hi.mjs */
+const COPY = {"en":{"hi_title":"Neil · njct.io","hi_description":"Neil’s contact details: LinkedIn, WhatsApp, LINE and WeChat.","hi_lang_name":"English","hi_lang_label":"Language","hi_greet":"Hi, I’m Neil.","hi_role":"Founder, [[COMPANY]]","hi_lead":"Great to meet you. Here’s where to find me.","hi_about":"I design and build end-to-end systems for companies that use AI.","hi_channels_label":"Contact","hi_ch_linkedin":"LinkedIn","hi_ch_whatsapp":"WhatsApp","hi_ch_line":"LINE","hi_ch_wechat":"WeChat","hi_save":"Save contact","hi_wechat_title":"Add me on WeChat","hi_wechat_steps":"Take a screenshot of this code. In WeChat, tap + then Scan, and choose the screenshot from your photos. Or search for my WeChat ID.","hi_wechat_qr_alt":"My WeChat QR code","hi_wechat_id_label":"WeChat ID","hi_copy":"Copy","hi_copied":"Copied","hi_close":"Close","hi_wa_text":"Hi Neil, we just met.","hi_save_inapp":"To save the contact, open this page in your browser.","hi_vcard_note":"Met through njct.io/hi"},"th":{"hi_title":"Neil · njct.io","hi_lang_name":"ไทย","hi_lang_label":"ภาษา","hi_greet":"สวัสดีครับ ผม Neil","hi_role":"ผู้ก่อตั้ง [[COMPANY]]","hi_lead":"ยินดีที่ได้รู้จักครับ ติดต่อผมได้ทางนี้","hi_about":"ผมออกแบบและสร้างระบบครบวงจรให้บริษัทที่ใช้ AI ครับ","hi_channels_label":"ช่องทางติดต่อ","hi_ch_linkedin":"LinkedIn","hi_ch_whatsapp":"WhatsApp","hi_ch_line":"LINE","hi_ch_wechat":"WeChat","hi_save":"บันทึกรายชื่อ","hi_wechat_title":"เพิ่มผมเป็นเพื่อนใน WeChat","hi_wechat_steps":"แคปหน้าจอโค้ดนี้ไว้ แล้วเปิด WeChat แตะ + แล้วเลือก Scan และเลือกภาพจากอัลบั้ม หรือค้นหา WeChat ID ของผม","hi_wechat_qr_alt":"QR code WeChat ของผม","hi_wechat_id_label":"WeChat ID","hi_copy":"คัดลอก","hi_copied":"คัดลอกแล้ว","hi_close":"ปิด","hi_wa_text":"สวัสดี Neil เราเพิ่งเจอกัน","hi_save_inapp":"เปิดหน้านี้ในเบราว์เซอร์เพื่อบันทึกรายชื่อ"},"zh-Hans":{"hi_title":"Neil · njct.io","hi_lang_name":"简体中文","hi_lang_label":"语言","hi_greet":"你好，我是 Neil","hi_role":"[[COMPANY]] 创始人","hi_lead":"很高兴认识你，可以在这里找到我。","hi_about":"我为使用 AI 的公司设计和搭建端到端的系统。","hi_channels_label":"联系方式","hi_ch_linkedin":"领英","hi_ch_whatsapp":"WhatsApp","hi_ch_line":"LINE","hi_ch_wechat":"微信","hi_save":"保存联系人","hi_wechat_title":"加我微信","hi_wechat_steps":"截图保存这个二维码，在微信里点“+”→“扫一扫”，从相册中选择截图。也可以搜索我的微信号。","hi_wechat_qr_alt":"我的微信二维码","hi_wechat_id_label":"微信号","hi_copy":"复制","hi_copied":"已复制","hi_close":"关闭","hi_wa_text":"你好 Neil，我们刚刚见过面。","hi_save_inapp":"请在浏览器中打开此页面以保存联系人。"},"zh-Hant":{"hi_title":"Neil · njct.io","hi_lang_name":"繁體中文","hi_lang_label":"語言","hi_greet":"你好，我是 Neil","hi_role":"[[COMPANY]] 創辦人","hi_lead":"很高興認識你，可以在這裡找到我。","hi_about":"我為使用 AI 的公司設計和建置端到端的系統。","hi_channels_label":"聯絡方式","hi_ch_linkedin":"LinkedIn","hi_ch_whatsapp":"WhatsApp","hi_ch_line":"LINE","hi_ch_wechat":"微信","hi_save":"儲存聯絡人","hi_wechat_title":"加我微信","hi_wechat_steps":"截圖保存這個 QR 碼，在微信裡點「+」→「掃一掃」，從相簿中選擇截圖。也可以搜尋我的微信號。","hi_wechat_qr_alt":"我的微信 QR 碼","hi_wechat_id_label":"微信號","hi_copy":"複製","hi_copied":"已複製","hi_close":"關閉","hi_wa_text":"你好 Neil，我們剛剛見過面。","hi_save_inapp":"請在瀏覽器中開啟此頁面以儲存聯絡人。"},"he":{"hi_title":"Neil · njct.io","hi_lang_name":"עברית","hi_lang_label":"שפה","hi_greet":"היי, אני ניל","hi_role":"מייסד [[COMPANY]]","hi_lead":"נעים להכיר! כאן אפשר למצוא אותי.","hi_about":"אני מתכנן ובונה מערכות מקצה לקצה לחברות שמשתמשות ב-AI.","hi_channels_label":"יצירת קשר","hi_ch_linkedin":"LinkedIn","hi_ch_whatsapp":"WhatsApp","hi_ch_line":"LINE","hi_ch_wechat":"WeChat","hi_save":"שמירת איש קשר","hi_wechat_title":"הוסיפו אותי ב-WeChat","hi_wechat_steps":"צלמו מסך של הקוד. ב-WeChat הקישו על + ואז Scan, ובחרו את צילום המסך מהתמונות. אפשר גם לחפש את מזהה ה-WeChat שלי.","hi_wechat_qr_alt":"קוד ה-QR שלי ב-WeChat","hi_wechat_id_label":"מזהה WeChat","hi_copy":"העתקה","hi_copied":"הועתק","hi_close":"סגירה","hi_wa_text":"היי ניל, נפגשנו הרגע.","hi_save_inapp":"כדי לשמור את איש הקשר, פתחו את הדף בדפדפן."},"es":{"hi_title":"Neil · njct.io","hi_lang_name":"Español","hi_lang_label":"Idioma","hi_greet":"¡Hola! Soy Neil.","hi_role":"Fundador de [[COMPANY]]","hi_lead":"Encantado de conocerte. Aquí me encuentras.","hi_about":"Diseño y construyo sistemas de principio a fin para empresas que usan IA.","hi_channels_label":"Contacto","hi_ch_linkedin":"LinkedIn","hi_ch_whatsapp":"WhatsApp","hi_ch_line":"LINE","hi_ch_wechat":"WeChat","hi_save":"Guardar contacto","hi_wechat_title":"Agrégame en WeChat","hi_wechat_steps":"Haz una captura de este código. En WeChat, toca + y luego Escanear, y elige la captura de tus fotos. O busca mi ID de WeChat.","hi_wechat_qr_alt":"Mi código QR de WeChat","hi_wechat_id_label":"ID de WeChat","hi_copy":"Copiar","hi_copied":"Copiado","hi_close":"Cerrar","hi_wa_text":"Hola Neil, nos acabamos de conocer.","hi_save_inapp":"Para guardar el contacto, abre esta página en tu navegador."}};
+/* /copy */
+/* plates: written by build/hi.mjs */
+const PLATES = {"p":{"w":1024,"h":1536,"sun":"/hi/sun-p.2cd180a8.png","shade":[162,171,198],"leaves":{}},"l":{"w":1536,"h":1024,"sun":"/hi/sun-l.5fbde226.png","shade":[168,176,209],"leaves":{}}};
+/* /plates */
+/* contact: written by build/hi.mjs */
+const CONTACT = {"linkedin":"https://www.linkedin.com/in/[[HANDLE]]","whatsapp":"https://wa.me/[[E164_DIGITS]]","line":"https://line.me/ti/p/[[LINE_LINK]]","wechat":"/hi/wechat-qr.png","vcf":"/hi/neil.vcf","wechat_id":"[[WECHAT_ID]]"};
+/* /contact */
+</script>
+</head>
+<body>
+<div class="stage" aria-hidden="true"><div class="scene">
+  <!-- picture: written by build/hi.mjs -->
+  <picture>
+    <source media="(orientation: landscape)" type="image/avif" srcset="/hi/plate-l.ed39cb48.avif">
+    <source media="(orientation: landscape)" type="image/webp" srcset="/hi/plate-l.94b34237.webp">
+    <source media="(orientation: landscape)" srcset="/hi/plate-l.87fa16ce.jpg">
+    <source type="image/avif" srcset="/hi/plate-p.ca230c8a.avif">
+    <source type="image/webp" srcset="/hi/plate-p.7a3f9b8f.webp">
+    <img src="/hi/plate-p.990f9ce3.jpg" alt="" width="1024" height="1536" fetchpriority="high">
+  </picture>
+  <!-- /picture -->
+  <canvas id="leaves"></canvas>
+</div></div>
+<main class="page">
+  <h1 data-stet="hi_greet">Hi, I’m Neil.</h1>
+  <p data-stet="hi_role">Founder, [[COMPANY]]</p>
+  <p data-stet="hi_lead">Great to meet you. Here’s where to find me.</p>
+  <p data-stet="hi_about">I design and build end-to-end systems for companies that use AI.</p>
+  <nav data-pills>
+    <a href="https://www.linkedin.com/in/[[HANDLE]]" data-href="linkedin"><span data-stet="hi_ch_linkedin">LinkedIn</span></a>
+    <a href="https://wa.me/[[E164_DIGITS]]?text=Hi%20Neil%2C%20we%20just%20met." data-href="whatsapp"><span data-stet="hi_ch_whatsapp">WhatsApp</span></a>
+    <a href="https://line.me/ti/p/[[LINE_LINK]]" data-href="line"><span data-stet="hi_ch_line">LINE</span></a>
+    <a href="/hi/wechat-qr.png" data-href="wechat"><span data-stet="hi_ch_wechat">WeChat</span></a>
+  </nav>
+  <a href="/hi/neil.vcf" data-href="vcf" download><span data-stet="hi_save">Save contact</span></a>
+</main>
+</body>
+</html>

@@ -1,0 +1,344 @@
+{
+  "project": "njct",
+  "default_locale": "en",
+  "locales": [
+    "en",
+    "th",
+    "zh-Hans",
+    "zh-Hant",
+    "he",
+    "es"
+  ],
+  "copy": {
+    "en": {
+      "hi_title": "Neil · njct.io",
+      "hi_description": "Neil’s contact details: LinkedIn, WhatsApp, LINE and WeChat.",
+      "hi_lang_name": "English",
+      "hi_lang_label": "Language",
+      "hi_greet": "Hi, I’m Neil.",
+      "hi_role": "Founder, [[COMPANY]]",
+      "hi_lead": "Great to meet you. Here’s where to find me.",
+      "hi_about": "I design and build end-to-end systems for companies that use AI.",
+      "hi_channels_label": "Contact",
+      "hi_ch_linkedin": "LinkedIn",
+      "hi_ch_whatsapp": "WhatsApp",
+      "hi_ch_line": "LINE",
+      "hi_ch_wechat": "WeChat",
+      "hi_save": "Save contact",
+      "hi_wechat_title": "Add me on WeChat",
+      "hi_wechat_steps": "Take a screenshot of this code. In WeChat, tap + then Scan, and choose the screenshot from your photos. Or search for my WeChat ID.",
+      "hi_wechat_qr_alt": "My WeChat QR code",
+      "hi_wechat_id_label": "WeChat ID",
+      "hi_copy": "Copy",
+      "hi_copied": "Copied",
+      "hi_close": "Close",
+      "hi_wa_text": "Hi Neil, we just met.",
+      "hi_save_inapp": "To save the contact, open this page in your browser.",
+      "hi_vcard_note": "Met through njct.io/hi"
+    },
+    "th": {
+      "hi_title": "Neil · njct.io",
+      "hi_lang_name": "ไทย",
+      "hi_lang_label": "ภาษา",
+      "hi_greet": "สวัสดีครับ ผม Neil",
+      "hi_role": "ผู้ก่อตั้ง [[COMPANY]]",
+      "hi_lead": "ยินดีที่ได้รู้จักครับ ติดต่อผมได้ทางนี้",
+      "hi_about": "ผมออกแบบและสร้างระบบครบวงจรให้บริษัทที่ใช้ AI ครับ",
+      "hi_channels_label": "ช่องทางติดต่อ",
+      "hi_ch_linkedin": "LinkedIn",
+      "hi_ch_whatsapp": "WhatsApp",
+      "hi_ch_line": "LINE",
+      "hi_ch_wechat": "WeChat",
+      "hi_save": "บันทึกรายชื่อ",
+      "hi_wechat_title": "เพิ่มผมเป็นเพื่อนใน WeChat",
+      "hi_wechat_steps": "แคปหน้าจอโค้ดนี้ไว้ แล้วเปิด WeChat แตะ + แล้วเลือก Scan และเลือกภาพจากอัลบั้ม หรือค้นหา WeChat ID ของผม",
+      "hi_wechat_qr_alt": "QR code WeChat ของผม",
+      "hi_wechat_id_label": "WeChat ID",
+      "hi_copy": "คัดลอก",
+      "hi_copied": "คัดลอกแล้ว",
+      "hi_close": "ปิด",
+      "hi_wa_text": "สวัสดี Neil เราเพิ่งเจอกัน",
+      "hi_save_inapp": "เปิดหน้านี้ในเบราว์เซอร์เพื่อบันทึกรายชื่อ"
+    },
+    "zh-Hans": {
+      "hi_title": "Neil · njct.io",
+      "hi_lang_name": "简体中文",
+      "hi_lang_label": "语言",
+      "hi_greet": "你好，我是 Neil",
+      "hi_role": "[[COMPANY]] 创始人",
+      "hi_lead": "很高兴认识你，可以在这里找到我。",
+      "hi_about": "我为使用 AI 的公司设计和搭建端到端的系统。",
+      "hi_channels_label": "联系方式",
+      "hi_ch_linkedin": "领英",
+      "hi_ch_whatsapp": "WhatsApp",
+      "hi_ch_line": "LINE",
+      "hi_ch_wechat": "微信",
+      "hi_save": "保存联系人",
+      "hi_wechat_title": "加我微信",
+      "hi_wechat_steps": "截图保存这个二维码，在微信里点“+”→“扫一扫”，从相册中选择截图。也可以搜索我的微信号。",
+      "hi_wechat_qr_alt": "我的微信二维码",
+      "hi_wechat_id_label": "微信号",
+      "hi_copy": "复制",
+      "hi_copied": "已复制",
+      "hi_close": "关闭",
+      "hi_wa_text": "你好 Neil，我们刚刚见过面。",
+      "hi_save_inapp": "请在浏览器中打开此页面以保存联系人。"
+    },
+    "zh-Hant": {
+      "hi_title": "Neil · njct.io",
+      "hi_lang_name": "繁體中文",
+      "hi_lang_label": "語言",
+      "hi_greet": "你好，我是 Neil",
+      "hi_role": "[[COMPANY]] 創辦人",
+      "hi_lead": "很高興認識你，可以在這裡找到我。",
+      "hi_about": "我為使用 AI 的公司設計和建置端到端的系統。",
+      "hi_channels_label": "聯絡方式",
+      "hi_ch_linkedin": "LinkedIn",
+      "hi_ch_whatsapp": "WhatsApp",
+      "hi_ch_line": "LINE",
+      "hi_ch_wechat": "微信",
+      "hi_save": "儲存聯絡人",
+      "hi_wechat_title": "加我微信",
+      "hi_wechat_steps": "截圖保存這個 QR 碼，在微信裡點「+」→「掃一掃」，從相簿中選擇截圖。也可以搜尋我的微信號。",
+      "hi_wechat_qr_alt": "我的微信 QR 碼",
+      "hi_wechat_id_label": "微信號",
+      "hi_copy": "複製",
+      "hi_copied": "已複製",
+      "hi_close": "關閉",
+      "hi_wa_text": "你好 Neil，我們剛剛見過面。",
+      "hi_save_inapp": "請在瀏覽器中開啟此頁面以儲存聯絡人。"
+    },
+    "he": {
+      "hi_title": "Neil · njct.io",
+      "hi_lang_name": "עברית",
+      "hi_lang_label": "שפה",
+      "hi_greet": "היי, אני ניל",
+      "hi_role": "מייסד [[COMPANY]]",
+      "hi_lead": "נעים להכיר! כאן אפשר למצוא אותי.",
+      "hi_about": "אני מתכנן ובונה מערכות מקצה לקצה לחברות שמשתמשות ב-AI.",
+      "hi_channels_label": "יצירת קשר",
+      "hi_ch_linkedin": "LinkedIn",
+      "hi_ch_whatsapp": "WhatsApp",
+      "hi_ch_line": "LINE",
+      "hi_ch_wechat": "WeChat",
+      "hi_save": "שמירת איש קשר",
+      "hi_wechat_title": "הוסיפו אותי ב-WeChat",
+      "hi_wechat_steps": "צלמו מסך של הקוד. ב-WeChat הקישו על + ואז Scan, ובחרו את צילום המסך מהתמונות. אפשר גם לחפש את מזהה ה-WeChat שלי.",
+      "hi_wechat_qr_alt": "קוד ה-QR שלי ב-WeChat",
+      "hi_wechat_id_label": "מזהה WeChat",
+      "hi_copy": "העתקה",
+      "hi_copied": "הועתק",
+      "hi_close": "סגירה",
+      "hi_wa_text": "היי ניל, נפגשנו הרגע.",
+      "hi_save_inapp": "כדי לשמור את איש הקשר, פתחו את הדף בדפדפן."
+    },
+    "es": {
+      "hi_title": "Neil · njct.io",
+      "hi_lang_name": "Español",
+      "hi_lang_label": "Idioma",
+      "hi_greet": "¡Hola! Soy Neil.",
+      "hi_role": "Fundador de [[COMPANY]]",
+      "hi_lead": "Encantado de conocerte. Aquí me encuentras.",
+      "hi_about": "Diseño y construyo sistemas de principio a fin para empresas que usan IA.",
+      "hi_channels_label": "Contacto",
+      "hi_ch_linkedin": "LinkedIn",
+      "hi_ch_whatsapp": "WhatsApp",
+      "hi_ch_line": "LINE",
+      "hi_ch_wechat": "WeChat",
+      "hi_save": "Guardar contacto",
+      "hi_wechat_title": "Agrégame en WeChat",
+      "hi_wechat_steps": "Haz una captura de este código. En WeChat, toca + y luego Escanear, y elige la captura de tus fotos. O busca mi ID de WeChat.",
+      "hi_wechat_qr_alt": "Mi código QR de WeChat",
+      "hi_wechat_id_label": "ID de WeChat",
+      "hi_copy": "Copiar",
+      "hi_copied": "Copiado",
+      "hi_close": "Cerrar",
+      "hi_wa_text": "Hola Neil, nos acabamos de conocer.",
+      "hi_save_inapp": "Para guardar el contacto, abre esta página en tu navegador."
+    }
+  },
+  "status": {
+    "hi_title": {
+      "en": "pending",
+      "th": "pending",
+      "zh-Hans": "pending",
+      "zh-Hant": "pending",
+      "he": "pending",
+      "es": "pending"
+    },
+    "hi_description": {
+      "en": "pending"
+    },
+    "hi_lang_name": {
+      "en": "pending",
+      "th": "pending",
+      "zh-Hans": "pending",
+      "zh-Hant": "pending",
+      "he": "pending",
+      "es": "pending"
+    },
+    "hi_lang_label": {
+      "en": "pending",
+      "th": "pending",
+      "zh-Hans": "pending",
+      "zh-Hant": "pending",
+      "he": "pending",
+      "es": "pending"
+    },
+    "hi_greet": {
+      "en": "approved 2026-11-16: reused verbatim from njct.io About (data/projects.json about[0])",
+      "th": "pending",
+      "zh-Hans": "pending",
+      "zh-Hant": "pending",
+      "he": "pending",
+      "es": "pending"
+    },
+    "hi_role": {
+      "en": "pending",
+      "th": "pending",
+      "zh-Hans": "pending",
+      "zh-Hant": "pending",
+      "he": "pending",
+      "es": "pending"
+    },
+    "hi_lead": {
+      "en": "pending",
+      "th": "pending",
+      "zh-Hans": "pending",
+      "zh-Hant": "pending",
+      "he": "pending",
+      "es": "pending"
+    },
+    "hi_about": {
+      "en": "pending",
+      "th": "pending",
+      "zh-Hans": "pending",
+      "zh-Hant": "pending",
+      "he": "pending",
+      "es": "pending"
+    },
+    "hi_channels_label": {
+      "en": "pending",
+      "th": "pending",
+      "zh-Hans": "pending",
+      "zh-Hant": "pending",
+      "he": "pending",
+      "es": "pending"
+    },
+    "hi_ch_linkedin": {
+      "en": "pending",
+      "th": "pending",
+      "zh-Hans": "pending",
+      "zh-Hant": "pending",
+      "he": "pending",
+      "es": "pending"
+    },
+    "hi_ch_whatsapp": {
+      "en": "pending",
+      "th": "pending",
+      "zh-Hans": "pending",
+      "zh-Hant": "pending",
+      "he": "pending",
+      "es": "pending"
+    },
+    "hi_ch_line": {
+      "en": "pending",
+      "th": "pending",
+      "zh-Hans": "pending",
+      "zh-Hant": "pending",
+      "he": "pending",
+      "es": "pending"
+    },
+    "hi_ch_wechat": {
+      "en": "pending",
+      "th": "pending",
+      "zh-Hans": "pending",
+      "zh-Hant": "pending",
+      "he": "pending",
+      "es": "pending"
+    },
+    "hi_save": {
+      "en": "pending",
+      "th": "pending",
+      "zh-Hans": "pending",
+      "zh-Hant": "pending",
+      "he": "pending",
+      "es": "pending"
+    },
+    "hi_wechat_title": {
+      "en": "pending",
+      "th": "pending",
+      "zh-Hans": "pending",
+      "zh-Hant": "pending",
+      "he": "pending",
+      "es": "pending"
+    },
+    "hi_wechat_steps": {
+      "en": "pending",
+      "th": "pending",
+      "zh-Hans": "pending",
+      "zh-Hant": "pending",
+      "he": "pending",
+      "es": "pending"
+    },
+    "hi_wechat_qr_alt": {
+      "en": "pending",
+      "th": "pending",
+      "zh-Hans": "pending",
+      "zh-Hant": "pending",
+      "he": "pending",
+      "es": "pending"
+    },
+    "hi_wechat_id_label": {
+      "en": "pending",
+      "th": "pending",
+      "zh-Hans": "pending",
+      "zh-Hant": "pending",
+      "he": "pending",
+      "es": "pending"
+    },
+    "hi_copy": {
+      "en": "pending",
+      "th": "pending",
+      "zh-Hans": "pending",
+      "zh-Hant": "pending",
+      "he": "pending",
+      "es": "pending"
+    },
+    "hi_copied": {
+      "en": "pending",
+      "th": "pending",
+      "zh-Hans": "pending",
+      "zh-Hant": "pending",
+      "he": "pending",
+      "es": "pending"
+    },
+    "hi_close": {
+      "en": "pending",
+      "th": "pending",
+      "zh-Hans": "pending",
+      "zh-Hant": "pending",
+      "he": "pending",
+      "es": "pending"
+    },
+    "hi_wa_text": {
+      "en": "pending",
+      "th": "pending",
+      "zh-Hans": "pending",
+      "zh-Hant": "pending",
+      "he": "pending",
+      "es": "pending"
+    },
+    "hi_save_inapp": {
+      "en": "pending",
+      "th": "pending",
+      "zh-Hans": "pending",
+      "zh-Hant": "pending",
+      "he": "pending",
+      "es": "pending"
+    },
+    "hi_vcard_note": {
+      "en": "pending"
+    }
+  }
+}

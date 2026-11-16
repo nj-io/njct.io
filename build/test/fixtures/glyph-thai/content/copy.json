@@ -1,0 +1,10 @@
+{
+  "project": "njct",
+  "default_locale": "en",
+  "locales": ["en", "th"],
+  "copy": {
+    "en": { "hi_greet": "Hi" },
+    "th": { "hi_greet": "สวัสดีฯ" }
+  },
+  "status": { "hi_greet": { "en": "approved 2026-11-16: fixture", "th": "approved 2026-11-16: fixture" } }
+}
