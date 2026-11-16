@@ -1,0 +1,41 @@
+{
+  "p": {
+    "w": 1024,
+    "h": 1536,
+    "avif": "/hi/plate-p.ca230c8a.avif",
+    "webp": "/hi/plate-p.7a3f9b8f.webp",
+    "jpg": "/hi/plate-p.990f9ce3.jpg",
+    "sun": "/hi/sun-p.2cd180a8.png",
+    "shade": [
+      162,
+      171,
+      198
+    ],
+    "shade_source": "measured",
+    "ls_ll": 0.675,
+    "contrast_p5": 0.103,
+    "top": "#ad9178",
+    "bottom": "#776658",
+    "leaves": {}
+  },
+  "l": {
+    "w": 1536,
+    "h": 1024,
+    "avif": "/hi/plate-l.ed39cb48.avif",
+    "webp": "/hi/plate-l.94b34237.webp",
+    "jpg": "/hi/plate-l.87fa16ce.jpg",
+    "sun": "/hi/sun-l.5fbde226.png",
+    "shade": [
+      168,
+      176,
+      209
+    ],
+    "shade_source": "measured",
+    "ls_ll": 0.685,
+    "contrast_p5": 0.121,
+    "top": "#ab8f77",
+    "bottom": "#887465",
+    "leaves": {}
+  },
+  "og": "/hi/og.31b2e4b3.jpg"
+}
