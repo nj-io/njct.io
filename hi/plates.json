@@ -2,20 +2,20 @@
   "p": {
     "w": 1024,
     "h": 1536,
-    "avif": "/hi/plate-p.ca230c8a.avif",
-    "webp": "/hi/plate-p.7a3f9b8f.webp",
-    "jpg": "/hi/plate-p.990f9ce3.jpg",
-    "sun": "/hi/sun-p.2cd180a8.png",
+    "avif": "/hi/plate-p.36287482.avif",
+    "webp": "/hi/plate-p.d4c2426b.webp",
+    "jpg": "/hi/plate-p.a941c01a.jpg",
+    "sun": "/hi/sun-p.86b73ad1.png",
     "shade": [
-      162,
-      171,
-      198
+      147,
+      157,
+      190
     ],
     "shade_source": "measured",
-    "ls_ll": 0.675,
-    "contrast_p5": 0.103,
-    "top": "#ad9178",
-    "bottom": "#776658",
+    "ls_ll": 0.601,
+    "contrast_p5": 0.072,
+    "top": "#a78970",
+    "bottom": "#725e4e",
     "leaves": {
       "crowns": [
         [
@@ -49,25 +49,30 @@
           170
         ]
       ]
+    },
+    "after": {
+      "avif": "/hi/plate-p-after.d922a3ce.avif",
+      "webp": "/hi/plate-p-after.45e06c52.webp",
+      "jpg": "/hi/plate-p-after.a9442b88.jpg"
     }
   },
   "l": {
     "w": 1536,
     "h": 1024,
-    "avif": "/hi/plate-l.ed39cb48.avif",
-    "webp": "/hi/plate-l.94b34237.webp",
-    "jpg": "/hi/plate-l.87fa16ce.jpg",
-    "sun": "/hi/sun-l.5fbde226.png",
+    "avif": "/hi/plate-l.e7c3ef15.avif",
+    "webp": "/hi/plate-l.b746e784.webp",
+    "jpg": "/hi/plate-l.8b484ad7.jpg",
+    "sun": "/hi/sun-l.593be097.png",
     "shade": [
-      168,
-      176,
-      209
+      148,
+      155,
+      188
     ],
     "shade_source": "measured",
-    "ls_ll": 0.685,
-    "contrast_p5": 0.121,
-    "top": "#ab8f77",
-    "bottom": "#887465",
+    "ls_ll": 0.583,
+    "contrast_p5": 0.067,
+    "top": "#daab7c",
+    "bottom": "#7b6655",
     "leaves": {
       "crowns": [
         [
@@ -101,7 +106,36 @@
           140
         ]
       ]
+    },
+    "after": {
+      "avif": "/hi/plate-l-after.9d6a921f.avif",
+      "webp": "/hi/plate-l-after.bd1953a6.webp",
+      "jpg": "/hi/plate-l-after.0adb2cb4.jpg"
     }
   },
-  "og": "/hi/og.31b2e4b3.jpg"
+  "og": "/hi/og.ef8d4802.jpg",
+  "video": {
+    "mp4": "/hi/loop.0ebc7013.mp4",
+    "webm": "/hi/loop.e5e7aa53.webm",
+    "w": 864,
+    "h": 1312,
+    "stacked": "colour on top, matte below (white = the man), each 864 x 1312; the file is 864 x 2624",
+    "frames": 213,
+    "fps": 24,
+    "box": {
+      "p": [
+        72,
+        224,
+        864,
+        1312
+      ],
+      "l": [
+        960,
+        149.33,
+        576,
+        874.67
+      ]
+    },
+    "note": "box = [x, y, w, h] of the colour half in each plate's pixels; frame 1 is the plate, the last frame is plate.after"
+  }
 }
