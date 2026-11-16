@@ -70,6 +70,9 @@
     width: max(100cqw, 100cqh * var(--pw) / var(--ph)); aspect-ratio: var(--pw) / var(--ph);
   }
   .scene > *, .scene img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; }
+  /* While he is on screen (v2), the text lines get a soft light halo, so black text stays legible over his hair. */
+  main h1, main .role, main .intro, main .about { transition: text-shadow 0.6s var(--ease); }
+  .hi-vid main h1, .hi-vid main .role, .hi-vid main .intro, .hi-vid main .about { text-shadow: 0 0 2px rgb(255 247 238 / 0.7), 0 0 10px rgb(255 247 238 / 0.85), 0 0 22px rgb(255 247 238 / 0.6); }
   .scene canvas { mix-blend-mode: multiply; opacity: 0; transition: opacity 1.2s var(--ease); }
   /* The video's box in the plate, in % of the scene (set by the leaves script per plate); the file stacks the
      colour picture over its matte, so the video is twice the box's height and only the top half shows. */
@@ -771,7 +774,7 @@ function hiApply(lang) {
     const img = scene.querySelector('img');
     // 0 loading, 1 faded in on frame 0, 2 playing, 3 done
     let state = 0, after = null, seen = document.hidden ? -1 : 0, wait = 0;
-    const off = () => { state = 3; matte = false; vid.hidden = true; };
+    const off = () => { state = 3; matte = false; vid.hidden = true; document.documentElement.classList.remove('hi-vid'); };
     function sync() {                              // plays while the tab is visible
       if (state !== 2 || video.ended) return;
       if (document.hidden) { video.pause(); return; }
@@ -782,7 +785,7 @@ function hiApply(lang) {
       if (state || !after || document.hidden || seen < 0 || video.readyState < 4) return;
       const left = seen + 4000 - performance.now();
       if (left > 0) { clearTimeout(wait); wait = setTimeout(go, left); return; }
-      state = 1; matte = true; vid.hidden = false; void vid.offsetWidth; vid.style.opacity = '1';
+      state = 1; matte = true; vid.hidden = false; void vid.offsetWidth; vid.style.opacity = '1'; document.documentElement.classList.add('hi-vid');
       if (video.requestVideoFrameCallback) {
         const f = () => { fresh = true; if (matte) video.requestVideoFrameCallback(f); };
         fresh = false; video.requestVideoFrameCallback(f);
@@ -802,7 +805,7 @@ function hiApply(lang) {
       const A = { l: PLATES.l.after, p: PLATES.p.after };
       for (const s of img.parentNode.querySelectorAll('source')) s.srcset = A[s.media ? 'l' : 'p'][(/image\/(\w+)/.exec(s.type) || [, 'jpg'])[1]];
       img.src = A.p.jpg;
-      const fade = () => { vid.style.opacity = '0'; setTimeout(off, 450); };
+      const fade = () => { vid.style.opacity = '0'; document.documentElement.classList.remove('hi-vid'); setTimeout(off, 450); };
       if (img.decode) img.decode().then(fade, fade); else setTimeout(fade, 100);
     });
     document.addEventListener('visibilitychange', () => {
