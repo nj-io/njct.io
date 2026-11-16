@@ -326,7 +326,7 @@ function hiApply(lang) {
   if (!list.children.length) {
     const FLAGS = { en: '🇬🇧', th: '🇹🇭', 'zh-Hans': '🇨🇳', 'zh-Hant': '🇭🇰', he: '🇮🇱', es: '🇪🇸' };
     const check = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"/></svg>';
-    list.innerHTML = LANGS.map((l) => `<li><button class="pm-item" type="button" lang="${l}" data-lang="${l}"><span class="pm-flag" aria-hidden="true">${FLAGS[l]}</span><span class="pm-text" dir="auto">${COPY[l].hi_lang_name}</span>${check}</button></li>`).join('');
+    list.innerHTML = LANGS.map((l) => `<li><button class="pm-item" type="button" lang="${l}" data-lang="${l}"><span class="pm-flag" aria-hidden="true">${FLAGS[l]}</span><span class="pm-text"><bdi>${COPY[l].hi_lang_name}</bdi></span>${check}</button></li>`).join('');
   }
   for (const b of list.querySelectorAll('[data-lang]')) b.setAttribute('aria-current', String(b.dataset.lang === lang));
   html.classList.remove('hi-wait');
