@@ -44,7 +44,7 @@ The first supported language in the list as the rule (which gives `en-US, th-TH`
 
 **D6. The paid plate edits.** Approved up to USD 0.30 in total for both plates, at most three attempts per plate (§ 1). The builder shows the plates to Neil before they are used.
 
-**D7. Text on the wall.** Every line of text on the photograph is solid black (`#000`). The plate's contrast rule (§ 1, step 4) holds the text zone to a 5th-percentile luminance of at least 0.18 after full leaf shade.
+**D7. Text on the wall.** Every line of text on the photograph is solid black (`#000`). Contrast is reported, not gated (§ 1, step 4): where a leaf shadow crosses a shade band the darkest spots may give small text about 3.4:1. Neil accepted this (16 Nov 2026). Fading leaf shadows out behind the text, a brighter high-key wall and a frosted panel behind the text rejected: each changes concept 1's look, and Neil ruled to keep concept 1 and accept the lower contrast.
 
 Contact details, the company name, the extra text, the vCard fields and the remaining copy are needed before release, not before building (§ 9).
 
@@ -87,7 +87,7 @@ Composition of the portrait plate (1024 × 1536), as fractions:
 
 | Zone | Rule | Why |
 |---|---|---|
-| Text zone: top 0–64 % of the height, central 69 % of the width (15.5–84.5 %) | calm open wall in sun and shade bands, no objects; passes the contrast rule | the header, greeting, lines and pills sit here; a phone shows the central 69 % of the plate's width (box maths in § 2) |
+| Text zone: top 0–64 % of the height, central 69 % of the width (15.5–84.5 %) | calm open wall in sun and shade bands, no objects; contrast reported | the header, greeting, lines and pills sit here; a phone shows the central 69 % of the plate's width (box maths in § 2) |
 | Objects, 66–88 % of the height | top of the laptop screen at or below 66 %; tabletop about 84 %; pedestal runs off the bottom | the Save contact bar covers 91–97 % |
 | Horizontal | laptop, cup and table inside the middle 60 % of the width (20–80 %) | they stay in the visible crop |
 
@@ -117,7 +117,7 @@ Landscape prompt:
 
 > Recompose this photograph as a wide 3:2 landscape of the same café corner, from the same camera height, with the same light, colour and grain. The same pale warm grey plaster wall fills the frame, in the same light as this photograph: the same low warm sun from the upper left in broad, soft diagonal bands, with cooler soft shade between them, at the same depth of contrast between sun and shade. No leaf, plant or flower shadows and no window frame in view. Place the same high round café table, with the same open silver laptop and the same flat white on its saucer, in the right third of the frame and low: the tabletop at about 80 percent of the height, its pedestal running off the bottom edge. The left 55 percent of the frame is calm open wall with only these bands of sun and shade. No people, no hands, no human shadows, no text, no logos, no watermark, no border.
 
-An attempt is accepted when it has no remnant of text or buttons, no leaf shapes, the objects in their zones, a shade reference (step 2) and a pass of the contrast rule (step 4). The builder then shows the accepted plates to Neil, who approves them before use (a checkpoint). The accepted files are copied to `v8/plate-portrait.png` and `v8/plate-landscape.png`; every attempt stays in `v8/` with its prompt and cost in `v8/prompts.md`.
+An attempt is accepted when it has no remnant of text or buttons, no leaf shapes, the objects in their zones, a shade reference (step 2) and a contrast report (step 4). The builder then shows the accepted plates to Neil, who approves them before use (a checkpoint). The accepted files are copied to `v8/plate-portrait.png` and `v8/plate-landscape.png`; every attempt stays in `v8/` with its prompt and cost in `v8/prompts.md`.
 
 ### Delivered files and budgets
 
@@ -161,7 +161,7 @@ A leaf shadow on a sunlit wall is that wall without the sun's share of its light
 1. **The sun mask.** `build/hi-plate.py` measures the luma of every pixel in the wall zone, takes the 10th percentile as `Ls` (shade) and the 95th as `Ll` (full sun). When `Ls / Ll > 0.75` the plate has no shade reference, and the script rejects it (exit 1, `no shade reference: Ls/Ll = <x>`); the ratio is written to `plates.json` as `ls_ll`. Otherwise it maps each pixel of the plate to `s = clamp((L − Ls) / (Ll − Ls), 0, 1)`, blurs `s` with a Gaussian of radius 4 px (removing plaster grain), scales it to one eighth, and saves it as a PNG that is black with `s` as alpha. Below the tabletop line the mask is computed the same way, so leaves also shade a lit tabletop. Inside the plate's own shade (and the bars of the window's light), `s` is near 0, so a leaf adds nothing there: shade cannot be shaded twice.
 2. **The shade colour.** Per channel, in sRGB values (the space CSS blending works in): `k = mean(plate over pixels with s < 0.1) / mean(plate over pixels with s > 0.9)`, both over the wall zone, clamped to at most 1. Concept 1 measures `k = (0.66, 0.69, 0.78)`: the shade is cooler than the sun. Written to `hi/plates.json` as `shade: [r, g, b]` in 0–255 (`round(255 × k)`), with `shade_source: "measured"`. When the plate carries a hand-written `shade_override: [r, g, b]` (ratios 0–1), the script writes `shade` from it instead, with `shade_source: "override"`, and uses it in step 4. The documented fallback is concept 1's measured ratio, `shade_override: [0.66, 0.69, 0.78]`, for a plate whose measured shade fails C4's numeric check.
 3. **Drawing.** One canvas over the plate, inside the same box (§ 2). Each frame: clear; draw every leaf sprite (blurred by its distance, as v6) with `source-over` in the shade colour `rgb(shade)`. Overlapping leaves accumulate alpha as `1 − (1 − a1)(1 − a2)`, the product of the sun's visibility through each, so an overlap is never darker than full shade. Then draw the sun mask over the whole canvas with `destination-in`, so the leaves exist only where the sun falls. The canvas has `mix-blend-mode: multiply`. Where a leaf's alpha is `a`, the pixel becomes `plate × (1 − a + a × k)`: at full alpha exactly the plate's own shade, at its blurred edges the partial light of a penumbra.
-4. **Contrast rule.** `build/hi-plate.py` multiplies the text zone's sRGB values by `shade / 255` (full leaf shade everywhere, the worst case), converts each pixel to WCAG relative luminance (linearised channels weighted 0.2126, 0.7152, 0.0722), and reports the 5th percentile as `contrast_p5`. It must be at least 0.18: solid black text then has a contrast ratio of at least (0.18 + 0.05) / 0.05 = 4.6:1 over 95 % of the zone, above WCAG AA's 4.5:1. A plate that fails is rejected (exit 1). The script also reports the mean colour of the plate's top 3 % (`top`, for `theme-color`) and bottom 3 % (`bottom`, for the `html` background, which shows in iOS overscroll).
+4. **Contrast report.** `build/hi-plate.py` multiplies the text zone's sRGB values by `shade / 255` (full leaf shade everywhere, the worst case), converts each pixel to WCAG relative luminance (linearised channels weighted 0.2126, 0.7152, 0.0722), and reports the 5th percentile as `contrast_p5` with the black-text ratio (p5 + 0.05) / 0.05, labelled informational. The report never rejects a plate and the script's exit code is unaffected by it; only the shade-reference rule (step 2) rejects. With concept 1's mid-toned wall, the darkest spots (a leaf shadow over a shade band) give small text about 3.4:1; Neil accepted this (16 Nov 2026). The script also reports the mean colour of the plate's top 3 % (`top`, for `theme-color`) and bottom 3 % (`bottom`, for the `html` background, which shows in iOS overscroll).
 
 ## 2. Layout
 
@@ -247,7 +247,7 @@ Inter for Latin script, Noto Sans Thai and Noto Sans Hebrew for those scripts, t
 | Pills | 17 / 20, 500, 20 px icon, 8 px icon gap | same |
 | Save contact | 17 / 20, 500 | same |
 
-Thai body lines get 4 px more line height (stacked vowels and tone marks). All text on the photograph is `#000`; hierarchy comes from size and weight, and the plate's contrast rule (§ 1, step 4) guarantees black text at least 4.6:1 under full leaf shade. A secondary grey ink rejected: Neil ruled every line solid black (16 Nov 2026). The v6 template's `:root` tokens, which C3 reuses, carry `--ink-soft` (60 % black, the colour of its `.line`), as the site does; /hi uses no ink but `#000` on the photograph. Light pills are `rgba(255, 255, 255, 0.85)` with black text; the lead pill is `#000` with white text, as the site's Open pill.
+Thai body lines get 4 px more line height (stacked vowels and tone marks). All text on the photograph is `#000`; hierarchy comes from size and weight, and the plate's contrast report (§ 1, step 4) states the black-text ratio under full leaf shade, which in the darkest spots (leaf shadow over a shade band) gives small text about 3.4:1; Neil accepted this (16 Nov 2026). A secondary grey ink rejected: Neil ruled every line solid black (16 Nov 2026). The v6 template's `:root` tokens, which C3 reuses, carry `--ink-soft` (60 % black, the colour of its `.line`), as the site does; /hi uses no ink but `#000` on the photograph. Light pills are `rgba(255, 255, 255, 0.85)` with black text; the lead pill is `#000` with white text, as the site's Open pill.
 
 The headline uses `text-wrap: balance`, the lines `text-wrap: pretty`.
 
@@ -583,9 +583,9 @@ T3's rows (`resolveLang` unless marked):
 ### C1 · The plates
 
 - **Files:** `build/hi-plate.py`; `.gitignore` (`build/.venv/`); `hi/plate-*`, `hi/sun-*`, `hi/og.*`, `hi/plates.json`; in `_brand`: `v8/plate-portrait-<n>.png`, `v8/plate-landscape-<n>.png`, `v8/plate-portrait.png`, `v8/plate-landscape.png`, `v8/prompts.md`.
-- **Builds:** the two image edits of § 1 (approved up to USD 0.30, at most three attempts per plate); the venv; `build/hi-plate.py` with § 1's hashing, budgets, shade-reference guard, sun masks, shade colour and override, contrast rule and link-preview image.
+- **Builds:** the two image edits of § 1 (approved up to USD 0.30, at most three attempts per plate); the venv; `build/hi-plate.py` with § 1's hashing, budgets, shade-reference guard, sun masks, shade colour and override, contrast report and link-preview image.
 - **Reuses:** `generate-image`'s `generate_image.py` with `-i` (as `v7/prompts.md`); Pillow.
-- **Done:** each plate meets § 1's composition, has `ls_ll ≤ 0.75` and `contrast_p5 ≥ 0.18`; budgets met; `plates.json` written with hashed names; a second run of the script on the same inputs changes no file; a 390 × 844 overlay screenshot of the § 2 layout boxes on the portrait plate, and a 1440 × 900 one on the landscape plate, show no object under the text block; the measured cost per attempt is in the report; Neil sees and approves the plates before use (checkpoint).
+- **Done:** each plate meets § 1's composition, has `ls_ll ≤ 0.75` and a printed contrast report; budgets met; `plates.json` written with hashed names; a second run of the script on the same inputs changes no file; a 390 × 844 overlay screenshot of the § 2 layout boxes on the portrait plate, and a 1440 × 900 one on the landscape plate, show no object under the text block; the measured cost per attempt is in the report; Neil sees and approves the plates before use (checkpoint).
 - **Builder:** `implementer-sonnet-high`.
 
 ### C2 · Copy, contact data, language rules, fonts and the page build
@@ -698,3 +698,4 @@ v2 adds a looping video, made with AI video generation, of a man who looks like 
 ## Changelog
 
 - 2026-11-16: Neil's rulings (D1–D7) and the exit-gate review's findings folded in.
+- 2026-11-16: D7, § 1 step 4 and § 2 ink: contrast is reported, not gated; small text may dip to about 3.4:1 in the darkest spots (Neil, 16 Nov 2026); three alternatives recorded as rejected.

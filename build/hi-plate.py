@@ -4,8 +4,8 @@
     python3 -m venv build/.venv && build/.venv/bin/pip install pillow==11.3.0
     build/.venv/bin/python -I build/hi-plate.py PORTRAIT.png LANDSCAPE.png [--out hi/]
 
-Per plate it measures the text zone, rejects a plate with no shade reference (Ls/Ll > 0.75) or too little
-contrast under full leaf shade (p5 < 0.18), then writes content-hashed AVIF / WebP / JPEG encodes, the sun mask
+Per plate it measures the text zone, rejects a plate with no shade reference (Ls/Ll > 0.75), reports the black-text contrast under full
+leaf shade (informational, never a rejection), then writes content-hashed AVIF / WebP / JPEG encodes, the sun mask
 and, from the landscape plate, the 1200 x 630 link-preview image. hi/plates.json names every file; files the
 new plates.json no longer names are deleted. Nothing is written when a plate is rejected.
 
@@ -24,7 +24,6 @@ from PIL import Image, ImageFilter, ImageStat
 
 KB = 1000
 LS_LL_MAX = 0.75          # above this the plate has no shade reference
-CONTRAST_P5_MIN = 0.18    # solid black text then has at least 4.6:1 over 95 % of the zone
 URL = '/hi/'
 
 # name: (width, height, text zone as fractions x0 y0 x1 y1, budgets in KB for avif / webp / jpg)
@@ -116,16 +115,15 @@ def measure(name, img, spec, override):
     if ratios:
         shade = [round(255 * k) for k in ratios]
         result['shade'] = shade
-        # Contrast rule: the zone multiplied by shade/255 (full leaf shade everywhere), WCAG relative luminance.
+        # Contrast report (informational): the zone multiplied by shade/255 (full leaf shade everywhere), WCAG relative luminance.
         shaded = [zone.getchannel(i).point([round(v * shade[i] / 255) for v in range(256)]) for i in range(3)]
         tabs = [[lin(v) for v in range(256)] for _ in range(3)]
         ys = sorted(0.2126 * tabs[0][r] + 0.7152 * tabs[1][g] + 0.0722 * tabs[2][b]
                     for r, g, b in zip(*(c.getdata() for c in shaded)))
         p5 = ys[int(0.05 * len(ys))]
         result['contrast_p5'] = p5
-        print(f'[{name}] shade {shade} ({source}), contrast p5 after full shade {p5:.4f} (needs {CONTRAST_P5_MIN})')
-        if p5 < CONTRAST_P5_MIN:
-            problems.append(f'[{name}] contrast: p5 {p5:.4f} < {CONTRAST_P5_MIN} after full shade with {shade}')
+        print(f'[{name}] shade {shade} ({source}), contrast p5 after full shade {p5:.4f}: '
+              f'black text {(p5 + 0.05) / 0.05:.2f}:1 over 95 % of the zone (informational, not a gate)')
     band = max(1, round(0.03 * h))
     result['top'] = hex_of(ImageStat.Stat(img.crop((0, 0, w, band))).mean)
     result['bottom'] = hex_of(ImageStat.Stat(img.crop((0, h - band, w, h))).mean)
