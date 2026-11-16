@@ -276,7 +276,7 @@ const COPY = {"en":{"hi_title":"Neil · njct.io","hi_description":"Neil’s cont
 const PLATES = {"p":{"w":1024,"h":1536,"sun":"/hi/sun-p.2cd180a8.png","shade":[162,171,198],"leaves":{"crowns":[[150,610]],"monsteras":[[960,420,-152],[740,800,-164]],"branch":[[40,-30],[250,150],[530,170]]}},"l":{"w":1536,"h":1024,"sun":"/hi/sun-l.5fbde226.png","shade":[168,176,209],"leaves":{"crowns":[[260,400]],"monsteras":[[1150,330,-155],[860,560,-160]],"branch":[[40,0],[180,120],[370,140]]}}};
 /* /plates */
 /* contact: written by build/hi.mjs */
-const CONTACT = {"linkedin":"https://www.linkedin.com/in/neilasj/","whatsapp":"https://wa.me/66935355090","line":"https://line.me/ti/p/~fitdegen","wechat":"/hi/wechat-qr.png?v=2041bc09","vcf":"/hi/neil.vcf","wechat_id":"lijiaqineil"};
+const CONTACT = {"linkedin":"https://www.linkedin.com/in/neilasj/","whatsapp":"https://wa.me/66935355090","line":"https://line.me/ti/p/~fitdegen","wechat":"/hi/wechat-qr.png?v=2041bc09","vcf":"/hi/neil.vcf","android":"intent:#Intent;action=android.intent.action.INSERT;type=vnd.android.cursor.dir/raw_contact;S.name=Neil;S.phone=%2B66935355090;i.phone_type=2;S.email=neil%40njct.io;S.company=NJCT;S.job_title=Founder;S.notes=Met%20through%20njct.io%2Fhi;S.browser_fallback_url=https%3A%2F%2Fnjct.io%2Fhi%2Fneil.vcf;end","wechat_id":"lijiaqineil"};
 /* /contact */
 
 // The page's language (§ 3), decided before the body is parsed: ?lang=, then the stored picker choice, then the
@@ -387,6 +387,12 @@ function hiApply(lang) {
     </div>
   </dialog>
   <script>hiApply(window.__hi.lang);</script>
+  <script>
+  // Android: open Contacts' filled-in new-contact screen. In-app browsers (LINE, WeChat, Facebook, Instagram) keep
+  // the vCard link, since their web views do not hand intents to other apps reliably.
+  if (/Android/i.test(navigator.userAgent) && !/Line\/|MicroMessenger|FBAN|FBAV|Instagram/i.test(navigator.userAgent))
+    document.querySelector('.save').href = CONTACT.android;
+  </script>
 </main>
 </div>
 <script>
