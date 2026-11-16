@@ -20,3 +20,6 @@ export async function onRequestGet({ request, env }) {
     return env.ASSETS.fetch(request);
   }
 }
+
+// HEAD gets the same headers as GET (Pages would otherwise answer it from the asset layer, public and revalidated).
+export const onRequestHead = onRequestGet;
