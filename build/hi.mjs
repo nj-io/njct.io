@@ -180,7 +180,7 @@ function links(copy, contact) {
     linkedin: contact.linkedin,
     whatsapp: en.hi_wa_text ? `${wa}?text=${encodeURIComponent(en.hi_wa_text)}` : wa,
     line: contact.line,
-    wechat: '/hi/wechat-qr.png',
+    wechat: '/hi/wechat-qr.png?v=2041bc09',
     vcf: '/hi/neil.vcf',
   };
 }
