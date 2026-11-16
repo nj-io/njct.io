@@ -1,0 +1,12 @@
+# Cloudflare Pages response headers. Only /hi's files: the plates, sun masks and link-preview image carry a content
+# hash in their names, so a changed file is a new URL; the vCard, the WeChat QR and the font subsets keep theirs.
+# The /hi page itself is answered by functions/hi.js, which sets its own headers (these rules never apply to it).
+/hi/*
+  Cache-Control: public, max-age=604800
+
+/vendor/fonts/hi/*
+  Cache-Control: public, max-age=604800
+
+# no Content-Disposition, so iOS shows the contact card in place
+/hi/neil.vcf
+  Content-Type: text/vcard; charset=utf-8
