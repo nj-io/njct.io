@@ -1,9 +1,9 @@
 {
-  "given_name": "Neil", "family_name": "[[FAMILY_NAME]]",
-  "org": "[[COMPANY]]", "title": "[[TITLE]]",
+  "given_name": "Neil", "family_name": "",
+  "org": "NJCT", "title": "Founder",
   "email": "neil@njct.io", "web": "https://njct.io",
-  "linkedin": "https://www.linkedin.com/in/[[HANDLE]]",
-  "whatsapp": "[[E164_DIGITS]]",
-  "line": "https://line.me/ti/p/[[LINE_LINK]]",
-  "wechat_id": "[[WECHAT_ID]]"
+  "linkedin": "https://www.linkedin.com/in/neilasj/",
+  "whatsapp": "66935355090",
+  "line": "https://line.me/ti/p/~fitdegen",
+  "wechat_id": "lijiaqineil"
 }

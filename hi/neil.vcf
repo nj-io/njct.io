@@ -1,14 +1,14 @@
 BEGIN:VCARD
 VERSION:3.0
-N:[[FAMILY_NAME]];Neil;;;
-FN:Neil [[FAMILY_NAME]]
-ORG:[[COMPANY]]
-TITLE:[[TITLE]]
-TEL;TYPE=CELL:+[[E164_DIGITS]]
+N:;Neil;;;
+FN:Neil
+ORG:NJCT
+TITLE:Founder
+TEL;TYPE=CELL:+66935355090
 EMAIL;TYPE=INTERNET:neil@njct.io
 URL:https://njct.io
-item1.URL:https://www.linkedin.com/in/[[HANDLE]]
+item1.URL:https://www.linkedin.com/in/neilasj/
 item1.X-ABLabel:LinkedIn
-X-SOCIALPROFILE;TYPE=linkedin:https://www.linkedin.com/in/[[HANDLE]]
+X-SOCIALPROFILE;TYPE=linkedin:https://www.linkedin.com/in/neilasj/
 NOTE:Met through njct.io/hi
 END:VCARD

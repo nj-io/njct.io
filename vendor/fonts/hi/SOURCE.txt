@@ -6,9 +6,9 @@ Chinese uses the system CJK face, so no CJK font is downloaded.
 
 inter-hi.woff2
   Inter, wght 400..500 (variable), gstatic v20, downloaded 2026-11-16
-  glyphs (65): " !+,-./:ACDEFGHILMNOPQRSTWY[]abcdefghijklmnopqrstuvwyz¡·áéíñó’“”→"
-  request: https://fonts.googleapis.com/css2?family=Inter:wght@400..500&text=%20!%2B%2C-.%2F%3AACDEFGHILMNOPQRSTWY%5B%5Dabcdefghijklmnopqrstuvwyz%C2%A1%C2%B7%C3%A1%C3%A9%C3%AD%C3%B1%C3%B3%E2%80%99%E2%80%9C%E2%80%9D%E2%86%92
-  17800 bytes, sha256 540b3b06ba6916c6156f805123654aaf28245530fe8e170edc81c7b2d2b2e65c
+  glyphs (63): " !+,-./:ACDEFGHIJLMNOPQRSTWabcdefghijklmnopqrstuvwyz¡·áéíñó’“”→"
+  request: https://fonts.googleapis.com/css2?family=Inter:wght@400..500&text=%20!%2B%2C-.%2F%3AACDEFGHIJLMNOPQRSTWabcdefghijklmnopqrstuvwyz%C2%A1%C2%B7%C3%A1%C3%A9%C3%AD%C3%B1%C3%B3%E2%80%99%E2%80%9C%E2%80%9D%E2%86%92
+  17068 bytes, sha256 8e0043510403c362e52d474dadb963d6d1b4a433e13dad1de255e2f2d4db1eff
   Licence: OFL-1.1 (https://github.com/rsms/inter)
 
 noto-sans-thai-hi.woff2

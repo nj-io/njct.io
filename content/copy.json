@@ -16,7 +16,7 @@
       "hi_lang_name": "English",
       "hi_lang_label": "Language",
       "hi_greet": "Hi, I’m Neil.",
-      "hi_role": "Founder, [[COMPANY]]",
+      "hi_role": "Founder, NJCT",
       "hi_lead": "Great to meet you. Here’s where to find me.",
       "hi_about": "I design and build end-to-end systems for companies that use AI.",
       "hi_channels_label": "Contact",
@@ -41,7 +41,7 @@
       "hi_lang_name": "ไทย",
       "hi_lang_label": "ภาษา",
       "hi_greet": "สวัสดีครับ ผม Neil",
-      "hi_role": "ผู้ก่อตั้ง [[COMPANY]]",
+      "hi_role": "ผู้ก่อตั้ง NJCT",
       "hi_lead": "ยินดีที่ได้รู้จักครับ ติดต่อผมได้ทางนี้",
       "hi_about": "ผมออกแบบและสร้างระบบครบวงจรให้บริษัทที่ใช้ AI ครับ",
       "hi_channels_label": "ช่องทางติดต่อ",
@@ -65,7 +65,7 @@
       "hi_lang_name": "简体中文",
       "hi_lang_label": "语言",
       "hi_greet": "你好，我是 Neil",
-      "hi_role": "[[COMPANY]] 创始人",
+      "hi_role": "NJCT 创始人",
       "hi_lead": "很高兴认识你，可以在这里找到我。",
       "hi_about": "我为使用 AI 的公司设计和搭建端到端的系统。",
       "hi_channels_label": "联系方式",
@@ -89,7 +89,7 @@
       "hi_lang_name": "繁體中文",
       "hi_lang_label": "語言",
       "hi_greet": "你好，我是 Neil",
-      "hi_role": "[[COMPANY]] 創辦人",
+      "hi_role": "NJCT 創辦人",
       "hi_lead": "很高興認識你，可以在這裡找到我。",
       "hi_about": "我為使用 AI 的公司設計和建置端到端的系統。",
       "hi_channels_label": "聯絡方式",
@@ -113,7 +113,7 @@
       "hi_lang_name": "עברית",
       "hi_lang_label": "שפה",
       "hi_greet": "היי, אני ניל",
-      "hi_role": "מייסד [[COMPANY]]",
+      "hi_role": "מייסד NJCT",
       "hi_lead": "נעים להכיר! כאן אפשר למצוא אותי.",
       "hi_about": "אני מתכנן ובונה מערכות מקצה לקצה לחברות שמשתמשות ב-AI.",
       "hi_channels_label": "יצירת קשר",
@@ -137,7 +137,7 @@
       "hi_lang_name": "Español",
       "hi_lang_label": "Idioma",
       "hi_greet": "¡Hola! Soy Neil.",
-      "hi_role": "Fundador de [[COMPANY]]",
+      "hi_role": "Fundador de NJCT",
       "hi_lead": "Encantado de conocerte. Aquí me encuentras.",
       "hi_about": "Diseño y construyo sistemas de principio a fin para empresas que usan IA.",
       "hi_channels_label": "Contacto",
@@ -159,186 +159,186 @@
   },
   "status": {
     "hi_title": {
-      "en": "pending",
-      "th": "pending",
-      "zh-Hans": "pending",
-      "zh-Hant": "pending",
-      "he": "pending",
-      "es": "pending"
+      "en": "approved 2026-11-16",
+      "th": "approved 2026-11-16",
+      "zh-Hans": "approved 2026-11-16",
+      "zh-Hant": "approved 2026-11-16",
+      "he": "approved 2026-11-16",
+      "es": "approved 2026-11-16"
     },
     "hi_description": {
-      "en": "pending"
+      "en": "approved 2026-11-16"
     },
     "hi_lang_name": {
-      "en": "pending",
-      "th": "pending",
-      "zh-Hans": "pending",
-      "zh-Hant": "pending",
-      "he": "pending",
-      "es": "pending"
+      "en": "approved 2026-11-16",
+      "th": "approved 2026-11-16",
+      "zh-Hans": "approved 2026-11-16",
+      "zh-Hant": "approved 2026-11-16",
+      "he": "approved 2026-11-16",
+      "es": "approved 2026-11-16"
     },
     "hi_lang_label": {
-      "en": "pending",
-      "th": "pending",
-      "zh-Hans": "pending",
-      "zh-Hant": "pending",
-      "he": "pending",
-      "es": "pending"
+      "en": "approved 2026-11-16",
+      "th": "approved 2026-11-16",
+      "zh-Hans": "approved 2026-11-16",
+      "zh-Hant": "approved 2026-11-16",
+      "he": "approved 2026-11-16",
+      "es": "approved 2026-11-16"
     },
     "hi_greet": {
-      "en": "approved 2026-11-16: reused verbatim from njct.io About (data/projects.json about[0])",
-      "th": "pending",
-      "zh-Hans": "pending",
-      "zh-Hant": "pending",
-      "he": "pending",
-      "es": "pending"
+      "en": "approved 2026-11-16",
+      "th": "approved 2026-11-16",
+      "zh-Hans": "approved 2026-11-16",
+      "zh-Hant": "approved 2026-11-16",
+      "he": "approved 2026-11-16",
+      "es": "approved 2026-11-16"
     },
     "hi_role": {
-      "en": "pending",
-      "th": "pending",
-      "zh-Hans": "pending",
-      "zh-Hant": "pending",
-      "he": "pending",
-      "es": "pending"
+      "en": "approved 2026-11-16",
+      "th": "approved 2026-11-16",
+      "zh-Hans": "approved 2026-11-16",
+      "zh-Hant": "approved 2026-11-16",
+      "he": "approved 2026-11-16",
+      "es": "approved 2026-11-16"
     },
     "hi_lead": {
-      "en": "pending",
-      "th": "pending",
-      "zh-Hans": "pending",
-      "zh-Hant": "pending",
-      "he": "pending",
-      "es": "pending"
+      "en": "approved 2026-11-16",
+      "th": "approved 2026-11-16",
+      "zh-Hans": "approved 2026-11-16",
+      "zh-Hant": "approved 2026-11-16",
+      "he": "approved 2026-11-16",
+      "es": "approved 2026-11-16"
     },
     "hi_about": {
-      "en": "pending",
-      "th": "pending",
-      "zh-Hans": "pending",
-      "zh-Hant": "pending",
-      "he": "pending",
-      "es": "pending"
+      "en": "approved 2026-11-16",
+      "th": "approved 2026-11-16",
+      "zh-Hans": "approved 2026-11-16",
+      "zh-Hant": "approved 2026-11-16",
+      "he": "approved 2026-11-16",
+      "es": "approved 2026-11-16"
     },
     "hi_channels_label": {
-      "en": "pending",
-      "th": "pending",
-      "zh-Hans": "pending",
-      "zh-Hant": "pending",
-      "he": "pending",
-      "es": "pending"
+      "en": "approved 2026-11-16",
+      "th": "approved 2026-11-16",
+      "zh-Hans": "approved 2026-11-16",
+      "zh-Hant": "approved 2026-11-16",
+      "he": "approved 2026-11-16",
+      "es": "approved 2026-11-16"
     },
     "hi_ch_linkedin": {
-      "en": "pending",
-      "th": "pending",
-      "zh-Hans": "pending",
-      "zh-Hant": "pending",
-      "he": "pending",
-      "es": "pending"
+      "en": "approved 2026-11-16",
+      "th": "approved 2026-11-16",
+      "zh-Hans": "approved 2026-11-16",
+      "zh-Hant": "approved 2026-11-16",
+      "he": "approved 2026-11-16",
+      "es": "approved 2026-11-16"
     },
     "hi_ch_whatsapp": {
-      "en": "pending",
-      "th": "pending",
-      "zh-Hans": "pending",
-      "zh-Hant": "pending",
-      "he": "pending",
-      "es": "pending"
+      "en": "approved 2026-11-16",
+      "th": "approved 2026-11-16",
+      "zh-Hans": "approved 2026-11-16",
+      "zh-Hant": "approved 2026-11-16",
+      "he": "approved 2026-11-16",
+      "es": "approved 2026-11-16"
     },
     "hi_ch_line": {
-      "en": "pending",
-      "th": "pending",
-      "zh-Hans": "pending",
-      "zh-Hant": "pending",
-      "he": "pending",
-      "es": "pending"
+      "en": "approved 2026-11-16",
+      "th": "approved 2026-11-16",
+      "zh-Hans": "approved 2026-11-16",
+      "zh-Hant": "approved 2026-11-16",
+      "he": "approved 2026-11-16",
+      "es": "approved 2026-11-16"
     },
     "hi_ch_wechat": {
-      "en": "pending",
-      "th": "pending",
-      "zh-Hans": "pending",
-      "zh-Hant": "pending",
-      "he": "pending",
-      "es": "pending"
+      "en": "approved 2026-11-16",
+      "th": "approved 2026-11-16",
+      "zh-Hans": "approved 2026-11-16",
+      "zh-Hant": "approved 2026-11-16",
+      "he": "approved 2026-11-16",
+      "es": "approved 2026-11-16"
     },
     "hi_save": {
-      "en": "pending",
-      "th": "pending",
-      "zh-Hans": "pending",
-      "zh-Hant": "pending",
-      "he": "pending",
-      "es": "pending"
+      "en": "approved 2026-11-16",
+      "th": "approved 2026-11-16",
+      "zh-Hans": "approved 2026-11-16",
+      "zh-Hant": "approved 2026-11-16",
+      "he": "approved 2026-11-16",
+      "es": "approved 2026-11-16"
     },
     "hi_wechat_title": {
-      "en": "pending",
-      "th": "pending",
-      "zh-Hans": "pending",
-      "zh-Hant": "pending",
-      "he": "pending",
-      "es": "pending"
+      "en": "approved 2026-11-16",
+      "th": "approved 2026-11-16",
+      "zh-Hans": "approved 2026-11-16",
+      "zh-Hant": "approved 2026-11-16",
+      "he": "approved 2026-11-16",
+      "es": "approved 2026-11-16"
     },
     "hi_wechat_steps": {
-      "en": "pending",
-      "th": "pending",
-      "zh-Hans": "pending",
-      "zh-Hant": "pending",
-      "he": "pending",
-      "es": "pending"
+      "en": "approved 2026-11-16",
+      "th": "approved 2026-11-16",
+      "zh-Hans": "approved 2026-11-16",
+      "zh-Hant": "approved 2026-11-16",
+      "he": "approved 2026-11-16",
+      "es": "approved 2026-11-16"
     },
     "hi_wechat_qr_alt": {
-      "en": "pending",
-      "th": "pending",
-      "zh-Hans": "pending",
-      "zh-Hant": "pending",
-      "he": "pending",
-      "es": "pending"
+      "en": "approved 2026-11-16",
+      "th": "approved 2026-11-16",
+      "zh-Hans": "approved 2026-11-16",
+      "zh-Hant": "approved 2026-11-16",
+      "he": "approved 2026-11-16",
+      "es": "approved 2026-11-16"
     },
     "hi_wechat_id_label": {
-      "en": "pending",
-      "th": "pending",
-      "zh-Hans": "pending",
-      "zh-Hant": "pending",
-      "he": "pending",
-      "es": "pending"
+      "en": "approved 2026-11-16",
+      "th": "approved 2026-11-16",
+      "zh-Hans": "approved 2026-11-16",
+      "zh-Hant": "approved 2026-11-16",
+      "he": "approved 2026-11-16",
+      "es": "approved 2026-11-16"
     },
     "hi_copy": {
-      "en": "pending",
-      "th": "pending",
-      "zh-Hans": "pending",
-      "zh-Hant": "pending",
-      "he": "pending",
-      "es": "pending"
+      "en": "approved 2026-11-16",
+      "th": "approved 2026-11-16",
+      "zh-Hans": "approved 2026-11-16",
+      "zh-Hant": "approved 2026-11-16",
+      "he": "approved 2026-11-16",
+      "es": "approved 2026-11-16"
     },
     "hi_copied": {
-      "en": "pending",
-      "th": "pending",
-      "zh-Hans": "pending",
-      "zh-Hant": "pending",
-      "he": "pending",
-      "es": "pending"
+      "en": "approved 2026-11-16",
+      "th": "approved 2026-11-16",
+      "zh-Hans": "approved 2026-11-16",
+      "zh-Hant": "approved 2026-11-16",
+      "he": "approved 2026-11-16",
+      "es": "approved 2026-11-16"
     },
     "hi_close": {
-      "en": "pending",
-      "th": "pending",
-      "zh-Hans": "pending",
-      "zh-Hant": "pending",
-      "he": "pending",
-      "es": "pending"
+      "en": "approved 2026-11-16",
+      "th": "approved 2026-11-16",
+      "zh-Hans": "approved 2026-11-16",
+      "zh-Hant": "approved 2026-11-16",
+      "he": "approved 2026-11-16",
+      "es": "approved 2026-11-16"
     },
     "hi_wa_text": {
-      "en": "pending",
-      "th": "pending",
-      "zh-Hans": "pending",
-      "zh-Hant": "pending",
-      "he": "pending",
-      "es": "pending"
+      "en": "approved 2026-11-16",
+      "th": "approved 2026-11-16",
+      "zh-Hans": "approved 2026-11-16",
+      "zh-Hant": "approved 2026-11-16",
+      "he": "approved 2026-11-16",
+      "es": "approved 2026-11-16"
     },
     "hi_save_inapp": {
-      "en": "pending",
-      "th": "pending",
-      "zh-Hans": "pending",
-      "zh-Hant": "pending",
-      "he": "pending",
-      "es": "pending"
+      "en": "approved 2026-11-16",
+      "th": "approved 2026-11-16",
+      "zh-Hans": "approved 2026-11-16",
+      "zh-Hant": "approved 2026-11-16",
+      "he": "approved 2026-11-16",
+      "es": "approved 2026-11-16"
     },
     "hi_vcard_note": {
-      "en": "pending"
+      "en": "approved 2026-11-16"
     }
   }
 }

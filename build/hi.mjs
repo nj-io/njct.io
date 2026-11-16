@@ -144,7 +144,7 @@ export function buildVcard(copy, contact) {
   const lines = [
     'BEGIN:VCARD', 'VERSION:3.0',
     `N:${esc(c.family_name)};${esc(c.given_name)};;;`,
-    `FN:${esc(`${c.given_name} ${c.family_name}`)}`,
+    `FN:${esc(`${c.given_name} ${c.family_name}`.trim())}`,
     c.org && `ORG:${esc(c.org)}`,
     c.title && `TITLE:${esc(c.title)}`,
     c.whatsapp && `TEL;TYPE=CELL:+${esc(waDigits(c))}`,
