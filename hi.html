@@ -36,8 +36,11 @@
     --system: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
     /* the plate's size: one media query, three places (here, the <picture>'s sources, and WIDE in the script) */
     --pw: 1024; --ph: 1536;
+    /* the least zoom across the width: on a wide portrait screen (a tablet) the plate shows x 88..936 at most, so
+       the video's right edge (plate x 936), where he walks out, stays off screen. 1024 / 848; WIDE's plate: 1. */
+    --zw: 1.2075;
   }
-  @media (orientation: landscape) { :root { --pw: 1536; --ph: 1024; } }
+  @media (orientation: landscape) { :root { --pw: 1536; --ph: 1024; --zw: 1; } }
   :lang(zh-Hans) { --face: 'Hi Inter', 'PingFang SC', 'Noto Sans CJK SC', 'Microsoft YaHei', sans-serif; }
   :lang(zh-Hant) { --face: 'Hi Inter', 'PingFang TC', 'Noto Sans CJK TC', 'Microsoft JhengHei', sans-serif; }
   html { overflow-x: clip; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
@@ -67,7 +70,7 @@
      stage and anchored at the bottom centre. transform and physical top/left only, for older WeChat (X5). */
   .scene {
     position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); isolation: isolate;
-    width: max(100cqw, 100cqh * var(--pw) / var(--ph)); aspect-ratio: var(--pw) / var(--ph);
+    width: max(100cqw * var(--zw), 100cqh * var(--pw) / var(--ph)); aspect-ratio: var(--pw) / var(--ph);
   }
   .scene > *, .scene img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; }
   /* While he is on screen (v2), the text lines get a soft light halo, so black text stays legible over his hair. */
@@ -621,7 +624,7 @@ function hiApply(lang) {
       Object.assign(vid.style, { left: pc(b[0], P.w), top: pc(b[1], P.h), width: pc(b[2], P.w), height: pc(b[3], P.h) });
     }
     if (boxless) {
-      const r = scene.parentNode.getBoundingClientRect(), w = Math.max(r.width, r.height * P.w / P.h);
+      const r = scene.parentNode.getBoundingClientRect(), w = Math.max(r.width * (p === 'l' ? 1 : 1.2075), r.height * P.w / P.h);   // --zw
       scene.style.width = w + 'px'; scene.style.height = w * P.h / P.w + 'px';
     }
     const r = scene.getBoundingClientRect(), w = Math.round(r.width * RES), h = Math.round(r.height * RES);
