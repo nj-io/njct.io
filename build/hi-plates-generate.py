@@ -92,15 +92,17 @@ def main():
     if spent + ATTEMPT_ESTIMATE_USD > BUDGET_USD:
         die(f'tag {TAG} has spent ${spent:.4f}; another attempt (up to ${ATTEMPT_ESTIMATE_USD:.2f}) could pass the '
             f'${BUDGET_USD:.2f} approval. Nothing was run.')
+    # The key comes from OPENAI_API_KEY when set, else generate_image.py reads it from the vault itself.
     key = os.environ.get('OPENAI_API_KEY', '').strip()
-    if not key:
-        die('OPENAI_API_KEY is empty in this environment (nothing on the clipboard?). Nothing was run.')
+    env = {k: v for k, v in os.environ.items() if k != 'OPENAI_API_KEY'}
+    if key:
+        env['OPENAI_API_KEY'] = key
 
     print(f'{kind} attempt {n} of {MAX_ATTEMPTS}, tag spend so far ${spent:.4f} of ${BUDGET_USD:.2f}')
-    r = subprocess.run(cmd, cwd=BRAND, capture_output=True, text=True, env={**os.environ, 'OPENAI_API_KEY': key})
+    r = subprocess.run(cmd, cwd=BRAND, capture_output=True, text=True, env=env)
 
     def clean(text):
-        return text.replace(key, '***')
+        return text.replace(key, '***') if key else text
 
     cost = next((clean(l.strip()) for l in r.stderr.splitlines() if l.startswith('cost:')), '')
     if r.returncode != 0:
