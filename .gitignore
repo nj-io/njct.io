@@ -4,3 +4,4 @@ node_modules/
 .captures/
 build/.venv/
 .wrangler/
+_site/

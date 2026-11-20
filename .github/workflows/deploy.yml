@@ -13,13 +13,16 @@ jobs:
       CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
       - uses: actions/checkout@v4
+      # Only the site's files are uploaded (build/site-files.mjs lists them); functions/ is read from the repo root.
+      - name: Assemble the site
+        run: node build/site-files.mjs
       - name: Deploy to Pages
         if: ${{ env.CF_TOKEN != '' }}
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy . --project-name njct-io --branch main --commit-dirty=true
+          command: pages deploy _site --project-name njct-io --branch main --commit-dirty=true
       - name: Note when the token is missing
         if: ${{ env.CF_TOKEN == '' }}
         run: echo "CLOUDFLARE_API_TOKEN secret not set — deploy skipped."
