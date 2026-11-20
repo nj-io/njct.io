@@ -10,7 +10,7 @@ Before /hi ships, `https://njct.io/hi` answers 200 with the home page: Pages ser
 
 The page a business card's QR code opens (`https://njct.io/hi`, fixed: the cards are printed, with no query string). It greets the visitor in their language and gives them one tap to each of Neil's contact channels.
 
-- **Look:** concept 1 of v7 (`/Users/neil/dev/_brand/creatives/njct/2026-11-07-hi-page/v7/1.png`): a café corner, a pale wall in late sun and shade, a high table with an open laptop and a flat white low in the frame. The scene is a photograph with no text and no leaf shadows (the plate), one for portrait screens and one for landscape. Leaf shadows moving in the wind are drawn in code over it, with the canvas renderer of the I rounds (v6, I v3) minus its human figure.
+- **Look:** concept 1 of v7 (`/Users/neil/dev/njct.io/docs/design/hi-page-2026-11-07/v7/1.png`): a café corner, a pale wall in late sun and shade, a high table with an open laptop and a flat white low in the frame. The scene is a photograph with no text and no leaf shadows (the plate), one for portrait screens and one for landscape. Leaf shadows moving in the wind are drawn in code over it, with the canvas renderer of the I rounds (v6, I v3) minus its human figure.
 - **Content:** the site's header (the `njct.io` wordmark linking home, and a language picker built as the site's Projects menu), a greeting, a role line carrying the company name, a lead line, one line about Neil's work, four contact pills with icons (LinkedIn, WhatsApp, LINE, WeChat; the first is black), and a full-width Save contact button. All text is solid black.
 - **Languages:** English, Thai, Simplified Chinese, Traditional Chinese, Hebrew (right to left), Spanish. The device's language list picks the language; the visitor's country, read by a small Pages Function, orders the pills for English-language visitors.
 - **Files:** one static page (`hi.html`, served at `/hi`) with its CSS, scripts and copy inline; the plate images (content-hashed names), sun masks, the link-preview image, font subsets, a vCard and a WeChat QR image under `hi/` and `vendor/fonts/hi/`; one Pages Function (`functions/hi.js`); copy and contact details in `content/`, written into the page by `build/hi.mjs`.
@@ -75,7 +75,7 @@ Contact details, the company name, the extra text, the vCard fields and the rema
 | `.gitignore` | adds `build/.venv/` (C1) and `.wrangler/` (C5) | C1, C5 |
 | `package.json` | scripts `build:hi`, `check:hi`, `release:hi`, `test:hi` | C2 |
 
-The plates' source PNGs and the prompts that made them live in the brand hub, `/Users/neil/dev/_brand/creatives/njct/2026-11-07-hi-page/v8/` (its own repo; commits there on Neil's ask).
+The plates' source PNGs and the prompts that made them live in the brand hub, `/Users/neil/dev/njct.io/docs/design/hi-page-2026-11-07/v8/` (its own repo; commits there on Neil's ask).
 
 ## 1. The background plates
 
@@ -95,7 +95,7 @@ The landscape plate (1536 × 1024): the same wall, light and objects; the table,
 
 ### How they are made
 
-Image edits with `gpt26-sunburst` through `~/.claude/skills/generate-image`, run from `/Users/neil/dev/_brand/creatives/njct/2026-11-07-hi-page/`. About USD 0.02–0.05 per attempt (v7 concept 1 measured USD 0.0199; an edit adds input-image tokens). Neil approved the job up to USD 0.30 in total, at most three attempts per plate (D6); the measured cost of each attempt goes in the C1 report and in `v8/prompts.md`.
+Image edits with `gpt26-sunburst` through `~/.claude/skills/generate-image`, run from `/Users/neil/dev/njct.io/docs/design/hi-page-2026-11-07/`. About USD 0.02–0.05 per attempt (v7 concept 1 measured USD 0.0199; an edit adds input-image tokens). Neil approved the job up to USD 0.30 in total, at most three attempts per plate (D6); the measured cost of each attempt goes in the C1 report and in `v8/prompts.md`.
 
 Portrait, input `v7/1.png`:
 
@@ -613,7 +613,7 @@ T3's rows (`resolveLang` unless marked):
 - **Needs:** C2; C1's plates (a flat stand-in image of the same size, entered in `plates.json`, serves until then).
 - **Files:** `hi.html`, `_headers`.
 - **Builds:** the head (meta, `color-scheme`, `@font-face`, the inline resolver of § 3, with the generated head region), the scene box (§ 2), the header with the wordmark and the picker's trigger and list markup and CSS (closed and open states styled; the behaviour is C3b's), the text block, the pills, Save contact, `hiApply`, the no-JS behaviour, the type ramp, the phone, tablet and landscape layouts (the physical left offset of the landscape column), Hebrew RTL, safe areas. `hi/locale.mjs` is consumed as C2 left it.
-- **Reuses**, from `/Users/neil/dev/_brand/creatives/njct/2026-11-07-hi-page/v6/I-cafe-light-v3/template.html`: the `:root` tokens and body setup (lines 12–36, without the softer ink), the picker CSS (61–101), the pill CSS (117–132), the icon masks and SVGs (161–176), `setLang`'s reordering of the pills (195–207, adapted into `hiApply`). From `index.html`: the wordmark's style and the `.pm` look.
+- **Reuses**, from `/Users/neil/dev/njct.io/docs/design/hi-page-2026-11-07/v6/I-cafe-light-v3/template.html`: the `:root` tokens and body setup (lines 12–36, without the softer ink), the picker CSS (61–101), the pill CSS (117–132), the icon masks and SVGs (161–176), `setLang`'s reordering of the pills (195–207, adapted into `hiApply`). From `index.html`: the wordmark's style and the `.pm` look.
 - **Done:** screenshots in `.captures/hi/` (headless Chrome with `--use-mock-keychain --password-store=basic`, `?still`): 360 × 640, 375 × 667, 390 × 844 at 3×, 430 × 932, 844 × 390, 768 × 1024, 1440 × 900; all six locales at 390 × 844 and 1440 × 900, English, Thai and Hebrew at the others (Hebrew at 1440 × 900 shows the column at the left). Each shows: no sideways scroll, every control at least 44 px, Save contact on screen at load at 390 × 844, no text over the plate's objects at 390 × 844, 430 × 932 and 1440 × 900. JS off: English page, working links. `html.dataset.cc` set by hand to `TH` reorders an English page's pills and leaves a Chinese page's WeChat first. The first-paint check: with CPU at 4× slowdown, a Thai device shows no English text in any frame (a Chrome performance trace's screenshots). Neil sees the screenshots (checkpoint).
 - **Builder:** `implementer-opus-high` (first build of an intricate step).
 

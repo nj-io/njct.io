@@ -1,0 +1,1 @@
+The two scripts here are symlinks into the njct.io-hi worktree (`/Users/neil/dev/njct.io-hi/build/`, branch `feat/hi`), where they are committed. `hi-plates-generate.py` makes the plate attempts, `hi-plate.py` encodes the accepted plates for the site. See `../prompts.md`.

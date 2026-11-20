@@ -1,0 +1,5 @@
+frames 40-46: mean |alpha(t+1)-alpha(t)| in the band, before 0.0310 after 0.0318; pixels flipping by more than 0.5 per frame, before 8972 after 8913
+frames 96-102: mean |alpha(t+1)-alpha(t)| in the band, before 0.0029 after 0.0036; pixels flipping by more than 0.5 per frame, before 201 after 378
+frames 148-154: mean |alpha(t+1)-alpha(t)| in the band, before 0.0165 after 0.0152; pixels flipping by more than 0.5 per frame, before 3848 after 2513
+frames 178-184: mean |alpha(t+1)-alpha(t)| in the band, before 0.1647 after 0.1663; pixels flipping by more than 0.5 per frame, before 38928 after 39054
+deep unchanged pixels forced to alpha 1 (enclosed wall), worst frames (px, frame): [(194, 90), (191, 120), (187, 104), (185, 119), (182, 94), (174, 103), (169, 118), (169, 98)]

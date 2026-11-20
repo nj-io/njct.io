@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>njct.io</title>
+<meta name="theme-color" content="#EFE2CC">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Noto+Sans+Hebrew:wght@400;500&family=Noto+Sans+SC:wght@400;500&family=Noto+Sans+Thai:wght@400;500&display=block">
+<style>
+  /* The site's UI face (index.html), Inter variable as "NJ Text"; Google's Inter fills the Latin-1 letters
+     the site's subset leaves out (¡, í), then the Noto faces take Thai, Hebrew and Simplified Chinese. */
+  @font-face {
+    font-family: 'NJ Text';
+    src: url('/vendor/fonts/ui/inter-variable-ui.woff2') format('woff2'),
+         url('file:///Users/neil/dev/njct.io/vendor/fonts/ui/inter-variable-ui.woff2') format('woff2');
+    font-weight: 100 900; font-style: normal; font-display: block;
+  }
+  /* The light's direction, measured from the right, counter-clockwise; it rests where the cover's key
+     sits (covers.js MOTIFS.about: the key from the upper right, 51 degrees above the horizontal). */
+  @property --sun { syntax: '<angle>'; inherits: true; initial-value: 51deg; }
+
+  /* The About page's band (project.js colours() for About Neil): ground #EFE2CC, ink #17120b, copy at 70%,
+     rules at 10%, the header's foot at 16%. */
+  :root {
+    --acc: #EFE2CC;
+    --fg: 23 18 11;
+    --ink: rgb(var(--fg));
+    --soft: rgb(var(--fg) / 0.7);
+    --rule: rgb(var(--fg) / 0.1);
+    --sans: 'NJ Text', 'Inter', 'Noto Sans Thai', 'Noto Sans Hebrew', 'Noto Sans SC', sans-serif;
+    --head: 56px;
+    --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  html { background: var(--acc); overflow-x: clip; }
+  body {
+    margin: 0; min-height: 100svh; background: var(--acc); color: var(--ink);
+    font: 400 14px/20px var(--sans);
+    -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility;
+    overflow-x: clip;
+  }
+  button { font: inherit; color: inherit; margin: 0; }
+  :focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+
+  /* ---- header: the About page's bar (project.css .pj-head) ---- */
+  .head {
+    position: sticky; top: 0; z-index: 5; height: var(--head); box-sizing: border-box;
+    display: flex; align-items: center; gap: 12px; padding: 0 16px;
+    background: var(--acc); border-bottom: 1px solid rgb(var(--fg) / 0.16);
+  }
+  .mark { color: var(--ink); font-weight: 500; text-decoration: none; line-height: 20px; }
+  .lang { position: relative; }
+  .lang-btn {
+    position: relative; display: inline-flex; align-items: center; gap: 4px; height: 34px; padding: 0 8px; margin-inline-start: -2px;
+    border: 0; border-radius: 4px; background: transparent; color: rgb(var(--fg) / 0.62); cursor: pointer;
+    transition: color 0.3s var(--ease), background-color 0.3s var(--ease);
+  }
+  .lang-btn::before { content: ''; position: absolute; inset: -5px 0; }   /* 44 px touch area */
+  .lang-btn:hover, .lang-btn[aria-expanded="true"] { background: rgb(var(--fg) / 0.14); color: var(--ink); }
+  .lang-btn svg { flex: none; width: 16px; height: 16px; transition: transform 0.3s var(--ease); }
+  .lang-btn[aria-expanded="true"] svg { transform: rotate(180deg); }
+
+  /* the list: the Projects menu's panel (index.html .pm-list); a sheet from the foot of the screen on phones */
+  .lang-list {
+    position: absolute; inset-inline-start: 0; top: calc(100% + 8px); z-index: 6; margin: 0; padding: 0; list-style: none;
+    min-width: 220px; background: #fff; border-radius: 4px;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+    opacity: 0; visibility: hidden; translate: 0 -10px;
+    transition: opacity 0.3s var(--ease), visibility 0.3s var(--ease), translate 0.3s var(--ease);
+  }
+  .lang.open .lang-list {
+    opacity: 1; visibility: visible; translate: none;
+    transition: opacity 0.3s var(--ease) 0.1s, visibility 0s, translate 0.3s var(--ease) 0.1s;
+  }
+  .lang-list li { border-bottom: 1px solid rgb(236 236 236); }
+  .lang-list li:last-child { border-bottom: 0; }
+  .lang-item {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 44px;
+    padding: 10px 12px; box-sizing: border-box; border: 0; background: transparent; color: #000; text-align: start; cursor: pointer;
+    font-size: 14px; line-height: 16.8px;
+  }
+  .lang-item svg { flex: none; width: 16px; height: 16px; visibility: hidden; }
+  .lang-item[aria-current="true"] { font-weight: 500; }
+  .lang-item[aria-current="true"] svg { visibility: visible; }
+  @media (hover: hover) { .lang-list li:hover { background: rgb(244 244 244); } }
+  @media (max-width: 599px) {
+    .lang-list {
+      position: fixed; inset: auto 0 0 0; min-width: 0; border-radius: 4px 4px 0 0;
+      padding-bottom: env(safe-area-inset-bottom); translate: 0 50px;
+      box-shadow: 0 -1px 3px 0 rgba(0, 0, 0, 0.1), 0 -1px 2px -1px rgba(0, 0, 0, 0.1);
+    }
+    .lang-item { min-height: 52px; padding: 14px 16px; font-size: 16px; line-height: 19.2px; }
+  }
+
+  /* ---- the page: one column, the About page's 16 px edges, centred on wider screens ---- */
+  .page { box-sizing: border-box; max-width: 520px; margin: 0 auto; padding: 0 16px 24px; }
+
+  /* The still life: the cover's orange sphere on the band, lit by the late sun from the right. It is a
+     picture of a lit object, so it keeps its place and its light in either text direction. */
+  .still {
+    --d: clamp(150px, min(52vw, 27svh), 236px); --r: calc(var(--d) / 2);
+    position: relative; direction: ltr; height: calc(var(--d) + 26px); margin-top: clamp(16px, 4svh, 36px);
+  }
+  .ball {
+    position: absolute; top: 0; right: clamp(4px, 6vw, 40px); width: var(--d); height: var(--d); border-radius: 50%;
+    --hx: calc(50% + cos(var(--sun)) * 27%);
+    --hy: calc(50% - sin(var(--sun)) * 29%);
+    background:
+      /* the occlusion at its foot */
+      radial-gradient(60% 22% at 50% 100%, rgb(88 40 10 / 0.55), rgb(88 40 10 / 0) 100%),
+      /* the paper's light caught on the lower-left limb: a ring centred toward the key, meeting the edge
+         only on the side away from it */
+      radial-gradient(circle at 62% 36%, rgb(214 118 34 / 0) 60%, rgb(200 104 28 / 0.6) 75%),
+      /* the broad low sheen */
+      radial-gradient(circle at var(--hx) var(--hy), rgb(255 226 160 / 0.9) 0, rgb(254 216 140 / 0.45) 9%, rgb(254 216 140 / 0) 24%),
+      /* the wrapped key, falling off through a soft terminator to the dark core */
+      radial-gradient(circle farthest-corner at var(--hx) var(--hy),
+        #F6C477 0%, #E9A44E 13%, #D98A30 26%, #BE6C1E 40%, #9F5218 54%, #8C4416 66%, #86421A 76%);
+  }
+  /* the contact shadow, cast away from the light and turning about the ball's foot with it */
+  .cast {
+    position: absolute; top: calc(var(--d) - var(--r) * 0.21); right: clamp(4px, 6vw, 40px);
+    width: var(--d); height: calc(var(--r) * 0.32); pointer-events: none;
+  }
+  .cast::before, .cast::after { content: ''; position: absolute; inset: 0; border-radius: 50%; }
+  .cast::before {   /* the warm penumbra (the gold's light on the paper), reaching away from the sun */
+    left: -22%; right: -22%;
+    translate: calc(cos(var(--sun)) * var(--r) * -1.05) 0;
+    background: radial-gradient(closest-side, rgb(150 88 30 / 0.34), rgb(170 104 40 / 0.16) 55%, rgb(170 104 40 / 0) 100%);
+  }
+  .cast::after {    /* the near-black core just under it */
+    left: 12%; right: 12%;
+    translate: calc(cos(var(--sun)) * var(--r) * -0.18) 0;
+    background: radial-gradient(closest-side, rgb(36 20 6 / 0.62), rgb(36 20 6 / 0.2) 55%, rgb(36 20 6 / 0) 100%);
+  }
+
+  /* ---- the greeting: the About page's title (project.css .pj-sec h2, its phone size) ---- */
+  .hi {
+    margin: 22px 0 0; font-size: clamp(39px, 13.8889vw - 5.44444px, 64px); line-height: 1; font-weight: 500;
+    letter-spacing: -0.035em; text-wrap: balance;
+  }
+  .lead { max-width: 30ch; margin: 22px 0 0; font-size: 24px; line-height: 1.25; letter-spacing: 0.01em; text-wrap: balance; }
+
+  /* ---- the channels: the About page's project list, a rule over each row ---- */
+  .list { list-style: none; margin: 30px 0 0; padding: 0; border-bottom: 1px solid var(--rule); }
+  .list a {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 54px; box-sizing: border-box;
+    padding: 13px 0; border-top: 1px solid var(--rule); color: var(--ink); text-decoration: none;
+    font-size: 18px; line-height: 1.5; letter-spacing: 0.01em;
+  }
+  .list a:hover .n { text-decoration: underline; text-underline-offset: 0.08em; }
+  .list svg { flex: none; width: 20px; height: 20px; color: var(--soft); }
+  .list svg .ko { stroke: var(--acc); }
+
+  /* ---- Save contact: the band's one black pill (the header's Get in touch, at the page's 48 px size) ---- */
+  .save {
+    display: inline-flex; align-items: center; box-sizing: border-box; height: 48px; padding: 0 22px; margin-top: 28px;
+    border-radius: 24px; background: var(--ink); color: #fff; font-size: 16px; text-decoration: none;
+  }
+  .save:hover { filter: brightness(1.4); }
+
+  /* ---- the scripts: no negative tracking outside Latin, and room for Thai's marks ---- */
+  :lang(th) .hi { letter-spacing: 0; line-height: 1.24; }
+  :lang(th) .lead { line-height: 1.4; letter-spacing: 0; }
+  :lang(zh) .hi { letter-spacing: 0.01em; line-height: 1.18; }
+  :lang(zh) .lead { letter-spacing: 0.02em; line-height: 1.4; word-break: keep-all; }
+  :lang(he) .hi { letter-spacing: -0.01em; line-height: 1.1; }
+  :lang(he) .lead { letter-spacing: 0; line-height: 1.35; }
+
+  @media (min-width: 900px) {
+    .page { padding-top: 24px; }
+    .still { margin-top: 24px; }
+  }
+</style>
+</head>
+<body>
+<header class="head">
+  <a class="mark" href="https://njct.io/">njct.io</a>
+  <div class="lang" id="lang">
+    <button class="lang-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="lang-list"><span data-k="name">English</span><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></button>
+    <ul class="lang-list" id="lang-list"></ul>
+  </div>
+</header>
+
+<main class="page">
+  <div class="still" aria-hidden="true"><div class="cast"></div><div class="ball"></div></div>
+  <h1 class="hi" data-k="hi">Hi, I’m Neil.</h1>
+  <p class="lead" data-k="line">Great to meet you. Here's where to find me.</p>
+  <ul class="list" id="channels"></ul>
+  <a class="save" href="#" data-k="save">Save contact</a>
+</main>
+
+<script>
+  const COPY = {
+    en: { name: 'English', hi: 'Hi, I’m Neil.', line: "Great to meet you. Here's where to find me.", save: 'Save contact',
+      order: ['linkedin', 'whatsapp', 'line', 'wechat'] },
+    th: { name: 'ไทย', hi: 'สวัสดีครับ ผม Neil', line: 'ยินดีที่ได้รู้จักครับ ติดต่อผมได้ทางนี้', save: 'บันทึกรายชื่อ',
+      order: ['line', 'whatsapp', 'linkedin', 'wechat'] },
+    zh: { name: '中文', hi: '你好，我是 Neil', line: '很高兴认识你，可以在这里找到我。', save: '保存联系人',
+      order: ['wechat', 'linkedin', 'whatsapp', 'line'], tag: 'zh-Hans' },
+    he: { name: 'עברית', hi: 'היי, אני ניל', line: 'נעים להכיר! כאן אפשר למצוא אותי.', save: 'שמירת איש קשר',
+      order: ['whatsapp', 'linkedin', 'line', 'wechat'], rtl: true },
+    es: { name: 'Español', hi: '¡Hola! Soy Neil.', line: 'Encantado de conocerte. Aquí me encuentras.', save: 'Guardar contacto',
+      order: ['whatsapp', 'linkedin', 'line', 'wechat'] },
+  };
+  const LANGS = ['en', 'th', 'zh', 'he', 'es'];
+
+  // One-colour channel glyphs; the knock-outs (.ko) take the band's colour.
+  const KO = 'class="ko" fill="none" stroke-width="1.15" stroke-linecap="round" stroke-linejoin="round"';
+  const CH = {
+    linkedin: ['LinkedIn', '<path fill="currentColor" fill-rule="evenodd" d="M5 2.5h14A2.5 2.5 0 0 1 21.5 5v14a2.5 2.5 0 0 1-2.5 2.5H5A2.5 2.5 0 0 1 2.5 19V5A2.5 2.5 0 0 1 5 2.5Zm1.6 7.2v8.1h2.5V9.7H6.6Zm1.25-4.1a1.42 1.42 0 1 0 0 2.84 1.42 1.42 0 0 0 0-2.84Zm3.15 4.1v8.1h2.5v-4.3c0-1.2.55-1.85 1.5-1.85s1.35.65 1.35 1.85v4.3h2.5v-4.9c0-2.3-1.15-3.4-2.95-3.4-1.15 0-1.95.5-2.4 1.15V9.7H11Z"/>'],
+    whatsapp: ['WhatsApp', '<path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" d="M12 3.2a8.8 8.8 0 0 0-7.6 13.2L3.2 20.8l4.5-1.2A8.8 8.8 0 1 0 12 3.2Z"/><path fill="currentColor" d="M9.3 7.7c-.2-.4-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.3.3-.9.9-.9 2.2s.9 2.6 1.1 2.7c.1.2 1.8 2.9 4.5 4 2.2.9 2.7.7 3.2.6.5 0 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.2-.2-.5-.3l-1.7-.8c-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1-.3-.1-1.1-.4-2-1.2-.8-.7-1.3-1.5-1.4-1.8-.2-.3 0-.4.1-.5l.4-.5.3-.4c.1-.2 0-.3 0-.5l-.8-1.8Z"/>'],
+    line: ['LINE', '<path fill="currentColor" d="M12 2.8c-5.5 0-10 3.6-10 8 0 3.9 3.5 7.2 8.3 7.9.3.1.8.2.9.5.1.3.1.7 0 1l-.1.9c0 .3-.2 1 .9.5 1.1-.4 5.9-3.4 8-5.9 1.4-1.6 2-3.2 2-4.9 0-4.4-4.5-8-10-8Z"/><path ' + KO + ' d="M6.4 8.7v4.4h2.2M10.3 8.7v4.4M12.4 13.1V8.7l2.8 4.4V8.7M19.3 8.7h-2.2v4.4h2.2M17.1 10.9h2.1"/>'],
+    wechat: ['WeChat', '<path fill="currentColor" d="M9.3 3.6C5.2 3.6 2 6.3 2 9.6c0 1.9 1 3.6 2.7 4.7l-.6 2.1 2.5-1.3c.9.3 1.8.4 2.7.4h.4a5.6 5.6 0 0 1-.2-1.5c0-3.3 3.1-5.9 6.9-5.9h.3c-.6-2.6-3.7-4.5-7.4-4.5Z"/><path fill="currentColor" stroke="var(--acc)" stroke-width="1.4" d="M16.3 8.7c-3.4 0-6.1 2.3-6.1 5.1s2.7 5.1 6.1 5.1c.7 0 1.4-.1 2-.3l2.1 1.1-.5-1.8c1.5-1 2.4-2.5 2.4-4.1 0-2.8-2.7-5.1-6-5.1Z"/><circle fill="var(--acc)" cx="6.8" cy="7.9" r="1"/><circle fill="var(--acc)" cx="11.6" cy="7.9" r="1"/><circle fill="var(--acc)" cx="14.2" cy="12.8" r=".85"/><circle fill="var(--acc)" cx="18.3" cy="12.8" r=".85"/>'],
+  };
+  const svg = body => `<svg viewBox="0 0 24 24" aria-hidden="true">${body}</svg>`;
+  const CHECK = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"/></svg>';
+
+  const list = document.getElementById('channels');
+  const rows = {};
+  for (const k in CH) {
+    const li = document.createElement('li');
+    li.innerHTML = `<a href="#"><span class="n">${CH[k][0]}</span>${svg(CH[k][1])}</a>`;
+    rows[k] = li;
+  }
+
+  const lang = document.getElementById('lang'), btn = lang.querySelector('.lang-btn'), menu = lang.querySelector('.lang-list');
+  menu.innerHTML = LANGS.map(c => `<li><button class="lang-item" type="button" data-lang="${c}" lang="${COPY[c].tag || c}"><span>${COPY[c].name}</span>${CHECK}</button></li>`).join('');
+
+  function setLang(code, push) {
+    const c = COPY[code];
+    document.documentElement.lang = c.tag || code;
+    document.documentElement.dir = c.rtl ? 'rtl' : 'ltr';
+    for (const el of document.querySelectorAll('[data-k]')) el.textContent = c[el.dataset.k];
+    list.replaceChildren(...c.order.map(k => rows[k]));
+    for (const b of menu.querySelectorAll('.lang-item')) b.setAttribute('aria-current', b.dataset.lang === code ? 'true' : 'false');
+    if (push) { const u = new URL(location.href); u.searchParams.set('lang', code); u.searchParams.delete('picker'); history.replaceState(null, '', u); }
+  }
+  function setOpen(open) {
+    lang.classList.toggle('open', open);
+    btn.setAttribute('aria-expanded', String(open));
+  }
+  btn.addEventListener('click', () => setOpen(!lang.classList.contains('open')));
+  menu.addEventListener('click', e => {
+    const b = e.target.closest('.lang-item'); if (!b) return;
+    setLang(b.dataset.lang, true); setOpen(false); btn.focus();
+  });
+  document.addEventListener('click', e => { if (!lang.contains(e.target)) setOpen(false); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && lang.classList.contains('open')) { setOpen(false); btn.focus(); } });
+
+  const q = new URLSearchParams(location.search);
+  const pick = q.get('lang') || (navigator.languages || [navigator.language]).map(l => l.slice(0, 2).toLowerCase()).find(l => COPY[l]);
+  setLang(COPY[pick] ? pick : 'en');
+  if (q.get('picker') === 'open') setOpen(true);
+
+  // The one motion: the cover's sundial. On load the light crosses over the top of the sphere from the
+  // left to the late sun on the right, and the shadow turns about its foot the other way; it rests there.
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const still = document.querySelector('.still'), FROM = 172, TO = 51, WAIT = 250, DUR = 2600;
+    const ease = p => p < 0.5 ? 4 * p * p * p : 1 - (2 - 2 * p) ** 3 / 2;
+    let t0, done = false;
+    const rest = () => { done = true; still.style.removeProperty('--sun'); };
+    const step = t => {
+      if (done) return;
+      t0 ??= t;
+      const p = Math.min(1, Math.max(0, (t - t0 - WAIT) / DUR));
+      still.style.setProperty('--sun', `${FROM + (TO - FROM) * ease(p)}deg`);
+      if (p < 1) requestAnimationFrame(step); else rest();
+    };
+    still.style.setProperty('--sun', `${FROM}deg`);
+    requestAnimationFrame(step);
+    setTimeout(rest, WAIT + DUR + 400);   // wherever frames are held back (a hidden tab), it still comes to rest
+  }
+  if (q.has('sun')) document.querySelector('.still').style.setProperty('--sun', `${+q.get('sun')}deg`);   // a still frame, for review
+</script>
+</body>
+</html>

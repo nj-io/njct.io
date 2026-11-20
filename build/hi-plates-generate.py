@@ -19,7 +19,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-BRAND = Path(os.environ.get('HI_BRAND') or Path.home() / 'dev/_brand/creatives/njct/2026-11-07-hi-page')
+BRAND = Path(os.environ.get('HI_BRAND') or Path.home() / 'dev/njct.io/docs/design/hi-page-2026-11-07')
 SCRIPT = Path.home() / '.claude/skills/generate-image/scripts/generate_image.py'
 LEDGER = SCRIPT.parent.parent / 'usage.jsonl'
 TAG = 'hi-plate'

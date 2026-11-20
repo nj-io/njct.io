@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>njct.io</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700&family=Inter:wght@400..600&family=Noto+Sans+Hebrew:wght@400..600&family=Noto+Sans+SC:wght@400..600&family=Noto+Sans+Thai:wght@400..600&family=Noto+Serif+Hebrew:wght@700&family=Noto+Serif+SC:wght@700&family=Noto+Serif+Thai:wght@700&display=block">
+<script>
+  // The sleeve shows its front until the turn; with reduced motion it rests on its back from the start.
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) document.documentElement.classList.add('intro');
+</script>
+<style>
+  :root {
+    /* the phone crate's wall (index.html, max-width 599px) */
+    --u: min(100vw / 1440, 100vh / 760);
+    --ground: radial-gradient(calc(806.6 * var(--u)) calc(309.6 * var(--u)) at 50% calc(50% + 293.5 * var(--u)),
+      rgb(195.5 195.5 195.5), rgb(198.4 198.4 198.4) 20%, rgb(199.7 199.7 199.7) 40%, rgb(200.5 200.5 200.5) 60%, rgb(201.1 201.1 201.1) 80%,
+      rgb(201.5 201.5 201.5) 100%, rgb(202.2 202.2 202.2) 140%, rgb(202.9 202.9 202.9) 200%, rgb(203.6 203.6 203.6) 300%, rgb(204.1 204.1 204.1) 380%, rgb(204.8 204.8 204.8) 520%) rgb(204.8 204.8 204.8);
+    --ink: #000;
+    --ink-soft: rgba(0, 0, 0, 0.6);
+    --gutter: 16px;
+    /* the About Neil back (covers.js, back: paper, ink, soft, accent) */
+    --paper: #F4EADA;
+    --b-ink: #4A3212;
+    --b-soft: #86704E;
+    --b-accent: #B8862C;
+    --sans: 'Inter', 'Noto Sans Thai', 'Noto Sans Hebrew', 'Noto Sans SC', sans-serif;
+    --serif: 'Fraunces', 'Noto Serif Thai', 'Noto Serif Hebrew', 'Noto Serif SC', serif;
+    --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  @media (min-width: 600px) {
+    :root {
+      --gutter: max(16px, calc((100vw - 1600px) / 2));
+      --ground: radial-gradient(calc(806.6 * var(--u)) calc(309.6 * var(--u)) at 50% calc(50% + 293.5 * var(--u)),
+        rgb(211 211 211), rgb(214.7 214.7 214.7) 20%, rgb(216.1 216.1 216.1) 40%, rgb(216.9 216.9 216.9) 60%, rgb(217.5 217.5 217.5) 80%,
+        rgb(218 218 218) 100%, rgb(218.7 218.7 218.7) 140%, rgb(219.4 219.4 219.4) 200%, rgb(220 220 220) 260%) rgb(220 220 220);
+    }
+  }
+  html { background: var(--ground); min-height: 100%; }
+  body {
+    margin: 0; min-height: 100vh; min-height: 100dvh; overflow-x: hidden;
+    font: 400 14px/20px var(--sans); color: var(--ink);
+    -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+  }
+  button { font: inherit; color: inherit; margin: 0; }
+  :focus-visible { outline: 2px solid #000; outline-offset: 2px; }
+  .defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+  /* The café's late sun through the window, falling across the wall (scene/sun.js): panes of warm light. */
+  .sun { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+  .sun i {
+    position: absolute; display: block; background: rgb(255 206 160 / 0.34); filter: blur(7px);
+    transform: skewX(-24deg) rotate(-6deg);
+  }
+
+  /* header strip: the site's masthead, the language picker in the Projects menu's place */
+  .masthead { position: relative; z-index: 3; height: 50px; }
+  .wordmark { position: absolute; inset-inline-start: var(--gutter); top: 15px; font-weight: 500; line-height: 20px; text-decoration: none; color: var(--ink); font-family: 'Inter', sans-serif; }
+  .pm { position: absolute; top: 3px; inset-inline-start: calc(var(--gutter) + 86px); }
+  .pm-btn {
+    display: flex; align-items: center; gap: 4px; height: 44px; padding: 0 8px; border: 0; border-radius: 4px;
+    background: transparent; color: var(--ink); font-weight: 500; line-height: 14px; letter-spacing: -0.01em; cursor: pointer;
+    transition: color 0.3s var(--ease), background-color 0.3s var(--ease);
+  }
+  @media (hover: hover) { .pm-btn:hover { background: #000; color: #fff; } .pm-list button:hover { background: rgb(244 244 244); } }
+  .pm-btn svg { width: 16px; height: 16px; display: block; transition: transform 0.3s var(--ease); }
+  .pm.open .pm-btn svg { transform: rotate(180deg); }
+  .pm-list {
+    position: absolute; inset-inline-start: 0; top: calc(100% + 4px); margin: 0; padding: 0; list-style: none;
+    min-width: 220px; background: #fff; border-radius: 4px; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+    opacity: 0; visibility: hidden; translate: 0 -10px;
+    transition: opacity 0.3s var(--ease), visibility 0.3s var(--ease), translate 0.3s var(--ease);
+  }
+  .pm.open .pm-list { opacity: 1; visibility: visible; translate: none; transition: opacity 0.3s var(--ease) 0.1s, visibility 0s, translate 0.3s var(--ease) 0.1s; }
+  .pm-list li { border-bottom: 1px solid rgb(236 236 236); }
+  .pm-list li:last-child { border-bottom: 0; }
+  .pm-list button {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; min-height: 48px; padding: 10px 14px;
+    border: 0; background: none; text-align: start; font-size: 16px; line-height: 20px; cursor: pointer;
+  }
+  .pm-list svg { width: 16px; height: 16px; flex: none; visibility: hidden; }
+  .pm-list [aria-selected="true"] svg { visibility: visible; }
+  /* a phone: the list is a sheet from the bottom of the screen, as the Projects menu is */
+  @media (max-width: 599px) {
+    .pm-list {
+      position: fixed; left: 0; right: 0; top: auto; bottom: 0; min-width: 0;
+      border-radius: 4px 4px 0 0; padding-bottom: env(safe-area-inset-bottom); translate: 0 50px;
+      box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.08), 0 -12px 32px rgba(0, 0, 0, 0.1);
+    }
+    .pm-list button { min-height: 52px; padding: 0 16px; }
+  }
+  .no-anim .pm-list { transition: none !important; }
+
+  /* the stage: the sleeve in Details, its back turned to the visitor, Save contact under it */
+  .stage {
+    position: relative; z-index: 1; box-sizing: border-box; min-height: calc(100dvh - 50px);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 12px var(--gutter) calc(32px + 6dvh + env(safe-area-inset-bottom));
+  }
+  .sleeve { width: min(100%, 460px); aspect-ratio: 1; perspective: 1600px; container-type: inline-size; }
+  .card {
+    position: relative; width: 100%; height: 100%; transform-style: preserve-3d;
+    transform: rotateY(-180deg);
+  }
+  .intro .card { transform: none; }
+  .face {
+    position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden;
+    box-shadow: 0 1px 1px rgb(60 40 10 / 0.14), 0 22px 36px -20px rgb(40 28 10 / 0.42);
+  }
+  .front svg { display: block; width: 100%; height: 100%; }
+  .back {
+    transform: rotateY(180deg); background: var(--paper); color: var(--b-ink);
+    box-sizing: border-box; padding: 6.1cqw 6.1cqw 0;
+    display: flex; flex-direction: column;
+  }
+
+  /* label art: the sphere, the place of the stage-2 head */
+  .head { position: absolute; top: 4.8cqw; inset-inline-end: 4.6cqw; width: 17cqw; height: 17cqw; overflow: visible; }
+
+  .hl {
+    margin: 0; padding-inline-end: 18cqw; font-family: var(--serif); font-weight: 700; font-variation-settings: "opsz" 144;
+    font-size: 9.8cqw; line-height: 1.08; letter-spacing: -0.015em; color: var(--b-ink);
+  }
+  :lang(th) .hl, :lang(zh) .hl, :lang(he) .hl { letter-spacing: 0; font-size: 8.6cqw; line-height: 1.2; }
+  .sub { margin: 2.2cqw 0 0; padding-inline-end: 14cqw; font-size: max(14px, 4.15cqw); line-height: 1.42; font-weight: 450; color: var(--b-soft); text-wrap: pretty; }
+  :lang(th) .sub { line-height: 1.6; }
+
+  .tracks { list-style: none; margin: auto 0 0; padding: 0; border-top: 1px solid var(--b-accent); }
+  .tracks li { border-bottom: 1px solid var(--b-accent); }
+  .track {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    height: max(44px, 12.6cqw); padding: 0 1.2cqw; margin: 0 -1.2cqw;
+    color: var(--b-ink); text-decoration: none; font-size: max(16px, 4.7cqw); font-weight: 500; letter-spacing: -0.01em;
+    -webkit-tap-highlight-color: transparent; transition: background-color 0.2s var(--ease);
+  }
+  .track:active { background: rgb(184 134 44 / 0.14); }
+  @media (hover: hover) { .track:hover { background: rgb(184 134 44 / 0.1); } }
+  .track:focus-visible { outline: 2px solid var(--b-ink); outline-offset: -2px; }
+  .track svg { width: max(20px, 5.8cqw); height: max(20px, 5.8cqw); flex: none; color: var(--b-ink); }
+  .mark {
+    align-self: flex-end; font-family: 'Inter', sans-serif; font-weight: 600; font-size: max(11px, 3.3cqw); letter-spacing: 0.01em;
+    color: var(--b-soft); line-height: 1; padding: 3.3cqw 0 4.4cqw;
+  }
+
+  .save {
+    margin-top: 24px; display: inline-flex; align-items: center; justify-content: center; height: 48px; min-width: 212px; padding: 0 28px;
+    box-sizing: border-box; border-radius: 24px; background: #000; color: #fff; text-decoration: none;
+    font-size: 16px; font-weight: 500; letter-spacing: -0.005em;
+  }
+  .save:active { background: #222; }
+
+  @media (min-width: 600px) {
+    .stage { padding-top: 24px; }
+    .save { margin-top: 28px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .pm-btn, .pm-list, .pm.open .pm-list, .track, .pm-btn svg { transition: none; }
+  }
+</style>
+</head>
+<body>
+<svg class="defs" aria-hidden="true" focusable="false">
+  <defs>
+    <!-- the sphere, lit like the cover's sundial: key from the upper right, a dark core on the left, the paper's light bounced up at the lower left -->
+    <radialGradient id="sph-key" cx="0.66" cy="0.3" r="0.9" fx="0.71" fy="0.24">
+      <stop offset="0" stop-color="#FFE3A0"/>
+      <stop offset="0.1" stop-color="#F8BF68"/>
+      <stop offset="0.33" stop-color="#DD8D2F"/>
+      <stop offset="0.6" stop-color="#BC6A1B"/>
+      <stop offset="0.82" stop-color="#9A5013"/>
+      <stop offset="1" stop-color="#874410"/>
+    </radialGradient>
+    <radialGradient id="sph-bounce" cx="0.16" cy="0.9" r="0.5">
+      <stop offset="0" stop-color="#D9822F" stop-opacity="0.75"/>
+      <stop offset="1" stop-color="#D9822F" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="sph-foot" cx="0.52" cy="1.04" r="0.32">
+      <stop offset="0" stop-color="#5A2C08" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#5A2C08" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="shd-core">
+      <stop offset="0" stop-color="#2E200C" stop-opacity="0.7"/>
+      <stop offset="1" stop-color="#2E200C" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="shd-pen">
+      <stop offset="0" stop-color="#8A5A20" stop-opacity="0.32"/>
+      <stop offset="1" stop-color="#8A5A20" stop-opacity="0"/>
+    </radialGradient>
+    <!-- sphere of radius 1 at the origin, its contact shadow cast to the left -->
+    <symbol id="sphere" viewBox="-1.25 -1.25 2.5 2.5" overflow="visible">
+      <ellipse cx="-0.3" cy="1.0" rx="1.15" ry="0.16" fill="url(#shd-pen)"/>
+      <ellipse cx="-0.08" cy="0.99" rx="0.52" ry="0.085" fill="url(#shd-core)"/>
+      <circle r="1" fill="url(#sph-key)"/>
+      <circle r="1" fill="url(#sph-bounce)"/>
+      <circle r="1" fill="url(#sph-foot)"/>
+    </symbol>
+    <radialGradient id="cover-paper" cx="0.48" cy="0.5" r="0.85" gradientTransform="translate(0.48 0.5) scale(1 1.11) translate(-0.48 -0.5)">
+      <stop offset="0.12" stop-color="#F2E7D3"/>
+      <stop offset="1" stop-color="#E8D8BC"/>
+    </radialGradient>
+    <linearGradient id="cover-gold" gradientUnits="userSpaceOnUse" x1="0" y1="20" x2="0" y2="287">
+      <stop offset="0" stop-color="#D2A64E"/>
+      <stop offset="1" stop-color="#A8771F"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<div class="sun" aria-hidden="true">
+  <i style="left:58%; top:7%; width:15%; height:13%"></i>
+  <i style="left:76%; top:7%; width:15%; height:13%"></i>
+  <i style="left:94%; top:7%; width:15%; height:13%"></i>
+  <i style="left:62%; top:23%; width:15%; height:13%"></i>
+  <i style="left:80%; top:23%; width:15%; height:13%"></i>
+  <i style="left:98%; top:23%; width:15%; height:13%"></i>
+</div>
+
+<header class="masthead">
+  <a class="wordmark" href="https://njct.io/">njct.io</a>
+  <nav class="pm" id="pm">
+    <button class="pm-btn" id="pm-btn" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="pm-list"><span id="pm-label">English</span><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></button>
+    <ul class="pm-list" id="pm-list" role="listbox" aria-labelledby="pm-btn"></ul>
+  </nav>
+</header>
+
+<main class="stage">
+  <div class="sleeve">
+    <div class="card">
+      <div class="face front" aria-hidden="true">
+        <svg viewBox="0 0 1024 1024">
+          <rect width="1024" height="1024" fill="url(#cover-paper)"/>
+          <use href="#sphere" x="170" y="255" width="640" height="640"/>
+          <g fill="url(#cover-gold)" fill-rule="evenodd">__LETTERS__</g>
+        </svg>
+      </div>
+      <section class="face back" aria-labelledby="hl">
+        <svg class="head" aria-hidden="true"><use href="#sphere"/></svg>
+        <h1 class="hl" id="hl">Hi, I’m Neil.</h1>
+        <p class="sub" id="sub">Great to meet you. Here's where to find me.</p>
+        <ul class="tracks" id="tracks"></ul>
+        <span class="mark" dir="ltr">njct.io</span>
+      </section>
+    </div>
+  </div>
+  <a class="save" id="save" href="#">Save contact</a>
+</main>
+
+<script>
+(() => {
+  const COPY = {
+    en: { name: 'English', hl: 'Hi, I’m Neil.', sub: "Great to meet you. Here's where to find me.", save: 'Save contact', order: ['linkedin', 'whatsapp', 'line', 'wechat'] },
+    th: { name: 'ไทย', hl: 'สวัสดีครับ ผม Neil', sub: 'ยินดีที่ได้รู้จักครับ ติดต่อผมได้ทางนี้', save: 'บันทึกรายชื่อ', order: ['line', 'whatsapp', 'linkedin', 'wechat'] },
+    zh: { name: '中文', hl: '你好，我是 Neil', sub: '很高兴认识你，可以在这里找到我。', save: '保存联系人', order: ['wechat', 'linkedin', 'whatsapp', 'line'] },
+    he: { name: 'עברית', hl: 'היי, אני ניל', sub: 'נעים להכיר! כאן אפשר למצוא אותי.', save: 'שמירת איש קשר', order: ['whatsapp', 'linkedin', 'line', 'wechat'], rtl: true },
+    es: { name: 'Español', hl: '¡Hola! Soy Neil.', sub: 'Encantado de conocerte. Aquí me encuentras.', save: 'Guardar contacto', order: ['whatsapp', 'linkedin', 'line', 'wechat'] },
+  };
+  const LANGS = ['en', 'th', 'zh', 'he', 'es'];
+  // one-colour channel glyphs, 24-unit boxes; the knocked-out parts take the back's paper
+  const P = 'var(--paper)';
+  const CHANNELS = {
+    linkedin: { name: 'LinkedIn', svg: `<rect x="2" y="2" width="20" height="20" rx="4" fill="currentColor"/><circle cx="8" cy="7.4" r="1.65" fill="${P}"/><rect x="6.55" y="10" width="2.9" height="8" fill="${P}"/><path fill="${P}" d="M11.4 10h2.8v1.15c.5-.8 1.45-1.35 2.75-1.35 2.15 0 3.05 1.4 3.05 3.6V18h-2.9v-4.1c0-1-.35-1.65-1.25-1.65-.95 0-1.55.65-1.55 1.65V18h-2.9z"/>` },
+    whatsapp: { name: 'WhatsApp', svg: `<path d="M12 2.9a9.1 9.1 0 0 0-7.85 13.7L2.9 21.1l4.6-1.2A9.1 9.1 0 1 0 12 2.9z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><path fill="currentColor" d="M8.9 7.6c.3-.3.75-.3 1 .05l1.05 1.7c.2.3.15.65-.1.9l-.6.55c.55 1.2 1.55 2.2 2.75 2.75l.55-.6c.25-.25.6-.3.9-.1l1.7 1.05c.35.25.35.7.05 1-.65.75-1.55 1.1-2.55.85-2.6-.65-4.95-3-5.6-5.6-.25-1 .1-1.9.85-2.55z"/>` },
+    line: { name: 'LINE', svg: `<path fill="currentColor" d="M12 3C6.75 3 2.5 6.4 2.5 10.6c0 3.75 3.35 6.9 7.9 7.5.3.05.75.2.85.5.1.25.05.65.05.9l-.15.8c-.05.25-.2.95.85.5 1.05-.45 5.6-3.3 7.65-5.65 1.4-1.55 2.1-3.1 2.1-4.95C21.5 6.4 17.25 3 12 3z"/><g fill="none" stroke="${P}" stroke-width="1.15" stroke-linecap="round" stroke-linejoin="round"><path d="M6.6 8.7v3.9h2"/><path d="M10.4 8.7v3.9"/><path d="M12.3 12.6V8.7l2.5 3.9V8.7"/><path d="M18.4 8.7h-1.9v3.9h1.9M16.5 10.65h1.7"/></g>` },
+    wechat: { name: 'WeChat', svg: `<path fill="currentColor" d="M9.3 3.6C5.1 3.6 1.8 6.4 1.8 9.8c0 1.95 1.05 3.6 2.75 4.75l-.65 2.05 2.45-1.3c.9.25 1.9.4 2.95.4l.75-.05c-.2-.6-.3-1.25-.3-1.9 0-3.65 3.45-6.5 7.65-6.5h.35C16.95 5.75 13.5 3.6 9.3 3.6z"/><circle cx="6.8" cy="8.1" r="1" fill="${P}"/><circle cx="11.8" cy="8.1" r="1" fill="${P}"/><path fill="currentColor" stroke="${P}" stroke-width="1.1" d="M22.6 15.15c0-2.95-2.95-5.35-6.6-5.35s-6.6 2.4-6.6 5.35 2.95 5.35 6.6 5.35c.75 0 1.5-.1 2.2-.3l2.05 1.1-.55-1.75c1.75-.95 2.9-2.6 2.9-4.4z"/><circle cx="13.85" cy="14" r=".85" fill="${P}"/><circle cx="18.15" cy="14" r=".85" fill="${P}"/>` },
+  };
+  const CHECK = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"/></svg>';
+
+  const $ = id => document.getElementById(id);
+  const root = document.documentElement, pm = $('pm'), btn = $('pm-btn'), list = $('pm-list');
+  const params = new URLSearchParams(location.search);
+  const pick = () => {
+    const q = params.get('lang');
+    if (COPY[q]) return q;
+    for (const l of navigator.languages || []) { const c = l.slice(0, 2).toLowerCase(); if (COPY[c]) return c === 'iw' ? 'he' : c; }
+    return 'en';
+  };
+  let lang = pick();
+
+  list.innerHTML = LANGS.map(code =>
+    `<li><button type="button" role="option" data-lang="${code}"><span lang="${code}" dir="auto">${COPY[code].name}</span>${CHECK}</button></li>`).join('');
+
+  function apply(code) {
+    lang = code;
+    const c = COPY[code];
+    root.lang = code;
+    root.dir = c.rtl ? 'rtl' : 'ltr';
+    $('pm-label').textContent = c.name;
+    $('hl').textContent = c.hl;
+    $('sub').textContent = c.sub;
+    $('save').textContent = c.save;
+    $('tracks').innerHTML = c.order.map(k =>
+      `<li><a class="track" href="#" lang="en" dir="ltr"><span>${CHANNELS[k].name}</span><svg viewBox="0 0 24 24" aria-hidden="true">${CHANNELS[k].svg}</svg></a></li>`).join('');
+    // the channel rows follow the page's direction (glyph at the row's far end), their names stay Latin
+    for (const a of $('tracks').querySelectorAll('a')) a.dir = c.rtl ? 'rtl' : 'ltr';
+    for (const b of list.querySelectorAll('button')) b.setAttribute('aria-selected', b.dataset.lang === code);
+    const u = new URL(location.href); u.searchParams.set('lang', code); u.searchParams.delete('picker');
+    try { history.replaceState(null, '', u); } catch {}
+  }
+
+  function setOpen(open) {
+    pm.classList.toggle('open', open);
+    btn.setAttribute('aria-expanded', open);
+  }
+  btn.addEventListener('click', e => { e.stopPropagation(); setOpen(!pm.classList.contains('open')); });
+  list.addEventListener('click', e => {
+    const b = e.target.closest('button[data-lang]');
+    if (!b) return;
+    apply(b.dataset.lang);
+    setOpen(false);
+    btn.focus();
+  });
+  document.addEventListener('click', e => { if (!pm.contains(e.target)) setOpen(false); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && pm.classList.contains('open')) { setOpen(false); btn.focus(); } });
+
+  apply(lang);
+  if (params.get('picker') === 'open') { root.classList.add('no-anim'); setOpen(true); }
+
+  // The one motion: the sleeve turns from its front to this back on the site's flip (scene/config.js
+  // DETAILS.flip: 140 ms in, 480 ms, cubic-bezier(0.15, 0, 0.3, 1)), stepped per frame as main.js steps the yaw,
+  // once the faces' type has loaded.
+  if (root.classList.contains('intro')) {
+    const card = document.querySelector('.card');
+    const bez = (x1, y1, x2, y2) => t => {
+      const f = (a, b, u) => 3 * a * u * (1 - u) ** 2 + 3 * b * u * u * (1 - u) + u ** 3;
+      let lo = 0, hi = 1, u = t;
+      for (let i = 0; i < 24; i++) { u = (lo + hi) / 2; if (f(x1, x2, u) < t) lo = u; else hi = u; }
+      return f(y1, y2, u);
+    };
+    const ease = bez(0.15, 0, 0.3, 1), AT = 140, DUR = 480;
+    const fonts = Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 1500))]);
+    fonts.then(() => setTimeout(() => {
+      // a frame, or a timer where frames are throttled (a background tab, a headless render)
+      const tick = cb => { let done = false; const f = () => { if (!done) { done = true; cb(performance.now()); } }; requestAnimationFrame(f); setTimeout(f, 40); };
+      const t0 = performance.now();
+      const step = now => {
+        const u = Math.min(1, Math.max(0, (now - t0 - AT) / DUR));
+        card.style.transform = `rotateY(${-180 * ease(u)}deg)`;
+        if (u < 1) tick(step);
+        else { root.classList.remove('intro'); card.style.transform = ''; }
+      };
+      tick(step);
+    }, 700));
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>njct.io/hi WIP</title>
+<style>
+body{margin:0;padding:16px;background:#d9d9d4;font:15px/1.4 -apple-system,system-ui,sans-serif;color:#000}
+h1{font-size:18px;margin:0 0 4px}p{margin:0 0 16px}
+.bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.bar button{font:inherit;padding:8px 12px;border:1px solid #000;background:#fff;border-radius:4px}
+.bar button[aria-pressed=true]{background:#000;color:#fff}
+.grid{display:flex;gap:24px;flex-wrap:wrap}
+figure{margin:0}figcaption{margin:0 0 6px;font-weight:600}
+figcaption a{color:inherit}
+iframe{width:390px;height:844px;border:0;background:#fff;box-shadow:0 0 0 1px #0003}
+@media (max-width:440px){iframe{width:calc(100vw - 32px);height:80vh}}
+</style></head><body>
+<h1>njct.io/hi: work in progress</h1>
+<p>Four directions, live. Tap a name to open it full screen. They update while the builders work, so reload to see the latest.</p>
+<div class="bar" id="bar"></div>
+<div class="grid" id="grid"></div>
+<script>
+const D=[["i-light","I. The café light"],["j-cover","J. A cover for them"],["k-crate","K. The crate"],["l-pill","L. Get in touch"]];
+const L=["en","th","zh","he","es"];let cur="en";
+const grid=document.getElementById("grid"),bar=document.getElementById("bar");
+function draw(){grid.innerHTML=D.map(([f,n])=>`<figure><figcaption><a href="${f}/index.html?lang=${cur}">${n}</a></figcaption><iframe src="${f}/index.html?lang=${cur}&t=${Date.now()}"></iframe></figure>`).join("");
+bar.innerHTML=L.map(l=>`<button aria-pressed="${l===cur}" data-l="${l}">${l}</button>`).join("")+`<button data-l="reload">Reload</button>`;}
+bar.onclick=e=>{const l=e.target.dataset.l;if(!l)return;if(l!=="reload")cur=l;draw();};draw();
+</script></body></html>

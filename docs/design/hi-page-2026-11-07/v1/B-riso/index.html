@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Neil</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Fredoka:wght@600;700&family=Mitr:wght@400;600&family=Rubik:wght@400;500;700&family=ZCOOL+KuaiLe&family=Noto+Sans+SC:wght@400;500&display=swap">
+<style>
+:root{
+  /* Riso spot inks */
+  --pink:#FF48B0;      /* Fluorescent Pink */
+  --blue:#3D5588;      /* Federal Blue */
+  --yellow:#FFE800;    /* Yellow */
+  /* uncoated stock */
+  --paper:#F6F7F3;
+  /* misregistration of the pink and yellow plates against the blue key */
+  --pink-x:2.5px; --pink-y:-1.5px;
+  --yel-x:-1.5px; --yel-y:2px; --zero:0px;
+
+  --display:"Bagel Fat One","Fredoka","Mitr","ZCOOL KuaiLe",sans-serif;
+  --body:"Rubik","Mitr","Noto Sans SC",sans-serif;
+}
+html[lang="he"]{ --display:"Fredoka","Bagel Fat One",sans-serif; --body:"Rubik",sans-serif; }
+html[lang="th"]{ --display:"Bagel Fat One","Mitr",sans-serif; --body:"Rubik","Mitr",sans-serif; }
+html[lang="zh"]{ --display:"Bagel Fat One","ZCOOL KuaiLe",sans-serif; --body:"Rubik","Noto Sans SC",sans-serif; }
+
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:var(--paper);-webkit-text-size-adjust:100%}
+body{
+  background:var(--paper);
+  color:var(--blue);
+  font-family:var(--body);
+  min-height:100svh;
+  overflow-x:hidden;
+}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:3px solid var(--blue);outline-offset:3px}
+
+.sheet{
+  position:relative;
+  max-width:430px;
+  margin:0 auto;
+  padding:14px 16px 28px;
+  isolation:isolate;
+}
+
+/* top strip: wordmark + picker */
+.top{
+  display:flex;align-items:center;justify-content:space-between;
+  min-height:48px;position:relative;z-index:5;
+}
+.mark{
+  font-family:"Rubik",sans-serif;font-weight:700;font-size:15px;
+  letter-spacing:-.01em;mix-blend-mode:multiply;
+}
+
+/* language picker: a yellow sticker */
+.picker{position:relative}
+.lang-btn{
+  position:relative;display:flex;align-items:center;gap:8px;
+  min-height:44px;padding:0 16px 0 18px;
+  font-family:var(--display);font-size:18px;line-height:1;
+  transform:rotate(2.2deg);
+}
+.lang-btn .ink{inset:2px -2px 0 0}
+.lang-btn .ink i{background:var(--yellow);
+  clip-path:polygon(3% 8%,98% 0,100% 46%,97% 100%,0 93%,2% 50%)}
+.lang-btn .t,.lang-btn svg{position:relative;mix-blend-mode:multiply}
+.lang-btn svg{width:14px;height:10px;transition:transform .2s}
+.picker.open .lang-btn svg{transform:rotate(180deg)}
+
+.lang-list{
+  position:absolute;inset-inline-end:-4px;top:52px;
+  list-style:none;display:none;
+  width:188px;padding:6px 0;
+}
+.picker.open .lang-list{display:block}
+.lang-list li{margin:0 0 4px}
+.lang-list li:nth-child(odd){transform:rotate(-1.4deg)}
+.lang-list li:nth-child(even){transform:rotate(1.1deg)}
+.lang-list button{
+  position:relative;display:flex;align-items:center;
+  width:100%;min-height:48px;padding:0 18px;
+  font-family:"Bagel Fat One","Fredoka","Mitr","ZCOOL KuaiLe",sans-serif;
+  font-size:20px;text-align:start;
+}
+.lang-list button[lang="he"]{font-family:"Fredoka",sans-serif;font-weight:700;font-size:21px}
+.lang-list button[lang="th"]{font-family:"Mitr",sans-serif;font-weight:600}
+.lang-list button[lang="zh"]{font-family:"ZCOOL KuaiLe",sans-serif;font-size:22px}
+.lang-list .ink i{background:var(--paper);box-shadow:inset 0 0 0 2.5px var(--blue);
+  clip-path:polygon(0 4%,99% 0,100% 96%,1% 100%)}
+.lang-list li:nth-child(2) .ink i{clip-path:polygon(1% 0,100% 6%,98% 100%,0 95%)}
+.lang-list li:nth-child(4) .ink i{clip-path:polygon(0 0,98% 3%,100% 100%,2% 97%)}
+.lang-list .t{position:relative;mix-blend-mode:multiply}
+.lang-list button[aria-current="true"] .ink i{background:var(--pink)}
+.lang-list button:hover .ink i{background:var(--yellow)}
+.lang-list button[aria-current="true"]:hover .ink i{background:var(--pink)}
+
+/* shared ink layer: rough-cut paper, printed with multiply */
+.ink{position:absolute;inset:0;filter:url(#rough);mix-blend-mode:multiply;pointer-events:none}
+.ink i{position:absolute;inset:0;display:block}
+
+/* the head: halftone portrait on a cut yellow circle */
+.head{
+  position:relative;z-index:1;
+  width:min(272px,72vw);
+  aspect-ratio:260/274;
+  margin-inline-start:auto;
+  margin-inline-end:-6px;
+  margin-top:-2px;
+}
+.head svg{width:100%;height:100%;display:block;overflow:visible}
+[dir="rtl"] .head svg{transform:scaleX(-1)}
+.plate{mix-blend-mode:multiply}
+
+/* greeting */
+.hello{
+  position:relative;z-index:2;
+  font-family:var(--display);
+  font-weight:700;
+  font-size:66px;line-height:.92;letter-spacing:-.01em;
+  margin-top:-70px;
+  mix-blend-mode:multiply;
+  text-wrap:balance;
+}
+html[lang="he"] .hello{font-size:68px;line-height:.98;max-width:6.5ch}
+html[lang="th"] .hello{font-size:52px;line-height:1.12;max-width:7.2ch;font-weight:600}
+html[lang="zh"] .hello{font-size:56px;line-height:1.04;max-width:5.2em}
+.line{
+  position:relative;z-index:2;
+  margin-top:16px;max-width:30ch;
+  font-size:18px;line-height:1.38;font-weight:500;
+  mix-blend-mode:multiply;
+}
+html[lang="th"] .line{font-size:18px;line-height:1.6;font-weight:400}
+
+/* channels: hand-cut slips */
+.slips{list-style:none;margin-top:22px;display:grid;gap:10px}
+.slip{
+  position:relative;display:flex;align-items:center;gap:14px;
+  min-height:62px;padding:0 22px;
+  font-family:"Bagel Fat One",sans-serif;font-size:25px;line-height:1;
+}
+.slip .t,.slip svg{position:relative;mix-blend-mode:multiply}
+.slip svg{margin-inline-start:auto;width:30px;height:30px;flex:none}
+[dir="rtl"] .slip{direction:rtl}
+
+.slips li:nth-child(1){transform:rotate(-1.3deg)}
+.slips li:nth-child(1) .slip{min-height:78px;font-size:33px}
+.slips li:nth-child(1) .slip svg{width:38px;height:38px}
+.slips li:nth-child(1) .ink i{background:var(--pink);
+  clip-path:polygon(0 6%,96% 0,98.5% 14%,96.8% 30%,99.6% 47%,97.2% 63%,100% 80%,97.5% 100%,1% 96%)}
+.slips li:nth-child(2){transform:rotate(.9deg);margin-inline-end:10px}
+.slips li:nth-child(2) .ink i{background:var(--yellow);
+  clip-path:polygon(2% 0,100% 5%,99% 100%,0 94%)}
+.slips li:nth-child(3){transform:rotate(-.6deg);margin-inline-start:14px}
+.slips li:nth-child(3) .ink i{
+  background:radial-gradient(circle,var(--pink) 0 1.9px,transparent 2.3px) 0 0/5.5px 5.5px;
+  clip-path:polygon(0 0,97% 4%,100% 22%,97.6% 41%,99.4% 60%,96.8% 79%,99% 100%,3% 97%)}
+.slips li:nth-child(4){transform:rotate(1.5deg);margin-inline-end:4px}
+.slips li:nth-child(4) .ink i{background:var(--yellow);
+  clip-path:polygon(0 8%,98% 0,100% 100%,3% 92%)}
+.slips li:nth-child(4) .ink i::after{content:"";position:absolute;inset:0;
+  background:radial-gradient(circle,var(--pink) 0 1.6px,transparent 2px) 0 0/5.5px 5.5px;
+  mix-blend-mode:multiply;transform:translate(var(--pink-x),var(--pink-y))}
+[dir="rtl"] .slips .ink{transform:scaleX(-1)}
+
+/* save contact: solid Federal Blue stamp, type knocked out to paper */
+.save{
+  position:relative;display:flex;align-items:center;justify-content:center;
+  width:100%;min-height:64px;margin-top:22px;padding:0 20px;
+  font-family:var(--display);font-size:24px;line-height:1;color:var(--paper);
+  transform:rotate(-.4deg);
+}
+html[lang="he"] .save{font-weight:700}
+html[lang="th"] .save{font-weight:600;font-size:23px}
+.save .ink{mix-blend-mode:normal}
+.save .ink i{background:var(--blue);clip-path:polygon(1% 3%,99% 0,100% 97%,0 100%)}
+.save .t{position:relative}
+
+.slip:active .ink,.save:active .ink{transform:translate(1px,1px)}
+[dir="rtl"] .slip:active .ink{transform:scaleX(-1) translate(1px,1px)}
+
+/* the one moment: plates slide into (near) register */
+@media (prefers-reduced-motion:no-preference){
+  .plate-pink{animation:reg-pink .9s cubic-bezier(.2,.8,.2,1) .15s both}
+  .plate-yel{animation:reg-yel .9s cubic-bezier(.2,.8,.2,1) .15s both}
+  @keyframes reg-pink{from{transform:translate(14px,-9px)}}
+  @keyframes reg-yel{from{transform:translate(-10px,12px)}}
+}
+
+@media (min-width:600px){
+  .sheet{padding-top:40px}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="rough" x="-5%" y="-10%" width="110%" height="120%">
+    <feTurbulence type="fractalNoise" baseFrequency=".045" numOctaves="3" seed="7" result="t"/>
+    <feDisplacementMap in="SourceGraphic" in2="t" scale="5" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+</svg>
+
+<main class="sheet">
+  <header class="top">
+    <span class="mark">njct.io</span>
+    <div class="picker" id="picker">
+      <button class="lang-btn" id="langBtn" aria-haspopup="true" aria-expanded="false" aria-controls="langList">
+        <span class="ink"><i></i></span>
+        <span class="t" id="langName">English</span>
+        <svg viewBox="0 0 14 10" aria-hidden="true"><path d="M1.5 2.2c1.8 1.6 3.6 3.9 5.6 5.6 1.7-2 3.4-3.9 5.4-5.9" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <ul class="lang-list" id="langList"></ul>
+    </div>
+  </header>
+
+  <div class="head" aria-hidden="true">
+    <svg id="headSvg" viewBox="0 0 260 270"></svg>
+  </div>
+
+  <h1 class="hello" id="hello">Hi, I'm Neil.</h1>
+  <p class="line" id="line">Great to meet you. Here's where to find me.</p>
+
+  <ul class="slips" id="slips"></ul>
+
+  <a class="save" id="save" href="#"><span class="ink"><i></i></span><span class="t" id="saveLabel">Save contact</span></a>
+</main>
+
+<script>
+(function(){
+  var COPY = {
+    en:{name:"English", hi:"Hi, I'm Neil.", line:"Great to meet you. Here's where to find me.", save:"Save contact", order:["linkedin","whatsapp","line","wechat"]},
+    th:{name:"ไทย", hi:"สวัสดีครับ ผม Neil", line:"ยินดีที่ได้รู้จักครับ ติดต่อผมได้ทางนี้", save:"บันทึกรายชื่อ", order:["line","whatsapp","linkedin","wechat"]},
+    zh:{name:"中文", hi:"你好，我是 Neil", line:"很高兴认识你，可以在这里找到我。", save:"保存联系人", order:["wechat","linkedin","whatsapp","line"]},
+    he:{name:"עברית", hi:"היי, אני ניל", line:"נעים להכיר! כאן אפשר למצוא אותי.", save:"שמירת איש קשר", order:["whatsapp","linkedin","line","wechat"]},
+    es:{name:"Español", hi:"¡Hola! Soy Neil.", line:"Encantado de conocerte. Aquí me encuentras.", save:"Guardar contacto", order:["whatsapp","linkedin","line","wechat"]}
+  };
+  var LANGS = ["en","th","zh","he","es"];
+
+  var GLYPH = {
+    linkedin:'<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 4.5c7-.6 15-.5 22.4 0 .8 7.6.7 15.4.1 23-7.5.6-15.2.5-22.6 0C4.3 20 4.3 12 5 4.5z" fill="currentColor"/><path d="M10.2 13.6v9.6M10.2 9.4v.3M15.2 23.2v-9.4M15.2 17.4c0-2.6 1.6-3.9 3.5-3.9 2 0 3.3 1.3 3.3 4v5.7" fill="none" stroke="var(--paper)" stroke-width="3" stroke-linecap="round"/></svg>',
+    whatsapp:'<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16.2 3.4c7.2 0 12.6 5.4 12.4 12.5-.2 7-5.8 12.4-12.7 12.2-2.2 0-4.2-.6-6-1.6L3.6 28.4l2-5.9C4.4 20.6 3.7 18.4 3.8 16 3.9 8.8 9.2 3.4 16.2 3.4z" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linejoin="round"/><path d="M11.4 10.2c.7-.6 1.6-.5 2 .3l1.2 2.5c.3.7 0 1.3-.5 1.8l-.6.6c.9 2 2.4 3.5 4.4 4.4l.7-.7c.5-.5 1.1-.7 1.8-.4l2.4 1.2c.8.4.9 1.4.2 2.1-1 1-2.6 1.6-4.4.9-3.4-1.4-6.2-4.1-7.6-7.6-.6-1.6-.4-3.3.4-4.1z" fill="currentColor"/></svg>',
+    line:'<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 4.2c7.4 0 13.2 4.6 13.1 10.6-.1 6.3-6.6 10.6-13.4 11.3-.9.5-4.3 2.9-6.1 3.4-.4-.9.3-2.6.4-4C5.8 24 2.8 19.8 2.9 14.8 3 8.8 8.7 4.2 16 4.2z" fill="currentColor"/><path d="M8.6 11.6v6.4h3.2M14.5 11.6v6.4M17.6 18v-6.4l4.4 6.4v-6.4M27.2 11.6h-3v6.4h3M24.2 14.8h2.6" fill="none" stroke="var(--paper)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    wechat:'<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M12.4 4.6C6.8 4.6 2.6 8.3 2.7 12.8c0 2.6 1.4 4.8 3.6 6.3l-.9 3.1 3.4-1.8c1.2.4 2.4.6 3.7.6 5.6 0 9.9-3.7 9.8-8.3-.1-4.5-4.4-8.1-9.9-8.1z" fill="currentColor"/><path d="M21.6 13.4c4.6 0 8 3 7.9 6.8 0 2.1-1.1 3.9-2.9 5.1l.7 2.6-2.8-1.5c-1 .3-1.9.5-2.9.5-4.6 0-8.1-3-8-6.8.1-3.8 3.5-6.7 8-6.7z" fill="var(--paper)" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/><circle cx="9" cy="10.8" r="1.5" fill="var(--paper)"/><circle cx="15.4" cy="10.8" r="1.5" fill="var(--paper)"/><circle cx="19" cy="19.4" r="1.2" fill="currentColor"/><circle cx="24.2" cy="19.4" r="1.2" fill="currentColor"/></svg>'
+  };
+  var LABEL = {linkedin:"LinkedIn", whatsapp:"WhatsApp", line:"LINE", wechat:"WeChat"};
+
+  /* channel slips: built once, reordered per language */
+  var slipsEl = document.getElementById("slips"), slipLi = {};
+  Object.keys(LABEL).forEach(function(k){
+    var li = document.createElement("li");
+    li.innerHTML = '<a class="slip" href="#"><span class="ink"><i></i></span><span class="t">'+LABEL[k]+'</span>'+GLYPH[k]+'</a>';
+    slipLi[k] = li;
+  });
+
+  /* picker list */
+  var listEl = document.getElementById("langList"), picker = document.getElementById("picker"),
+      btn = document.getElementById("langBtn"), langBtns = {};
+  LANGS.forEach(function(code){
+    var li = document.createElement("li"), b = document.createElement("button");
+    b.type = "button"; b.lang = code; b.dir = code === "he" ? "rtl" : "ltr";
+    b.innerHTML = '<span class="ink"><i></i></span><span class="t">'+COPY[code].name+'</span>';
+    b.addEventListener("click", function(){ setLang(code, true); setOpen(false); btn.focus(); });
+    li.appendChild(b); listEl.appendChild(li); langBtns[code] = b;
+  });
+
+  function setOpen(v){
+    picker.classList.toggle("open", v);
+    btn.setAttribute("aria-expanded", v ? "true" : "false");
+  }
+  btn.addEventListener("click", function(e){ e.stopPropagation(); setOpen(!picker.classList.contains("open")); });
+  document.addEventListener("click", function(e){ if (!picker.contains(e.target)) setOpen(false); });
+  document.addEventListener("keydown", function(e){ if (e.key === "Escape") setOpen(false); });
+
+  function setLang(code, push){
+    var c = COPY[code] || COPY.en; if (!COPY[code]) code = "en";
+    var root = document.documentElement;
+    root.lang = code; root.dir = code === "he" ? "rtl" : "ltr";
+    document.getElementById("langName").textContent = c.name;
+    document.getElementById("hello").textContent = c.hi;
+    document.getElementById("line").textContent = c.line;
+    document.getElementById("saveLabel").textContent = c.save;
+    c.order.forEach(function(k){ slipsEl.appendChild(slipLi[k]); });
+    LANGS.forEach(function(l){ langBtns[l].setAttribute("aria-current", l === code ? "true" : "false"); });
+    if (push && history.replaceState){
+      var u = new URL(location.href); u.searchParams.set("lang", code); u.searchParams.delete("picker");
+      history.replaceState(null, "", u);
+    }
+  }
+
+  /* halftone head: Federal Blue key screen at 45deg, pink screen at 15deg, on a scissor-cut yellow circle */
+  function buildHead(){
+    var svg = document.getElementById("headSvg"), NS = "http://www.w3.org/2000/svg";
+    function seeded(s){ return function(){ s = (s*16807) % 2147483647; return (s-1)/2147483646; }; }
+    var rnd = seeded(42);
+    var CX = 124;
+
+    function shape(x,y){
+      var dx=(x-CX)/50, dy=(y-96)/62, h=dx*dx+dy*dy;
+      if (h <= 1) return {part: (y < 58 + 7*Math.sin(x/11) && h > .1) ? "hair" : "head", r:Math.sqrt(h)};
+      var e1 = Math.pow((x-(CX-51))/8,2)+Math.pow((y-102)/13,2), e2 = Math.pow((x-(CX+51))/8,2)+Math.pow((y-102)/13,2);
+      if (e1 <= 1 || e2 <= 1) return {part:"ear", r:.9};
+      if (x > CX-20 && x < CX+20 && y > 148 && y < 200) return {part:"neck", r:Math.abs(x-CX)/20};
+      var sx=(x-CX)/128, sy=(y-292)/100;
+      if (sx*sx+sy*sy <= 1 && y < 272) return {part:"body", r:Math.sqrt(sx*sx+sy*sy)};
+      return null;
+    }
+    function blue(x,y,s){
+      var lx=x-(CX-34), ly=y-48, d = Math.sqrt(lx*lx+ly*ly)/160, t;
+      if (s.part === "hair") t = .72 + d*.2;
+      else if (s.part === "head") t = .02 + d*.5 + Math.pow(s.r,6)*.32;
+      else if (s.part === "ear") t = .34;
+      else if (s.part === "neck") t = .44 + (y < 172 ? (172-y)/24*.34 : 0);
+      else t = .06 + Math.pow(s.r,3)*.12;
+      return Math.max(0, Math.min(1, t));
+    }
+    function pink(x,y,s){
+      if (s.part === "hair") return .1;
+      if (s.part === "body") return .34 + (1-s.r)*.14;
+      if (s.part === "neck") return .4;
+      var cheek = Math.pow((x-(CX+16))/26,2)+Math.pow((y-112)/20,2);
+      return .16 + (cheek < 1 ? (1-cheek)*.3 : 0);
+    }
+    function screen(angleDeg, pitch, fn){
+      var a = angleDeg*Math.PI/180, ca = Math.cos(a), sa = Math.sin(a), out = [];
+      for (var i=-60;i<60;i++) for (var j=-60;j<60;j++){
+        var x = 130 + (i*ca - j*sa)*pitch, y = 135 + (i*sa + j*ca)*pitch;
+        if (x < -4 || x > 264 || y < -4 || y > 274) continue;
+        var sh = shape(x,y); if (!sh) continue;
+        var v = fn(x,y,sh); if (v < .03) continue;
+        out.push('<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="'+(pitch*.62*Math.sqrt(v)).toFixed(2)+'"/>');
+      }
+      return out.join("");
+    }
+    function plate(cls, offX, offY, inner){
+      var g = document.createElementNS(NS,"g"); g.setAttribute("class","plate "+cls);
+      g.innerHTML = '<g style="transform:translate(var('+offX+'),var('+offY+'))">'+inner+'</g>';
+      svg.appendChild(g);
+    }
+
+    /* scissor-cut circle: faceted, slightly uneven */
+    var pts = [], n = 30;
+    for (var k=0;k<n;k++){
+      var ang = k/n*Math.PI*2, rad = 84 + (rnd()-.5)*5;
+      pts.push((CX+50 + Math.cos(ang)*rad).toFixed(1)+","+(88 + Math.sin(ang)*rad).toFixed(1));
+    }
+    plate("plate-yel","--yel-x","--yel-y",'<polygon points="'+pts.join(" ")+'" fill="var(--yellow)" filter="url(#rough)"/>');
+    plate("plate-pink","--pink-x","--pink-y",'<g fill="var(--pink)">'+screen(15, 4.4, pink)+'</g>');
+    plate("plate-blue","--zero","--zero",'<g fill="var(--blue)">'+screen(45, 4.6, blue)+'</g>');
+  }
+
+  buildHead();
+  var p = new URLSearchParams(location.search);
+  var startLang = p.get("lang");
+  if (!COPY[startLang]){
+    var nav = (navigator.language || "en").slice(0,2).toLowerCase();
+    if (nav === "iw") nav = "he";
+    startLang = COPY[nav] ? nav : "en";
+  }
+  setLang(startLang, false);
+  if (p.get("picker") === "open") setOpen(true);
+})();
+</script>
+</body>
+</html>

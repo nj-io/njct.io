@@ -1,0 +1,570 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Neil</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shantell+Sans:wght,BNCE,INFM@300..800,-100..100,0..100&family=Playpen+Sans+Thai:wght@300..800&family=Playpen+Sans+Hebrew:wght@300..800&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+<script>
+  // Hide the thread before first paint only when it is going to write itself in.
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches &&
+      new URLSearchParams(location.search).get('picker') !== 'open') {
+    document.documentElement.classList.add('pre');
+  }
+</script>
+<style>
+  :root {
+    --board: #F4F6F5;      /* whiteboard */
+    --ink: #1C2321;        /* black marker */
+    --green: #0F7F4C;      /* green marker: the visitor's pen */
+    --red: #D2382A;        /* red marker: circling the choice */
+    --hi: #F3DD3C;         /* highlighter */
+    --ghost: #DCE1DE;      /* erased marker */
+    --hand: "Shantell Sans", "Playpen Sans Thai", "Playpen Sans Hebrew", "ZCOOL KuaiLe", "Comic Sans MS", sans-serif;
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    min-height: 100svh;
+    background: var(--board);
+    color: var(--ink);
+    font-family: var(--hand);
+    font-synthesis-weight: none;
+    font-variation-settings: "INFM" 40, "BNCE" 20;
+    display: flex;
+    justify-content: center;
+    overflow-x: hidden;
+  }
+  .page {
+    width: 100%;
+    max-width: 430px;
+    padding: max(14px, env(safe-area-inset-top)) 20px 36px;
+  }
+
+  /* Hand-drawn outlines: an SVG laid over each shape, sized by script. */
+  .ink { position: relative; }
+  .ink > svg.line {
+    position: absolute;
+    inset: -16px;
+    width: calc(100% + 32px);
+    height: calc(100% + 32px);
+    overflow: visible;
+    pointer-events: none;
+  }
+  [dir="rtl"] .ink > svg.line { transform: scaleX(-1); }
+  svg.line path {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* Top strip */
+  .top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 52px;
+    position: relative;
+    z-index: 5;
+  }
+  .mark {
+    font-size: 17px;
+    font-weight: 620;
+    letter-spacing: 0.01em;
+    font-variation-settings: "INFM" 10, "BNCE" 0;
+    color: var(--ink);
+  }
+  .picker { position: relative; }
+  .picker-btn {
+    font: inherit;
+    font-size: 18px;
+    font-weight: 520;
+    color: var(--ink);
+    background: none;
+    border: 0;
+    min-height: 44px;
+    min-width: 44px;
+    padding: 4px 6px 8px 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    position: relative;
+  }
+  [dir="rtl"] .picker-btn { padding: 4px 10px 8px 6px; }
+  .picker-btn .chev { width: 18px; height: 18px; flex: none; transition: transform .2s; }
+  .picker-btn[aria-expanded="true"] .chev { transform: rotate(180deg); }
+  .picker-btn .under {
+    position: absolute; left: 8px; bottom: 6px; width: calc(100% - 14px); height: 8px; overflow: visible;
+  }
+  .picker-btn .chev path, .picker-btn .under path {
+    fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round;
+  }
+  .list {
+    position: absolute;
+    top: calc(100% + 10px);
+    inset-inline-end: 0;
+    width: 196px;
+    padding: 10px 8px;
+    background: var(--board);
+    color: var(--ink);
+    display: none;
+  }
+  .list.open { display: block; }
+  .list > svg.line path { fill: var(--board); stroke-width: 2.4; }
+  .list::after { /* the offset ghost of a second, erased box */
+    content: ""; position: absolute; inset: 7px -7px -7px 7px;
+    background: var(--ghost); border-radius: 18px 10px 22px 8px; z-index: -1;
+  }
+  [dir="rtl"] .list::after { inset: 7px 7px -7px -7px; }
+  .opt {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 48px;
+    padding: 0 18px;
+    font: inherit;
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--ink);
+    background: none;
+    border: 0;
+    cursor: pointer;
+    position: relative;
+    text-align: start;
+  }
+  .opt .ring {
+    position: absolute; inset: 2px 4px; width: calc(100% - 8px); height: calc(100% - 4px);
+    overflow: visible; color: var(--red); display: none;
+  }
+  .opt .ring path { fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; }
+  .opt[aria-selected="true"] .ring { display: block; }
+  .opt span { position: relative; }
+
+  /* Neil's side of the thread */
+  .neil {
+    display: grid;
+    grid-template-columns: 100px 1fr;
+    column-gap: 12px;
+    align-items: start;
+    margin-top: 34px;
+  }
+  .head {
+    grid-row: 1 / span 2;
+    width: 100px;
+    height: 100px;
+    margin-top: 2px;
+    color: var(--ink);
+  }
+  .head svg { width: 100%; height: 100%; overflow: visible; display: block; }
+  .head path { fill: none; stroke: currentColor; stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; }
+  .head .dot { stroke-width: 5.5; }
+  .msg {
+    grid-column: 2;
+    justify-self: start;
+    color: var(--ink);
+    padding: 14px 18px 16px;
+    margin: 0;
+  }
+  .msg + .msg { margin-top: 12px; }
+  .greet {
+    font-size: 36px;
+    line-height: 1.08;
+    font-weight: 680;
+    font-variation-settings: "INFM" 70, "BNCE" 45;
+    padding: 12px 20px 16px;
+  }
+  .say {
+    font-size: 21px;
+    line-height: 1.32;
+    font-weight: 430;
+    font-variation-settings: "INFM" 50, "BNCE" 20;
+  }
+  :lang(zh) .greet, :lang(zh) .say { line-height: 1.4; }
+  :lang(th) .greet { line-height: 1.35; font-size: 33px; }
+  :lang(th) .say { line-height: 1.55; }
+  :lang(he) .greet { font-size: 38px; }
+
+  /* The visitor's possible replies */
+  .you {
+    margin-top: 48px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 17px;
+  }
+  .reply {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 58px;
+    padding: 6px 20px 8px 22px;
+    color: var(--green);
+    font-size: 23px;
+    font-weight: 560;
+    font-variation-settings: "INFM" 55, "BNCE" 25;
+    text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .reply:nth-child(1) { rotate: -1.2deg; margin-inline-end: 4px; }
+  .reply:nth-child(2) { rotate: 0.8deg; margin-inline-end: 18px; }
+  .reply:nth-child(3) { rotate: -0.4deg; margin-inline-end: 8px; }
+  .reply:nth-child(4) { rotate: 1.4deg; margin-inline-end: 24px; }
+  .reply .glyph { width: 28px; height: 28px; flex: none; overflow: visible; }
+  .reply .glyph path, .reply .glyph circle, .reply .glyph rect {
+    fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round;
+  }
+  .reply:active { transform: translateY(1px) scale(.98); }
+  .reply:focus-visible, .opt:focus-visible, .picker-btn:focus-visible {
+    outline: 2.5px dashed var(--red); outline-offset: 6px; border-radius: 12px;
+  }
+  .save {
+    margin-top: 24px;
+    color: var(--ink);
+    font-weight: 680;
+    rotate: -1deg;
+    margin-inline-end: 6px;
+  }
+  .save > svg.line path { stroke: var(--green); }
+  .save .hi {
+    position: absolute;
+    inset: -2px -6px -4px -10px;
+    width: calc(100% + 16px);
+    height: calc(100% + 6px);
+    overflow: visible;
+    pointer-events: none;
+    mix-blend-mode: multiply;
+  }
+  [dir="rtl"] .save .hi { transform: scaleX(-1); inset: -2px -10px -4px -6px; }
+  .save .hi path { fill: var(--hi); }
+  .save > span, .reply > span, .reply > .glyph { position: relative; }
+
+  /* Write-in on load */
+  .pre .head, .pre .msg, .pre .reply { visibility: hidden; }
+  .drawing path { stroke-dasharray: 1; stroke-dashoffset: 1; }
+  .drawing.go path { transition: stroke-dashoffset var(--d, 320ms) cubic-bezier(.5,.1,.3,1); stroke-dashoffset: 0; }
+  .k { visibility: hidden; }
+  .k.on { visibility: visible; }
+  .reply .lbl-in { opacity: 0; transition: opacity 140ms; }
+  .reply.shown .lbl-in { opacity: 1; }
+  .save .hi { clip-path: inset(0 0 0 0); }
+  .save.sweep .hi { animation: sweep 360ms cubic-bezier(.4,0,.2,1) both; }
+  @keyframes sweep { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+  [dir="rtl"] .save.sweep .hi { animation-name: sweep; } /* svg is mirrored, so the sweep runs from the right */
+
+  @media (min-width: 700px) {
+    body { align-items: flex-start; padding-top: 6vh; }
+  }
+  @media (max-width: 370px) {
+    .page { padding-inline: 16px; }
+    .neil { grid-template-columns: 80px 1fr; column-gap: 12px; }
+    .head { width: 80px; height: 80px; }
+    .greet { font-size: 33px; }
+    .say { font-size: 20px; }
+    .reply { font-size: 21px; min-height: 52px; }
+    .you { margin-top: 32px; gap: 12px; }
+  }
+</style>
+</head>
+<body>
+<main class="page">
+  <div class="top">
+    <div class="mark">njct.io</div>
+    <div class="picker">
+      <button class="picker-btn" id="pickerBtn" aria-haspopup="listbox" aria-expanded="false" aria-controls="langList">
+        <span id="curLang">English</span>
+        <svg class="chev" viewBox="0 0 18 18" aria-hidden="true"><path d="M3.5 6.8 C6 9.4 7.6 11 9.2 12.2 C11 10.6 12.6 8.9 14.6 6.2"/></svg>
+        <svg class="under" viewBox="0 0 100 8" preserveAspectRatio="none" aria-hidden="true"><path d="M1 5 C 30 3.5, 60 6.5, 99 3.8"/></svg>
+      </button>
+      <div class="list ink" id="langList" role="listbox" aria-label="Language" tabindex="-1"></div>
+    </div>
+  </div>
+
+  <section class="neil" aria-live="off">
+    <div class="head" data-avatar-slot aria-hidden="true">
+      <svg viewBox="0 0 120 120" class="drawing" style="--d:520ms">
+        <path d="M61 17 C 87 16, 99 39, 98 62 C 97 89, 81 105, 59 105 C 37 105, 22 89, 22 63 C 22 38, 36 19, 63 18.5"/>
+        <path d="M23 57 C 14 55, 13 71, 24 73"/>
+        <path d="M97 57 C 106 55, 107 71, 96 73"/>
+        <path d="M26 47 L33 27 L41 41 L49 20 L57 37 L66 17 L72 35 L82 21 L86 38 L95 30 L96 47"/>
+        <path d="M39 53 C 44 49, 49 49, 53 51"/>
+        <path d="M67 51 C 72 48, 77 49, 81 53"/>
+        <path class="dot" d="M46 61 L46.4 65.5"/>
+        <path class="dot" d="M74 60.5 L74.2 65"/>
+        <path d="M61 63 C 56 71, 56 76, 63 77"/>
+        <path d="M44 84 C 51 93, 68 94, 77 82"/>
+      </svg>
+    </div>
+    <p class="msg greet ink" id="greet" data-tail="head"></p>
+    <p class="msg say ink" id="say"></p>
+  </section>
+
+  <nav class="you" id="you" aria-label=""></nav>
+</main>
+
+<script>
+(() => {
+  const T = {
+    en: { name: 'English', greet: "Hi, I'm Neil.", say: "Great to meet you. Here's where to find me.", save: 'Save contact', order: ['linkedin','whatsapp','line','wechat'] },
+    th: { name: 'ไทย', greet: 'สวัสดีครับ ผม Neil', say: 'ยินดีที่ได้รู้จักครับ ติดต่อผมได้ทางนี้', save: 'บันทึกรายชื่อ', order: ['line','whatsapp','linkedin','wechat'] },
+    zh: { name: '中文', greet: '你好，我是 Neil', say: '很高兴认识你，可以在这里找到我。', save: '保存联系人', order: ['wechat','linkedin','whatsapp','line'] },
+    he: { name: 'עברית', greet: 'היי, אני ניל', say: 'נעים להכיר! כאן אפשר למצוא אותי.', save: 'שמירת איש קשר', order: ['whatsapp','linkedin','line','wechat'] },
+    es: { name: 'Español', greet: '¡Hola! Soy Neil.', say: 'Encantado de conocerte. Aquí me encuentras.', save: 'Guardar contacto', order: ['whatsapp','linkedin','line','wechat'] },
+  };
+  const LANGS = ['en','th','zh','he','es'];
+  const CH = {
+    linkedin: { label: 'LinkedIn', href: '#',
+      glyph: '<rect x="3.5" y="3.8" width="21" height="20.6" rx="5"/><path d="M9.2 12.4 L9.1 19.6"/><path d="M9.2 8.6 L9.3 8.9"/><path d="M13.4 19.7 L13.5 12.6 M13.5 15.2 C 14.4 12.8, 18.6 11.9, 19 15 L19.1 19.6"/>' },
+    whatsapp: { label: 'WhatsApp', href: '#',
+      glyph: '<path d="M6.2 21.6 C 2.4 16.8, 3.4 8.6, 9.6 5.2 C 15.9 1.9, 24.4 5.9, 24.6 13.7 C 24.8 21.3, 16.4 25.6, 9.8 22.6 L4.2 24.4 Z"/><path d="M10.6 10.2 C 10 12.6, 12.6 16.8, 16.6 17.8 C 17.6 18, 18.4 17.2, 18.2 16.4 L16.4 15.4 L15.2 16.2 C 13.8 15.6, 12.8 14.4, 12.3 13.2 L13 12 L12.2 10.2 C 11.6 9.6, 10.8 9.7, 10.6 10.2 Z"/>' },
+    line: { label: 'LINE', href: '#',
+      glyph: '<path d="M14 4.4 C 7.6 4.4, 3.2 8.4, 3.4 12.8 C 3.6 17, 7.4 19.8, 12.2 20.2 C 12.8 20.4, 12.8 21.6, 12.4 23.4 C 15.2 22.4, 22.8 18, 24.4 13.6 C 25.2 8.4, 20.6 4.4, 14 4.4 Z"/><path d="M6.8 10.2 L6.8 14.8 L8.7 14.8"/><path d="M10.6 10.2 L10.6 14.8"/><path d="M12.6 14.8 L12.6 10.2 L15.8 14.8 L15.8 10.2"/><path d="M20.3 10.2 L17.9 10.2 L17.9 14.8 L20.3 14.8 M17.9 12.5 L19.9 12.5"/>' },
+    wechat: { label: 'WeChat', href: '#',
+      glyph: '<path d="M11.2 4.8 C 6.4 4.8, 2.6 8, 2.8 12 C 2.9 14.2, 4.2 16, 6 17.2 L5.4 19.8 L8.4 18.4 C 9.4 18.7, 10.4 18.8, 11.4 18.8"/><path d="M8.2 10.4 L8.3 10.6 M13.6 10.2 L13.7 10.4"/><path d="M18.6 11.6 C 22.4 11.6, 25.4 14.2, 25.2 17.4 C 25 20.2, 22.4 22.4, 18.8 22.6 C 17.8 22.6, 17 22.5, 16.2 22.2 L13.6 23.4 L14.2 21.2 C 12.8 20.2, 12 18.8, 12.1 17.2 C 12.3 14.2, 15.2 11.6, 18.6 11.6 Z"/><path d="M16.6 16.4 L16.7 16.6 M20.6 16.4 L20.7 16.6"/>' },
+  };
+
+  const $ = (s) => document.querySelector(s);
+  const params = new URLSearchParams(location.search);
+  let lang = LANGS.includes(params.get('lang')) ? params.get('lang') : 'en';
+
+  // --- hand-drawn outline maker ----------------------------------------------------
+  function rng(seed) { let s = seed >>> 0 || 1; return () => ((s = Math.imul(s ^ (s >>> 15), 2246822507) ^ Math.imul(s ^ (s >>> 13), 3266489909), (s ^= s >>> 16) >>> 0) / 4294967296); }
+  function hash(str) { let h = 2166136261; for (const c of str) h = Math.imul(h ^ c.codePointAt(0), 16777619); return h >>> 0; }
+
+  // Points round a rounded box, clockwise from the top edge; tail: 'start-top' | 'end-bottom' | null
+  function outlinePoints(w, h, r, tail, R) {
+    const pts = [];
+    const push = (x, y, sharp, flat) => pts.push({ x, y, sharp: !!sharp, flat: !!flat });
+    const edge = (x0, y0, x1, y1, step = 26) => {
+      const len = Math.hypot(x1 - x0, y1 - y0), n = Math.max(1, Math.round(len / step));
+      for (let i = 0; i < n; i++) push(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n, false, y0 === y1);
+    };
+    const arc = (cx, cy, a0) => { for (let i = 0; i < 4; i++) { const a = a0 + (Math.PI / 2) * i / 4; push(cx + r * Math.cos(a), cy + r * Math.sin(a)); } };
+    // top edge
+    edge(r, 0, w - r, 0); arc(w - r, r, -Math.PI / 2);
+    // right edge
+    edge(w, r, w, h - r);
+    // bottom-right corner (reply tail lives here)
+    if (tail === 'end-bottom') {
+      push(w, h - r * 0.6); push(w + 2, h - 2); push(w + 12 + R() * 3, h + 9 + R() * 2, true); push(w - r * 0.7, h);
+    } else arc(w - r, h - r, 0);
+    // bottom edge
+    edge(w - r, h, r, h); arc(r, h - r, Math.PI / 2);
+    // left edge, Neil's tail points out to the head
+    if (tail === 'start-top') {
+      const ty = Math.min(h - r - 20, 22 + R() * 6);
+      edge(0, h - r, 0, ty + 18);
+      push(0, ty + 18); push(-15 - R() * 3, ty + 4, true); push(0, ty); edge(0, ty, 0, r);
+    } else edge(0, h - r, 0, r);
+    arc(r, r, Math.PI);
+    return pts;
+  }
+
+  function outlinePath(w, h, opts) {
+    const R = rng(opts.seed);
+    const r = Math.min(opts.r ?? (12 + R() * 14), h / 2 - 1, w / 2 - 1);
+    const pts = outlinePoints(w, h, r, opts.tail, R);
+    // a slow wobble along the stroke plus small jitter, like a hand moving a marker
+    const phase = R() * 6.28, amp = opts.amp ?? 1.6;
+    pts.forEach((p, i) => {
+      const wob = Math.sin(i * 0.55 + phase) * amp;
+      const cx = w / 2, cy = h / 2, dx = p.x - cx, dy = p.y - cy, d = Math.hypot(dx, dy) || 1;
+      const j = p.sharp ? 0 : 1;
+      p.x += (dx / d) * wob * j + (R() - .5) * 1.2 * j;
+      p.y += (dy / d) * wob * j + (R() - .5) * 1.2 * j;
+    });
+    // start somewhere different on each shape, always partway along the top or bottom edge
+    const starts = pts.map((p, i) => i).filter(i => [0, 1, 2].every(j => pts[(i + j) % pts.length].flat));
+    const k = starts.length ? starts[Math.floor(R() * starts.length)] : 0;
+    pts.push(...pts.splice(0, k));
+    // run past the start, drifting outward, the way a marker loop never closes cleanly
+    const over = [];
+    const side = pts[0].y < h / 2 ? -1 : 1;
+    for (let i = 0; i < 3; i++) over.push({ x: pts[i].x, y: pts[i].y + side * (1.4 + i * 1.3) });
+    const all = pts.concat(over);
+    let d = `M${all[0].x.toFixed(1)} ${all[0].y.toFixed(1)}`;
+    for (let i = 0; i < all.length - 1; i++) {
+      const p0 = all[i - 1] || all[i], p1 = all[i], p2 = all[i + 1], p3 = all[i + 2] || p2;
+      if (p1.sharp || p2.sharp) { d += ` L${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`; continue; }
+      const t = 6;
+      const c1x = p1.x + (p2.x - p0.x) / t, c1y = p1.y + (p2.y - p0.y) / t;
+      const c2x = p2.x - (p3.x - p1.x) / t, c2y = p2.y - (p3.y - p1.y) / t;
+      d += ` C${c1x.toFixed(1)} ${c1y.toFixed(1)} ${c2x.toFixed(1)} ${c2y.toFixed(1)} ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
+    }
+    return d;
+  }
+
+  function drawOutline(el, opts) {
+    let svg = el.querySelector(':scope > svg.line');
+    if (!svg) {
+      svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('class', 'line'); svg.setAttribute('aria-hidden', 'true');
+      svg.innerHTML = '<path pathLength="1"/>';
+      el.prepend(svg);
+    }
+    const w = el.offsetWidth, h = el.offsetHeight;
+    svg.setAttribute('viewBox', `-16 -16 ${w + 32} ${h + 32}`);
+    svg.firstChild.setAttribute('d', outlinePath(w, h, opts));
+    return svg;
+  }
+
+  function highlighter(el, seed) {
+    let svg = el.querySelector(':scope > svg.hi');
+    if (!svg) {
+      svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('class', 'hi'); svg.setAttribute('aria-hidden', 'true');
+      svg.setAttribute('preserveAspectRatio', 'none');
+      svg.innerHTML = '<path/>';
+      el.prepend(svg);
+    }
+    const R = rng(seed), w = 100, h = 40;
+    // a chisel-tip swipe: slanted ends, a slightly bowed top, one pass a bit off the box
+    const d = `M${5 + R() * 2} ${5 + R() * 2} C 35 ${3 + R() * 2}, 68 ${5 + R() * 2}, 100 ${3 + R() * 2}
+      L ${95 + R() * 2} ${37 + R() * 2} C 66 ${39 + R()}, 32 ${36 + R() * 2}, 1 ${39 + R() * 2} Z`;
+    svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+    svg.firstChild.setAttribute('d', d);
+  }
+
+  // --- render ------------------------------------------------------------------------
+  const greetEl = $('#greet'), sayEl = $('#say'), you = $('#you');
+  const listEl = $('#langList'), btn = $('#pickerBtn');
+
+  function renderList() {
+    listEl.querySelectorAll('.opt').forEach(n => n.remove());
+    LANGS.forEach(code => {
+      const b = document.createElement('button');
+      b.className = 'opt'; b.type = 'button'; b.setAttribute('role', 'option');
+      b.dataset.lang = code;
+      b.setAttribute('aria-selected', String(code === lang));
+      b.innerHTML = `<svg class="ring" viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true"><path d="M58 3 C 84 2, 98 10, 97 20 C 96 32, 70 38, 46 37 C 20 36, 3 30, 4 19 C 5 8, 26 2, 62 5.5"/></svg><span lang="${code}" dir="${code === 'he' ? 'rtl' : 'ltr'}">${T[code].name}</span>`;
+      b.addEventListener('click', () => { setLang(code); closeList(); btn.focus(); });
+      listEl.appendChild(b);
+    });
+  }
+
+  function render() {
+    const t = T[lang];
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === 'he' ? 'rtl' : 'ltr';
+    $('#curLang').textContent = t.name;
+    greetEl.textContent = t.greet;
+    sayEl.textContent = t.say;
+    you.innerHTML = '';
+    t.order.forEach(id => {
+      const c = CH[id];
+      const a = document.createElement('a');
+      a.className = 'reply ink'; a.href = c.href; a.dataset.ch = id;
+      a.innerHTML = `<span class="lbl-in" lang="en" dir="ltr">${c.label}</span><svg class="glyph lbl-in" viewBox="0 0 28 28" aria-hidden="true">${c.glyph}</svg>`;
+      you.appendChild(a);
+    });
+    const s = document.createElement('a');
+    s.className = 'reply save ink'; s.href = '#'; s.dataset.ch = 'vcard';
+    s.innerHTML = `<span class="lbl-in">${t.save}</span>`;
+    you.appendChild(s);
+    if (!document.documentElement.classList.contains('pre')) you.querySelectorAll('.reply').forEach(a => a.classList.add('shown'));
+    renderList();
+    outlines();
+  }
+
+  function outlines() {
+    drawOutline(greetEl, { seed: hash(lang + 'g'), tail: 'start-top', r: 20 });
+    drawOutline(sayEl, { seed: hash(lang + 's'), r: 16 });
+    you.querySelectorAll('.reply').forEach(a => {
+      drawOutline(a, { seed: hash(a.dataset.ch), tail: 'end-bottom', amp: 1.3 });
+      if (a.classList.contains('save')) highlighter(a, 7);
+    });
+    if (listEl.classList.contains('open')) drawOutline(listEl, { seed: 31, r: 14, amp: 1.2 });
+  }
+
+  // --- picker ------------------------------------------------------------------------
+  function openList() {
+    listEl.classList.add('open'); btn.setAttribute('aria-expanded', 'true');
+    drawOutline(listEl, { seed: 31, r: 14, amp: 1.2 });
+  }
+  function closeList() { listEl.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); }
+  btn.addEventListener('click', () => listEl.classList.contains('open') ? closeList() : (openList(), (listEl.querySelector('[aria-selected="true"]') || listEl.querySelector('.opt')).focus()));
+  document.addEventListener('click', (e) => { if (!e.target.closest('.picker')) closeList(); });
+  document.addEventListener('keydown', (e) => {
+    if (!listEl.classList.contains('open')) return;
+    const opts = [...listEl.querySelectorAll('.opt')], i = opts.indexOf(document.activeElement);
+    if (e.key === 'Escape') { closeList(); btn.focus(); }
+    if (e.key === 'ArrowDown') { e.preventDefault(); opts[(i + 1) % opts.length].focus(); }
+    if (e.key === 'ArrowUp') { e.preventDefault(); opts[(i - 1 + opts.length) % opts.length].focus(); }
+  });
+  function setLang(code) {
+    lang = code;
+    const u = new URL(location.href); u.searchParams.set('lang', code); u.searchParams.delete('picker');
+    history.replaceState(null, '', u);
+    render();
+  }
+
+  // --- the one moment: Neil writes, then the replies appear --------------------------
+  const wait = (ms) => new Promise(r => setTimeout(r, ms));
+  function splitGraphemes(el) {
+    const text = el.textContent;
+    const seg = new Intl.Segmenter(lang, { granularity: 'grapheme' });
+    el.querySelector('svg.line') && el.querySelector('svg.line').remove();
+    el.textContent = '';
+    const keys = [];
+    for (const { segment } of seg.segment(text)) {
+      const s = document.createElement('span'); s.className = 'k'; s.textContent = segment;
+      el.appendChild(s); keys.push(s);
+    }
+    return { keys, text };
+  }
+  async function draw(el, ms) {
+    const svg = el.querySelector(':scope > svg.line') || el.querySelector('svg');
+    svg.classList.add('drawing'); svg.style.setProperty('--d', ms + 'ms');
+    svg.getBoundingClientRect();
+    svg.classList.add('go');
+    await wait(ms);
+  }
+  async function write(el, perKey, opts) {
+    const { keys, text } = splitGraphemes(el);
+    drawOutline(el, opts);
+    el.style.visibility = 'visible';
+    await draw(el, 240);
+    for (const k of keys) { k.classList.add('on'); if (k.textContent.trim()) await wait(perKey); }
+    el.textContent = text; drawOutline(el, opts);
+  }
+  async function play() {
+    const root = document.documentElement;
+    const head = $('.head');
+    head.style.visibility = 'visible';
+    await draw(head, 460);
+    await write(greetEl, 34, { seed: hash(lang + 'g'), tail: 'start-top', r: 20 });
+    await wait(120);
+    await write(sayEl, 17, { seed: hash(lang + 's'), r: 16 });
+    await wait(160);
+    for (const a of you.querySelectorAll('.reply')) {
+      a.style.visibility = 'visible';
+      const svg = a.querySelector(':scope > svg.line');
+      svg.classList.add('drawing'); svg.style.setProperty('--d', '200ms'); svg.getBoundingClientRect(); svg.classList.add('go');
+      if (a.classList.contains('save')) a.classList.add('sweep');
+      await wait(110);
+      a.classList.add('shown');
+    }
+    root.classList.remove('pre');
+  }
+
+  const start = async () => {
+    render();
+    const t = T[lang], text = t.greet + t.say + t.save + LANGS.map(c => T[c].name).join('') + 'njct.io LinkedInWhatsAppLINEWeChat';
+    const stack = getComputedStyle(document.body).fontFamily;
+    try { await Promise.race([Promise.all(['680 36px', '430 21px', '560 22px'].map(f => document.fonts.load(`${f} ${stack}`, text))), wait(2500)]); } catch (e) {}
+    outlines();
+    if (params.get('picker') === 'open') openList();
+    if (document.documentElement.classList.contains('pre')) play();
+    let raf; new ResizeObserver(() => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => { if (!document.documentElement.classList.contains('pre')) outlines(); }); }).observe(document.body);
+  };
+  start();
+})();
+</script>
+</body>
+</html>

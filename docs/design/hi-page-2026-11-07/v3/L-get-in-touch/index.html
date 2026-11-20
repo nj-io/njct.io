@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>njct.io</title>
+<meta name="theme-color" content="#8f8f8f">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..500&family=Noto+Sans+Thai:wght@400;500&family=Noto+Sans+Hebrew:wght@400;500&display=block">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500&display=block&text=%E4%B8%8D%E4%B8%AD%E4%BA%BA%E4%BD%A0%E4%BF%9D%E5%85%B4%E5%8F%AF%E5%A5%BD%E5%AD%98%E5%9C%A8%E6%88%91%E6%96%87%E6%98%AF%E6%89%BE%E4%BB%A5%E7%B3%BB%E8%81%94%E8%AE%A4%E8%AF%86%E8%BF%99%E9%87%8C%E5%88%B0%E5%BE%88%E9%AB%98%E3%80%82%EF%BC%8C">
+<script>
+  // Before the first paint: unless motion is off or a still is asked for, the page starts as the pill on the wall.
+  (() => {
+    const q = new URLSearchParams(location.search);
+    if (!matchMedia('(prefers-reduced-motion: reduce)').matches && !q.has('still')) document.documentElement.classList.add('pre');
+  })();
+</script>
+<style>
+  :root {
+    /* njct.io's wall (index.html --ground): the grey and its soft radial light, darker on a phone (the crate's groundGain) */
+    --ground: radial-gradient(120% 60% at 50% 80%, rgb(211 211 211), rgb(216 216 216) 45%, rgb(220 220 220) 100%) rgb(220 220 220);
+    --ink: #000;
+    --ink-soft: rgba(0, 0, 0, 0.6);
+    --field: rgba(0, 0, 0, 0.18);           /* the contact panel's input border (index.html .ct-form input) */
+    --dim: 0.22;                             /* how far the wall dims behind the open panel */
+    --gutter: max(16px, calc((100vw - 1600px) / 2));
+    --ease: cubic-bezier(0.4, 0, 0.2, 1);    /* the Projects menu's ease */
+    --face: 'Inter', 'Noto Sans Thai', 'Noto Sans Hebrew', 'Noto Sans SC', sans-serif;
+  }
+  @media (max-width: 599px) {
+    :root { --ground: radial-gradient(130% 55% at 50% 85%, rgb(195.5 195.5 195.5), rgb(200.5 200.5 200.5) 45%, rgb(204.8 204.8 204.8) 100%) rgb(204.8 204.8 204.8); }
+  }
+  html { background: var(--ground); overflow-x: clip; }
+  body {
+    margin: 0; min-height: 100dvh; overflow-x: clip;
+    font: 400 16px/22px var(--face); color: var(--ink);
+    -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility;
+  }
+  button { font: inherit; color: inherit; margin: 0; }
+  :focus-visible { outline: 2px solid #000; outline-offset: 2px; }
+
+  /* The wall dims behind the open panel, as dialog.ct's backdrop does on the site. */
+  .scrim { position: fixed; inset: 0; z-index: 1; background: rgb(0 0 0 / var(--dim)); pointer-events: none; }
+
+  /* ---- the header, as njct.io's masthead at touch size: wordmark, the picker in the Projects menu's place,
+     and the Get in touch pill's place at the far end ---- */
+  .mast { position: absolute; top: 0; left: 0; right: 0; height: 54px; z-index: 3; }
+  .wordmark {
+    position: absolute; inset-inline-start: var(--gutter); top: 3px; padding: 12px 0; min-width: 44px;
+    font-family: 'Inter', sans-serif; font-weight: 500; line-height: 20px; color: var(--ink); text-decoration: none;
+  }
+  .pm { position: absolute; top: 5px; inset-inline-start: calc(var(--gutter) + 86px); }
+  .pm-btn {
+    display: flex; align-items: center; gap: 4px; height: 44px; padding: 0 8px; border: 0; border-radius: 4px;
+    background: transparent; color: var(--ink); font-weight: 500; line-height: 16px; letter-spacing: -0.01em; cursor: pointer;
+    transition: color 0.3s var(--ease), background-color 0.3s var(--ease);
+  }
+  @media (hover: hover) { .pm-btn:hover { background: #000; color: #fff; } .pm-list a:hover { background: rgb(244 244 244); } }
+  .pm-btn svg { width: 16px; height: 16px; display: block; transition: transform 0.3s var(--ease); }
+  .pm.open .pm-btn svg { transform: rotate(180deg); }
+  .pm-list {
+    position: absolute; inset-inline-start: 0; top: calc(100% + 8px); z-index: 10; margin: 0; padding: 0; list-style: none; box-sizing: border-box;
+    min-width: 220px; background: #fff; border-radius: 4px;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+    opacity: 0; visibility: hidden; translate: 0 -10px;
+    transition: opacity 0.3s var(--ease), visibility 0.3s var(--ease), translate 0.3s var(--ease);
+  }
+  .pm.open .pm-list { opacity: 1; visibility: visible; translate: none; transition: opacity 0.3s var(--ease) 0.1s, visibility 0s, translate 0.3s var(--ease) 0.1s; }
+  .pm.instant .pm-list { transition: none; }
+  .pm-list li { border-bottom: 1px solid rgb(236 236 236); }
+  .pm-list li:last-child { border-bottom: 0; }
+  .pm-list a {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 0 12px;
+    box-sizing: border-box; color: #000; text-decoration: none; font-size: 16px; line-height: 20px;
+  }
+  .pm-list a:focus-visible { outline-offset: -2px; }
+  .pm-list svg { width: 16px; height: 16px; flex: none; visibility: hidden; }
+  .pm-list a[aria-current="true"] { font-weight: 500; }
+  .pm-list a[aria-current="true"] svg { visibility: visible; }
+  @media (max-width: 599px) {
+    .pm-list {
+      position: fixed; left: 0; right: 0; top: auto; bottom: 0; min-width: 0; border-radius: 4px 4px 0 0;
+      padding-bottom: env(safe-area-inset-bottom); translate: 0 50px;
+      box-shadow: 0 -1px 3px 0 rgba(0, 0, 0, 0.1), 0 -1px 2px -1px rgba(0, 0, 0, 0.1);
+    }
+    .pm-list a { min-height: 52px; padding: 0 var(--gutter); font-size: 17px; }
+  }
+  /* The pill, at the site's touch size (index.html .cta under pointer: coarse). The page opens on it; once it has
+     become the panel its place stays empty, as on the site while the panel is open. */
+  .cta {
+    position: absolute; inset-inline-end: var(--gutter); top: 5px; width: 116px; height: 44px; border-radius: 22px;
+    background: #000; visibility: hidden;
+  }
+  .pre .cta { visibility: visible; }
+
+  /* ---- the panel: the site's contact panel (index.html .ct-panel, .ct-body) at rest ---- */
+  .seat {
+    position: relative; z-index: 2; box-sizing: border-box; min-height: 100dvh;
+    display: grid; place-items: center; padding: 62px 16px calc(24px + env(safe-area-inset-bottom));
+  }
+  .panel {
+    position: relative; width: min(480px, 100%); overflow: hidden;
+    background: #fff; border-radius: 16px; box-shadow: 0 24px 64px rgba(0, 0, 0, 0.22);
+  }
+  .pre .panel { visibility: hidden; }
+  .pre .scrim { opacity: 0; }
+  .ink { position: absolute; inset: 0; z-index: 1; background: #000; display: none; }
+  .body { box-sizing: border-box; padding: 28px 28px 28px; }
+
+  /* The portrait's place: the pill's black, gathered. The avatar takes it in stage 2. */
+  .spot { display: block; width: 88px; height: 88px; border-radius: 50%; background: #000; }
+
+  .hi {
+    margin: 22px 0 0; font-size: 40px; line-height: 44px; font-weight: 500; letter-spacing: -0.025em; text-wrap: balance;
+  }
+  :lang(th) .hi { font-size: 34px; line-height: 48px; letter-spacing: 0; }
+  :lang(zh) .hi { font-size: 36px; line-height: 46px; letter-spacing: 0.01em; }
+  :lang(he) .hi { letter-spacing: -0.01em; }
+  .line { margin: 10px 0 0; max-width: 30ch; font-size: 17px; line-height: 25px; color: var(--ink-soft); text-wrap: pretty; }
+  :lang(th) .line { line-height: 28px; }
+  :lang(zh) .line { letter-spacing: 0.02em; }
+
+  /* The channels sit where the panel's fields sit on the site, in the fields' outline (.ct-form input). */
+  .chans { display: grid; gap: 8px; margin: 26px 0 0; padding: 0; list-style: none; }
+  .chans a {
+    display: flex; align-items: center; gap: 12px; box-sizing: border-box; min-height: 52px; padding: 0 14px;
+    border: 1px solid var(--field); border-radius: 10px; color: var(--ink); text-decoration: none;
+    font-family: 'Inter', sans-serif; font-size: 16px; line-height: 20px;
+    transition: border-color 0.2s var(--ease), background-color 0.2s var(--ease);
+  }
+  @media (hover: hover) { .chans a:hover { border-color: #000; } }
+  .chans a:active { background: rgb(244 244 244); }
+  .chans a:focus-visible { outline-offset: 1px; }
+  .chans svg { flex: none; width: 22px; height: 22px; display: block; }
+  .chans svg .ko { stroke: #fff; }
+
+  /* Save contact: the panel's Send pill (index.html .ct-send). */
+  .save {
+    display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; min-width: 104px; height: 44px; padding: 0 22px;
+    margin-top: 24px; border-radius: 22px; background: #000; color: #fff; text-decoration: none; line-height: 44px;
+  }
+  @media (hover: hover) { .save:hover { background: #222; } }
+
+  @media (max-width: 380px) { .body { padding: 24px 22px 24px; } .hi { font-size: 36px; line-height: 40px; } :lang(th) .hi { font-size: 30px; line-height: 44px; } :lang(zh) .hi { font-size: 32px; line-height: 42px; } }
+  @media (min-width: 600px) { .seat { padding-top: 80px; } .body { padding: 36px 36px 32px; } .spot { width: 104px; height: 104px; } .hi { font-size: 48px; line-height: 52px; } }
+</style>
+</head>
+<body>
+<div class="scrim" id="scrim" aria-hidden="true"></div>
+
+<header class="mast">
+  <a class="wordmark" href="https://njct.io/"><span dir="ltr">njct.io</span></a>
+  <div class="pm" id="pm">
+    <button class="pm-btn" id="pm-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="pm-list"><span id="pm-label">English</span><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></button>
+    <ul class="pm-list" id="pm-list" aria-labelledby="pm-btn"></ul>
+  </div>
+  <span class="cta" id="cta" aria-hidden="true"></span>
+</header>
+
+<main class="seat" id="seat">
+  <section class="panel" id="panel" aria-labelledby="hi">
+    <div class="ink" id="ink" aria-hidden="true"></div>
+    <div class="body" id="body">
+      <span class="spot" id="spot" aria-hidden="true"></span>
+      <h1 class="hi" id="hi" data-k="hi">Hi, I’m Neil.</h1>
+      <p class="line" data-k="line">Great to meet you. Here's where to find me.</p>
+      <ul class="chans" id="chans"></ul>
+      <a class="save" href="#" data-k="save">Save contact</a>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+  const COPY = {
+    en: { name: 'English', hi: 'Hi, I’m Neil.', line: "Great to meet you. Here's where to find me.", save: 'Save contact', order: ['linkedin', 'whatsapp', 'line', 'wechat'] },
+    th: { name: 'ไทย', hi: 'สวัสดีครับ ผม Neil', line: 'ยินดีที่ได้รู้จักครับ ติดต่อผมได้ทางนี้', save: 'บันทึกรายชื่อ', order: ['line', 'whatsapp', 'linkedin', 'wechat'] },
+    zh: { name: '中文', hi: '你好，我是 Neil', line: '很高兴认识你，可以在这里找到我。', save: '保存联系人', order: ['wechat', 'linkedin', 'whatsapp', 'line'], tag: 'zh-Hans' },
+    he: { name: 'עברית', hi: 'היי, אני ניל', line: 'נעים להכיר! כאן אפשר למצוא אותי.', save: 'שמירת איש קשר', order: ['whatsapp', 'linkedin', 'line', 'wechat'], rtl: true },
+    es: { name: 'Español', hi: '¡Hola! Soy Neil.', line: 'Encantado de conocerte. Aquí me encuentras.', save: 'Guardar contacto', order: ['whatsapp', 'linkedin', 'line', 'wechat'] },
+  };
+  const LANGS = ['en', 'th', 'zh', 'he', 'es'];
+
+  // One-colour channel glyphs; the knock-outs (.ko) take the panel's white.
+  const KO = 'class="ko" fill="none" stroke-width="1.15" stroke-linecap="round" stroke-linejoin="round"';
+  const CH = {
+    linkedin: ['LinkedIn', '<path fill="currentColor" fill-rule="evenodd" d="M5 2.5h14A2.5 2.5 0 0 1 21.5 5v14a2.5 2.5 0 0 1-2.5 2.5H5A2.5 2.5 0 0 1 2.5 19V5A2.5 2.5 0 0 1 5 2.5Zm1.6 7.2v8.1h2.5V9.7H6.6Zm1.25-4.1a1.42 1.42 0 1 0 0 2.84 1.42 1.42 0 0 0 0-2.84Zm3.15 4.1v8.1h2.5v-4.3c0-1.2.55-1.85 1.5-1.85s1.35.65 1.35 1.85v4.3h2.5v-4.9c0-2.3-1.15-3.4-2.95-3.4-1.15 0-1.95.5-2.4 1.15V9.7H11Z"/>'],
+    whatsapp: ['WhatsApp', '<path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" d="M12 3.2a8.8 8.8 0 0 0-7.6 13.2L3.2 20.8l4.5-1.2A8.8 8.8 0 1 0 12 3.2Z"/><path fill="currentColor" d="M9.3 7.7c-.2-.4-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.3.3-.9.9-.9 2.2s.9 2.6 1.1 2.7c.1.2 1.8 2.9 4.5 4 2.2.9 2.7.7 3.2.6.5 0 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.2-.2-.5-.3l-1.7-.8c-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1-.3-.1-1.1-.4-2-1.2-.8-.7-1.3-1.5-1.4-1.8-.2-.3 0-.4.1-.5l.4-.5.3-.4c.1-.2 0-.3 0-.5l-.8-1.8Z"/>'],
+    line: ['LINE', '<path fill="currentColor" d="M12 2.8c-5.5 0-10 3.6-10 8 0 3.9 3.5 7.2 8.3 7.9.3.1.8.2.9.5.1.3.1.7 0 1l-.1.9c0 .3-.2 1 .9.5 1.1-.4 5.9-3.4 8-5.9 1.4-1.6 2-3.2 2-4.9 0-4.4-4.5-8-10-8Z"/><path ' + KO + ' d="M6.4 8.7v4.4h2.2M10.3 8.7v4.4M12.4 13.1V8.7l2.8 4.4V8.7M19.3 8.7h-2.2v4.4h2.2M17.1 10.9h2.1"/>'],
+    wechat: ['WeChat', '<path fill="currentColor" d="M9.3 3.6C5.2 3.6 2 6.3 2 9.6c0 1.9 1 3.6 2.7 4.7l-.6 2.1 2.5-1.3c.9.3 1.8.4 2.7.4h.4a5.6 5.6 0 0 1-.2-1.5c0-3.3 3.1-5.9 6.9-5.9h.3c-.6-2.6-3.7-4.5-7.4-4.5Z"/><path fill="currentColor" stroke="#fff" stroke-width="1.4" d="M16.3 8.7c-3.4 0-6.1 2.3-6.1 5.1s2.7 5.1 6.1 5.1c.7 0 1.4-.1 2-.3l2.1 1.1-.5-1.8c1.5-1 2.4-2.5 2.4-4.1 0-2.8-2.7-5.1-6-5.1Z"/><circle fill="#fff" cx="6.8" cy="7.9" r="1"/><circle fill="#fff" cx="11.6" cy="7.9" r="1"/><circle fill="#fff" cx="14.2" cy="12.8" r=".85"/><circle fill="#fff" cx="18.3" cy="12.8" r=".85"/>'],
+  };
+  const CHECK = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"/></svg>';
+  const $ = id => document.getElementById(id);
+  const root = document.documentElement;
+
+  const chans = $('chans'), rows = {};
+  for (const k in CH) {
+    const li = document.createElement('li');
+    li.innerHTML = `<a href="#"><svg viewBox="0 0 24 24" aria-hidden="true">${CH[k][1]}</svg><span>${CH[k][0]}</span></a>`;
+    rows[k] = li;
+  }
+
+  // ---- the language picker, built as the site's Projects menu ----
+  const pm = $('pm'), btn = $('pm-btn'), list = $('pm-list');
+  list.innerHTML = LANGS.map(k => `<li><a href="?lang=${k}" data-lang="${k}"><span lang="${COPY[k].tag || k}" dir="auto">${COPY[k].name}</span>${CHECK}</a></li>`).join('');
+  function setLang(k, push) {
+    if (!COPY[k]) k = 'en';
+    const c = COPY[k];
+    root.lang = c.tag || k;
+    root.dir = c.rtl ? 'rtl' : 'ltr';
+    $('pm-label').textContent = c.name;
+    for (const el of document.querySelectorAll('[data-k]')) el.textContent = c[el.dataset.k];
+    chans.replaceChildren(...c.order.map(o => rows[o]));
+    for (const a of list.querySelectorAll('a')) a.setAttribute('aria-current', a.dataset.lang === k ? 'true' : 'false');
+    if (push) { const u = new URL(location.href); u.searchParams.set('lang', k); u.searchParams.delete('picker'); try { history.replaceState(null, '', u); } catch {} }
+  }
+  const setOpen = on => { pm.classList.toggle('open', on); btn.setAttribute('aria-expanded', String(on)); };
+  btn.addEventListener('click', () => setOpen(!pm.classList.contains('open')));
+  list.addEventListener('click', e => {
+    const a = e.target.closest('a[data-lang]'); if (!a) return;
+    e.preventDefault(); setLang(a.dataset.lang, true); setOpen(false); btn.focus();
+  });
+  document.addEventListener('click', e => { if (!pm.contains(e.target)) setOpen(false); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && pm.classList.contains('open')) { setOpen(false); btn.focus(); } });
+
+  const q = new URLSearchParams(location.search);
+  const pick = q.get('lang') || (navigator.languages || [navigator.language]).map(l => l.slice(0, 2).toLowerCase()).find(l => COPY[l]);
+  setLang(pick || 'en');
+  if (q.get('picker') === 'open') { pm.classList.add('instant'); setOpen(true); requestAnimationFrame(() => requestAnimationFrame(() => pm.classList.remove('instant'))); }
+
+  // ---- the one motion: the pill is pressed, grows into the panel (contact.js open(): its EASE, 520 ms, black to
+  // white, pill radius to 16 px, the backdrop dimming, the body fading in over the second half), and its black
+  // gathers into the portrait's place, which nods once. ----
+  if (!root.classList.contains('pre')) return;
+
+  // contact.js EASE, cubic-bezier(0.3, 0, 0.15, 1), solved for y at x
+  const bez = (x1, y1, x2, y2) => {
+    const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx, cy = 3 * y1, by = 3 * (y2 - y1) - cy, ay = 1 - cy - by;
+    const X = t => ((ax * t + bx) * t + cx) * t, Y = t => ((ay * t + by) * t + cy) * t, dX = t => (3 * ax * t + 2 * bx) * t + cx;
+    return x => {
+      if (x <= 0) return 0; if (x >= 1) return 1;
+      let t = x;
+      for (let i = 0; i < 8; i++) { const d = dX(t); if (Math.abs(d) < 1e-6) break; t -= (X(t) - x) / d; }
+      t = Math.min(1, Math.max(0, t));
+      return Y(t);
+    };
+  };
+  const EASE = bez(0.3, 0, 0.15, 1);
+  const clamp = v => Math.min(1, Math.max(0, v));
+  const mix = (a, b, p) => a + (b - a) * p;
+
+  const WAIT = 520, PRESS = 180, MS = 520, GATHER_LAG = 120, NOD = 420;
+  const T_PRESS = WAIT, T_MORPH = WAIT + PRESS, T_NOD = T_MORPH + MS, T_END = T_NOD + NOD;
+  const DIM = parseFloat(getComputedStyle(root).getPropertyValue('--dim'));
+
+  const cta = $('cta'), panel = $('panel'), body = $('body'), ink = $('ink'), spot = $('spot'), seat = $('seat'), scrim = $('scrim');
+  let geo = null, done = false;
+
+  // Measured once at rest, with the fonts in: the pill's box, the panel's box, and the spot inside the panel.
+  function measure() {
+    root.classList.remove('pre');
+    const r = panel.getBoundingClientRect(), s = spot.getBoundingClientRect(), c = cta.getBoundingClientRect();
+    geo = {
+      pill: { x: c.left, y: c.top, w: c.width, h: c.height },
+      rest: { x: r.left, y: r.top, w: r.width, h: r.height },
+      spot: { x: s.left - r.left, y: s.top - r.top, d: s.width },
+      rtl: root.dir === 'rtl',
+    };
+    seat.style.minHeight = `${seat.offsetHeight}px`;
+    seat.style.gridTemplateRows = `${r.height}px`;
+    Object.assign(panel.style, { position: 'fixed', margin: '0', zIndex: '2' });
+    Object.assign(body.style, { position: 'absolute', top: '0', width: `${r.width}px`, [geo.rtl ? 'right' : 'left']: '0' });
+    ink.style.display = 'block';
+    spot.style.visibility = 'hidden';
+    cta.style.visibility = 'visible';
+  }
+
+  function frame(t) {
+    const g = geo;
+    const u = clamp((t - T_MORPH) / MS), p = EASE(u);
+    const press = t >= T_PRESS && t < T_MORPH ? Math.sin(Math.PI * (t - T_PRESS) / PRESS) : 0;
+    cta.style.visibility = t < T_MORPH ? 'visible' : 'hidden';     // the pill becomes the panel
+    // the panel's box, from the pill's to its own; pill radius to 16 px
+    const w = mix(g.pill.w, g.rest.w, p), h = mix(g.pill.h, g.rest.h, p);
+    const x = mix(g.pill.x, g.rest.x, p), y = mix(g.pill.y, g.rest.y, p);
+    const rad = mix(g.pill.h / 2, 16, p);
+    Object.assign(panel.style, {
+      left: `${x}px`, top: `${y}px`, width: `${w}px`, height: `${h}px`, borderRadius: `${rad}px`,
+      transform: press ? `scale(${1 - 0.06 * press})` : '',
+      visibility: t < T_MORPH ? 'hidden' : 'visible',
+      boxShadow: `0 ${24 * p}px ${64 * p}px rgba(0, 0, 0, ${0.22 * p})`,
+    });
+    if (t < T_MORPH) cta.style.transform = press ? `scale(${1 - 0.06 * press})` : '';
+    // the black gathers a beat behind the grow: a circle closing on the portrait's place, the white coming in
+    // from the panel's far edges
+    const k = EASE(clamp((t - T_MORPH - GATHER_LAG) / (MS - GATHER_LAG)));
+    const r = g.spot.d / 2, cx = (g.rtl ? w - g.rest.w + g.spot.x : g.spot.x) + r, cy = g.spot.y + r;
+    const cover = Math.hypot(Math.max(cx, w - cx), Math.max(cy, h - cy));
+    Object.assign(ink.style, {
+      clipPath: `circle(${mix(cover, r, k)}px at ${cx}px ${cy}px)`,
+      display: t < T_NOD ? 'block' : 'none',
+    });
+    body.style.opacity = String(clamp((u - 0.5) / 0.5));
+    scrim.style.opacity = String(u);
+    // then it nods once: down, and back up a touch past rest
+    if (t >= T_NOD) {
+      spot.style.visibility = 'visible';
+      const v = clamp((t - T_NOD) / NOD);
+      const dy = 7 * Math.sin(Math.PI * Math.min(1, v * 1.35)) * (v < 0.74 ? 1 : 0) - (v >= 0.74 ? 1.6 * Math.sin(Math.PI * (v - 0.74) / 0.26) : 0);
+      spot.style.transform = `translateY(${dy}px) scale(${1 + 0.02 * Math.sin(Math.PI * v)}, ${1 - 0.04 * Math.sin(Math.PI * Math.min(1, v * 1.35))})`;
+    }
+  }
+
+  function rest() {
+    if (done) return; done = true;
+    for (const el of [panel, body, ink, spot, seat, scrim, cta]) el.removeAttribute('style');
+  }
+
+  function start() {
+    if (geo) return;
+    measure();
+    const at = q.get('t');
+    if (at !== null) { frame(+at); return; }                 // one still frame, for review
+    let t0;
+    const step = now => {
+      if (done) return;
+      t0 ??= now;
+      const t = now - t0;
+      if (t >= T_END) return rest();
+      frame(t); requestAnimationFrame(step);
+    };
+    frame(0);
+    requestAnimationFrame(step);
+    setTimeout(rest, T_END + 600);   // wherever frames are held back, it still comes to rest
+  }
+  (document.fonts ? document.fonts.ready : Promise.resolve()).then(start);
+  setTimeout(() => { if (!geo) start(); }, 1500);
+})();
+</script>
+</body>
+</html>

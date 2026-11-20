@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Neil</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Signika:wght@400;600;700&family=Assistant:wght@400;600;700&family=Noto+Sans+Thai:wght@400;600;700&family=Noto+Sans+SC:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --concrete: #E2E4E0;   /* terminal wall */
+  --rod: #4A5056;        /* hanger rods, bolts */
+  --sign: #262B2F;       /* overhead panel charcoal */
+  --strip: #353B40;      /* picker strip on the panel */
+  --way: #00704C;        /* way-to green: arrivals, meeting point */
+  --way-joint: #005A3D;  /* module joint shadow line */
+  --white: #FFFFFF;
+  --ink: #262B2F;
+  --type: "Signika", "Assistant", "Noto Sans Thai", "Noto Sans SC", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--concrete);
+  color: var(--white);
+  font-family: var(--type);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  min-height: 100vh;
+}
+:lang(th) { font-family: "Signika", "Noto Sans Thai", system-ui, sans-serif; }
+:lang(he) { font-family: "Signika", "Assistant", system-ui, sans-serif; }
+:lang(zh) { font-family: "Signika", "Noto Sans SC", system-ui, sans-serif; }
+
+.hall {
+  max-width: 430px;
+  margin: 0 auto;
+  padding: 0 16px 28px;
+}
+
+/* ---------- overhead panel ---------- */
+.hangers { position: relative; height: 26px; }
+.hangers i {
+  position: absolute; top: 0; bottom: 0; width: 4px;
+  background: var(--rod);
+}
+.hangers i:nth-child(1) { inset-inline-start: 18%; }
+.hangers i:nth-child(2) { inset-inline-end: 18%; }
+
+.overhead {
+  position: relative;
+  background: var(--sign);
+  border-radius: 3px;
+}
+.strip {
+  display: flex; align-items: stretch; justify-content: space-between;
+  background: var(--strip);
+  border-radius: 3px 3px 0 0;
+  min-height: 52px;
+}
+.lang-btn {
+  appearance: none; border: 0; background: transparent; color: var(--white);
+  font: inherit; font-size: 18px; font-weight: 600;
+  display: flex; align-items: center; gap: 10px;
+  padding: 0 14px; min-height: 52px; min-width: 44px;
+  cursor: pointer;
+}
+.lang-btn svg { width: 18px; height: 18px; fill: var(--white); transition: transform .2s ease; }
+.lang-btn[aria-expanded="true"] svg { transform: rotate(180deg); }
+.lang-btn:focus-visible, .chan:focus-visible, .save:focus-visible, .lang-list button:focus-visible {
+  outline: 3px solid #FFFFFF; outline-offset: -5px;
+}
+.save:focus-visible { outline-color: var(--way); }
+.wordmark {
+  align-self: center;
+  padding: 0 14px;
+  font-size: 14px; font-weight: 400; letter-spacing: .01em;
+  color: rgba(255,255,255,.62);
+}
+
+.lang-list {
+  position: absolute; z-index: 5;
+  top: 52px; inset-inline-start: 0;
+  width: 200px;
+  margin: 0; padding: 0; list-style: none;
+  background: var(--white);
+  border-radius: 0 0 4px 4px;
+  box-shadow: 0 10px 0 -4px rgba(38,43,47,.18);
+}
+.lang-list[hidden] { display: none; }
+.lang-list li + li button { border-top: 1px solid #D5D8D4; }
+.lang-list button {
+  appearance: none; border: 0; background: transparent; width: 100%;
+  display: flex; align-items: center; gap: 12px;
+  min-height: 52px; padding: 0 16px;
+  font-family: var(--type); font-size: 19px; font-weight: 600; color: var(--ink);
+  text-align: start; cursor: pointer;
+}
+.lang-list button::before {
+  content: ""; flex: none; width: 10px; height: 10px; border-radius: 2px;
+  border: 2px solid #A9AEAA;
+}
+.lang-list button[aria-current="true"]::before { background: var(--way); border-color: var(--way); }
+.lang-list button:hover { background: #EEF0ED; }
+
+.face-row { padding: 22px 18px 0; }
+.mp {
+  display: block; width: clamp(128px, 40vw, 168px); height: auto; aspect-ratio: 1;
+  background: var(--way); border-radius: 14px;
+}
+.greet { padding: 18px 18px 22px; }
+h1 {
+  margin: 0;
+  font-size: 42px; line-height: 1.08; font-weight: 600; letter-spacing: -.01em;
+}
+:lang(th) h1 { font-size: 38px; line-height: 1.25; }
+:lang(zh) h1 { font-size: 38px; line-height: 1.2; font-weight: 600; }
+:lang(he) h1 { font-size: 44px; }
+.sub {
+  margin: 10px 0 0;
+  font-size: 19px; line-height: 1.38; font-weight: 400;
+  color: rgba(255,255,255,.86);
+  max-width: 30ch;
+}
+:lang(th) .sub { line-height: 1.55; }
+
+/* ---------- way-to totem ---------- */
+.totem {
+  margin-top: 16px;
+  display: flex; flex-direction: column; gap: 3px;
+}
+.chan {
+  display: flex; align-items: center; gap: 14px;
+  min-height: 70px; padding: 0 16px;
+  background: var(--way);
+  color: var(--white); text-decoration: none;
+  box-shadow: inset 0 -2px 0 var(--way-joint);
+}
+.chan:first-child { border-radius: 6px 6px 0 0; }
+.chan:last-child  { border-radius: 0 0 6px 6px; }
+.chan:active { background: #00603F; }
+.tile {
+  flex: none; width: 44px; height: 44px; border-radius: 9px;
+  background: var(--white);
+  display: grid; place-items: center;
+}
+.tile svg { width: 30px; height: 30px; }
+.label {
+  font-size: 25px; font-weight: 600; letter-spacing: -.005em;
+  font-family: "Signika", system-ui, sans-serif;
+}
+.arrow { flex: none; width: 34px; height: 34px; fill: var(--white); }
+.chan.trail .arrow { margin-inline-start: auto; }
+.chan .arrow.up { transform: rotate(0deg); }
+.chan .arrow.ul { transform: rotate(-45deg); }
+.chan .arrow.ur { transform: rotate(45deg); }
+.chan .arrow.r  { transform: rotate(90deg); }
+[dir="rtl"] .chan .arrow.ul { transform: rotate(45deg); }
+[dir="rtl"] .chan .arrow.ur { transform: rotate(-45deg); }
+[dir="rtl"] .chan .arrow.r  { transform: rotate(-90deg); }
+
+/* ---------- save contact ---------- */
+.save {
+  margin-top: 14px;
+  display: flex; align-items: center; gap: 14px;
+  min-height: 60px; padding: 0 16px;
+  background: var(--white); color: var(--ink);
+  border: 3px solid var(--sign); border-radius: 4px;
+  text-decoration: none;
+  font-size: 20px; font-weight: 600;
+}
+.save .tile { background: var(--sign); width: 38px; height: 38px; border-radius: 7px; }
+.save .tile svg { width: 26px; height: 26px; }
+
+/* ---------- the one moment: arrows converge on the meeting point ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  html:not(.still) .mp .in { animation: converge .9s cubic-bezier(.2,.8,.25,1) .25s both; }
+  html:not(.still) .mp .in.b { animation-delay: .32s; }
+  html:not(.still) .mp .in.c { animation-delay: .39s; }
+  html:not(.still) .mp .in.d { animation-delay: .46s; }
+  @keyframes converge {
+    from { transform: translate(var(--dx), var(--dy)); opacity: 0; }
+    to   { transform: translate(0, 0); opacity: 1; }
+  }
+}
+</style>
+</head>
+<body>
+<main class="hall">
+  <div class="hangers" aria-hidden="true"><i></i><i></i></div>
+
+  <section class="overhead">
+    <div class="strip">
+      <button class="lang-btn" id="langBtn" aria-haspopup="listbox" aria-expanded="false" aria-controls="langList">
+        <span id="langName">English</span>
+        <svg viewBox="0 0 100 100" aria-hidden="true"><polygon points="50,96 94,52 76,34 63,47 63,4 37,4 37,47 24,34 6,52"/></svg>
+      </button>
+      <span class="wordmark" lang="en">njct.io</span>
+      <ul class="lang-list" id="langList" role="listbox" hidden></ul>
+    </div>
+
+    <div class="face-row">
+      <!-- Meeting point: four arrows converge on Neil. The head circle is the avatar slot (stage 2). -->
+      <svg class="mp" viewBox="0 0 132 132" role="img" aria-label="Neil">
+        <g fill="#FFFFFF">
+          <g class="in a" style="--dx:-10px;--dy:-10px"><polygon transform="translate(25 25) rotate(135) scale(.28) translate(-50 -50)" points="50,4 94,48 76,66 63,53 63,96 37,96 37,53 24,66 6,48"/></g>
+          <g class="in b" style="--dx:10px;--dy:-10px"><polygon transform="translate(107 25) rotate(-135) scale(.28) translate(-50 -50)" points="50,4 94,48 76,66 63,53 63,96 37,96 37,53 24,66 6,48"/></g>
+          <g class="in c" style="--dx:10px;--dy:10px"><polygon transform="translate(107 107) rotate(-45) scale(.28) translate(-50 -50)" points="50,4 94,48 76,66 63,53 63,96 37,96 37,53 24,66 6,48"/></g>
+          <g class="in d" style="--dx:-10px;--dy:10px"><polygon transform="translate(25 107) rotate(45) scale(.28) translate(-50 -50)" points="50,4 94,48 76,66 63,53 63,96 37,96 37,53 24,66 6,48"/></g>
+          <g id="avatar-slot">
+            <circle cx="66" cy="52" r="19"/>
+            <path d="M42 102 C42 84 51 76 66 76 C81 76 90 84 90 102 Z"/>
+          </g>
+        </g>
+      </svg>
+    </div>
+
+    <div class="greet">
+      <h1 id="greet">Hi, I'm Neil.</h1>
+      <p class="sub" id="sub">Great to meet you. Here's where to find me.</p>
+    </div>
+  </section>
+
+  <nav class="totem" id="totem" aria-label="Contact"></nav>
+
+  <a class="save" id="save" href="#">
+    <span class="tile" aria-hidden="true">
+      <svg viewBox="0 0 30 30"><rect x="3" y="6" width="24" height="18" rx="2.5" fill="none" stroke="#fff" stroke-width="2.4"/><circle cx="11" cy="13" r="3" fill="#fff"/><path d="M6 21c0-3 2.2-4.4 5-4.4s5 1.4 5 4.4z" fill="#fff"/><rect x="18" y="11" width="6" height="2.4" fill="#fff"/><rect x="18" y="16" width="6" height="2.4" fill="#fff"/></svg>
+    </span>
+    <span id="saveLabel">Save contact</span>
+  </a>
+</main>
+
+<script>
+(function () {
+  var COPY = {
+    en: { name: "English", dir: "ltr", greet: "Hi, I'm Neil.", sub: "Great to meet you. Here's where to find me.", save: "Save contact", order: ["linkedin","whatsapp","line","wechat"] },
+    th: { name: "ไทย", dir: "ltr", greet: "สวัสดีครับ ผม Neil", sub: "ยินดีที่ได้รู้จักครับ ติดต่อผมได้ทางนี้", save: "บันทึกรายชื่อ", order: ["line","whatsapp","linkedin","wechat"] },
+    zh: { name: "中文", dir: "ltr", greet: "你好，我是 Neil", sub: "很高兴认识你，可以在这里找到我。", save: "保存联系人", order: ["wechat","linkedin","whatsapp","line"] },
+    he: { name: "עברית", dir: "rtl", greet: "היי, אני ניל", sub: "נעים להכיר! כאן אפשר למצוא אותי.", save: "שמירת איש קשר", order: ["whatsapp","linkedin","line","wechat"] },
+    es: { name: "Español", dir: "ltr", greet: "¡Hola! Soy Neil.", sub: "Encantado de conocerte. Aquí me encuentras.", save: "Guardar contacto", order: ["whatsapp","linkedin","line","wechat"] }
+  };
+  var LANGS = ["en","th","zh","he","es"];
+  var INK = "#262B2F";
+  var ARROW = '<polygon points="50,4 94,48 76,66 63,53 63,96 37,96 37,53 24,66 6,48"/>';
+
+  /* Each channel has a fixed bearing, as a gate does. Leading-side arrows point left or ahead;
+     trailing-side arrows point right, the way real directional signs place them. */
+  var CHANNELS = {
+    linkedin: { label: "LinkedIn", href: "#", bearing: "ul", side: "lead",
+      glyph: '<rect x="4" y="11" width="5" height="15" fill="' + INK + '"/><circle cx="6.5" cy="6" r="3" fill="' + INK + '"/><path d="M12 11h4.8v2.1c.9-1.5 2.6-2.5 4.9-2.5 3.6 0 5.3 2.2 5.3 6.2V26h-5v-8.3c0-2-.8-3-2.4-3s-2.6 1.1-2.6 3.1V26h-5z" fill="' + INK + '"/>' },
+    whatsapp: { label: "WhatsApp", href: "#", bearing: "up", side: "lead",
+      glyph: '<path d="M15 3.2a11.6 11.6 0 0 0-10 17.5L3.4 26.8l6.3-1.6A11.6 11.6 0 1 0 15 3.2z" fill="none" stroke="' + INK + '" stroke-width="2.4" stroke-linejoin="round"/><path d="M11.1 9.4c.4 0 .7 0 1 .7l1.2 2.7c.1.3.1.6-.1.9l-.8 1c-.2.2-.2.5 0 .8.9 1.6 2.2 2.8 3.9 3.6.3.1.6.1.8-.1l1-1.2c.2-.3.5-.3.8-.2l2.6 1.2c.4.2.5.5.4.9-.3 1.5-1.6 2.5-3.1 2.4-4.6-.4-8.6-4.2-9.3-8.8-.2-1.6.6-3.1 1.6-3.9z" fill="' + INK + '"/>' },
+    line: { label: "LINE", href: "#", bearing: "ur", side: "trail",
+      glyph: '<path d="M15 3.5C8 3.5 2.6 8 2.6 13.6c0 5 4.3 9.2 10.2 10 .9.2.8.9.7 1.6l-.2 1.6c0 .4.3.8.9.5 3.4-1.9 10.8-6.5 12.6-10.6.4-1 .6-2 .6-3.1 0-5.6-5.4-10.1-12.4-10.1z" fill="' + INK + '"/><g fill="#fff" transform="translate(15 13.5) scale(.76) translate(-17.2 -13.5)"><rect x="7" y="10" width="1.9" height="7"/><rect x="7" y="15.2" width="4.2" height="1.8"/><rect x="12.4" y="10" width="1.9" height="7"/><path d="M15.6 10h1.8l2.8 4.1V10H22v7h-1.8l-2.8-4.1V17h-1.8z"/><path d="M23.2 10h4.2v1.8H25v.8h2.4v1.8H25v.8h2.4V17h-4.2z"/></g>' },
+    wechat: { label: "WeChat", href: "#", bearing: "r", side: "trail",
+      glyph: '<path d="M11.6 4C6 4 1.6 7.7 1.6 12.2c0 2.6 1.4 4.8 3.6 6.3l-.9 2.8 3.3-1.7c1.2.3 2.5.5 3.9.5h.6c-.3-.8-.4-1.6-.4-2.5 0-4.4 4.2-7.9 9.4-7.9h.6C20.8 6.2 16.6 4 11.6 4z" fill="' + INK + '"/><path d="M28.4 17.6c0-3.7-3.6-6.6-8-6.6s-8 2.9-8 6.6 3.6 6.6 8 6.6c.9 0 1.8-.1 2.6-.4l2.8 1.5-.7-2.4c2-1.2 3.3-3.1 3.3-5.3z" fill="' + INK + '"/><g fill="#fff"><circle cx="8.3" cy="10.2" r="1.3"/><circle cx="14.6" cy="10.2" r="1.3"/><circle cx="17.6" cy="16.4" r="1.1"/><circle cx="23.2" cy="16.4" r="1.1"/></g>' }
+  };
+
+  var html = document.documentElement;
+  /* Renders: headless capture skips the arrival motion so the screenshot is the resting state. */
+  if (/HeadlessChrome/.test(navigator.userAgent)) html.classList.add("still");
+  var btn = document.getElementById("langBtn");
+  var list = document.getElementById("langList");
+  var totem = document.getElementById("totem");
+  var current = "en";
+
+  function arrowSvg(b) {
+    return '<svg class="arrow ' + b + '" viewBox="0 0 100 100" aria-hidden="true">' + ARROW + '</svg>';
+  }
+  function chanHtml(key) {
+    var c = CHANNELS[key];
+    var tile = '<span class="tile" aria-hidden="true"><svg viewBox="0 0 30 30">' + c.glyph + '</svg></span>';
+    var label = '<span class="label" lang="en">' + c.label + '</span>';
+    var inner = c.side === "lead" ? arrowSvg(c.bearing) + tile + label : tile + label + arrowSvg(c.bearing);
+    return '<a class="chan ' + c.side + '" href="' + c.href + '">' + inner + '</a>';
+  }
+
+  function buildList() {
+    list.innerHTML = LANGS.map(function (code) {
+      return '<li><button type="button" role="option" lang="' + code + '" data-lang="' + code + '"><span dir="' + COPY[code].dir + '">' + COPY[code].name + '</span></button></li>';
+    }).join("");
+  }
+
+  function setLang(code) {
+    if (!COPY[code]) code = "en";
+    current = code;
+    var t = COPY[code];
+    html.lang = code;
+    html.dir = t.dir;
+    document.getElementById("langName").textContent = t.name;
+    document.getElementById("greet").textContent = t.greet;
+    document.getElementById("sub").textContent = t.sub;
+    document.getElementById("saveLabel").textContent = t.save;
+    totem.innerHTML = t.order.map(chanHtml).join("");
+    Array.prototype.forEach.call(list.querySelectorAll("button"), function (b) {
+      var on = b.getAttribute("data-lang") === code;
+      b.setAttribute("aria-current", on ? "true" : "false");
+      b.setAttribute("aria-selected", on ? "true" : "false");
+    });
+  }
+
+  function openList(open) {
+    list.hidden = !open;
+    btn.setAttribute("aria-expanded", open ? "true" : "false");
+    if (open) {
+      var cur = list.querySelector('[data-lang="' + current + '"]');
+      if (cur && document.activeElement === btn) cur.focus();
+    }
+  }
+
+  buildList();
+  btn.addEventListener("click", function () { openList(list.hidden); });
+  list.addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-lang]");
+    if (!b) return;
+    setLang(b.getAttribute("data-lang"));
+    openList(false);
+    btn.focus();
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && !list.hidden) { openList(false); btn.focus(); }
+  });
+  document.addEventListener("click", function (e) {
+    if (!list.hidden && !e.target.closest(".strip")) openList(false);
+  });
+
+  var params = new URLSearchParams(location.search);
+  var start = params.get("lang");
+  if (!start) {
+    var nav = (navigator.language || "en").slice(0, 2).toLowerCase();
+    start = COPY[nav] ? nav : (nav === "iw" ? "he" : "en");
+  }
+  setLang(start);
+  if (params.get("picker") === "open") openList(true);
+})();
+</script>
+</body>
+</html>

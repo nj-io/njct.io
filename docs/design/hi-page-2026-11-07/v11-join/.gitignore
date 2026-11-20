@@ -1,0 +1,4 @@
+.venv/
+# rebuildable: src/join.py writes these from ../v10-v2-build/work
+work/out/
+work/matte/

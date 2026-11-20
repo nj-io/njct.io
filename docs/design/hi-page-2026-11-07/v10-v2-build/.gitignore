@@ -1,0 +1,7 @@
+.venv/
+# rebuildable frames: work/a and work/b are the picked clip's frames (v9-video/clips/picked-h3-4+4.mp4, 480x864,
+# 107 each); work/out and work/matte come from src/composite.py
+work/a/
+work/b/
+work/out/
+work/matte/

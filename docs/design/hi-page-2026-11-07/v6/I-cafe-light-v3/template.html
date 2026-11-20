@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Neil</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..500&family=Noto+Sans+Thai:wght@400;500&family=Noto+Sans+Hebrew:wght@400;500&display=block">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500&display=block&text=%%SCTEXT%%">
+<style>
+  :root {
+    /* njct.io's wall: the desktop grey and its soft radial light (index.html --ground), darker on a phone (crate groundGain) */
+    --ground: radial-gradient(120% 60% at 50% 80%, rgb(211 211 211), rgb(216 216 216) 45%, rgb(220 220 220) 100%) rgb(220 220 220);
+    /* the café's sun (scene/sun.js njSunColour): amber at the patch's edges, a warm near-white in its full light */
+    --sun-edge: #FFC48C;
+    --sun-core: #FFEBD6;
+    --ink: #000;
+    --ink-soft: rgba(0, 0, 0, 0.6);
+    --pill-light: rgba(255, 255, 255, 0.7);
+    --rule: rgba(0, 0, 0, 0.1);
+    --gutter: 16px;
+    --ease: cubic-bezier(0.4, 0, 0.2, 1);
+    --face: 'Inter', 'Noto Sans Thai', 'Noto Sans Hebrew', 'Noto Sans SC', sans-serif;
+  }
+  @media (max-width: 599px) {
+    :root { --ground: radial-gradient(130% 55% at 50% 85%, rgb(195.5 195.5 195.5), rgb(200.5 200.5 200.5) 45%, rgb(204.8 204.8 204.8) 100%) rgb(204.8 204.8 204.8); }
+  }
+  html { background: var(--ground); overflow-x: clip; }
+  body {
+    margin: 0; min-height: 100dvh; overflow-x: clip; background: transparent;
+    font: 400 16px/22px var(--face); color: var(--ink);
+    -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility;
+  }
+  button { font: inherit; color: inherit; margin: 0; }
+  :focus-visible { outline: 2px solid #000; outline-offset: 2px; }
+
+  /* The room: one column on the wall, and the late sun through the street window falling across it. */
+  .page {
+    position: relative; box-sizing: border-box; max-width: 430px; min-height: 100dvh; margin: 0 auto;
+    padding-bottom: calc(20px + env(safe-area-inset-bottom));
+    display: flex; flex-direction: column; container-type: inline-size;
+  }
+  .page > :not(.light) { position: relative; z-index: 1; }
+
+  /* The light is drawn in a 390-wide frame that scales with the column, so the greeting always lands
+     in the lower lights, under the transom. */
+  .light { position: absolute; inset: 0 0 auto 0; aspect-ratio: 390 / 844; pointer-events: none; z-index: 0; }
+  /* Two layers of the one light, as sun.js colours it: amber wherever the sun is partly hidden, the warm
+     near-white of its full light over it. Each spans the viewport, so a wide screen sees more of the window. */
+  .light canvas { position: absolute; top: 0; height: 100%; display: block; }
+  [dir="rtl"] .light canvas { transform: scaleX(-1); }
+  #sun-e { opacity: 0.72; }
+  #sun-c { opacity: 0.86; }
+  /* Where Neil's head falls in the light: stage 2's avatar steps into this spot. */
+  .seat {
+    position: absolute; inset-inline-start: calc(219 / 390 * 100%); top: calc(158 / 844 * 100%);
+    width: calc(56 / 390 * 100%); aspect-ratio: 56 / 48;
+  }
+
+  /* The header, as njct.io's: the wordmark, and the language picker built as the Projects menu. */
+  .mast { position: relative; height: 54px; z-index: 3 !important; }
+  .wordmark {
+    position: absolute; inset-inline-start: var(--gutter); top: 5px; padding: 12px 0; min-width: 44px;
+    font-weight: 500; line-height: 20px; color: var(--ink); text-decoration: none; font-family: 'Inter', sans-serif;
+  }
+  .pm { position: absolute; top: 5px; inset-inline-start: calc(var(--gutter) + 82px); }
+  .pm-btn {
+    display: flex; align-items: center; gap: 4px; height: 44px; padding: 0 8px; border: 0; border-radius: 4px;
+    background: transparent; color: var(--ink); font-weight: 500; line-height: 16px; letter-spacing: -0.01em; cursor: pointer;
+    transition: color 0.3s var(--ease), background-color 0.3s var(--ease);
+  }
+  @media (hover: hover) { .pm-btn:hover { background: #000; color: #fff; } .pm-list a:hover { background: rgb(244 244 244); } }
+  .pm-btn svg { width: 16px; height: 16px; display: block; transition: transform 0.3s var(--ease); }
+  .pm.open .pm-btn svg { transform: rotate(180deg); }
+  .pm-list {
+    position: absolute; inset-inline-start: 0; top: calc(100% + 8px); margin: 0; padding: 0; list-style: none; box-sizing: border-box;
+    min-width: 220px; background: #fff; border-radius: 4px;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+    opacity: 0; visibility: hidden; translate: 0 -10px;
+    transition: opacity 0.3s var(--ease), visibility 0.3s var(--ease), translate 0.3s var(--ease);
+  }
+  .pm.open .pm-list { opacity: 1; visibility: visible; translate: none; transition: opacity 0.3s var(--ease) 0.1s, visibility 0s, translate 0.3s var(--ease) 0.1s; }
+  .pm.instant .pm-list { transition: none; }
+  .pm-list li { border-bottom: 1px solid rgb(236 236 236); }
+  .pm-list li:last-child { border-bottom: 0; }
+  .pm-list a {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 0 12px;
+    box-sizing: border-box; color: #000; text-decoration: none; font-size: 16px; line-height: 20px;
+  }
+  .pm-list a:focus-visible { outline-offset: -2px; }
+  .pm-list svg { width: 16px; height: 16px; flex: none; visibility: hidden; }
+  .pm-list a[aria-current="true"] svg { visibility: visible; }
+  /* A phone: the list is a sheet from the bottom of the screen, as the Projects menu is. */
+  @media (max-width: 599px) {
+    .pm-list {
+      position: fixed; left: 0; right: 0; top: auto; bottom: 0; min-width: 0; border-radius: 4px 4px 0 0;
+      padding-bottom: env(safe-area-inset-bottom); translate: 0 50px;
+    }
+    .pm-list a { min-height: 52px; padding: 0 var(--gutter); font-size: 17px; }
+  }
+
+  /* The upper lights hold the leaves and the figure; the copy starts below the transom's shadow. */
+  .stage { flex: none; height: calc(434 / 390 * 100cqw - 54px); }
+
+  .hello { padding-inline: var(--gutter); }
+  h1 {
+    margin: 0; font-size: 60px; line-height: 62px; font-weight: 500; letter-spacing: -0.035em; text-wrap: balance;
+  }
+  :lang(th) h1 { font-size: 44px; line-height: 60px; letter-spacing: -0.01em; }
+  :lang(zh) h1 { font-size: 50px; line-height: 62px; letter-spacing: 0; }
+  :lang(he) h1 { letter-spacing: -0.015em; }
+  :lang(es) h1 { font-size: 54px; line-height: 58px; }
+  .line { margin: 12px 0 0; max-width: 30ch; font-size: 17px; line-height: 25px; color: var(--ink-soft); text-wrap: pretty; }
+  :lang(th) .line { line-height: 28px; }
+
+  /* The channels, as the site's pills: black first (Open), light after (Details). */
+  .channels { display: flex; flex-wrap: wrap; gap: 10px 8px; margin-top: 28px; padding-inline: var(--gutter); }
+  .pill {
+    display: inline-flex; align-items: center; gap: 8px; box-sizing: border-box; height: 44px; padding-inline: 15px 18px;
+    border-radius: 22px; background: var(--pill-light); color: var(--ink); text-decoration: none; white-space: nowrap;
+    font-family: 'Inter', sans-serif; font-size: 16px; line-height: 44px;
+    transition: background-color 0.2s var(--ease), color 0.2s var(--ease);
+  }
+  .pill svg { width: 18px; height: 18px; flex: none; display: block; }
+  .pill.lead { background: #000; color: #fff; }
+  @media (hover: hover) { .pill:not(.lead):hover { background: #fff; } .pill.lead:hover { background: #222; } }
+  .pill:active { scale: 0.98; }
+
+  .foot { margin-top: auto; padding: 28px var(--gutter) 0; }
+  .foot-in { display: flex; justify-content: flex-end; padding-top: 14px; border-top: 1px solid var(--rule); }
+  .foot .pill { font-family: var(--face); }
+
+  @media (max-height: 700px) { .channels { margin-top: 22px; } }
+  @media (min-width: 600px) { .mast { margin-top: 8px; } .foot { padding-bottom: 24px; } }
+</style>
+</head>
+<body>
+<div class="page" id="page">
+  <div class="light" id="light" aria-hidden="true">
+    <canvas id="sun-e"></canvas>
+    <canvas id="sun-c"></canvas>
+    <div class="seat" id="seat"></div>
+  </div>
+
+  <header class="mast">
+    <a class="wordmark" href="#"><span dir="ltr">njct.io</span></a>
+    <div class="pm" id="pm">
+      <button class="pm-btn" id="pm-btn" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="pm-list"><span id="pm-label">English</span><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></button>
+      <ul class="pm-list" id="pm-list" aria-labelledby="pm-btn"></ul>
+    </div>
+  </header>
+
+  <div class="stage" id="stage"></div>
+
+  <section class="hello">
+    <h1 id="greet">Hi, I’m Neil.</h1>
+    <p class="line" id="line">Great to meet you. Here's where to find me.</p>
+  </section>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+    <mask id="m-li" maskUnits="userSpaceOnUse" x="0" y="0" width="18" height="18"><rect width="18" height="18" fill="#fff"/><g fill="#000"><rect x="4.6" y="7.4" width="2.2" height="6.2"/><circle cx="5.7" cy="5.2" r="1.3"/><path d="M8.6 7.4h2.1v.9c.4-.7 1.2-1.1 2.1-1.1 1.6 0 2.4 1 2.4 2.8v3.6H13v-3.3c0-.9-.3-1.4-1.1-1.4-.8 0-1.2.6-1.2 1.4v3.3H8.6z"/></g></mask>
+    <mask id="m-line" maskUnits="userSpaceOnUse" x="0" y="0" width="18" height="18"><rect width="18" height="18" fill="#fff"/><g fill="#000"><path d="M3.3 6h1v3.1h1.9V10H3.3z"/><rect x="6.7" y="6" width="1" height="4"/><path d="M8.4 6h.95l1.65 2.4V6h.95v4h-.95L9.35 7.6V10H8.4z"/><path d="M12.3 6h2.4v.85h-1.45v.7h1.35v.85h-1.35v.75h1.45V10h-2.4z"/></g></mask>
+    <mask id="m-wc" maskUnits="userSpaceOnUse" x="0" y="0" width="18" height="18"><rect width="18" height="18" fill="#fff"/><g fill="#000"><circle cx="5.1" cy="6" r=".85"/><circle cx="8.9" cy="6" r=".85"/></g></mask>
+  </defs></svg>
+  <nav class="channels" id="channels" aria-label="LinkedIn, WhatsApp, LINE, WeChat">
+    <a class="pill" href="#" data-ch="linkedin"><svg viewBox="0 0 18 18" aria-hidden="true"><rect x="1.5" y="1.5" width="15" height="15" rx="3" fill="currentColor" mask="url(#m-li)"/></svg>LinkedIn</a>
+    <a class="pill" href="#" data-ch="whatsapp"><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M9 1.9a7 7 0 0 0-6 10.6L2 16.1l3.7-1A7 7 0 1 0 9 1.9z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M6.6 5.6c.2-.2.5-.2.7 0l.8 1.3c.1.2.1.5-.1.7l-.5.5c.4.9 1.2 1.7 2.1 2.1l.5-.5c.2-.2.5-.2.7-.1l1.3.8c.2.1.3.5.1.7l-.5.7c-.3.4-.9.5-1.4.3-2-.8-3.6-2.4-4.4-4.4-.2-.5-.1-1.1.3-1.4z" fill="currentColor"/></svg>WhatsApp</a>
+    <a class="pill" href="#" data-ch="line"><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M9 1.8C4.7 1.8 1.2 4.5 1.2 7.9c0 3 2.7 5.5 6.4 5.9.3.1.5.4.4.7l-.2 1.3c-.1.4.3.7.7.5 2.8-1.4 8.3-4.5 8.3-8.4 0-3.4-3.5-6.1-7.8-6.1z" fill="currentColor" mask="url(#m-line)"/></svg>LINE</a>
+    <a class="pill" href="#" data-ch="wechat"><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M7 2.4C3.9 2.4 1.4 4.5 1.4 7.1c0 1.5.8 2.8 2.1 3.7l-.5 1.7 2-1.1c.6.2 1.3.3 2 .3h.4a4.6 4.6 0 0 1-.2-1.3c0-2.6 2.5-4.7 5.6-4.7h.3C12.5 3.8 10 2.4 7 2.4z" fill="currentColor" mask="url(#m-wc)"/><path d="M12.4 7.6c-2.6 0-4.6 1.7-4.6 3.8s2 3.8 4.6 3.8c.5 0 1-.1 1.5-.2l1.6.9-.4-1.4c1.1-.7 1.8-1.8 1.8-3.1 0-2.1-2-3.8-4.5-3.8z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><circle cx="10.9" cy="10.6" r=".7" fill="currentColor"/><circle cx="13.9" cy="10.6" r=".7" fill="currentColor"/></svg>WeChat</a>
+  </nav>
+
+  <footer class="foot">
+    <div class="foot-in">
+      <a class="pill" href="#" id="save"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7.5" cy="6.2" r="3"/><path d="M2.2 15.5c.6-2.7 2.7-4.4 5.3-4.4 1.1 0 2.1.3 2.9.8M13.5 10.5v5M11 13h5"/></svg><span id="save-t">Save contact</span></a>
+    </div>
+  </footer>
+</div>
+
+<script>
+(() => {
+  const L = {
+    en: { name: 'English', greet: 'Hi, I’m Neil.', line: "Great to meet you. Here's where to find me.", save: 'Save contact', order: ['linkedin', 'whatsapp', 'line', 'wechat'] },
+    th: { name: 'ไทย', greet: 'สวัสดีครับ ผม Neil', line: 'ยินดีที่ได้รู้จักครับ ติดต่อผมได้ทางนี้', save: 'บันทึกรายชื่อ', order: ['line', 'whatsapp', 'linkedin', 'wechat'] },
+    zh: { name: '中文', greet: '你好，我是 Neil', line: '很高兴认识你，可以在这里找到我。', save: '保存联系人', order: ['wechat', 'linkedin', 'whatsapp', 'line'] },
+    he: { name: 'עברית', greet: 'היי, אני ניל', line: 'נעים להכיר! כאן אפשר למצוא אותי.', save: 'שמירת איש קשר', order: ['whatsapp', 'linkedin', 'line', 'wechat'] },
+    es: { name: 'Español', greet: '¡Hola! Soy Neil.', line: 'Encantado de conocerte. Aquí me encuentras.', save: 'Guardar contacto', order: ['whatsapp', 'linkedin', 'line', 'wechat'] },
+  };
+  const NAMES = { linkedin: 'LinkedIn', whatsapp: 'WhatsApp', line: 'LINE', wechat: 'WeChat' };
+  const $ = (id) => document.getElementById(id);
+  const root = document.documentElement, pm = $('pm'), btn = $('pm-btn'), list = $('pm-list'), chans = $('channels');
+  const check = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"/></svg>';
+  list.innerHTML = Object.entries(L).map(([k, v]) => `<li><a href="?lang=${k}" data-lang="${k}"><span lang="${k === 'zh' ? 'zh-Hans' : k}" dir="auto">${v.name}</span>${check}</a></li>`).join('');
+
+  function setLang(k) {
+    if (!L[k]) k = 'en';
+    const v = L[k];
+    root.lang = k === 'zh' ? 'zh-Hans' : k;
+    root.dir = k === 'he' ? 'rtl' : 'ltr';
+    $('pm-label').textContent = v.name;
+    $('greet').textContent = v.greet; $('line').textContent = v.line; $('save-t').textContent = v.save;
+    v.order.forEach((c, i) => { const a = chans.querySelector(`[data-ch="${c}"]`); a.classList.toggle('lead', i === 0); chans.append(a); });
+    chans.setAttribute('aria-label', v.order.map((c) => NAMES[c]).join(', '));
+    list.querySelectorAll('a').forEach((a) => a.setAttribute('aria-current', a.dataset.lang === k ? 'true' : 'false'));
+    const u = new URL(location.href); u.searchParams.set('lang', k); u.searchParams.delete('picker');
+    try { history.replaceState(null, '', u); } catch {}
+  }
+  function open(on) { pm.classList.toggle('open', on); btn.setAttribute('aria-expanded', on); }
+  btn.addEventListener('click', () => open(!pm.classList.contains('open')));
+  list.addEventListener('click', (e) => {
+    const a = e.target.closest('a[data-lang]'); if (!a) return;
+    e.preventDefault(); setLang(a.dataset.lang); open(false); btn.focus();
+  });
+  document.addEventListener('click', (e) => { if (!pm.contains(e.target)) open(false); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && pm.classList.contains('open')) { open(false); btn.focus(); } });
+
+  // ---- The light ------------------------------------------------------------------------------------
+  // Drawn in a 390 x 844 frame (the phone's column), the window's light falling across the wall as the café's
+  // sun makes it (scene/sun.js, CAFE.sun az 38, el 13). Every occluder is a pre-blurred bitmap that only
+  // moves by transform, cut out of the window's light each frame (destination-out: the sun's visibility
+  // through two occluders is the product of the two, so an overlap is never darker than full shadow). Two
+  // canvases carry the two colours: amber where the sun is partly hidden, the full light over it.
+  const DEG = Math.PI / 180;
+  const SH = Math.tan(14.6 * DEG);                 // the window's slope: its head, transom and sill fall 14.6 deg
+  const sill = (x) => 744 - SH * (x - 6);          // the sill line, the bottom of the light
+  // Neil sits side-on, his depth running out from the wall, so the sun at azimuth 38 deg lays him and his table
+  // down as it lays the window: depths widen by cot 38 = 1.28, heights keep their length, and every horizontal
+  // takes the window's slope.
+  const STRETCH = 1 / Math.tan(38 * DEG);
+  // Softness follows distance (sun.js: penumbra = distance x the sun's 0.53 deg disc). Distances along the
+  // sun from the wall, in the café's units (CAFE; 1 unit = 1.77 mm): his table and laptop, against the wall,
+  // about 45 cm out (z 254), 424; Neil on his stool, 85 cm out (z 480), 800; the glass at the window's centre
+  // (z 820), 1367; the frangipani and monstera at CAFE.sun.leaves, 500 beyond the glass, 1867; the street
+  // tree's crown over the pavement, 1.65 m beyond the glass, 2300. One scale for all, set so the glazing bars
+  // keep version 1's edge (1.3): table 0.40, Neil 0.76, near leaves 1.78, crown 2.19 (Gaussian sigma, frame
+  // units). Tilt shifts each by its distance too: the table 5.9 px, Neil 8.4, the glass 12, the crown 18.
+  const DIST = { table: 424, person: 800, glass: 1367, leaf: 1867, crown: 2300 };
+  const SIG = {}, AMP = {};
+  for (const k in DIST) {
+    SIG[k] = 1.3 * DIST[k] / DIST.glass;
+    AMP[k] = 12 + 6 * (DIST[k] - DIST.glass) / (DIST.crown - DIST.glass);
+  }
+  const CORE = 2.6;                                // the full light is pulled in from every edge by this blur,
+                                                   // then raised (1.6x - 0.6), so every edge keeps an amber rim
+  const light = $('light'), cvE = $('sun-e'), cvC = $('sun-c'), gE = cvE.getContext('2d'), gC = cvC.getContext('2d');
+  const q = new URLSearchParams(location.search);
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const still = q.has('still') || q.has('t') || q.has('hello') || q.has('idle') || reduce;
+
+  const rng = (a) => () => { a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  const h1 = (n) => { const v = Math.sin(n * 127.1 + 0.37) * 43758.5453; return v - Math.floor(v); };   // sun.js h1
+  const poly = (g, pts) => { g.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) g.lineTo(pts[i][0], pts[i][1]); g.closePath(); };
+  const oval = (g, x, y, a, b, r = 0) => { g.moveTo(x + a * Math.cos(r), y + a * Math.sin(r)); g.ellipse(x, y, a, b, r, 0, 2 * Math.PI); };
+
+  // The foliage (sun.js LEAF_FRAG's shapes), each drawn in its own frame: x along the midrib from its base.
+  function crown(g, cx, cy, rx, ry, seed) {         // small leaves, small gaps, thinning to open sky at its edge
+    const r = rng(seed), U = (a, b) => a + (b - a) * r();
+    for (let i = 0; i < 1100; i++) {
+      const u = U(-1.15, 1.15), v = U(-1.15, 1.15), e = Math.hypot(u, v);
+      if (e > 1.12 || r() > (e < 0.55 ? 0.95 : 0.95 - (e - 0.55) * 1.4)) continue;
+      oval(g, cx + u * rx, cy + v * ry, U(3.4, 6.4), U(1.8, 3.2), U(0, Math.PI));
+    }
+    g.fill();
+  }
+  function plumeria(g, len, wid) {                 // a frangipani leaf: obovate, widest two thirds out
+    const top = [], bot = [];
+    for (let i = 0; i <= 16; i++) { const u = i / 16, w = u > 0 && u < 1 ? wid * 1.9 * u ** 0.75 * (1 - u) ** 0.4 : 0; top.push([u * len, -w]); bot.unshift([u * len, w]); }
+    poly(g, top.concat(bot)); g.fill();
+  }
+  function monstera(g, len, seed) {                // a broad heart, slits in from the margin, holes by the midrib
+    const r = rng(seed), hw = (u) => len * 0.5 * Math.max(Math.sin(Math.PI * Math.min(Math.max(u + 0.06, 0), 1)), 0) ** 0.6 * (1.12 - 0.3 * u);
+    const top = [], bot = [];
+    for (let i = 0; i <= 40; i++) { const u = i / 40; top.push([u * len, -hw(u)]); bot.unshift([u * len, hw(u)]); }
+    poly(g, top.concat(bot));
+    for (const s of [-1, 1]) for (let k = 1; k < 9; k++) {
+      const u0 = k * 0.105 + (s > 0 ? 0.03 : 0); if (u0 > 0.9) break;
+      const u1 = u0 - 0.12, h0 = hw(u0), hh = hw(u1) * (0.55 + 0.12 * r()), w0 = 0.03 + 0.008 * r(), w1 = 0.008;
+      poly(g, [[(u0 - w0) * len, s * h0], [(u1 - w1) * len, s * hh], [(u1 + w1) * len, s * hh], [(u0 + w0) * len, s * h0]]);
+      if (r() > 0.35 && u0 > 0.1 && u0 < 0.8) oval(g, (u0 - 0.07) * len, s * hw(u0 - 0.07) * 0.3, len * 0.05, len * 0.024, s * 50 * DEG);
+    }
+    g.fill('evenodd');
+  }
+  const stroke = (g, a, b, w) => { g.lineWidth = w; g.lineCap = 'round'; g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); g.stroke(); };
+  function limb(g, pts, ws) {                      // a tapering limb through joints, half-widths at each
+    for (let i = 0; i < pts.length - 1; i++) for (let j = 0; j < 6; j++) {
+      const f0 = j / 6, f1 = (j + 1) / 6, P = (f) => [pts[i][0] + (pts[i + 1][0] - pts[i][0]) * f, pts[i][1] + (pts[i + 1][1] - pts[i][1]) * f];
+      stroke(g, P(f0), P(f1), 2 * (ws[i] + (ws[i + 1] - ws[i]) * (f0 + f1) / 2));
+    }
+  }
+
+  // Neil at his table, side-on, in centimetres from the table's near edge, y down. A high café table (105 cm)
+  // against the wall, its top and Neil's seat above the transom's shadow, his head between the frangipani; Neil on a stool at it, feet on the table's foot
+  // bar, typing on a laptop whose lid stands at 105 deg to its base; a flat white beyond it. The table's column
+  // and the stool's run on down out of the light, so nothing stands on a floor inside it.
+  const CM = 2.0;                                  // frame units per centimetre, up the wall
+  const AT = { x: 300, h: 400 };                   // the table's near edge along the sill, and its top's height
+  const cap = (g, a, b, r) => stroke(g, a, b, 2 * r);
+  function table(g) {
+    g.beginPath(); g.rect(-3, 0, 68, 3); g.rect(40, 3, 4, 220); g.rect(26, 63, 26, 2.2); g.fill();   // top, column, foot bar
+    g.beginPath(); g.rect(2, -2, 24, 2); g.fill();                                                  // the laptop's base
+    const lx = 21 * Math.sin(15 * DEG), ly = -21 * Math.cos(15 * DEG);                              // its lid, at 105 deg, the
+    g.beginPath(); poly(g, [[24.4, -1.6], [24.4 + lx, -1.6 + ly], [31.4 + lx, -1.6 + ly], [31.4, -1.6]]); g.fill();   // screen a little side-on
+    g.beginPath(); g.moveTo(50, -8.5); g.lineTo(57, -8.5); g.lineTo(56.2, -1.2); g.quadraticCurveTo(53.5, 0, 50.8, -1.2); g.closePath();
+    g.rect(47, -0.9, 13, 0.9); g.fill();                                                            // a cup on its saucer
+    g.beginPath(); oval(g, 57.6, -5, 2.4, 2.2); oval(g, 57.6, -5, 1.2, 1.1); g.fill('evenodd');    // its handle
+  }
+  function stool(g) { g.beginPath(); g.rect(-41, 27, 32, 4); g.rect(-27, 31, 4, 195); g.fill(); }
+  function legs(g) {                               // both legs, the far one a little ahead
+    for (const d of [0, 2.5]) {
+      limb(g, [[-24, 21], [12 + d, 16 - d * 0.4]], [8, 6.5]);
+      limb(g, [[12 + d, 16 - d * 0.4], [27 + d, 60]], [6, 4]);
+      cap(g, [26 + d, 60.5], [37 + d, 61.5], 3);
+    }
+  }
+  function torso(g) {                              // upright, about the hip; the back to the left, facing right
+    g.beginPath(); g.moveTo(-12.5, 7);
+    g.bezierCurveTo(-13.5, -2, -10, -10, -10, -18); g.bezierCurveTo(-10.5, -30, -11.5, -42, -7, -51); g.lineTo(-3, -55); g.lineTo(3, -55);
+    g.bezierCurveTo(8, -48, 10.5, -40, 10, -30); g.bezierCurveTo(9.5, -20, 9.5, -10, 10.5, 0); g.lineTo(12, 7); g.closePath(); g.fill();
+  }
+  const HIP = [-24, 21], NECK = [-1, -54], SHO = [-1, -48];   // the torso's pivots, in its own upright frame
+  function cranium(g) {                            // the head without its face, and the neck; about the neck
+    g.beginPath(); oval(g, -1.5, -17, 10, 11.5); oval(g, -3.5, -19, 10, 10); g.fill();
+    g.beginPath(); poly(g, [[-5, 4], [4, 4], [4, -8], [-5, -8]]); g.fill();
+  }
+  function face(g) {                               // brow, nose, lips and chin: what turns away as he looks round
+    g.beginPath(); poly(g, [[3, -27], [8, -23.5], [8.6, -19.5], [11.6, -14.8], [9, -13.2], [9.3, -11.2], [8.3, -9.8], [8.6, -8.2], [7, -5.2], [2.5, -4], [0, -6]]); g.fill();
+  }
+  const UA = 29, FA = 25;                          // upper arm, forearm
+  function upperArm(g) { limb(g, [[0, 0], [UA, 0]], [4.6, 3.8]); }
+  function foreArm(g) { limb(g, [[0, 0], [FA, 0]], [3.8, 2.6]); }
+  function handKeys(g) { limb(g, [[-1, 0.3], [8, 1.2], [15, 2.8]], [2.8, 2.2, 1.3]); }   // on the keys, in profile
+  function handOpen(g) {                           // raised to the room: the palm and spread fingers
+    g.beginPath(); poly(g, [[-1, -3], [9, -4.2], [9, 4.2], [-1, 3]]); g.fill();
+    [-3.3, -1.1, 1.1, 3.3].forEach((y, i) => stroke(g, [8, y * 0.95], [16.5 - Math.abs(i - 1.5) * 1.6, y * 1.4], 1.9));
+    stroke(g, [2, -3], [6.5, -7.8], 2.1);
+  }
+
+  // Each occluder becomes two bitmaps: its edge (blurred by its distance) and its core (blurred further and
+  // raised, the shadow that holds back the full light). The window itself is the light, coloured.
+  let k = 1, W = 0, H = 0, ox = 0, S = null;
+  const mk = (w, h) => { const c = document.createElement('canvas'); c.width = Math.max(1, w); c.height = Math.max(1, h); return c; };
+  function blurred(src, sig, colour) {
+    const c = mk(src.width, src.height), g = c.getContext('2d');
+    g.shadowColor = colour; g.shadowBlur = 2 * sig; g.shadowOffsetX = src.width;   // shadowBlur = 2 sigma, in pixels
+    g.drawImage(src, -src.width, 0);
+    return c;
+  }
+  function raise(c, win) {
+    const g = c.getContext('2d'), d = g.getImageData(0, 0, c.width, c.height), a = d.data;
+    for (let i = 3; i < a.length; i += 4) a[i] = win ? Math.max(0, Math.min(255, 1.6 * a[i] - 153)) : Math.min(255, 1.6 * a[i]);
+    g.putImageData(d, 0, 0);
+  }
+  // u: the size of one of the shape's own units in the frame (Neil's centimetres are about 2.3).
+  function sprite(draw, [x0, y0, x1, y1], sig, win, u = 1) {
+    const sc = Math.hypot(sig, CORE), K = k * u, pad = (3 * sc + 2) / u, X = x0 - pad, Y = y0 - pad;
+    const w = Math.ceil((x1 - x0 + 2 * pad) * K), h = Math.ceil((y1 - y0 + 2 * pad) * K);
+    const sharp = mk(w, h), g = sharp.getContext('2d');
+    g.setTransform(K, 0, 0, K, -X * K, -Y * K); g.fillStyle = g.strokeStyle = '#000'; g.beginPath(); draw(g);
+    const e = blurred(sharp, sig * k, win ? '#FFC48C' : '#000'), c = blurred(sharp, sc * k, win ? '#FFEBD6' : '#000');
+    raise(c, win);
+    return { e, c, X, Y, w: w / K, h: h / K };
+  }
+
+  function build() {
+    const r = light.getBoundingClientRect(), vw = document.documentElement.clientWidth, s = r.width / 390;
+    // The light is soft everywhere (its sharpest edge, the glazing bars, has a sigma of 1.3 px), so it is drawn
+    // at three bitmap pixels for every four CSS pixels and scaled up: it looks the same as full size, and
+    // holds 60 frames a second at a 4x CPU throttle where full size held 43.
+    const RES = 0.75;
+    k = s * RES; ox = r.left * RES; W = Math.round(vw * RES); H = Math.round(r.height * RES);
+    for (const cv of [cvE, cvC]) { cv.width = W; cv.height = H; cv.style.left = -r.left + 'px'; cv.style.width = vw + 'px'; }
+    const rose = (c, a0, len, wid, n0) => Array.from({ length: 7 }, (_, i) => {
+      const l = len * (0.8 + 0.25 * h1(i + a0));
+      return { c, a: a0 + i * 0.82 + 0.18 * Math.sin(i * 2.7), i, spr: sprite((g) => plumeria(g, l, wid), [0, -wid, l, wid], SIG.leaf) };
+    });
+    const u = CM * Math.sqrt(STRETCH);
+    const twig = (a, b, w) => sprite((g) => stroke(g, a, b, w), [Math.min(a[0], b[0]) - w, Math.min(a[1], b[1]) - w, Math.max(a[0], b[0]) + w, Math.max(a[1], b[1]) + w], SIG.leaf);
+    S = {
+      win: sprite((g) => {
+        poly(g, [[6, 128], [900, -105], [900, 511], [6, 744]]); g.fill();
+        g.globalCompositeOperation = 'destination-out'; g.beginPath();
+        g.rect(352, -300, 8, 1400); g.rect(652, -300, 8, 1400); poly(g, [[-300, 494], [900, 181], [900, 190], [-300, 503]]); g.fill();
+        g.globalCompositeOperation = 'source-over';
+      }, [6, -105, 900, 744], SIG.glass, true),
+      crowns: [[52, 196, 112, 90, 7], [860, -10, 150, 110, 11]].map(([x, y, a, b, sd]) => sprite((g) => crown(g, x, y, a, b, sd), [x - 1.2 * a - 7, y - 1.2 * b - 7, x + 1.2 * a + 7, y + 1.2 * b + 7], SIG.crown)),
+      monsteras: [[432, 664, -146, 178, 3], [960, 560, -150, 230, 5]].map(([x, y, a, l, sd]) => ({ x, y, a, spr: sprite((g) => monstera(g, l, sd), [-0.07 * l, -0.6 * l, l, 0.6 * l], SIG.leaf) })),
+      // the frangipani branch: from the base b0, out to the first rosette c1, a twig on to the second c2
+      b0: [470, 26], c1: [356, 116], c2: [196, 102],
+      limb1: twig([470, 26], [356, 116], 12), limb2: twig([400, 78], [196, 102], 7.2),
+      rose1: rose([356, 116], 0.4, 64, 10), rose2: rose([196, 102], 1.9, 56, 9),
+      table: sprite(table, [-4, -24, 66, 224], SIG.table, false, u),
+      stool: sprite(stool, [-42, 26, -8, 227], SIG.person, false, u),
+      legs: sprite(legs, [-34, 8, 44, 66], SIG.person, false, u),
+      torso: sprite(torso, [-16, -58, 14, 10], SIG.person, false, u),
+      cranium: sprite(cranium, [-15, -31, 10, 5], SIG.person, false, u),
+      face: sprite(face, [-1, -29, 13, -2], SIG.person, false, u),
+      upper: sprite(upperArm, [-5, -5, 34, 5], SIG.person, false, u),
+      fore: sprite(foreArm, [-4, -4, 29, 4], SIG.person, false, u),
+      keys: sprite(handKeys, [-4, -3, 17, 5], SIG.person, false, u),
+      open: sprite(handOpen, [-4, -10, 19, 8], SIG.person, false, u),
+    };
+  }
+
+  // Neil's pose at a moment. t: the ambient clock (s); hello: ms into a hello, or null.
+  // Typing: each wrist kept on the keys by a two-bone reach from the shoulder, drifting a few millimetres and
+  // lifting for the odd key; every 13 s he sits back a little, and later looks up for a moment.
+  // Hello (2.2 s): he turns his head to the room, lifts the near hand off the keys, waves it two and a half
+  // times about the elbow, and goes back to typing.
+  const HELLO = 2200;
+  const ease = (x) => x <= 0 ? 0 : x >= 1 ? 1 : x < 0.5 ? 4 * x * x * x : 1 - (-2 * x + 2) ** 3 / 2;
+  const mix = (a, b, f) => a + (b - a) * f;
+  const bump = (t, c, w) => Math.abs(t - c) < w ? 0.5 + 0.5 * Math.cos(Math.PI * (t - c) / w) : 0;
+  const rot = ([x, y], a) => [x * Math.cos(a) - y * Math.sin(a), x * Math.sin(a) + y * Math.cos(a)];
+  function reach(sh, [tx, ty]) {                  // shoulder to wrist, the elbow below: [upper arm, forearm] angles
+    const dx = tx - sh[0], dy = ty - sh[1], d = Math.min(Math.hypot(dx, dy), UA + FA - 0.01);
+    const a1 = Math.atan2(dy, dx) + Math.acos((UA * UA + d * d - FA * FA) / (2 * UA * d));
+    const el = [sh[0] + UA * Math.cos(a1), sh[1] + UA * Math.sin(a1)];
+    return [a1, Math.atan2(ty - el[1], tx - el[0])];
+  }
+  function pose(t, hello) {
+    const c = t % 13, tap = (ph) => Math.max(0, Math.sin(9.3 * t + ph)) ** 8 + Math.max(0, Math.sin(6.1 * t + 2 * ph)) ** 10;
+    const lean = (6 - 4 * bump(c, 5, 1.3)) * DEG;                  // sits back a little
+    let nod = (-6 * bump(c, 10, 1.1) + 0.6 * Math.sin(t * 1.1)) * DEG; // looks up at the screen, and back
+    const sh = (() => { const r = rot(SHO, lean); return [HIP[0] + r[0], HIP[1] + r[1]]; })();
+    const nk = (() => { const r = rot(NECK, lean); return [HIP[0] + r[0], HIP[1] + r[1]]; })();
+    const wrist = (x, y, ph) => [x + 0.5 * Math.sin(1.7 * t + ph) + 0.35 * Math.sin(3.1 * t + 2 * ph), y - 0.9 * tap(ph)];
+    const far = reach(sh, wrist(3.5, -3.8, 2.1)), near = reach(sh, wrist(5, -3.5, 0));
+    let a1 = near[0], a2 = near[1], hand = 4 * tap(0) * DEG, open = false, turn = 0;
+    if (hello != null && hello >= 0 && hello < HELLO) {
+      turn = ease(hello / 350) * (1 - ease((hello - 1750) / 400));
+      nod -= 4 * DEG * turn;
+      const f = ease((hello - 150) / 400) * (1 - ease((hello - 1500) / 400));
+      const u = (hello - 550) / 950, sw = u > 0 && u < 1 ? Math.sin(2 * Math.PI * 2.5 * u) * Math.sin(Math.PI * u) ** 0.6 : 0;
+      a1 = mix(a1, 40 * DEG + 2 * DEG * sw, f); a2 = mix(a2, (-90 + 18 * sw) * DEG, f); hand = mix(hand, 0, f); open = f > 0.5;
+    }
+    return { lean, nod, turn, sh, nk, far, a1, a2, hand, farHand: 4 * tap(2.1) * DEG, open };
+  }
+
+  // One frame of the light. p: the sun's arrival (0 to 1); t: the ambient clock (s); hello: ms into a hello;
+  // tilt: [x, y], -1 to 1.
+  const out = (x) => 1 - (1 - x) ** 3;
+  function paint(p, t, hello, tilt) {
+    const m = 1 - out(p), rtl = root.dir === 'rtl' ? -1 : 1;
+    const off = (dx, dy, amp) => [dx * m - tilt[0] * amp * rtl, dy * m - tilt[1] * amp];
+    const oWin = off(52, -14, AMP.glass), oNeil = off(30, -8, AMP.person), oTable = off(16, -4, AMP.table), oLeaf = off(92, -24, AMP.leaf), oCrown = off(92, -24, AMP.crown);
+    // sun.js's wind: a slow sway, and gusts that come and go, in which the leaves flutter
+    const gust = Math.max(0, Math.min(1, (0.5 + 0.5 * Math.sin(t * 0.23 + 1.1) * Math.sin(t * 0.071 + 0.4) - 0.62) / 0.33));
+    const gs = gust * gust * (3 - 2 * gust), sway = Math.sin(t * 0.83) * 0.6 + Math.sin(t * 1.37 + 1.2) * 0.4;
+    const U = 0.5;                                 // these leaves are drawn at half the site's size (a 64-unit
+                                                   // frangipani leaf for its 135), so its drifts halve too
+    const P = pose(t, hello);
+    for (const [g, w] of [[gE, 'e'], [gC, 'c']]) {
+      const put = (spr, fn) => { g.setTransform(k, 0, 0, k, ox, 0); fn && fn(); g.drawImage(spr[w], spr.X, spr.Y, spr.w, spr.h); };
+      g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-over'; g.clearRect(0, 0, W, H);
+      put(S.win, () => g.translate(oWin[0], oWin[1]));
+      g.globalCompositeOperation = 'destination-out';
+      // the crown drifts as sun.js moves it, (sin 0.61t, cos 0.47t) x 2.5
+      S.crowns.forEach((c) => put(c, () => g.translate(oCrown[0] + Math.sin(t * 0.61) * 2.5 * U, oCrown[1] - Math.cos(t * 0.47) * 2.5 * U)));
+      // the monstera turns 1 deg with the sway, about its stem
+      for (const o of S.monsteras) put(o.spr, () => { g.translate(oLeaf[0] + o.x, oLeaf[1] + o.y); g.rotate((o.a - sway) * DEG); });
+      // the branch's tips drift by (3, 2) and (4, 2.5) x sway; each rosette's leaves turn about their stem by
+      // 0.05 rad x sway, and flutter 0.08 rad in a gust, each leaf by its own share (0.6 + 0.4 sin i)
+      const c1 = [S.c1[0] + 3 * sway * U, S.c1[1] - 2 * sway * U], c2 = [S.c2[0] + 4 * sway * U, S.c2[1] - 2.5 * sway * U];
+      const tip = (spr, a, b, b1) => put(spr, () => {
+        const a0 = Math.atan2(b[1] - a[1], b[0] - a[0]), a1 = Math.atan2(b1[1] - a[1], b1[0] - a[0]);
+        g.translate(oLeaf[0] + a[0], oLeaf[1] + a[1]); g.rotate(a1 - a0); g.translate(-a[0], -a[1]);
+      });
+      tip(S.limb1, S.b0, S.c1, c1); tip(S.limb2, [400, 78], S.c2, c2);
+      for (const [rs, c, sw] of [[S.rose1, c1, 0.05 * sway + 0.08 * gs * Math.sin(t * 6.0)], [S.rose2, c2, 0.06 * sway + 0.08 * gs * Math.sin(t * 6.4)]])
+        for (const l of rs) put(l.spr, () => { g.translate(oLeaf[0] + c[0], oLeaf[1] + c[1]); g.rotate(l.a + sw * (0.6 + 0.4 * Math.sin(l.i))); });
+      // Neil and his table, laid on the wall by the sun: placed above the sill, sheared with the window, widened
+      const at = (o, x = 0, y = 0) => { g.translate(o[0] + AT.x, o[1] + sill(AT.x) - AT.h); g.transform(CM * STRETCH, -SH * CM * STRETCH, 0, CM, 0, 0); g.translate(x, y); };
+      put(S.table, () => at(oTable));
+      put(S.stool, () => at(oNeil)); put(S.legs, () => at(oNeil));
+      put(S.torso, () => { at(oNeil, ...HIP); g.rotate(P.lean); });
+      put(S.cranium, () => { at(oNeil, ...P.nk); g.rotate(P.nod); });
+      put(S.face, () => { at(oNeil, ...P.nk); g.rotate(P.nod); g.translate(-1.5, 0); g.scale(Math.cos(P.turn * 75 * DEG), 1); g.translate(1.5, 0); });
+      const arm = (a1, a2, hand, spr) => {
+        const el = [P.sh[0] + UA * Math.cos(a1), P.sh[1] + UA * Math.sin(a1)], wr = [el[0] + FA * Math.cos(a2), el[1] + FA * Math.sin(a2)];
+        put(S.upper, () => { at(oNeil, ...P.sh); g.rotate(a1); });
+        put(S.fore, () => { at(oNeil, ...el); g.rotate(a2); });
+        put(spr, () => { at(oNeil, ...wr); g.rotate(a2 + hand); });
+      };
+      arm(P.far[0], P.far[1], P.farHand, S.keys);
+      arm(P.a1, P.a2, P.hand, P.open ? S.open : S.keys);
+    }
+    cvE.style.opacity = (0.72 * out(Math.min(1, p / 0.5))).toFixed(3);
+    cvC.style.opacity = (0.86 * out(Math.max(0, (p - 0.15) / 0.85))).toFixed(3);
+  }
+
+  // ---- Motion ---------------------------------------------------------------------------------------
+  // The sun arrives (the one orchestrated motion), then Neil says hello once. The leaves move all the time in
+  // the café's wind at its ambient 30 Hz, and Neil types; tilting the phone shifts the light, the far leaves
+  // most. All of it stops in a hidden tab; with reduced motion the light is still. The load and the hello draw
+  // at the display's rate, the rest at 30 Hz.
+  const DUR = 2400, HELLO_AT = DUR + 250;
+  let T0 = 0, raf = 0, lastDraw = -1e9, helloStart = null, tilt = [0, 0], tiltRaw = null, lastNow = 0;
+  const state = (now) => {
+    const ms = now - T0, hello = helloStart == null ? null : now - helloStart;
+    if (hello != null && hello >= HELLO) helloStart = null;
+    return [Math.min(1, ms / DUR), ms / 1000, hello];
+  };
+  function tick(now) {
+    raf = requestAnimationFrame(tick);
+    const dt = Math.min(100, now - (lastNow || now)); lastNow = now;
+    if (tiltRaw) {                                 // a low-pass of about 150 ms on the phone's tilt
+      const a = 1 - Math.exp(-dt / 150);
+      tilt = [tilt[0] + (tiltRaw[0] - tilt[0]) * a, tilt[1] + (tiltRaw[1] - tilt[1]) * a];
+    }
+    if (helloStart == null && now - T0 >= HELLO_AT && !tick.said) { tick.said = true; helloStart = now; }
+    const busy = now - T0 < DUR + 50 || helloStart != null;
+    if (!busy && now - lastDraw < 29) return;
+    lastDraw = now;
+    const [p, t, hello] = state(now);
+    paint(p, t, hello, tilt);
+  }
+  function start() { if (!raf) { lastNow = 0; raf = requestAnimationFrame(tick); } }
+  function stop() { cancelAnimationFrame(raf); raf = 0; }
+
+  function rest() {                                // the finished design, and every still render
+    const ms = q.has('t') ? +q.get('t') : DUR;
+    paint(Math.min(1, ms / DUR), +(q.get('idle') || 0), q.has('hello') ? +q.get('hello') : null, (q.get('tilt') || '0,0').split(',').map(Number));
+  }
+
+  // Tilt: gamma and beta against a phone held upright at 45 deg, 30 deg either way to the full shift.
+  function onTilt(e) {
+    if (e.gamma == null || e.beta == null) return;
+    const c = (v) => Math.max(-1, Math.min(1, v / 30));
+    tiltRaw = [c(e.gamma), c(e.beta - 45)];
+  }
+  const listenTilt = () => addEventListener('deviceorientation', onTilt);
+
+  setLang(q.get('lang') || 'en');
+  build();
+  if (still) rest();
+  else {
+    T0 = performance.now();
+    paint(0, 0, null, tilt);
+    start();
+    setTimeout(() => { if (lastDraw < T0 + DUR) paint(1, 0, null, tilt); }, DUR + 400);   // if frames never come
+    document.addEventListener('visibilitychange', () => (document.hidden ? stop() : start()));
+    const DOE = window.DeviceOrientationEvent;
+    // iOS asks first, and only from a gesture: the first tap on the page that isn't a link or the picker.
+    if (DOE && typeof DOE.requestPermission === 'function') {
+      const ask = (e) => {
+        if (e.target.closest('a, button, .pm')) return;
+        document.removeEventListener('click', ask, true);
+        DOE.requestPermission().then((r) => r === 'granted' && listenTilt(), () => {});
+      };
+      document.addEventListener('click', ask, true);
+    } else if (DOE) listenTilt();
+    // Tap the shadow and he says hello again.
+    $('stage').addEventListener('click', () => { if (helloStart == null && performance.now() - T0 > DUR) helloStart = performance.now(); });
+  }
+  let rw = innerWidth;
+  addEventListener('resize', () => { if (innerWidth === rw) return; rw = innerWidth; clearTimeout(build.t); build.t = setTimeout(() => { build(); if (still) rest(); else lastDraw = -1e9; }, 120); });
+  if (q.get('picker') === 'open') { pm.classList.add('instant'); open(true); requestAnimationFrame(() => requestAnimationFrame(() => pm.classList.remove('instant'))); }
+})();
+</script>
+</body>
+</html>

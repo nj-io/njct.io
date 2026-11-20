@@ -5,3 +5,10 @@ node_modules/
 build/.venv/
 .wrangler/
 _site/
+
+# docs/design/hi-page-2026-11-07: renders rebuild from src/; files over 50 MB stay out of git
+docs/design/hi-page-2026-11-07/**/out/
+docs/design/hi-page-2026-11-07/**/__pycache__/
+docs/design/hi-page-2026-11-07/v10-v2-build/.venv/
+docs/design/hi-page-2026-11-07/v10-v2-build/.venv/lib/python3.12/site-packages/llvmlite/binding/libllvmlite.dylib
+docs/design/hi-page-2026-11-07/v10-v2-build/.venv/lib/python3.12/site-packages/torch/lib/libtorch_cpu.dylib

@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Neil</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@96,800&family=Inter:opsz,wght@14..32,400..500&family=Noto+Sans+Thai:wght@400;500;800&family=Noto+Sans+Hebrew:wght@400;500;800&display=block">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;800&display=block&text=%E4%BD%A0%E5%A5%BD%EF%BC%8C%E6%88%91%E6%98%AF%E5%BE%88%E9%AB%98%E5%85%B4%E8%AE%A4%E8%AF%86%E5%8F%AF%E4%BB%A5%E5%9C%A8%E8%BF%99%E9%87%8C%E6%89%BE%E5%88%B0%E3%80%82%E4%BF%9D%E5%AD%98%E8%81%94%E7%B3%BB%E4%BA%BA%E4%B8%AD%E6%96%87">
+<style>
+  :root {
+    /* njct.io's wall: the desktop grey and its soft radial light (index.html --ground), darker on a phone (crate groundGain) */
+    --ground: radial-gradient(120% 60% at 50% 80%, rgb(211 211 211), rgb(216 216 216) 45%, rgb(220 220 220) 100%) rgb(220 220 220);
+    --ink: #000;
+    --ink-soft: rgba(0, 0, 0, 0.6);
+    --pill-light: rgb(244 244 244);
+    --rule: rgba(0, 0, 0, 0.1);
+    --gutter: 16px;
+    --ease: cubic-bezier(0.4, 0, 0.2, 1);
+    --face: 'Inter', 'Noto Sans Thai', 'Noto Sans Hebrew', 'Noto Sans SC', sans-serif;
+    /* the cover faces: Bricolage Grotesque 800 as on Stats, each script's own heavy Noto beside it */
+    --cover-face: 'Bricolage Grotesque', 'Noto Sans Thai', 'Noto Sans Hebrew', 'Noto Sans SC', sans-serif;
+  }
+  @media (max-width: 599px) {
+    :root { --ground: radial-gradient(130% 55% at 50% 85%, rgb(195.5 195.5 195.5), rgb(200.5 200.5 200.5) 45%, rgb(204.8 204.8 204.8) 100%) rgb(204.8 204.8 204.8); }
+  }
+  html { background: var(--ground); overflow-x: clip; }
+  body {
+    margin: 0; min-height: 100dvh; overflow-x: clip; background: transparent;
+    font: 400 16px/22px var(--face); color: var(--ink);
+    -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility;
+  }
+  button { font: inherit; color: inherit; margin: 0; }
+  :focus-visible { outline: 2px solid #000; outline-offset: 2px; }
+
+  .page {
+    position: relative; box-sizing: border-box; max-width: 430px; min-height: 100dvh; margin: 0 auto;
+    padding: 0 var(--gutter) calc(20px + env(safe-area-inset-bottom));
+    display: flex; flex-direction: column;
+  }
+
+  /* The header, as njct.io's: the wordmark, and the language picker built as the Projects menu. */
+  .mast { position: relative; height: 54px; margin: 0 calc(-1 * var(--gutter)); z-index: 3; }
+  .wordmark {
+    position: absolute; inset-inline-start: var(--gutter); top: 5px; padding: 12px 0; min-width: 44px;
+    font-weight: 500; line-height: 20px; color: var(--ink); text-decoration: none; font-family: 'Inter', sans-serif;
+  }
+  .pm { position: absolute; top: 5px; inset-inline-start: calc(var(--gutter) + 82px); }
+  .pm-btn {
+    display: flex; align-items: center; gap: 4px; height: 44px; padding: 0 8px; border: 0; border-radius: 4px;
+    background: transparent; color: var(--ink); font-weight: 500; line-height: 16px; letter-spacing: -0.01em; cursor: pointer;
+    transition: color 0.3s var(--ease), background-color 0.3s var(--ease);
+  }
+  @media (hover: hover) { .pm-btn:hover { background: #000; color: #fff; } .pm-list a:hover { background: rgb(244 244 244); } }
+  .pm-btn svg { width: 16px; height: 16px; display: block; transition: transform 0.3s var(--ease); }
+  .pm.open .pm-btn svg { transform: rotate(180deg); }
+  .pm-list {
+    position: absolute; inset-inline-start: 0; top: calc(100% + 8px); margin: 0; padding: 0; list-style: none; box-sizing: border-box;
+    min-width: 220px; background: #fff; border-radius: 4px;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+    opacity: 0; visibility: hidden; translate: 0 -10px;
+    transition: opacity 0.3s var(--ease), visibility 0.3s var(--ease), translate 0.3s var(--ease);
+  }
+  .pm.open .pm-list { opacity: 1; visibility: visible; translate: none; transition: opacity 0.3s var(--ease) 0.1s, visibility 0s, translate 0.3s var(--ease) 0.1s; }
+  .pm.instant .pm-list { transition: none; }
+  .pm-list li { border-bottom: 1px solid rgb(236 236 236); }
+  .pm-list li:last-child { border-bottom: 0; }
+  .pm-list a {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 0 12px;
+    box-sizing: border-box; color: #000; text-decoration: none; font-size: 16px; line-height: 20px;
+  }
+  .pm-list a:focus-visible { outline-offset: -2px; }
+  .pm-list svg { width: 16px; height: 16px; flex: none; visibility: hidden; }
+  .pm-list a[aria-current="true"] svg { visibility: visible; }
+  /* A phone: the list is a sheet from the bottom of the screen, as the Projects menu is. */
+  @media (max-width: 599px) {
+    .pm-list {
+      position: fixed; left: 0; right: 0; top: auto; bottom: 0; min-width: 0; border-radius: 4px 4px 0 0;
+      padding-bottom: env(safe-area-inset-bottom); translate: 0 50px;
+    }
+    .pm-list a { min-height: 52px; padding: 0 var(--gutter); font-size: 17px; }
+  }
+
+  /* The visitor's cover: a square in the shelf's cover system, its title the greeting. */
+  .cover {
+    --s: min(398px, calc(100vw - 2 * var(--gutter)), 52dvh);
+    position: relative; width: var(--s); height: var(--s); margin: 14px auto 0; flex: none;
+    overflow: hidden; container-type: inline-size;
+    box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.16), 0 20px 34px -22px rgba(0, 0, 0, 0.5);
+  }
+  .cover > svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .cover > svg > g[data-lang] { display: none; }
+  .cover > svg > g.on { display: inline; }
+  /* the card's edge catches the light along its top, as the crate's sleeves do */
+  .cover::after { content: ''; position: absolute; inset: 0; pointer-events: none; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), inset 0 -1px 0 rgba(0, 0, 0, 0.12); }
+
+  .title {
+    position: absolute; top: 5.2cqw; inset-inline-start: 5.4cqw; margin: 0;
+    font-family: var(--cover-face); font-weight: 800; font-size: 19cqw; line-height: 0.9; letter-spacing: -0.02em;
+    font-variation-settings: 'opsz' 96; color: var(--title-ink, #fff);
+  }
+  .title span { display: block; width: max-content; }
+  :lang(th) .title { line-height: 1.2; letter-spacing: 0; top: 3.6cqw; }
+  :lang(zh) .title { line-height: 1.08; letter-spacing: 0; }
+  :lang(he) .title { line-height: 0.98; letter-spacing: 0; }
+
+  .line { margin: 26px 0 0; max-width: 32ch; font-size: 17px; line-height: 25px; color: var(--ink-soft); text-wrap: pretty; }
+  :lang(th) .line { line-height: 28px; }
+
+  /* The channels, as the site's pills: the first black (Open), the rest light (Details). */
+  .channels { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 24px; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 8px; box-sizing: border-box; height: 44px; padding-inline: 15px 18px;
+    border-radius: 22px; background: var(--pill-light); color: var(--ink); text-decoration: none; white-space: nowrap;
+    font-family: 'Inter', sans-serif; font-size: 16px; line-height: 44px;
+    transition: background-color 0.2s var(--ease), color 0.2s var(--ease);
+  }
+  .pill svg { width: 18px; height: 18px; flex: none; display: block; }
+  .pill.lead { background: #000; color: #fff; }
+  @media (hover: hover) { .pill:not(.lead):hover { background: #fff; } .pill.lead:hover { background: #222; } }
+  .pill:active { scale: 0.98; }
+
+  .foot { margin-top: auto; padding-top: 24px; }
+  .foot-in { display: flex; justify-content: flex-end; padding-top: 14px; border-top: 1px solid var(--rule); }
+  .foot .pill { font-family: var(--face); }
+
+  /* a wider screen: the header spans the window as on the shelf, the column stays centred */
+  @media (min-width: 600px) { .page { padding-top: 62px; } .mast { position: fixed; top: 8px; left: 0; right: 0; margin: 0; } .cover { margin-top: 28px; } .foot { padding-bottom: 24px; } }
+</style>
+</head>
+<body>
+<div class="page" id="page">
+  <header class="mast">
+    <a class="wordmark" href="#"><span dir="ltr">njct.io</span></a>
+    <div class="pm" id="pm">
+      <button class="pm-btn" id="pm-btn" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="pm-list"><span id="pm-label">English</span><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></button>
+      <ul class="pm-list" id="pm-list" aria-labelledby="pm-btn"></ul>
+    </div>
+  </header>
+
+  <!-- Each language's cover is one group: its palette and its motif from the shelf (covers/covers.js designFor).
+       #head marks the motif area the stage-2 avatar takes over. -->
+  <figure class="cover" id="cover" style="margin-inline:auto">
+    <svg viewBox="0 0 1024 1024" aria-hidden="true">
+      <defs>
+        <filter id="blur22" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="22"/></filter>
+        <filter id="blur30" x="-50%" y="-200%" width="200%" height="500%"><feGaussianBlur stdDeviation="30"/></filter>
+      </defs>
+
+      <!-- English: Social Hook's language. The blue field, its overlapping discs, the diagonal, the split disc. -->
+      <g data-lang="en" data-ground="#2563EB" data-ink="#FFFFFF">
+        <defs>
+          <linearGradient id="hk-g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1D4FD6"/><stop offset="0.55" stop-color="#2563EB"/><stop offset="1" stop-color="#3B82F6"/></linearGradient>
+          <linearGradient id="hk-d" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7DB4FB"/><stop offset="1" stop-color="#3D86F5"/></linearGradient>
+        </defs>
+        <rect width="1024" height="1024" fill="url(#hk-g)"/>
+        <g data-m="rise" data-dy="160"><circle cx="150" cy="1010" r="470" fill="url(#hk-d)" opacity="0.55"/></g>
+        <g data-m="rise" data-dy="220" data-d="0.08"><circle cx="420" cy="1220" r="420" fill="#A9CDFC" opacity="0.38"/></g>
+        <g data-m="rise" data-dy="260" data-d="0.04"><polygon points="250,1024 1024,250 1024,470 470,1024" fill="#1A3FB8" opacity="0.5"/></g>
+        <g id="head-en" data-m="turn" data-a="-150" data-cx="780" data-cy="770" data-d="0.12">
+          <path d="M780 580 A190 190 0 0 0 780 960 Z" fill="#1A3A9E"/>
+          <path d="M780 580 A190 190 0 0 1 780 960 Z" fill="#CFE0FF"/>
+        </g>
+      </g>
+
+      <!-- Thai: Scorecard's language. Navy, the blue and green fields, the yellow wedge, the quartered disc. -->
+      <g data-lang="th" data-ground="#0F1B3D" data-ink="#FCFAF6">
+        <rect width="1024" height="1024" fill="#0F1B3D"/>
+        <rect x="560" y="0" width="464" height="700" fill="#1F5DD8"/>
+        <polygon points="0,700 512,700 512,1024 0,1024" fill="#14916F"/>
+        <polygon points="0,470 0,700 230,700" fill="#0E7458"/>
+        <polygon points="512,700 1024,700 1024,880 860,1024 512,1024" fill="#F6C21C"/>
+        <polygon points="1024,880 1024,1024 860,1024" fill="#0F1B3D"/>
+        <g id="head-th" data-m="turn" data-a="-180" data-cx="512" data-cy="720">
+          <path d="M512 720 L282 720 A230 230 0 0 1 512 490 Z" fill="#F24A1D"/>
+          <path d="M512 720 L512 490 A230 230 0 0 1 742 720 Z" fill="#5AA0F2"/>
+          <path d="M512 720 L742 720 A230 230 0 0 1 512 950 Z" fill="#0F1B3D"/>
+          <path d="M512 720 L512 950 A230 230 0 0 1 282 720 Z" fill="#FCFAF6"/>
+        </g>
+      </g>
+
+      <!-- Chinese: Stats' language. The pale chart ground, three glossy bars standing on it, the orbit round them. -->
+      <g data-lang="zh" data-ground="#E6EBF2" data-ink="#17202B">
+        <defs>
+          <linearGradient id="st-g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F3F6FA"/><stop offset="1" stop-color="#CDD6E3"/></linearGradient>
+          <linearGradient id="st-gl" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0.42"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+          <clipPath id="st-floor"><rect x="0" y="0" width="1024" height="936"/></clipPath>
+        </defs>
+        <rect width="1024" height="1024" fill="url(#st-g)"/>
+        <ellipse cx="610" cy="930" rx="360" ry="34" fill="#17202B" opacity="0.22" filter="url(#blur30)"/>
+        <g id="head-zh" clip-path="url(#st-floor)">
+          <g data-m="rise" data-dy="260"><rect x="290" y="700" width="150" height="230" rx="30" fill="#3A6BD6"/><rect x="304" y="716" width="46" height="196" rx="23" fill="url(#st-gl)"/></g>
+          <g data-m="rise" data-dy="350" data-d="0.1"><rect x="490" y="610" width="150" height="320" rx="30" fill="#17845A"/><rect x="504" y="626" width="46" height="286" rx="23" fill="url(#st-gl)"/></g>
+          <g data-m="rise" data-dy="440" data-d="0.2"><rect x="690" y="520" width="150" height="410" rx="30" fill="#D9822B"/><rect x="704" y="536" width="46" height="376" rx="23" fill="url(#st-gl)"/></g>
+        </g>
+        <ellipse data-m="draw" data-d="0.25" pathLength="1" cx="565" cy="790" rx="440" ry="118" transform="rotate(-11 565 790)" fill="none" stroke="#FFFFFF" stroke-width="9" stroke-linecap="round" opacity="0.85" stroke-dasharray="1 1"/>
+      </g>
+
+      <!-- Hebrew: Mirra's language. The sky field, the broken white ring standing on its reflective floor. -->
+      <g data-lang="he" data-ground="#6AAAE6" data-ink="#FFFFFF">
+        <defs>
+          <linearGradient id="mi-g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2E78CC"/><stop offset="0.45" stop-color="#6AAAE6"/><stop offset="0.8" stop-color="#B3D6F4"/><stop offset="1" stop-color="#E3F1FD"/></linearGradient>
+          <linearGradient id="mi-f" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.5"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+          <mask id="mi-fade" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1024"><rect x="0" y="900" width="1024" height="124" fill="url(#mi-f)"/></mask>
+        </defs>
+        <rect width="1024" height="1024" fill="url(#mi-g)"/>
+        <rect x="0" y="900" width="1024" height="124" fill="#E3F1FD" opacity="0.45"/>
+        <g id="head-he">
+          <g filter="url(#blur22)" opacity="0.55">
+            <path data-m="draw" pathLength="1" stroke-dasharray="1 1" d="M661.5 620.3 A165 165 0 0 1 442.3 839.5" fill="none" stroke="#FFFFFF" stroke-width="104" stroke-linecap="round"/>
+            <path data-m="draw" pathLength="1" stroke-dasharray="1 1" d="M362.5 759.7 A165 165 0 0 1 581.7 540.5" fill="none" stroke="#FFFFFF" stroke-width="104" stroke-linecap="round"/>
+          </g>
+          <path data-m="draw" pathLength="1" stroke-dasharray="1 1" d="M661.5 620.3 A165 165 0 0 1 442.3 839.5" fill="none" stroke="#FFFFFF" stroke-width="56" stroke-linecap="round"/>
+          <path data-m="draw" pathLength="1" stroke-dasharray="1 1" d="M362.5 759.7 A165 165 0 0 1 581.7 540.5" fill="none" stroke="#FFFFFF" stroke-width="56" stroke-linecap="round"/>
+          <!-- the ring's reflection in the floor -->
+          <g mask="url(#mi-fade)"><g transform="translate(0 1800) scale(1 -1)" opacity="0.7">
+            <path data-m="draw" pathLength="1" stroke-dasharray="1 1" d="M661.5 620.3 A165 165 0 0 1 442.3 839.5" fill="none" stroke="#FFFFFF" stroke-width="56" stroke-linecap="round"/>
+            <path data-m="draw" pathLength="1" stroke-dasharray="1 1" d="M362.5 759.7 A165 165 0 0 1 581.7 540.5" fill="none" stroke="#FFFFFF" stroke-width="56" stroke-linecap="round"/>
+          </g></g>
+        </g>
+      </g>
+
+      <!-- Spanish: LikeWiki's language. The cream sheet, the dark green field, the sage discs. -->
+      <g data-lang="es" data-ground="#F2EEE6" data-ink="#1C3A30">
+        <rect width="1024" height="1024" fill="#F2EEE6"/>
+        <g data-m="swell" data-s0="0.6" data-cx="40" data-cy="20"><circle cx="40" cy="20" r="230" fill="#A9C7B2"/></g>
+        <rect x="0" y="640" width="1024" height="384" fill="#1E4A38"/>
+        <g id="head-es">
+          <g data-m="swell" data-s0="0.5" data-cx="660" data-cy="1010" data-d="0.06"><circle cx="660" cy="1010" r="330" fill="#8DB89B"/></g>
+        </g>
+      </g>
+    </svg>
+    <h1 class="title" id="greet"><span>Hi, I’m</span> <span>Neil.</span></h1>
+  </figure>
+
+  <p class="line" id="line">Great to meet you. Here's where to find me.</p>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+    <mask id="m-li" maskUnits="userSpaceOnUse" x="0" y="0" width="18" height="18"><rect width="18" height="18" fill="#fff"/><g fill="#000"><rect x="4.6" y="7.4" width="2.2" height="6.2"/><circle cx="5.7" cy="5.2" r="1.3"/><path d="M8.6 7.4h2.1v.9c.4-.7 1.2-1.1 2.1-1.1 1.6 0 2.4 1 2.4 2.8v3.6H13v-3.3c0-.9-.3-1.4-1.1-1.4-.8 0-1.2.6-1.2 1.4v3.3H8.6z"/></g></mask>
+    <!-- LINE's bubble with all four letters cut out: L, I, N, E -->
+    <mask id="m-line" maskUnits="userSpaceOnUse" x="0" y="0" width="18" height="18"><rect width="18" height="18" fill="#fff"/><g fill="#000"><path d="M3.7 6h.9v3.1h1.4v.9H3.7z"/><rect x="6.5" y="6" width=".9" height="4"/><path d="M8.3 6h.9l1.5 2.3V6h.9v4h-.9L9.2 7.7V10h-.9z"/><path d="M12.2 6h2.1v.85h-1.2v.72h1.1v.85h-1.1v.73h1.2V10h-2.1z"/></g></mask>
+    <mask id="m-wc" maskUnits="userSpaceOnUse" x="0" y="0" width="18" height="18"><rect width="18" height="18" fill="#fff"/><g fill="#000"><circle cx="5.1" cy="6" r=".85"/><circle cx="8.9" cy="6" r=".85"/></g></mask>
+  </defs></svg>
+  <nav class="channels" id="channels" aria-label="LinkedIn, WhatsApp, LINE, WeChat">
+    <a class="pill" href="#" data-ch="linkedin"><svg viewBox="0 0 18 18" aria-hidden="true"><rect x="1.5" y="1.5" width="15" height="15" rx="3" fill="currentColor" mask="url(#m-li)"/></svg>LinkedIn</a>
+    <a class="pill" href="#" data-ch="whatsapp"><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M9 1.9a7 7 0 0 0-6 10.6L2 16.1l3.7-1A7 7 0 1 0 9 1.9z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M6.6 5.6c.2-.2.5-.2.7 0l.8 1.3c.1.2.1.5-.1.7l-.5.5c.4.9 1.2 1.7 2.1 2.1l.5-.5c.2-.2.5-.2.7-.1l1.3.8c.2.1.3.5.1.7l-.5.7c-.3.4-.9.5-1.4.3-2-.8-3.6-2.4-4.4-4.4-.2-.5-.1-1.1.3-1.4z" fill="currentColor"/></svg>WhatsApp</a>
+    <a class="pill" href="#" data-ch="line"><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M9 2C4.9 2 1.6 4.6 1.6 7.9c0 2.9 2.6 5.4 6.2 5.8.3.1.5.4.4.7l-.2 1.3c-.1.4.3.7.7.5 2.7-1.4 7.7-4.4 7.7-8.3C16.4 4.6 13.1 2 9 2z" fill="currentColor" mask="url(#m-line)"/></svg>LINE</a>
+    <a class="pill" href="#" data-ch="wechat"><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M7 2.4C3.9 2.4 1.4 4.5 1.4 7.1c0 1.5.8 2.8 2.1 3.7l-.5 1.7 2-1.1c.6.2 1.3.3 2 .3h.4a4.6 4.6 0 0 1-.2-1.3c0-2.6 2.5-4.7 5.6-4.7h.3C12.5 3.8 10 2.4 7 2.4z" fill="currentColor" mask="url(#m-wc)"/><path d="M12.4 7.6c-2.6 0-4.6 1.7-4.6 3.8s2 3.8 4.6 3.8c.5 0 1-.1 1.5-.2l1.6.9-.4-1.4c1.1-.7 1.8-1.8 1.8-3.1 0-2.1-2-3.8-4.5-3.8z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><circle cx="10.9" cy="10.6" r=".7" fill="currentColor"/><circle cx="13.9" cy="10.6" r=".7" fill="currentColor"/></svg>WeChat</a>
+  </nav>
+
+  <footer class="foot">
+    <div class="foot-in">
+      <a class="pill" href="#" id="save"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7.5" cy="6.2" r="3"/><path d="M2.2 15.5c.6-2.7 2.7-4.4 5.3-4.4 1.1 0 2.1.3 2.9.8M13.5 10.5v5M11 13h5"/></svg><span id="save-t">Save contact</span></a>
+    </div>
+  </footer>
+</div>
+
+<script>
+(() => {
+  // title: the greeting split at its natural break into the cover's two lines; fit: widest line as a share of the cover, cap: largest size
+  const L = {
+    en: { name: 'English', title: ['Hi, I’m', 'Neil.'], join: ' ', fit: 0.8, cap: 0.2, line: "Great to meet you. Here's where to find me.", save: 'Save contact', order: ['linkedin', 'whatsapp', 'line', 'wechat'] },
+    th: { name: 'ไทย', title: ['สวัสดีครับ', 'ผม Neil'], join: ' ', fit: 0.84, cap: 0.17, line: 'ยินดีที่ได้รู้จักครับ ติดต่อผมได้ทางนี้', save: 'บันทึกรายชื่อ', order: ['line', 'whatsapp', 'linkedin', 'wechat'] },
+    zh: { name: '中文', title: ['你好，', '我是 Neil'], join: '', fit: 0.78, cap: 0.19, line: '很高兴认识你，可以在这里找到我。', save: '保存联系人', order: ['wechat', 'linkedin', 'whatsapp', 'line'] },
+    he: { name: 'עברית', title: ['היי,', 'אני ניל'], join: ' ', fit: 0.72, cap: 0.18, line: 'נעים להכיר! כאן אפשר למצוא אותי.', save: 'שמירת איש קשר', order: ['whatsapp', 'linkedin', 'line', 'wechat'] },
+    es: { name: 'Español', title: ['¡Hola!', 'Soy Neil.'], join: ' ', fit: 0.84, cap: 0.2, line: 'Encantado de conocerte. Aquí me encuentras.', save: 'Guardar contacto', order: ['whatsapp', 'linkedin', 'line', 'wechat'] },
+  };
+  const NAMES = { linkedin: 'LinkedIn', whatsapp: 'WhatsApp', line: 'LINE', wechat: 'WeChat' };
+  const $ = (id) => document.getElementById(id);
+  const root = document.documentElement, pm = $('pm'), btn = $('pm-btn'), list = $('pm-list'), chans = $('channels');
+  const cover = $('cover'), greet = $('greet');
+  const check = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"/></svg>';
+  list.innerHTML = Object.entries(L).map(([k, v]) => `<li><a href="?lang=${k}" data-lang="${k}"><span lang="${k === 'zh' ? 'zh-Hans' : k}" dir="auto">${v.name}</span>${check}</a></li>`).join('');
+  const q = new URLSearchParams(location.search);
+  const still = q.has('still') || matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // The title is fitted the way designFor fits a cover's lines: the widest line to a set share of the cover, never above the cap.
+  function fit() {
+    const v = L[cur], s = cover.offsetWidth, spans = [...greet.children];
+    greet.style.fontSize = '100px';
+    const w = Math.max(...spans.map((e) => e.getBoundingClientRect().width));
+    greet.style.fontSize = Math.min(v.cap * s, (v.fit * s * 100) / w).toFixed(2) + 'px';
+  }
+
+  // The one motion: the cover's motif settles into place (the split disc turns, the bars stand up, the ring draws).
+  // Driven from JS with a timeout snap to rest, so the resting frame is the finished design.
+  const DUR = 1300;
+  const ease = (t) => 1 - Math.pow(1 - t, 3);
+  let raf = 0, snap = 0;
+  function frame(g, p) {
+    g.querySelectorAll('[data-m]').forEach((el) => {
+      const d = +(el.dataset.d || 0), t = Math.min(1, Math.max(0, (p - d) / 0.72)), e = ease(t), k = 1 - e, m = el.dataset.m;
+      if (m === 'turn') el.setAttribute('transform', `rotate(${(+el.dataset.a * k).toFixed(2)} ${el.dataset.cx} ${el.dataset.cy})`);
+      else if (m === 'rise') el.setAttribute('transform', `translate(0 ${(+el.dataset.dy * k).toFixed(2)})`);
+      else if (m === 'draw') el.style.strokeDashoffset = k.toFixed(4);
+      else if (m === 'swell') {
+        const s = 1 - (1 - +el.dataset.s0) * k, cx = +el.dataset.cx, cy = +el.dataset.cy;
+        el.setAttribute('transform', `translate(${cx * (1 - s)} ${cy * (1 - s)}) scale(${s})`);
+      }
+    });
+  }
+  function play(g) {
+    cancelAnimationFrame(raf); clearTimeout(snap);
+    if (q.has('p')) { frame(g, +q.get('p')); return; }
+    if (still) { frame(g, 1); return; }
+    frame(g, 0);
+    const t0 = performance.now();
+    const tick = (now) => { const p = Math.min(1, (now - t0) / DUR); frame(g, p); if (p < 1) raf = requestAnimationFrame(tick); };
+    raf = requestAnimationFrame(tick);
+    snap = setTimeout(() => { cancelAnimationFrame(raf); frame(g, 1); }, DUR + 400);
+  }
+
+  let cur = 'en';
+  function setLang(k) {
+    if (!L[k]) k = 'en';
+    cur = k; const v = L[k];
+    root.lang = k === 'zh' ? 'zh-Hans' : k;
+    root.dir = k === 'he' ? 'rtl' : 'ltr';
+    $('pm-label').textContent = v.name;
+    greet.replaceChildren(...v.title.flatMap((t, i) => { const s = document.createElement('span'); s.textContent = t; return i && v.join ? [document.createTextNode(v.join), s] : [s]; }));
+    $('line').textContent = v.line; $('save-t').textContent = v.save;
+    v.order.forEach((c, i) => { const a = chans.querySelector(`[data-ch="${c}"]`); a.classList.toggle('lead', i === 0); chans.append(a); });
+    chans.setAttribute('aria-label', v.order.map((c) => NAMES[c]).join(', '));
+    list.querySelectorAll('a').forEach((a) => a.setAttribute('aria-current', a.dataset.lang === k ? 'true' : 'false'));
+    let on;
+    cover.querySelectorAll('g[data-lang]').forEach((g) => { const m = g.dataset.lang === k; g.classList.toggle('on', m); if (m) on = g; });
+    cover.style.background = on.dataset.ground;
+    greet.style.setProperty('--title-ink', on.dataset.ink);
+    fit(); play(on);
+    const u = new URL(location.href); u.searchParams.set('lang', k); u.searchParams.delete('picker'); u.searchParams.delete('still');
+    try { history.replaceState(null, '', u); } catch {}
+  }
+  function open(on) { pm.classList.toggle('open', on); btn.setAttribute('aria-expanded', on); }
+  btn.addEventListener('click', () => open(!pm.classList.contains('open')));
+  list.addEventListener('click', (e) => {
+    const a = e.target.closest('a[data-lang]'); if (!a) return;
+    e.preventDefault(); setLang(a.dataset.lang); open(false); btn.focus();
+  });
+  document.addEventListener('click', (e) => { if (!pm.contains(e.target)) open(false); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && pm.classList.contains('open')) { open(false); btn.focus(); } });
+  addEventListener('resize', fit);
+  document.fonts?.ready.then(fit);
+
+  setLang(q.get('lang') || 'en');
+  if (q.get('picker') === 'open') { pm.classList.add('instant'); open(true); requestAnimationFrame(() => requestAnimationFrame(() => pm.classList.remove('instant'))); }
+})();
+</script>
+</body>
+</html>

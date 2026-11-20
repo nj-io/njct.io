@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>njct.io</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;800&amp;family=Bricolage+Grotesque:opsz,wght@96,800&amp;family=Noto+Sans+Thai:wght@400;500&amp;family=Noto+Sans+Hebrew:wght@400;500&amp;family=Noto+Sans+SC:wght@400;500&amp;display=block&amp;text=%20%21%27%2C.ACEGHILNOPSWYacdefghijklmnopqrstuvwy%C2%A1%C3%AD%C3%B1%D7%90%D7%91%D7%94%D7%95%D7%99%D7%9B%D7%9C%D7%9D%D7%9E%D7%9F%D7%A0%D7%A2%D7%A4%D7%A6%D7%A7%D7%A8%D7%A9%D7%AA%E0%B8%81%E0%B8%84%E0%B8%87%E0%B8%88%E0%B8%8A%E0%B8%94%E0%B8%95%E0%B8%97%E0%B8%99%E0%B8%9A%E0%B8%9C%E0%B8%A1%E0%B8%A2%E0%B8%A3%E0%B8%A7%E0%B8%AA%E0%B8%AD%E0%B8%B1%E0%B8%B2%E0%B8%B4%E0%B8%B5%E0%B8%B6%E0%B8%B7%E0%B8%B9%E0%B9%84%E0%B9%88%E0%B9%89%E2%80%99%E3%80%82%E4%B8%AD%E4%BA%BA%E4%BB%A5%E4%BD%A0%E4%BF%9D%E5%85%B4%E5%88%B0%E5%8F%AF%E5%9C%A8%E5%A5%BD%E5%AD%98%E5%BE%88%E6%88%91%E6%89%BE%E6%96%87%E6%98%AF%E7%B3%BB%E8%81%94%E8%AE%A4%E8%AF%86%E8%BF%99%E9%87%8C%E9%AB%98%EF%BC%8C">
+<style>
+  :root {
+    /* The site's ground (njct.io index.html): the wall's light as one radial gradient; darker on a phone. */
+    --u: min(100vw / 1440, 100vh / 760);
+    --ground: radial-gradient(calc(806.6 * var(--u)) calc(309.6 * var(--u)) at 50% calc(50% + 293.5 * var(--u)),
+      rgb(211 211 211), rgb(214.7 214.7 214.7) 20%, rgb(216.1 216.1 216.1) 40%, rgb(216.9 216.9 216.9) 60%, rgb(217.5 217.5 217.5) 80%,
+      rgb(218 218 218) 100%, rgb(218.7 218.7 218.7) 140%, rgb(219.4 219.4 219.4) 200%, rgb(220 220 220) 260%) rgb(220 220 220);
+    --ink: #000;
+    --ink-soft: rgba(0, 0, 0, 0.6);
+    --gutter: max(16px, calc((100vw - 1600px) / 2));
+    --text: 'Inter', 'Noto Sans Thai', 'Noto Sans Hebrew', 'Noto Sans SC', sans-serif;
+
+    /* The crate (scene/crate.js CRATE): the front sleeve 68.2% of the screen wide, its foot at 79.7% of the
+       height, leaning 24 degrees toward the visitor; each sleeve behind shows a strip of its top. */
+    --W: min(68.2vw, 36vh, 400px);
+    --foot: 79.7%;
+  }
+  @media (min-width: 600px) { :root { --W: min(30vh, 400px); } }
+  @media (max-width: 599px) {
+    :root { --ground: radial-gradient(calc(806.6 * var(--u)) calc(309.6 * var(--u)) at 50% calc(50% + 293.5 * var(--u)),
+      rgb(195.5 195.5 195.5), rgb(198.4 198.4 198.4) 20%, rgb(199.7 199.7 199.7) 40%, rgb(200.5 200.5 200.5) 60%, rgb(201.1 201.1 201.1) 80%,
+      rgb(201.5 201.5 201.5) 100%, rgb(202.2 202.2 202.2) 140%, rgb(202.9 202.9 202.9) 200%, rgb(203.6 203.6 203.6) 300%, rgb(204.1 204.1 204.1) 380%, rgb(204.8 204.8 204.8) 520%) rgb(204.8 204.8 204.8); }
+  }
+  html, body { margin: 0; height: 100%; overflow: hidden; }
+  html { background: var(--ground); }
+  body {
+    font: 400 14px/20px var(--text); color: var(--ink);
+    -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility;
+  }
+  button { font: inherit; color: inherit; margin: 0; }
+  a { color: inherit; }
+  :focus-visible { outline: 2px solid #000; outline-offset: 2px; }
+
+  /* Header: the site's masthead, the picker in the Projects menu's place. */
+  .masthead { position: fixed; top: 0; left: 0; right: 0; z-index: 300; height: 54px; }
+  .wordmark { position: absolute; left: var(--gutter); top: 3px; padding: 12px 0; min-width: 44px; font-weight: 500; line-height: 20px; text-decoration: none; color: var(--ink); direction: ltr; }
+  [dir="rtl"] .wordmark { left: auto; right: var(--gutter); }
+  .pm { position: absolute; top: 5px; inset-inline-start: calc(var(--gutter) + 86px); --pm-ease: cubic-bezier(0.4, 0, 0.2, 1); }
+  .pm-btn {
+    display: flex; align-items: center; gap: 4px; height: 44px; padding: 0 8px; border: 0; border-radius: 4px;
+    background: transparent; color: var(--ink); font-weight: 500; line-height: 14px; letter-spacing: -0.01em; cursor: pointer;
+    transition: color 0.3s var(--pm-ease), background-color 0.3s var(--pm-ease);
+  }
+  @media (hover: hover) { .pm-btn:hover { background: #000; color: #fff; } .pm-list li:hover { background: rgb(244 244 244); } }
+  .pm-btn svg { width: 16px; height: 16px; display: block; }
+  .pm.open .pm-btn svg { transform: rotate(180deg); }
+  .pm-list {
+    position: absolute; inset-inline-start: 0; top: calc(100% + 8px); margin: 0; padding: 0; list-style: none; box-sizing: border-box;
+    min-width: 220px; width: max-content;
+    background: #fff; border-radius: 4px; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+    opacity: 0; visibility: hidden; translate: 0 -10px;
+    transition: opacity 0.3s var(--pm-ease), visibility 0.3s var(--pm-ease), translate 0.3s var(--pm-ease);
+  }
+  .pm.open .pm-list {
+    opacity: 1; visibility: visible; translate: none;
+    transition: opacity 0.3s var(--pm-ease) 0.1s, visibility 0s, translate 0.3s var(--pm-ease) 0.1s;
+  }
+  .pm-list li { border-bottom: 1px solid rgb(236 236 236); }
+  .pm-list li:last-child { border-bottom: 0; }
+  .pm-item {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px; box-sizing: border-box; width: 100%;
+    min-height: 52px; padding: 10px 16px 8px; border: 0; background: none; color: #000; text-align: start; cursor: pointer;
+    font-size: 16px; line-height: 22px;
+  }
+  .pm-item:focus-visible { outline-offset: -2px; }
+  .pm-item svg { width: 16px; height: 16px; flex: none; visibility: hidden; }
+  .pm-item[aria-current="true"] svg { visibility: visible; }
+  /* A phone: the list is a sheet from the bottom of the screen. */
+  @media (max-width: 599px) {
+    .pm-list {
+      position: fixed; left: 0; right: 0; top: auto; bottom: 0; width: auto; min-width: 0;
+      border-radius: 4px 4px 0 0; padding-bottom: env(safe-area-inset-bottom); translate: 0 50px;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) { .pm-btn, .pm-list, .pm.open .pm-list { transition: none; } }
+
+  /* The welcome: set as the About page sets "Hi, I'm Neil.", in the place of the site's tagline under the header. */
+  .welcome {
+    position: fixed; z-index: 200; top: 66px; left: var(--gutter); right: var(--gutter); margin: 0; font-weight: 400;
+    pointer-events: none;
+  }
+  @media (min-width: 600px) { .welcome { left: calc(50% - var(--W) * 0.62); right: auto; width: calc(var(--W) * 1.4); } }
+  [dir="rtl"] .welcome { text-align: right; }
+  @media (min-width: 600px) { [dir="rtl"] .welcome { left: auto; right: calc(50% - var(--W) * 0.62); } }
+  .greeting {
+    display: block; margin: 0; font-weight: 500; font-size: clamp(34px, 12.6vw, 60px); line-height: 1.04; letter-spacing: -0.035em;
+    text-wrap: balance;
+  }
+  .line { display: block; margin-top: 10px; font-size: 16px; line-height: 22px; color: var(--ink-soft); text-wrap: balance; max-width: 30ch; }
+  :lang(th) .greeting { line-height: 1.22; letter-spacing: 0; font-size: clamp(30px, 10vw, 48px); }
+  :lang(th) .line { line-height: 1.5; }
+  :lang(he) .greeting, :lang(zh-Hans) .greeting { letter-spacing: -0.01em; }
+
+  /* The crate: square sleeves standing front to back, each leaning toward the visitor, foot at --foot.
+     The script poses every sleeve from the crate's position, as scene/crate.js does. */
+  .crate { position: fixed; inset: 0; perspective: calc(var(--W) * 5.4); perspective-origin: 50% 50%; direction: ltr; touch-action: none; }
+  .crate.rising { clip-path: inset(0 0 calc(100% - var(--foot) - 1px) 0); }
+  .crate-shadow {
+    position: absolute; left: max(0px, 50% - var(--W) * 1.2); right: 50%; top: 40.3%; height: 39.1%; background: rgba(0, 0, 0, 0.054);
+    -webkit-mask: linear-gradient(transparent, #000 20px, #000 calc(100% - 20px), transparent);
+            mask: linear-gradient(transparent, #000 20px, #000 calc(100% - 20px), transparent);
+  }
+  @media (min-width: 600px) {
+    .crate-shadow {
+      -webkit-mask: linear-gradient(transparent, #000 20px, #000 calc(100% - 20px), transparent), linear-gradient(to right, transparent, #000 60%);
+      -webkit-mask-composite: source-in;
+              mask: linear-gradient(transparent, #000 20px, #000 calc(100% - 20px), transparent), linear-gradient(to right, transparent, #000 60%);
+              mask-composite: intersect;
+    }
+  }
+  .sleeve, .slot {
+    position: absolute; left: calc(50% - var(--W) / 2); top: calc(var(--foot) - var(--W));
+    width: var(--W); height: var(--W); transform-origin: 50% 100%;
+    transform: rotateX(-24deg);
+  }
+  .sleeve { transform-style: preserve-3d; }
+  .face, .back {
+    position: absolute; inset: 0; overflow: hidden; box-sizing: border-box;
+    -webkit-backface-visibility: hidden; backface-visibility: hidden;
+    border-top: 1.5px solid #1c1c1c;
+  }
+  .face { background: var(--paper); color: var(--title); }
+  /* A flipped sleeve, fallen forward, shows its back: the paper a shade down. */
+  .back { transform: rotateX(180deg); background: color-mix(in srgb, var(--paper) 84%, #000); border-top: 0; border-bottom: 1.5px solid #1c1c1c; }
+
+  /* A channel sleeve: one flat colour, its name set as the site's covers set titles, a small mark at the right. */
+  .ch-name {
+    position: absolute; left: calc(var(--W) * 0.051); top: calc(var(--W) * 0.022);
+    font: 800 calc(var(--W) * 0.155)/1 'Bricolage Grotesque', var(--text); letter-spacing: -0.015em; white-space: nowrap;
+  }
+  .ch-mark {
+    position: absolute; right: calc(var(--W) * 0.045); top: calc(var(--W) * 0.045);
+    width: calc(var(--W) * 0.098); height: calc(var(--W) * 0.098); border-radius: 22%;
+    background: var(--title); color: var(--paper); display: grid; place-items: center;
+  }
+  .ch-mark svg { width: 66%; height: 66%; display: block; }
+  /* Palettes taken from the shelf's covers. */
+  .sleeve[data-ch="linkedin"] { --paper: #145DE9; --title: #FFFFFF; }   /* Social Hook */
+  .sleeve[data-ch="whatsapp"] { --paper: #1C3A30; --title: #F8F7F1; }   /* LikeWiki */
+  .sleeve[data-ch="line"]     { --paper: #06474D; --title: #4EE4E8; }   /* Clauded */
+  .sleeve[data-ch="wechat"]   { --paper: #140F0B; --title: #F9B224; }   /* Chairtax */
+
+  /* Tapping a sleeve that isn't at the front brings it there: one button over each sleeve's face. */
+  .pick { position: absolute; inset: 0; z-index: 1; padding: 0; border: 0; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .pick:focus-visible { outline: 3px solid #000; outline-offset: -3px; }
+  .sleeve.front .pick { display: none; }
+
+  /* The front sleeve's pill opens the channel: the site's Open pill, inked in the sleeve's own title colour. */
+  .open {
+    position: absolute; z-index: 2; left: calc(var(--W) * 0.051); bottom: calc(var(--W) * 0.06);
+    display: flex; align-items: center; gap: 8px; box-sizing: border-box; height: 54px; padding: 0 22px 0 17px; border-radius: 27px;
+    background: var(--title); color: var(--paper); font-size: 17px; font-weight: 500; line-height: 54px; letter-spacing: -0.01em;
+    text-decoration: none; white-space: nowrap; -webkit-tap-highlight-color: transparent;
+    visibility: hidden;
+  }
+  .open svg { width: 20px; height: 20px; flex: none; display: block; }
+  .sleeve.front .open { visibility: visible; }
+  .open:focus-visible { outline: 2px solid var(--title); outline-offset: 3px; }
+
+  /* The site's "Now playing" sticker (scene/sticker.js): a scalloped foil disc stuck on the crate's front slot,
+     over whichever sleeve stands there. It is the place the stage-2 head takes. */
+  .slot { z-index: 105; pointer-events: none; }
+  .sticker {
+    --D: calc(var(--W) * 0.46);
+    position: absolute; left: calc(var(--W) * 0.69 - var(--D) / 2); top: calc(var(--W) * 0.49 - var(--D) / 2);
+    width: var(--D); height: var(--D); clip-path: url(#scallop);
+    background:
+      radial-gradient(circle at 40% 35%, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0) 62.5%),
+      radial-gradient(circle at 30% 30%, #9af2dccc, #9af2dc00 22.7%),
+      radial-gradient(circle at 70% 62%, #ffa6e6cc, #ffa6e600 22.7%),
+      radial-gradient(circle at 42% 72%, #ffe596cc, #ffe59600 22.7%),
+      radial-gradient(circle at 68% 28%, #c4b2ffcc, #c4b2ff00 22.7%),
+      radial-gradient(circle at 25% 58%, #ffb8dccc, #ffb8dc00 22.7%),
+      conic-gradient(from 124.4deg, #ffa6e6, #9af2dc, #c4b2ff, #ffe596, #9fd6ff, #ffb8dc, #ffa6e6);
+    display: grid; place-items: center;
+  }
+  .sticker > span {
+    display: flex; flex-direction: column; align-items: center; rotate: 12deg; translate: 0 calc(var(--D) * 0.03);
+    font: 800 calc(var(--D) * 0.15)/1 'Inter', sans-serif; color: #000; letter-spacing: -0.01em;
+  }
+
+  /* The site's crate rail: where the crate stands, the thumb at the bottom for the first sleeve. */
+  .rail { position: fixed; z-index: 200; right: 20px; top: 41.5%; width: 3px; height: 17%; border-radius: 2px; background: rgba(0, 0, 0, 0.12); }
+  [dir="rtl"] .rail { right: auto; left: 20px; }
+  .rail span { position: absolute; left: 0; top: 0; width: 3px; height: 24px; border-radius: 2px; background: #000; }
+
+  /* The bar: where the site's crate bar puts its Open pill. */
+  .bar {
+    position: fixed; z-index: 200; left: 16px; right: 16px; bottom: max(17px, env(safe-area-inset-bottom));
+    max-width: 560px; margin: 0 auto; display: flex; justify-content: flex-end;
+  }
+  .save {
+    box-sizing: border-box; height: 44px; padding: 0 16px; border-radius: 22px; background: #000; color: #fff;
+    line-height: 44px; white-space: nowrap; text-decoration: none;
+  }
+  @media (min-width: 600px) { .bar { justify-content: center; } }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><clipPath id="scallop" clipPathUnits="objectBoundingBox"><path id="scallop-path"/></clipPath></defs></svg>
+<header class="masthead">
+  <a class="wordmark" href="https://njct.io/">njct.io</a>
+  <nav class="pm" id="pm">
+    <button class="pm-btn" id="pm-btn" type="button" aria-expanded="false" aria-controls="pm-list"><span id="pm-label">English</span><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></button>
+    <ul class="pm-list" id="pm-list" aria-labelledby="pm-btn"></ul>
+  </nav>
+</header>
+
+<main>
+  <h1 class="welcome"><span class="greeting" id="greeting"></span><span class="line" id="line"></span></h1>
+
+  <div class="crate" id="crate">
+    <div class="crate-shadow" aria-hidden="true"></div>
+    <div class="slot" id="slot" aria-hidden="true">
+      <div class="sticker" lang="en"><span><span>NOW</span><span>PLAYING</span></span></div>
+    </div>
+  </div>
+  <div class="rail" aria-hidden="true"><span id="thumb"></span></div>
+
+  <div class="bar"><a class="save" id="save" href="#"></a></div>
+</main>
+
+<script>
+const COPY = {
+  en: { label: 'English', greeting: 'Hi, I’m Neil.', line: "Great to meet you. Here's where to find me.", save: 'Save contact', order: ['linkedin', 'whatsapp', 'line', 'wechat'] },
+  th: { label: 'ไทย', greeting: 'สวัสดีครับ ผม Neil', line: 'ยินดีที่ได้รู้จักครับ ติดต่อผมได้ทางนี้', save: 'บันทึกรายชื่อ', order: ['line', 'whatsapp', 'linkedin', 'wechat'] },
+  zh: { label: '中文', greeting: '你好，我是 Neil', line: '很高兴认识你，可以在这里找到我。', save: '保存联系人', order: ['wechat', 'linkedin', 'whatsapp', 'line'] },
+  he: { label: 'עברית', greeting: 'היי, אני ניל', line: 'נעים להכיר! כאן אפשר למצוא אותי.', save: 'שמירת איש קשר', order: ['whatsapp', 'linkedin', 'line', 'wechat'] },
+  es: { label: 'Español', greeting: '¡Hola! Soy Neil.', line: 'Encantado de conocerte. Aquí me encuentras.', save: 'Guardar contacto', order: ['whatsapp', 'linkedin', 'line', 'wechat'] },
+};
+// One-colour marks: on the sleeve, in its paper colour on a badge of its title colour; on the pill, in the paper colour.
+const CHANNELS = {
+  linkedin: { name: 'LinkedIn', mark: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="3.5" y="9" width="3.6" height="11.5" rx=".6"/><circle cx="5.3" cy="5.2" r="2.1"/><path d="M10 9h3.4v1.7c.6-1.1 2-2 3.9-2 3 0 4.2 1.8 4.2 5.1v6.7h-3.6v-6c0-1.6-.5-2.6-1.9-2.6-1.5 0-2.4 1-2.4 2.8v5.8H10z"/></svg>' },
+  whatsapp: { name: 'WhatsApp', mark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4.2 20l1.1-3.9A8.3 8.3 0 1 1 8.4 19z"/><path d="M9 8.3c.3 2.9 3.6 6.2 6.6 6.6" stroke-linecap="round"/></svg>' },
+  line: { name: 'LINE', mark: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.2c5 0 9 3.2 9 7.2 0 3.6-3.6 6.7-8.3 7.6-.8.9-2.7 2.7-4.6 3.4.5-1 .9-2.2.9-3.6C5.5 17 3 14 3 10.4c0-4 4-7.2 9-7.2z"/></svg>' },
+  wechat: { name: 'WeChat', mark: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M9.3 3.5C5 3.5 1.8 6.3 1.8 9.6c0 1.9 1 3.5 2.6 4.6l-.6 2.2 2.6-1.3c.9.3 1.9.4 2.9.4h.4a5.6 5.6 0 0 1-.2-1.5c0-3.4 3.2-6.1 7.2-6.1h.4c-.6-2.6-3.6-4.4-7.8-4.4z"/><path d="M16.7 9c-3.4 0-6 2.2-6 4.9s2.6 4.9 6 4.9c.7 0 1.4-.1 2-.3l2.2 1.1-.5-1.8c1.4-.9 2.3-2.3 2.3-3.9 0-2.7-2.6-4.9-6-4.9z"/></svg>' },
+};
+
+// The sticker's outline, as scene/sticker.js draws it: eleven shallow scallops round a disc.
+document.getElementById('scallop-path').setAttribute('d', (() => {
+  let d = '';
+  for (let k = 0; k < 360; k++) {
+    const a = k / 360 * Math.PI * 2, r = 0.5 * (1 + 0.065 * Math.cos(11 * a)) / 1.065;
+    d += (k ? 'L' : 'M') + (0.5 + r * Math.cos(a)).toFixed(4) + ' ' + (0.5 + r * Math.sin(a)).toFixed(4);
+  }
+  return d + 'Z';
+})());
+
+const crate = document.getElementById('crate'), slot = document.getElementById('slot'), thumb = document.getElementById('thumb');
+const pm = document.getElementById('pm'), pmBtn = document.getElementById('pm-btn'), pmList = document.getElementById('pm-list');
+const check = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"/></svg>';
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+
+/* ---- The crate's motion, after scene/crate.js: position p runs over the sleeves; sleeve i stands d = i - p
+   from the front. Those behind stand d strips higher and a little smaller; those already passed have fallen
+   forward toward the visitor, back up, and drop out below, the second one fading. A drag of 150 px moves
+   one sleeve, a flick carries 60 ms of its speed, and a critically damped spring settles it. ---- */
+const C = { lean: 24, flatLean: 78, strip: 0.24, shrink: 0.022, flatStrip: 0.07, flatMax: 4, drag: 150, carry: 0.06, omega: 8.5, notch: 60 };
+let sleeves = [], W = 0, p = 0, v = 0, target = 0, drag = null, wheelAcc = 0, rise = null, running = false;
+const flatOff = k => C.flatStrip * C.flatMax * (1 - Math.exp(-k / C.flatMax));
+
+function pose() {
+  const n = sleeves.length, cur = clamp(Math.round(drag ? p : target), 0, n - 1);
+  sleeves.forEach((el, i) => {
+    const d = i - p, r = rise ? rise[i] : 0;
+    let ty, tz = 0, sc = 1, rot = C.lean, op = 1, z;
+    if (d >= 0) { ty = -d * C.strip * W; sc = 1 - d * C.shrink; z = 100 - Math.round(d * 10); }
+    else {
+      const k = -d, u = Math.min(1, k);
+      rot = C.lean + (C.flatLean - C.lean) * u; ty = flatOff(k) * W; tz = 0.25 * W * u; op = clamp(2.5 - k, 0, 1);
+      z = 110 + Math.round(k * 10);
+    }
+    el.style.transform = `translate3d(0,${(ty + r).toFixed(2)}px,${tz.toFixed(2)}px) scale(${sc.toFixed(4)}) rotateX(${-rot.toFixed(3)}deg)`;
+    el.style.opacity = op < 1 ? op.toFixed(3) : '';
+    el.style.visibility = op <= 0.002 ? 'hidden' : '';
+    el.style.zIndex = z;
+    const front = i === cur;
+    if (el.classList.contains('front') !== front) {
+      el.classList.toggle('front', front);
+      el.querySelector('.open').tabIndex = front ? 0 : -1;
+    }
+  });
+  // The sticker stays on the front slot, rising with the front sleeve on load.
+  slot.style.transform = `translate3d(0,${(rise ? rise[0] : 0).toFixed(2)}px,0) rotateX(${-C.lean}deg)`;
+  const track = thumb.parentElement.clientHeight - thumb.offsetHeight;
+  thumb.style.transform = `translateY(${((1 - clamp(p / Math.max(1, n - 1), 0, 1)) * track).toFixed(1)}px)`;
+}
+
+let last = 0;
+function frame(now) {
+  const dt = Math.min(0.05, (now - (last || now)) / 1000); last = now;
+  let moving = !!drag;
+  if (!drag) {
+    const w = reduce ? 30 : C.omega, a = w * w * (target - p) - 2 * w * v;
+    v += a * dt; p += v * dt;
+    if (Math.abs(target - p) < 1e-3 && Math.abs(v) < 1e-2) { p = target; v = 0; } else moving = true;
+  }
+  pose();
+  if (moving) requestAnimationFrame(frame); else { running = false; last = 0; }
+}
+function wake() { if (!running) { running = true; last = 0; requestAnimationFrame(frame); } }
+function go(i) { target = clamp(i, 0, sleeves.length - 1); wake(); }
+
+// The channel sleeves stand in the language's order, its first channel at the front.
+function buildSleeves(order) {
+  sleeves.forEach(el => el.remove());
+  sleeves = order.map((id, i) => {
+    const c = CHANNELS[id], el = document.createElement('div');
+    el.className = 'sleeve'; el.dataset.ch = id;
+    el.innerHTML = `<div class="face"><span class="ch-name">${c.name}</span><span class="ch-mark" aria-hidden="true">${c.mark}</span>` +
+      `<button class="pick" type="button" aria-label="${c.name}"></button>` +
+      `<a class="open" href="#" tabindex="-1">${c.mark}<span>${c.name}</span></a></div><div class="back" aria-hidden="true"></div>`;
+    el.querySelector('.pick').addEventListener('click', () => { go(i); el.querySelector('.open').focus({ preventScroll: true }); });
+    crate.insertBefore(el, slot);
+    return el;
+  });
+  W = sleeves[0].offsetWidth;
+  p = target = 0; v = 0;
+  pose();
+}
+
+// Swipe: the crate follows the finger, a finger moved down flips the front sleeve toward the visitor.
+crate.addEventListener('pointerdown', e => {
+  if (e.button > 0) return;
+  drag = { y0: e.clientY, p0: p, live: false, samples: [[e.timeStamp, e.clientY]] }; v = 0;
+});
+addEventListener('pointermove', e => {
+  if (!drag) return;
+  const dy = e.clientY - drag.y0;
+  if (!drag.live && Math.abs(dy) < 8) return;
+  drag.live = true;
+  let q = drag.p0 + dy / C.drag;
+  const top = sleeves.length - 1;
+  if (q < 0) q /= 3; else if (q > top) q = top + (q - top) / 3;   // past either end it gives a little
+  p = q;
+  drag.samples.push([e.timeStamp, e.clientY]);
+  while (drag.samples.length > 2 && e.timeStamp - drag.samples[0][0] > 100) drag.samples.shift();
+  wake();
+});
+addEventListener('pointerup', e => {
+  if (!drag) return;
+  const d = drag; drag = null;
+  if (!d.live) return;
+  const s = d.samples, a = s[0], b = s[s.length - 1];
+  const vy = b[0] - a[0] > 8 && e.timeStamp - b[0] < 80 ? (b[1] - a[1]) / (b[0] - a[0]) * 1000 : 0;
+  v = reduce ? 0 : clamp(vy / C.drag, -12, 12);
+  go(Math.round(p + (reduce ? 0 : v * C.carry)));
+  // A drag is not a tap: the click it ends in neither picks a sleeve nor opens a channel.
+  const swallow = ev => { ev.preventDefault(); ev.stopPropagation(); };
+  addEventListener('click', swallow, true);
+  setTimeout(() => removeEventListener('click', swallow, true), 0);
+});
+addEventListener('pointercancel', () => { if (drag) { drag = null; go(Math.round(p)); } });
+crate.addEventListener('wheel', e => {
+  e.preventDefault();
+  wheelAcc += e.deltaY;
+  while (Math.abs(wheelAcc) >= C.notch) { const s = Math.sign(wheelAcc); go(target + s); wheelAcc -= s * C.notch; }
+}, { passive: false });
+document.addEventListener('keydown', e => {
+  if (pm.contains(document.activeElement)) return;
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); go(target + (e.key === 'ArrowDown' ? 1 : -1)); }
+});
+
+function setLang(code) {
+  code = COPY[code] ? code : 'en';
+  const t = COPY[code];
+  document.documentElement.lang = code === 'zh' ? 'zh-Hans' : code;
+  document.documentElement.dir = code === 'he' ? 'rtl' : 'ltr';
+  document.getElementById('pm-label').textContent = t.label;
+  document.getElementById('greeting').textContent = t.greeting;
+  document.getElementById('line').textContent = t.line;
+  document.getElementById('save').textContent = t.save;
+  pmList.querySelectorAll('.pm-item').forEach(b => b.setAttribute('aria-current', b.dataset.lang === code));
+  buildSleeves(t.order);
+}
+
+function openMenu(on) {
+  pm.classList.toggle('open', on);
+  pmBtn.setAttribute('aria-expanded', on);
+}
+for (const [code, t] of Object.entries(COPY)) {
+  const li = document.createElement('li'), b = document.createElement('button');
+  b.className = 'pm-item'; b.type = 'button'; b.dataset.lang = code; b.lang = code;
+  b.innerHTML = `<span dir="auto">${t.label}</span>${check}`;
+  b.addEventListener('click', () => {
+    setLang(code); openMenu(false); pmBtn.focus();
+    const u = new URL(location.href); u.searchParams.set('lang', code); u.searchParams.delete('picker');
+    history.replaceState(null, '', u);
+  });
+  li.append(b); pmList.append(li);
+}
+pmBtn.addEventListener('click', () => openMenu(!pm.classList.contains('open')));
+document.addEventListener('click', e => { if (!pm.contains(e.target)) openMenu(false); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && pm.classList.contains('open')) { openMenu(false); pmBtn.focus(); } });
+addEventListener('resize', () => { if (sleeves[0]) { W = sleeves[0].offsetWidth; pose(); } });
+
+const q = new URLSearchParams(location.search);
+const want = q.get('lang') || (navigator.language || 'en').slice(0, 2);
+setLang(COPY[want] ? want : 'en');
+if (q.get('picker') === 'open') openMenu(true);
+
+/* ---- The one load motion: the sleeves rise out of the crate to their places, the back one first, the
+   front one last with the sticker on it. Driven per frame from the clock; a timeout snaps it to rest for a
+   tab that paints no frames. ?t=<ms> freezes it at that moment, for checking frame by frame. ---- */
+const INTRO = { delay: 120, each: 110, dur: 760 };
+const introEnd = INTRO.delay + (sleeves.length - 1) * INTRO.each + INTRO.dur;
+function riseAt(k) {
+  const n = sleeves.length;
+  // Overshoot a touch and settle (an ease-out-back), as a sleeve lifted and let drop into its place.
+  const back = t => { const s = 1.15; t -= 1; return t * t * ((s + 1) * t + s) + 1; };
+  return sleeves.map((el, i) => {
+    const t = clamp((k - INTRO.delay - (n - 1 - i) * INTRO.each) / INTRO.dur, 0, 1);
+    return (1 - back(t)) * W * (1.02 + i * C.strip);
+  });
+}
+const frozen = q.get('t');
+if (frozen !== null) {
+  const k = +frozen;
+  if (k < introEnd) { crate.classList.add('rising'); rise = riseAt(k); pose(); }
+} else if (!reduce) {
+  crate.classList.add('rising');
+  rise = riseAt(0); pose();
+  const t0 = performance.now();
+  let done = false;
+  const finish = () => { if (done) return; done = true; rise = null; crate.classList.remove('rising'); pose(); };
+  const tick = now => { if (done) return; const k = now - t0; if (k >= introEnd) return finish(); rise = riseAt(k); pose(); requestAnimationFrame(tick); };
+  requestAnimationFrame(tick);
+  setTimeout(finish, introEnd + 100);
+}
+</script>
+</body>
+</html>
